@@ -1,0 +1,53 @@
+
+
+Suggestions before you begin:
+
+1. Use Debian Linux or Debian Linux derived OS (e.g. Ubuntu)
+
+2. Install gcc and make packages if they are not already installed.
+
+3. Install a favorite text editor. (vim, emacs, gedit, kate or other)
+
+4. Install git, the source code management system used by PSAS. Our
+source code repository is located at git.psas.pdx.edu.
+Learn about git here: http://git-scm.com/
+
+Building the cross compiler.
+
+0. Make a directory for the crosstool build utility
+   mkdir x-utility
+
+1. cd x-utility
+
+2. Download from http://crosstool-ng.org/download/crosstool-ng/
+   the file crosstool-ng-1.17.0.tar.bz2. Save it to the x-utility
+   directory just created.
+
+3. tar xjf crosstool-ng-1.17.0.tar.bz2
+
+4. cd crosstool-ng-1.17.0
+
+5. ./configure --prefix /opt/crosstool-ng
+
+    This will test your machine configuration and look for missing
+    packages. It may take several attempts to install all the
+    dependencies. RELAX, this is normal.
+
+6. make
+    At this point, the crosstool-ng utility will build.
+
+7. make install
+
+8. update your path, this involves probably editing your ~/.bashrc file:
+
+    Add these two lines:
+    # prepend to path for ct-ng utility
+    export PATH=/opt/crosstool-ng/bin:$PATH
+
+    Then in a shell:
+    > source ~/.bashrc
+
+    There are other methods of maintaining your path, feel free to uss them
+
+
+
