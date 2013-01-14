@@ -7,10 +7,12 @@ cross compiler(s)
 Currently the crosstool-ng cross compiler build
 tool is used. ("ct-ng") (see: crosstool-ng.org)
 
-
 Thu 10 January 2013 14:24:58 (PST)
 
-A makefile is being created with the idea of 
-creating a debian binary (.deb) package 
-for PSAS x-compilers.
+A makefile is provided. Once the crosstool-ng tools
+have been installed, 'make all' should build the
+cross compilers.
+
+Change the NUMCPUS to something reasonable for your
+system
 
