@@ -1,11 +1,11 @@
-Use crosstool-NG 1.17.0, from http://crosstool-ng.org/
 
-To load the psas configuration: ct-ng arm-psas-eabi
-To view it: ct-ng menuconfig
-To build it: ct-ng build
+To install the binaries:
 
-Required packages:
-Autotools?
-??
-??
-python-dev for GDB
+cd to /opt/psas/
+untar the archive there.
+Then edit your .bashrc to add the following to your path:
+
+/opt/psas/x-tools/stm32f407/arm-psas-eabi/bin
+
+
+Now you can cross compile code to the arm microcontroller.
