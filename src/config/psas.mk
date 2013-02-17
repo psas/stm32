@@ -1,5 +1,6 @@
 # Directory for PSAS configuration
 PSAS_CFG=$(HOME)/Projects/stm32/src/config
+PSAS_DEV_SRC=$(HOME)/Projects/stm32/devices
 %:
 	mkdir -p $(OBJDIR)
 	mkdir -p $(LSTDIR)
