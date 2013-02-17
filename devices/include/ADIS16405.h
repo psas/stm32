@@ -153,6 +153,7 @@ extern  adis_data               adis_txbuf[ADIS_MAX_TX_BUFFER];
 
 extern  adis_cache              adis_data_cache;
 
+void    adis_spi_cb();
 void    adis_read_cb();
 
 void    adis_init();
