@@ -41,7 +41,6 @@ static SerialUSBDriver SDU1;
 
 /*! \sa HAL_USE_EXT in hal_conf.h
  */
-
 static void green_led_off(void *arg) {
 
   (void)arg;
@@ -103,6 +102,7 @@ static const EXTConfig extcfg = {
 /*
  * USB Device Descriptor.
  */
+
 /* Challenge: Change vendor strings to something PSAS-ish*/
 static const uint8_t vcom_device_descriptor_data[18] = {
   USB_DESC_DEVICE       (0x0110,        /* bcdUSB (1.1).                    */
@@ -427,6 +427,9 @@ static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
   } while (tp != NULL);
 }
 
+/*
+ * Challenge: add additional command line functions
+ */
 static const ShellCommand commands[] = {
   {"mem", cmd_mem},
   {"threads", cmd_threads},
@@ -452,8 +455,11 @@ static msg_t Thread1(void *arg) {
   }
   return -1;
 }
+
 /*
  * WKUP button handler
+ *
+ * Challenge: Do something more interesting here.
  */
 static void WKUP_button_handler(eventid_t id) {
 
@@ -480,7 +486,11 @@ int main(void) {
   halInit();
   chSysInit();
 
+  /*
+   * Initialize event structures BEFORE using them
+   */
   chEvtInit(&wkup_event);
+
   /*
    * Initializes a serial-over-USB CDC driver.
    */
@@ -509,9 +519,11 @@ int main(void) {
   sdStart(&SD6, NULL);
 
   /*
-     * Activates the EXT driver 1.
-     */
-    extStart(&EXTD1, &extcfg);
+   * Activates the EXT driver 1.
+   * This is for the external interrupt
+   */
+  extStart(&EXTD1, &extcfg);
+
   /*
    * Creates the blinker thread.
    */
@@ -529,8 +541,7 @@ int main(void) {
       chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
       shelltp = NULL;           /* Triggers spawning of a new shell.        */
     }
-//    if (palReadPad(GPIOA, GPIOA_BUTTON_WKUP) != 0) {
-//    }
+
     chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
   }
 }
