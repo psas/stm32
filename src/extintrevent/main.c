@@ -28,6 +28,7 @@
 #include "chprintf.h"
 #include "shell.h"
 
+
 /* Olimex stm32-e407 board */
 
 static EventSource wkup_event;
@@ -48,6 +49,8 @@ static void green_led_off(void *arg) {
 }
 
 /* Triggered when the WKUP button is pressed or released. The LED is set to ON.*/
+
+/* Challenge: Add de-bouncing */
 static void extcb1(EXTDriver *extp, expchannel_t channel) {
   static VirtualTimer vt4;
 
@@ -65,21 +68,6 @@ static void extcb1(EXTDriver *extp, expchannel_t channel) {
   chVTSetI(&vt4, MS2ST(500), green_led_off, NULL);
   chSysUnlockFromIsr();
 }
-
-
-/* Triggered when the WKUP button is pressed or released. The LED is set to ON.*/
-//static void extcb1(EXTDriver *extp, expchannel_t channel) {
-//
-//	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-//
-//	(void)extp;
-//	(void)channel;
-//
-//	chSysLockFromIsr();
-//
-//	chprintf(chp, "WKUP btn.\r\n");
-//	chSysUnlockFromIsr();
-//}
 
 static const EXTConfig extcfg = {
   {
@@ -115,6 +103,7 @@ static const EXTConfig extcfg = {
 /*
  * USB Device Descriptor.
  */
+/* Challenge: Change vendor strings to something PSAS-ish*/
 static const uint8_t vcom_device_descriptor_data[18] = {
   USB_DESC_DEVICE       (0x0110,        /* bcdUSB (1.1).                    */
                          0x02,          /* bDeviceClass (CDC).              */
@@ -449,10 +438,6 @@ static const ShellConfig shell_cfg1 = {
   commands
 };
 
-/*===========================================================================*/
-/* Main and generic code.                                                    */
-/*===========================================================================*/
-
 /*
  * Green LED blinker thread, times are in milliseconds.
  */
@@ -462,7 +447,7 @@ static msg_t Thread1(void *arg) {
   (void)arg;
   chRegSetThreadName("blinker");
   while (TRUE) {
-    //palTogglePad(GPIOC, GPIOC_LED);
+    palTogglePad(GPIOC, GPIOC_LED);
     chThdSleepMilliseconds(500);
   }
   return -1;
@@ -544,8 +529,8 @@ int main(void) {
       chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
       shelltp = NULL;           /* Triggers spawning of a new shell.        */
     }
-    if (palReadPad(GPIOA, GPIOA_BUTTON_WKUP) != 0) {
-    }
+//    if (palReadPad(GPIOA, GPIOA_BUTTON_WKUP) != 0) {
+//    }
     chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
   }
 }
