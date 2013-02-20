@@ -62,7 +62,6 @@ endif
 
 # Define project name here
 PROJECT = ch
-
 # Imported source files and paths
 PSAS= ../config
 include $(PSAS)/psas.mk
@@ -200,6 +199,7 @@ UDEFS =
 UADEFS =
 
 # List all user directories here
+# UINCDIR = ./boards/OLIMEX_STM32_E407
 UINCDIR =
 
 # List the user directory to look for the libraries here
