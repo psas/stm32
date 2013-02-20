@@ -607,7 +607,7 @@
  * PD12 - PIN12                     (input pullup).
  * PD13 - PIN13                     (input pullup).
  * PD14 - PIN14                     (input pullup).
- * PD15 - PIN15                     (input pullup).
+ * PD15 - PIN15                     (alternate 0).
  */
 #define VAL_GPIOD_MODER             (PIN_MODE_INPUT(GPIOD_PIN0) |           \
                                      PIN_MODE_INPUT(GPIOD_PIN1) |           \
@@ -624,7 +624,7 @@
                                      PIN_MODE_INPUT(GPIOD_PIN12) |          \
                                      PIN_MODE_INPUT(GPIOD_PIN13) |          \
                                      PIN_MODE_INPUT(GPIOD_PIN14) |          \
-                                     PIN_MODE_OUTPUT(GPIOD_PIN15))
+									 PIN_MODE_ALTERNATE(GPIOD_PIN15))
 #define VAL_GPIOD_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOD_PIN0) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOD_PIN1) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOD_SD_CMD) |     \
@@ -672,7 +672,7 @@
                                      PIN_PUPDR_PULLUP(GPIOD_PIN12) |        \
                                      PIN_PUPDR_PULLUP(GPIOD_PIN13) |        \
                                      PIN_PUPDR_PULLUP(GPIOD_PIN14) |        \
-                                     PIN_PUPDR_PULLUP(GPIOD_PIN15))
+                                     PIN_PUPDR_FLOATING(GPIOD_PIN15))
 #define VAL_GPIOD_ODR               (PIN_ODR_HIGH(GPIOD_PIN0) |             \
                                      PIN_ODR_HIGH(GPIOD_PIN1) |             \
                                      PIN_ODR_HIGH(GPIOD_SD_CMD) |           \
@@ -704,7 +704,7 @@
                                      PIN_AFIO_AF(GPIOD_PIN12, 0) |          \
                                      PIN_AFIO_AF(GPIOD_PIN13, 0) |          \
                                      PIN_AFIO_AF(GPIOD_PIN14, 0) |          \
-                                     PIN_AFIO_AF(GPIOD_PIN15, 0))
+                                     PIN_AFIO_AF(GPIOD_PIN15, 2))
 
 /*
  * GPIOE setup:
