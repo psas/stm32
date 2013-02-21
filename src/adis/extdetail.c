@@ -53,6 +53,7 @@ void extcb1(EXTDriver *extp, expchannel_t channel) {
 	palClearPad(GPIOC, GPIOC_LED);
 	chSysLockFromIsr();
 	chEvtBroadcastI(&wkup_event);
+	chEvtBroadcastI(&spi1_event);
 
 	if (chVTIsArmedI(&vt4))
 		chVTResetI(&vt4);

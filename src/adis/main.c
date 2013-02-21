@@ -35,13 +35,9 @@
 
 #include "main.h"
 
-/* Olimex stm32-e407 board */
-
 EventSource   wkup_event;
+EventSource   spi1_event;
 
-/*
- * Challenge: add additional command line functions
- */
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
 		{"threads", cmd_threads},
@@ -52,6 +48,27 @@ static const ShellConfig shell_cfg1 = {
 		(BaseSequentialStream *)&SDU1,
 		commands
 };
+
+
+/*
+ * WKUP button handler
+ *
+ */
+static void WKUP_button_handler(eventid_t id) {
+	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
+}
+
+/*
+ * SPI1 handler
+ *
+ */
+static void SPI1_handler(eventid_t id) {
+	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+	chprintf(chp, "SPI1. eventid: %d\r\n", id);
+}
+
+
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -69,14 +86,28 @@ static msg_t Thread1(void *arg) {
 }
 
 /*
- * WKUP button handler
- *
- * Challenge: Do something more interesting here.
+ * SPI1 thread
  */
-static void WKUP_button_handler(eventid_t id) {
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
+static WORKING_AREA(waThread2, 128);
+static msg_t Thread2(void *arg) {
+	(void)arg;
+	static const evhandler_t evhndl_spi1[]       = {
+			SPI1_handler
+	};
+	struct EventListener     evl_spi0;
+
+	chEvtRegister(&spi1_event, &evl_spi0, 0);
+
+	chRegSetThreadName("SPI1_ADIS");
+	while (TRUE) {
+		//palTogglePad(GPIOC, GPIOC_LED);
+		chThdSleepMilliseconds(500);
+		chEvtDispatch(evhndl_spi1, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
+
+	}
+	return -1;
 }
+
 
 /*
  * Application entry point.
@@ -98,18 +129,16 @@ int main(void) {
 	halInit();
 	chSysInit();
 
-	/*
-	 * Initialize event structures BEFORE using them
-	 */
 	chEvtInit(&wkup_event);
+	chEvtInit(&spi1_event);
 
-	/*
+	/*!
 	 * Initializes a serial-over-USB CDC driver.
 	 */
 	sduObjectInit(&SDU1);
 	sduStart(&SDU1, &serusbcfg);
 
-	/*
+	/*!
 	 * Activates the USB driver and then the USB bus pull-up on D+.
 	 * Note, a delay is inserted in order to not have to disconnect the cable
 	 * after a reset.
@@ -119,32 +148,23 @@ int main(void) {
 	usbStart(serusbcfg.usbp, &usbcfg);
 	usbConnectBus(serusbcfg.usbp);
 
-	/*
-	 * Shell manager initialization.
-	 */
 	shellInit();
 
-	/*
+	/*!
 	 * Activates the serial driver 6 and SDC driver 1 using default
 	 * configuration.
 	 */
 	sdStart(&SD6, NULL);
 
-	/*
+	/*!
 	 * Activates the EXT driver 1.
 	 * This is for the external interrupt
 	 */
 	extStart(&EXTD1, &extcfg);
 
-	/*
-	 * Creates the blinker thread.
-	 */
 	chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+	chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
 
-	/*
-	 * Normal main() thread activity, in this demo it does nothing except
-	 * sleeping in a loop and listen for events.
-	 */
 	chEvtRegister(&wkup_event, &el0, 0);
 	while (TRUE) {
 		if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
