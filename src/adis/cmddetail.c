@@ -2,6 +2,11 @@
  *
  */
 
+/*!
+ * \defgroup cmddetail Command Utilities
+ * @{
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -45,3 +50,5 @@ void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
 		tp = chRegNextThread(tp);
 	} while (tp != NULL);
 }
+
+//! @}

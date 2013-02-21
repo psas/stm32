@@ -29,6 +29,7 @@
 #include "chprintf.h"
 #include "shell.h"
 
+#include "iwdg_lld.h"
 #include "usbdetail.h"
 #include "extdetail.h"
 #include "cmddetail.h"
@@ -57,6 +58,11 @@ static const ShellConfig shell_cfg1 = {
 static void WKUP_button_handler(eventid_t id) {
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
+	chprintf(chp, "IWDG_SR %d\r\n", IWDG->SR);
+	chprintf(chp, "IWDG_RLR %d\r\n", IWDG->RLR);
+	chprintf(chp, "IWDG_PR %d\r\n", IWDG->PR);
+	chprintf(chp, "RCC_CSR 0x%x\r\n", RCC->CSR);
+	chprintf(chp, "STM32_LSI_ENABLED: %d\r\n", STM32_LSI_ENABLED);
 }
 
 /*
@@ -67,8 +73,6 @@ static void SPI1_handler(eventid_t id) {
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	chprintf(chp, "SPI1. eventid: %d\r\n", id);
 }
-
-
 
 /*
  * Green LED blinker thread, times are in milliseconds.
@@ -108,6 +112,38 @@ static msg_t Thread2(void *arg) {
 	return -1;
 }
 
+/*
+ * Watchdog thread
+ */
+static WORKING_AREA(waThread3, 64);
+static msg_t Thread3(void *arg) {
+	(void)arg;
+
+	chRegSetThreadName("iwatchdog");
+	while (TRUE) {
+		iwdg_lld_reload();
+		chThdSleepMilliseconds(500);
+	}
+	return -1;
+}
+
+
+/*! \brief check reset status and then start iwatchdog
+ *
+ * Check the CSR register for reset source then start
+ * the independent watchdog counter.
+ *
+ */
+static void adis_begin_iwdg(void) {
+	// was this a reset caused by the iwdg?
+	if( (RCC->CSR & RCC_CSR_WDGRSTF) != 0) {
+		// \todo Log WDG reset event somewhere.
+		RCC->CSR = RCC->CSR | RCC_CSR_RMVF;  // clear the IWDGRSTF
+	}
+	iwdg_lld_set_prescale(IWDG_PS_DIV64);
+	iwdg_lld_reload();
+	iwdg_lld_init();
+}
 
 /*
  * Application entry point.
@@ -150,6 +186,8 @@ int main(void) {
 
 	shellInit();
 
+	adis_begin_iwdg();
+
 	/*!
 	 * Activates the serial driver 6 and SDC driver 1 using default
 	 * configuration.
@@ -164,6 +202,7 @@ int main(void) {
 
 	chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
 	chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
+	chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
 
 	chEvtRegister(&wkup_event, &el0, 0);
 	while (TRUE) {
