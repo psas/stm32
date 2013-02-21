@@ -2,6 +2,10 @@
  *
  */
 
+/*!
+ * \defgroup usbdetail USB Utilities
+ * @{
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -212,18 +216,18 @@ const USBDescriptor *get_descriptor(USBDriver *usbp,
 	return NULL;
 }
 
-/**
- * @brief   IN EP1 state.
+/*!
+ * \brief   IN EP1 state.
  */
 static USBInEndpointState ep1instate;
 
-/**
- * @brief   OUT EP1 state.
+/*!
+ * \brief   OUT EP1 state.
  */
 static USBOutEndpointState ep1outstate;
 
-/**
- * @brief   EP1 initialization structure (both IN and OUT).
+/*!
+ * \brief   EP1 initialization structure (both IN and OUT).
  */
 static const USBEndpointConfig ep1config = {
 		USB_EP_MODE_TYPE_BULK,
@@ -238,13 +242,13 @@ static const USBEndpointConfig ep1config = {
 		NULL
 };
 
-/**
- * @brief   IN EP2 state.
+/*!
+ * \brief   IN EP2 state.
  */
 static USBInEndpointState ep2instate;
 
-/**
- * @brief   EP2 initialization structure (IN only).
+/*!
+ * \brief   EP2 initialization structure (IN only).
  */
 static const USBEndpointConfig ep2config = {
 		USB_EP_MODE_TYPE_INTR,
@@ -311,3 +315,4 @@ void usb_event(USBDriver *usbp, usbevent_t event) {
 	return;
 }
 
+//! @}

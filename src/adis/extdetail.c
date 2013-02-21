@@ -2,6 +2,10 @@
  *
  */
 
+/*!
+ * \defgroup extdetail EXT Utilities
+ * @{
+ */
 #include "extdetail.h"
 
 
@@ -62,3 +66,6 @@ void extcb1(EXTDriver *extp, expchannel_t channel) {
 	chVTSetI(&vt4, MS2ST(500), green_led_off, NULL);
 	chSysUnlockFromIsr();
 }
+
+//! @}
+
