@@ -10,6 +10,7 @@
 
 extern const     EXTConfig       extcfg;
 extern           EventSource     wkup_event;
+extern           EventSource     spi1_event;
 
 void green_led_off(void *arg);
 void extcb1(EXTDriver *extp, expchannel_t channel) ;
