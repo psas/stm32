@@ -127,10 +127,15 @@
 #define GPIOD_PIN6                  6
 #define GPIOD_PIN7                  7
 #define GPIOD_PIN8                  8
+#define GPIOD_ADIS_RESET            8
 #define GPIOD_PIN9                  9
+#define GPIOD_ADIS_DIO1             9
 #define GPIOD_PIN10                 10
+#define GPIOD_ADIS_DIO2             10
 #define GPIOD_PIN11                 11
+#define GPIOD_ADIS_DIO3             11
 #define GPIOD_PIN12                 12
+#define GPIOD_ADIS_DIO4             12
 #define GPIOD_PIN13                 13
 #define GPIOD_PIN14                 14
 #define GPIOD_PIN15                 15
@@ -622,11 +627,11 @@
                                      PIN_MODE_INPUT(GPIOD_PIN5) |           \
                                      PIN_MODE_INPUT(GPIOD_PIN6) |           \
                                      PIN_MODE_INPUT(GPIOD_PIN7) |           \
-                                     PIN_MODE_INPUT(GPIOD_PIN8) |           \
-                                     PIN_MODE_INPUT(GPIOD_PIN9) |           \
-                                     PIN_MODE_INPUT(GPIOD_PIN10) |          \
-                                     PIN_MODE_INPUT(GPIOD_PIN11) |          \
-                                     PIN_MODE_INPUT(GPIOD_PIN12) |          \
+                                     PIN_MODE_OUTPUT(GPIOD_ADIS_RESET) |    \
+                                     PIN_MODE_INPUT(GPIOD_ADIS_DIO1) |           \
+                                     PIN_MODE_OUTPUT(GPIOD_ADIS_DIO2) |          \
+                                     PIN_MODE_OUTPUT(GPIOD_ADIS_DIO3) |          \
+                                     PIN_MODE_OUTPUT(GPIOD_ADIS_DIO4) |          \
                                      PIN_MODE_INPUT(GPIOD_PIN13) |          \
                                      PIN_MODE_INPUT(GPIOD_PIN14) |          \
                                      PIN_MODE_INPUT(GPIOD_PIN15))
@@ -638,11 +643,11 @@
                                      PIN_OTYPE_PUSHPULL(GPIOD_PIN5) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOD_PIN6) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOD_PIN7) |       \
-                                     PIN_OTYPE_PUSHPULL(GPIOD_PIN8) |       \
-                                     PIN_OTYPE_PUSHPULL(GPIOD_PIN9) |       \
-                                     PIN_OTYPE_PUSHPULL(GPIOD_PIN10) |      \
-                                     PIN_OTYPE_PUSHPULL(GPIOD_PIN11) |      \
-                                     PIN_OTYPE_PUSHPULL(GPIOD_PIN12) |      \
+                                     PIN_OTYPE_PUSHPULL(GPIOD_ADIS_RESET) |       \
+                                     PIN_OTYPE_PUSHPULL(GPIOD_ADIS_DIO1) |       \
+                                     PIN_OTYPE_PUSHPULL(GPIOD_ADIS_DIO2) |      \
+                                     PIN_OTYPE_PUSHPULL(GPIOD_ADIS_DIO3) |      \
+                                     PIN_OTYPE_PUSHPULL(GPIOD_ADIS_DIO4) |      \
                                      PIN_OTYPE_PUSHPULL(GPIOD_PIN13) |      \
                                      PIN_OTYPE_PUSHPULL(GPIOD_PIN14) |      \
                                      PIN_OTYPE_PUSHPULL(GPIOD_PIN15))
@@ -654,11 +659,11 @@
                                      PIN_OSPEED_100M(GPIOD_PIN5) |          \
                                      PIN_OSPEED_100M(GPIOD_PIN6) |          \
                                      PIN_OSPEED_100M(GPIOD_PIN7) |          \
-                                     PIN_OSPEED_100M(GPIOD_PIN8) |          \
-                                     PIN_OSPEED_100M(GPIOD_PIN9) |          \
-                                     PIN_OSPEED_100M(GPIOD_PIN10) |         \
-                                     PIN_OSPEED_100M(GPIOD_PIN11) |         \
-                                     PIN_OSPEED_100M(GPIOD_PIN12) |         \
+                                     PIN_OSPEED_100M(GPIOD_ADIS_RESET) |          \
+                                     PIN_OSPEED_100M(GPIOD_ADIS_DIO1) |          \
+                                     PIN_OSPEED_100M(GPIOD_ADIS_DIO2) |         \
+                                     PIN_OSPEED_100M(GPIOD_ADIS_DIO3) |         \
+                                     PIN_OSPEED_100M(GPIOD_ADIS_DIO4) |         \
                                      PIN_OSPEED_100M(GPIOD_PIN13) |         \
                                      PIN_OSPEED_100M(GPIOD_PIN14) |         \
                                      PIN_OSPEED_100M(GPIOD_PIN15))
@@ -670,11 +675,11 @@
                                      PIN_PUPDR_PULLUP(GPIOD_PIN5) |         \
                                      PIN_PUPDR_PULLUP(GPIOD_PIN6) |         \
                                      PIN_PUPDR_PULLUP(GPIOD_PIN7) |         \
-                                     PIN_PUPDR_PULLUP(GPIOD_PIN8) |         \
-                                     PIN_PUPDR_PULLUP(GPIOD_PIN9) |         \
-                                     PIN_PUPDR_PULLUP(GPIOD_PIN10) |        \
-                                     PIN_PUPDR_PULLUP(GPIOD_PIN11) |        \
-                                     PIN_PUPDR_PULLUP(GPIOD_PIN12) |        \
+                                     PIN_PUPDR_PULLUP(GPIOD_ADIS_RESET) |         \
+                                     PIN_PUPDR_PULLUP(GPIOD_ADIS_DIO1) |         \
+                                     PIN_PUPDR_PULLUP(GPIOD_ADIS_DIO2) |        \
+                                     PIN_PUPDR_PULLUP(GPIOD_ADIS_DIO3) |        \
+                                     PIN_PUPDR_PULLUP(GPIOD_ADIS_DIO4) |        \
                                      PIN_PUPDR_PULLUP(GPIOD_PIN13) |        \
                                      PIN_PUPDR_PULLUP(GPIOD_PIN14) |        \
                                      PIN_PUPDR_PULLUP(GPIOD_PIN15))

@@ -1,21 +1,8 @@
-/*
-    ChibiOS/RT - Copyright (C) 2006,2007,2008,2009,2010,
-                 2011,2012 Giovanni Di Sirio.
-
-    This file is part of ChibiOS/RT.
-
-    ChibiOS/RT is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    ChibiOS/RT is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/*! \file main.c
+ *
+ * Development for ADIS IMU on ChibiOS
+ *
+ * This implementation is specific to the Olimex stm32-e407 board.
  */
 
 #include <stdio.h>
@@ -50,7 +37,6 @@ static const ShellConfig shell_cfg1 = {
 		commands
 };
 
-
 /*
  * WKUP button handler
  *
@@ -58,15 +44,10 @@ static const ShellConfig shell_cfg1 = {
 static void WKUP_button_handler(eventid_t id) {
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
-	chprintf(chp, "IWDG_SR %d\r\n", IWDG->SR);
-	chprintf(chp, "IWDG_RLR %d\r\n", IWDG->RLR);
-	chprintf(chp, "IWDG_PR %d\r\n", IWDG->PR);
-	chprintf(chp, "RCC_CSR 0x%x\r\n", RCC->CSR);
-	chprintf(chp, "STM32_LSI_ENABLED: %d\r\n", STM32_LSI_ENABLED);
 }
 
 /*
- * SPI1 handler
+ * SPI1 event handler
  *
  */
 static void SPI1_handler(eventid_t id) {
@@ -91,6 +72,10 @@ static msg_t Thread1(void *arg) {
 
 /*
  * SPI1 thread
+ *
+ * For burst mode transactions t_readrate is 1uS
+ * Waking every 5 us to look for interrupt seems ok for a start.
+ *
  */
 static WORKING_AREA(waThread2, 128);
 static msg_t Thread2(void *arg) {
@@ -102,12 +87,10 @@ static msg_t Thread2(void *arg) {
 
 	chEvtRegister(&spi1_event, &evl_spi0, 0);
 
-	chRegSetThreadName("SPI1_ADIS");
+	chRegSetThreadName("spi1_adis");
 	while (TRUE) {
-		//palTogglePad(GPIOC, GPIOC_LED);
-		chThdSleepMilliseconds(500);
+		chThdSleepMicroseconds(5);
 		chEvtDispatch(evhndl_spi1, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
-
 	}
 	return -1;
 }
@@ -122,11 +105,10 @@ static msg_t Thread3(void *arg) {
 	chRegSetThreadName("iwatchdog");
 	while (TRUE) {
 		iwdg_lld_reload();
-		chThdSleepMilliseconds(500);
+		chThdSleepMilliseconds(250);
 	}
 	return -1;
 }
-
 
 /*! \brief check reset status and then start iwatchdog
  *
@@ -140,7 +122,7 @@ static void adis_begin_iwdg(void) {
 		// \todo Log WDG reset event somewhere.
 		RCC->CSR = RCC->CSR | RCC_CSR_RMVF;  // clear the IWDGRSTF
 	}
-	iwdg_lld_set_prescale(IWDG_PS_DIV64);
+	iwdg_lld_set_prescale(IWDG_PS_DIV8); // This should be about 1 second at 32kHz
 	iwdg_lld_reload();
 	iwdg_lld_init();
 }
