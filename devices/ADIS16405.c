@@ -92,16 +92,17 @@ void adis_spi_cb(SPIDriver *spip) {
 
             // broadcast event
             chEvtBroadcastI(&adis_newdata_event);
+            adis_driver.state             = ADIS_IDLE;
+
+            spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
+            spiReleaseBus(adis_driver.spi_instance);              /* Ownership release.               */
             break;
         default:
-            break;
+        	adis_driver.state             = ADIS_IDLE;
+        	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
+            spiReleaseBus(adis_driver.spi_instance);              /* Ownership release.               */
+        	break;
     }
-
-    // if rx has just completed
-    //    switch on type of r
-
-    spiUnselect(&SPID1);                /* Slave Select de-assertion.       */
-    spiReleaseBus(&SPID1);              /* Ownership release.               */
 }
 
 /*! \brief Create a read address
