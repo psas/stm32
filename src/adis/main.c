@@ -21,10 +21,14 @@
 #include "extdetail.h"
 #include "cmddetail.h"
 
+#include "ADIS16405.h"
+
 #include "main.h"
+
 
 EventSource   wkup_event;
 EventSource   spi1_event;
+
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -37,6 +41,35 @@ static const ShellConfig shell_cfg1 = {
 		commands
 };
 
+/*! \brief ADIS SPI configuration
+ *
+ * 656250Hz, CPHA=1, CPOL=1, MSb first.
+ *
+ * For burst mode ADIS SPI is limited to 1Mhz.
+ */
+const SPIConfig adis_spicfg = {
+  adis_spi_cb,
+  GPIOA,
+  4,
+  SPI_CR1_SSM | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
+};
+
+/*! ADIS SPI Pin connections
+ *
+ */
+const adis_connect adis_connections = {
+	GPIOD,      // reset_port
+	8,          // reset_pad;
+	GPIOD,      // dio1_port;
+	9,          // dio1_pad;
+	GPIOD,      // dio2_port;
+	10,         // dio2_pad;
+	GPIOD,      // dio3_port;
+	11,         // dio3_pad;
+	GPIOD,      // dio4_port;
+    12          // dio4_pad
+};
+
 /*
  * WKUP button handler
  *
@@ -46,13 +79,31 @@ static void WKUP_button_handler(eventid_t id) {
 	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
 }
 
-/*
- * SPI1 event handler
+/*!
+ * spi1_event handler
+ *
+ * Start an asynchronous spi transaction
+ *
+ * spi1_event is an DIO1 data ready interrupt from ADIS
  *
  */
 static void SPI1_handler(eventid_t id) {
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	chprintf(chp, "SPI1. eventid: %d\r\n", id);
+
+	adis_read_id(&SPID1);
+
+}
+
+static void adis_handler(eventid_t id) {
+	uint8_t                 i = 0;
+	BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
+	chprintf(chp, "adis_newdata. eventid: %d\r\n", id);
+
+	for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
+		chprintf(chp, "%d", adis_cache_data.adis_rx_cache[i]);
+	}
+	chprintf(chp,"\r\n");
 }
 
 /*
@@ -81,16 +132,20 @@ static WORKING_AREA(waThread2, 128);
 static msg_t Thread2(void *arg) {
 	(void)arg;
 	static const evhandler_t evhndl_spi1[]       = {
-			SPI1_handler
+			SPI1_handler,
+			adis_handler
 	};
 	struct EventListener     evl_spi0;
-
-	chEvtRegister(&spi1_event, &evl_spi0, 0);
+	struct EventListener     evl_spi1;
 
 	chRegSetThreadName("spi1_adis");
+
+	chEvtRegister(&spi1_event,         &evl_spi0, 0);
+	chEvtRegister(&adis_newdata_event, &evl_spi1, 1);
+
 	while (TRUE) {
 		chThdSleepMicroseconds(5);
-		chEvtDispatch(evhndl_spi1, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
+		chEvtDispatch(evhndl_spi1, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(20)));
 	}
 	return -1;
 }
@@ -116,7 +171,7 @@ static msg_t Thread3(void *arg) {
  * the independent watchdog counter.
  *
  */
-static void adis_begin_iwdg(void) {
+static void begin_iwdg(void) {
 	// was this a reset caused by the iwdg?
 	if( (RCC->CSR & RCC_CSR_WDGRSTF) != 0) {
 		// \todo Log WDG reset event somewhere.
@@ -149,6 +204,7 @@ int main(void) {
 
 	chEvtInit(&wkup_event);
 	chEvtInit(&spi1_event);
+	chEvtInit(&adis_newdata_event);
 
 	/*!
 	 * Initializes a serial-over-USB CDC driver.
@@ -168,13 +224,16 @@ int main(void) {
 
 	shellInit();
 
-	adis_begin_iwdg();
+	begin_iwdg();
 
 	/*!
 	 * Activates the serial driver 6 and SDC driver 1 using default
 	 * configuration.
 	 */
 	sdStart(&SD6, NULL);
+
+	adis_init();
+	adis_reset();
 
 	/*!
 	 * Activates the EXT driver 1.
