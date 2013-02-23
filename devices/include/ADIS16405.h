@@ -10,11 +10,16 @@
 #ifndef _ADIS16405_H
 #define _ADIS16405_H
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include    "pal_lld.h"
+#include "ch.h"
+#include "hal.h"
+
+#define     ADIS_MAX_TX                       64
+#define     ADIS_MAX_RX                       32
 
 #define     ADIS_RESET_MSECS                  500
 
@@ -23,55 +28,7 @@ extern "C" {
 
 #define     ADIS_NUM_BURSTREAD_REGS           12
 
-/*! \typedef adis_config
- *
- * Configuration for the ADIS connections EXCEPT SPI
- */
-typedef struct {
-	/*! \brief The reset line port
-	 */
-	ioportid_t               reset_port;
-	/*! \brief The reset line pad number.
-	 */
-	uint16_t                 reset_pad;
-	/*! \brief The DIO1 port
-	 */
-	ioportid_t               dio1_port;
-	/*! \brief The DIO1 pad number.
-	 */
-	uint16_t                 dio1_pad;
-	/*! \brief The DIO2 port
-	 */
-	ioportid_t               dio2_port;
-	/*! \brief The DIO2 pad number.
-	 */
-	uint16_t                 dio2_pad;
-	/*! \brief The DIO3 port
-	 */
-	ioportid_t               dio3_port;
-	/*! \brief The DIO3 pad number.
-	 */
-	uint16_t                 dio3_pad;
-	/*! \brief The DIO4 port
-	 */
-	ioportid_t               dio4_port;
-	/*! \brief The DIO4 pad number.
-	 */
-	uint16_t                 dio4_pad;
-	/*! \brief The AUX_DAC port
-	 */
-	ioportid_t               aux_dac_port;
-	/*! \brief The AUX_DAC pad number.
-	 */
-	uint16_t                 aux_dac_pad;
-	/*! \brief The AUX_ADC port
-	 */
-	ioportid_t               aux_dac_port;
-	/*! \brief The AUX_ADC pad number.
-	 */
-	uint16_t                 aux_dac_pad;
-} adis_config;
-
+typedef     uint8_t                           adis_data;
 
 /*! \typedef adis_regaddr
  *
@@ -119,51 +76,99 @@ typedef enum {
 	ADIS_ALM_CTRL     = 0x48,        // 0x0000  Alarm control
 	ADIS_AUX_DAC      = 0x4A,        // 0x0000  Auxiliary DAC data
 	//          =0x4C,to 0x55    //         Reserved
-	ADIS_PRODUCT_ID   = 0x56         //         Product identifier
+	ADIS_PRODUCT_ID   = 0x56        //         Product identifier
+
 } adis_regaddr;
 
+typedef enum {
+	ADIS_OFF,
+	ADIS_IDLE,
+	ADIS_TX_PEND,
+	ADIS_RX_PEND
+} adis_xact_state;
 
-/*! \typedef adis_cache_line
- */
-typedef struct {
-	uint8_t data_high;
-	uint8_t data_low;
-	uint8_t valid;
-} adis_cache_line;
-
-/*! \typedef adis_cache
+/*!
+ * Structure for keeping track of an ADIS transaction
  *
- * A place to put data read from ADIS
+ * The SPI transactions are implemented with asynchronous
+ * (interrupt driven) ChibiOS SPI APIs.
+ *
  */
 typedef struct {
-	adis_cache_line adis_prod_id;
-	adis_cache_line adis_sampl_per;
+	uint8_t            current_rx_numbytes;            /*! number of bytes to receive in this current transaction  */
+	uint8_t            current_tx_numbytes;            /*! number of bytes to transmit in this current transaction */
+	SPIDriver*         spi_instance;                   /*! which stm32f407 SPI instance to use (there are 3)       */
+	adis_xact_state    state;                          /*! Current state of the ADIS transaction                   */
+	adis_regaddr       reg;                            /*! Register address in this ADIS transaction               */
+	adis_data          adis_txbuf[ADIS_MAX_TX_BUFFER]; /*! Transmit buffer                                         */
+	adis_data          adis_rxbuf[ADIS_MAX_RX_BUFFER]; /*! Receive buffer                                          */
+} ADIS_Driver;
+
+/*!
+ * Another transaction may begin which would corrupt the tx and rx
+ * buffers. Copy the SPI buffers to the cache for reading in
+ * mainline after event detection.
+ */
+typedef struct {
+	uint8_t            current_rx_numbytes;
+	uint8_t            current_tx_numbytes;
+	adis_regaddr       reg;
+	adis_data          adis_tx_cache[ADIS_MAX_TX_BUFFER];
+	adis_data          adis_rx_cache[ADIS_MAX_RX_BUFFER];
 } adis_cache;
 
-/*! \typedef adis_data
+/*! \typedef adis_config
  *
- * Used in creating data buffers for ADIS
+ * Configuration for the ADIS connections EXCEPT SPI
  */
-typedef uint8_t adis_data;
+typedef struct {
+	/*! \brief The reset line port
+	 */
+	ioportid_t               reset_port;
+	/*! \brief The reset line pad number.
+	 */
+	uint16_t                 reset_pad;
+	/*! \brief The DIO1 port
+	 */
+	ioportid_t               dio1_port;
+	/*! \brief The DIO1 pad number.
+	 */
+	uint16_t                 dio1_pad;
+	/*! \brief The DIO2 port
+	 */
+	ioportid_t               dio2_port;
+	/*! \brief The DIO2 pad number.
+	 */
+	uint16_t                 dio2_pad;
+	/*! \brief The DIO3 port
+	 */
+	ioportid_t               dio3_port;
+	/*! \brief The DIO3 pad number.
+	 */
+	uint16_t                 dio3_pad;
+	/*! \brief The DIO4 port
+	 */
+	ioportid_t               dio4_port;
+	/*! \brief The DIO4 pad number.
+	 */
+	uint16_t                 dio4_pad;
 
-/* extern declarations for interface
- */
-extern  adis_data               adis_rxbuf[ADIS_MAX_RX_BUFFER];
-extern  adis_data               adis_txbuf[ADIS_MAX_TX_BUFFER];
+} adis_connect;
 
-extern  adis_cache              adis_data_cache;
 
-void    adis_spi_cb();
-void    adis_read_cb();
+extern const SPIConfig      adis_spicfg ;
+extern const adis_connect   adis_connections ;
+extern       adis_cache     adis_cache_data;
+extern       EventSource    adis_newdata_event;
 
-void    adis_init();
-void    adis_reset();
+void     adis_init(void);
+void     adis_reset(void);
 
-void    adis_write_smpl_prd(uint8_t time_base, uint8_t sample_prd);
-void    adis_read_smpl_prd();
-void    adis_read_brst_mode();
-void    adis_read_id();
-void    adis_read_gpio_ctl();
+void     adis_spi_cb(SPIDriver *spip) ;
+
+void     adis_write_smpl_prd(uint8_t time_base, uint8_t sample_prd);
+void     adis_read_brst_mode(void);
+void     adis_read_id(SPIDriver *spip);
 
 /*!
  * @}
