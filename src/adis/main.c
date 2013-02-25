@@ -47,11 +47,27 @@ static const ShellConfig shell_cfg1 = {
  *
  * For burst mode ADIS SPI is limited to 1Mhz.
  */
+//const SPIConfig adis_spicfg = {
+//  adis_spi_cb,
+//  GPIOA,
+//  4,
+//  SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
+//};
 const SPIConfig adis_spicfg = {
-  adis_spi_cb,
+  NULL,
   GPIOA,
   4,
-  SPI_CR1_SSM | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
+  SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
+};
+
+/*
+ * Maximum speed SPI configuration (21MHz, CPHA=0, CPOL=0, MSb first).
+ */
+static const SPIConfig hs_spicfg = {
+  NULL,
+  GPIOA,
+  4,
+  0
 };
 
 /*! ADIS SPI Pin connections
@@ -75,8 +91,25 @@ const adis_connect adis_connections = {
  *
  */
 static void WKUP_button_handler(eventid_t id) {
+	uint8_t i = 0;
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
+	chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
+	chprintf(chp, "spi1->cr1: 0x%x\r\n", SPI1->CR1);
+	chprintf(chp, "spi1->cr2: 0x%x\r\n", SPI1->CR2);
+	chprintf(chp, "spi1->sr: 0x%x\r\n", SPI1->SR);
+	chprintf(chp, "spi1->dr: 0x%x\r\n", SPI1->DR);
+	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream0);
+	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream1);
+	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream2);
+	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream3);
+	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream4);
+	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream5);
+	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream6);
+	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream7);
+    for(i=0; i< 10; ++i) {
+    	chprintf(chp, "0x%x ", adis_driver.adis_rxbuf[i]);
+    }
+    chprintf(chp, "\r\n");
 }
 
 /*!
@@ -91,7 +124,9 @@ static void SPI1_handler(eventid_t id) {
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	chprintf(chp, "SPI1. eventid: %d\r\n", id);
 
-	adis_read_id(&SPID1);
+	chThdSleepMilliseconds(300);
+	//adis_read_id(&SPID1);
+	spi_test(&SPID1);
 
 }
 
@@ -177,7 +212,7 @@ static void begin_iwdg(void) {
 		// \todo Log WDG reset event somewhere.
 		RCC->CSR = RCC->CSR | RCC_CSR_RMVF;  // clear the IWDGRSTF
 	}
-	iwdg_lld_set_prescale(IWDG_PS_DIV8); // This should be about 1 second at 32kHz
+	iwdg_lld_set_prescale(IWDG_PS_DIV16); // This should be about 2 second at 32kHz
 	iwdg_lld_reload();
 	iwdg_lld_init();
 }
@@ -205,6 +240,32 @@ int main(void) {
 	chEvtInit(&wkup_event);
 	chEvtInit(&spi1_event);
 	chEvtInit(&adis_newdata_event);
+
+
+	palSetPad(GPIOA, GPIOA_SPI1_SCK);
+	chThdSleepMilliseconds(50);
+	palClearPad(GPIOA, GPIOA_SPI1_SCK);
+	chThdSleepMilliseconds(50);
+	palSetPad(GPIOA, GPIOA_SPI1_SCK);
+	chThdSleepMilliseconds(50);
+	palClearPad(GPIOA, GPIOA_SPI1_SCK);
+	chThdSleepMilliseconds(50);
+
+
+	/*
+	 * SPI1 I/O pins setup.
+	 */
+	palSetPadMode(GPIOA, 5, PAL_MODE_ALTERNATE(5) |
+			PAL_STM32_OSPEED_HIGHEST);       /* New SCK.     */
+	palSetPadMode(GPIOA, 6, PAL_MODE_ALTERNATE(5) |
+			PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_FLOATING);       /* New MISO.    */
+	palSetPadMode(GPIOB, 5, PAL_MODE_ALTERNATE(5) |
+			PAL_STM32_OSPEED_HIGHEST );       /* New MOSI.    */
+	palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);       /* New CS.      */
+	palSetPad(GPIOA, 4);
+
+
 
 	/*!
 	 * Initializes a serial-over-USB CDC driver.

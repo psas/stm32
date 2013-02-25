@@ -20,7 +20,7 @@
 EventSource        adis_newdata_event;
 adis_cache         adis_cache_data;
 
-static ADIS_Driver adis_driver;
+ADIS_Driver        adis_driver;
 
 
 /*! \brief Reset the ADIS
@@ -47,9 +47,8 @@ void adis_init() {
         adis_cache_data.adis_tx_cache[i] = 0;
     }
     for(i=0; i<ADIS_MAX_RX_BUFFER; ++i) {
-        adis_driver.adis_rxbuf[i]        = 0;
-        adis_cache_data.adis_rx_cache[i] = 0;
-
+        adis_driver.adis_rxbuf[i]        = 0xa5;
+        adis_cache_data.adis_rx_cache[i] = 0xa5;
     }
 }
 
@@ -62,7 +61,9 @@ void adis_init() {
  * @param spip
  */
 void adis_spi_cb(SPIDriver *spip) {
-    uint8_t    i    = 0;
+
+	chSysLockFromIsr();
+	uint8_t    i    = 0;
 
     switch(adis_driver.state) {
         case ADIS_TX_PEND:
@@ -103,6 +104,7 @@ void adis_spi_cb(SPIDriver *spip) {
             spiReleaseBus(adis_driver.spi_instance);              /* Ownership release.               */
         	break;
     }
+    chSysUnlockFromIsr();
 }
 
 /*! \brief Create a read address
@@ -189,6 +191,28 @@ void adis_read_id(SPIDriver *spip) {
     adis_driver.state             = ADIS_TX_PEND;
 }
 
+
+
+
+void spi_test(SPIDriver *spip) {
+    adis_driver.spi_instance      = spip;
+    adis_driver.adis_txbuf[0]     = adis_create_read_addr(ADIS_PRODUCT_ID);
+    adis_driver.adis_txbuf[1]     = (adis_data) 0;
+    adis_driver.reg               = ADIS_PRODUCT_ID;
+    spiAcquireBus(spip);              /* Acquire ownership of the bus.    */
+
+    spiStart(spip, &adis_spicfg);       /* Setup transfer parameters.       */
+    spiSelect(spip);                  /* Slave Select assertion.          */
+    spiExchange(spip, 10,
+    		adis_driver.adis_txbuf, adis_driver.adis_rxbuf);          /* Atomic transfer operations.      */
+
+	chThdSleepMilliseconds(30);
+
+    spiUnselect(spip);                /* Slave Select de-assertion.       */
+    spiReleaseBus(spip);              /* Ownership release.               */
+
+    //adis_driver.state             = ADIS_TX_PEND;
+}
 /*!
  * @}
  */

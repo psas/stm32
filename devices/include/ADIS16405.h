@@ -160,6 +160,7 @@ extern const SPIConfig      adis_spicfg ;
 extern const adis_connect   adis_connections ;
 extern       adis_cache     adis_cache_data;
 extern       EventSource    adis_newdata_event;
+extern       ADIS_Driver    adis_driver;
 
 void     adis_init(void);
 void     adis_reset(void);
@@ -169,6 +170,8 @@ void     adis_spi_cb(SPIDriver *spip) ;
 void     adis_write_smpl_prd(uint8_t time_base, uint8_t sample_prd);
 void     adis_read_brst_mode(void);
 void     adis_read_id(SPIDriver *spip);
+void     spi_test(SPIDriver *spip);
+
 
 /*!
  * @}

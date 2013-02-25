@@ -69,7 +69,6 @@
 #define GPIOA_ETH_RMII_MDINT        3
 #define GPIOA_PIN4                  4
 #define GPIOA_SPI1_NSS              4
-#define GPIOA_PIN5                  5
 #define GPIOA_SPI1_SCK              5
 #define GPIOA_PIN6                  6
 #define GPIOA_SPI1_MISO             6
@@ -272,7 +271,7 @@
                                      PIN_MODE_ALTERNATE(GPIOA_ETH_RMII_MDIO) |\
                                      PIN_MODE_INPUT(GPIOA_ETH_RMII_MDINT) | \
                                      PIN_MODE_ALTERNATE(GPIOA_SPI1_NSS)       | \
-                                     PIN_MODE_ALTERNATE(GPIOA_SPI1_SCK)       | \
+                                     PIN_MODE_OUTPUT(GPIOA_SPI1_SCK)       | \
                                      PIN_MODE_ALTERNATE(GPIOA_SPI1_MISO)      | \
                                      PIN_MODE_ALTERNATE(GPIOA_ETH_RMII_CRS_DV) |\
                                      PIN_MODE_OUTPUT(GPIOA_USB_HS_BUSON) |  \
@@ -288,7 +287,7 @@
                                      PIN_OTYPE_PUSHPULL(GPIOA_ETH_RMII_MDIO) |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_ETH_RMII_MDINT) |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_PIN4) |       \
-                                     PIN_OTYPE_PUSHPULL(GPIOA_PIN5) |       \
+                                     PIN_OTYPE_PUSHPULL(GPIOA_SPI1_SCK) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOA_PIN6) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOA_ETH_RMII_CRS_DV) |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_USB_HS_BUSON) |\
@@ -304,7 +303,7 @@
                                      PIN_OSPEED_100M(GPIOA_ETH_RMII_MDIO) | \
                                      PIN_OSPEED_100M(GPIOA_ETH_RMII_MDINT) |\
                                      PIN_OSPEED_100M(GPIOA_PIN4) |          \
-                                     PIN_OSPEED_100M(GPIOA_PIN5) |          \
+                                     PIN_OSPEED_100M(GPIOA_SPI1_SCK) |          \
                                      PIN_OSPEED_100M(GPIOA_PIN6) |          \
                                      PIN_OSPEED_100M(GPIOA_ETH_RMII_CRS_DV) |\
                                      PIN_OSPEED_100M(GPIOA_USB_HS_BUSON) |  \
@@ -320,8 +319,8 @@
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_MDIO) |\
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_MDINT) |\
                                      PIN_PUPDR_PULLUP(GPIOA_PIN4) |         \
-                                     PIN_PUPDR_PULLUP(GPIOA_PIN5) |         \
-                                     PIN_PUPDR_PULLUP(GPIOA_PIN6) |         \
+                                     PIN_PUPDR_FLOATING(GPIOA_SPI1_SCK) |         \
+                                     PIN_PUPDR_FLOATING(GPIOA_PIN6) |         \
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_CRS_DV) |\
                                      PIN_PUPDR_FLOATING(GPIOA_USB_HS_BUSON) |\
                                      PIN_PUPDR_PULLDOWN(GPIOA_OTG_FS_VBUS) |\
@@ -336,7 +335,7 @@
                                      PIN_ODR_HIGH(GPIOA_ETH_RMII_MDIO) |    \
                                      PIN_ODR_HIGH(GPIOA_ETH_RMII_MDINT) |   \
                                      PIN_ODR_HIGH(GPIOA_PIN4) |             \
-                                     PIN_ODR_HIGH(GPIOA_PIN5) |             \
+                                     PIN_ODR_HIGH(GPIOA_SPI1_SCK) |             \
                                      PIN_ODR_HIGH(GPIOA_PIN6) |             \
                                      PIN_ODR_HIGH(GPIOA_ETH_RMII_CRS_DV) |  \
                                      PIN_ODR_HIGH(GPIOA_USB_HS_BUSON) |     \
@@ -351,9 +350,9 @@
                                      PIN_AFIO_AF(GPIOA_ETH_RMII_REF_CLK, 11) |\
                                      PIN_AFIO_AF(GPIOA_ETH_RMII_MDIO, 11) | \
                                      PIN_AFIO_AF(GPIOA_ETH_RMII_MDINT, 0) | \
-                                     PIN_AFIO_AF(GPIOA_SPI1_NSS, 5) |       \
-                                     PIN_AFIO_AF(GPIOA_SPI1_SCK, 5) |       \
-                                     PIN_AFIO_AF(GPIOA_SPI1_MISO, 5) |      \
+                                     PIN_AFIO_AF(GPIOA_SPI1_NSS, 0) |       \
+                                     PIN_AFIO_AF(GPIOA_SPI1_SCK, 0) |       \
+                                     PIN_AFIO_AF(GPIOA_SPI1_MISO, 0) |      \
                                      PIN_AFIO_AF(GPIOA_ETH_RMII_CRS_DV, 11))
 #define VAL_GPIOA_AFRH              (PIN_AFIO_AF(GPIOA_USB_HS_BUSON, 0) |   \
                                      PIN_AFIO_AF(GPIOA_OTG_FS_VBUS, 0) |    \
@@ -475,7 +474,6 @@
 #define VAL_GPIOB_AFRH              (PIN_AFIO_AF(GPIOB_I2C1_SCL, 4) |       \
                                      PIN_AFIO_AF(GPIOB_I2C1_SDA, 4) |       \
                                      PIN_AFIO_AF(GPIOB_SPI2_SCK, 5) |       \
-                                     PIN_AFIO_AF(GPIOB_SPI1_MOSI, 5) |      \
                                      PIN_AFIO_AF(GPIOB_PIN11, 0) |          \
                                      PIN_AFIO_AF(GPIOB_OTG_HS_ID, 12) |     \
                                      PIN_AFIO_AF(GPIOB_OTG_HS_VBUS, 0) |    \
