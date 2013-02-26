@@ -84,7 +84,8 @@ typedef enum {
 	ADIS_OFF,
 	ADIS_IDLE,
 	ADIS_TX_PEND,
-	ADIS_RX_PEND
+	ADIS_RX_PEND,
+	ADIS_ERROR
 } adis_xact_state;
 
 /*!
@@ -95,13 +96,14 @@ typedef enum {
  *
  */
 typedef struct {
-	uint8_t            current_rx_numbytes;            /*! number of bytes to receive in this current transaction  */
-	uint8_t            current_tx_numbytes;            /*! number of bytes to transmit in this current transaction */
+	uint8_t            rx_numbytes;                    /*! number of bytes to receive in this current transaction  */
+	uint8_t            tx_numbytes;                    /*! number of bytes to transmit in this current transaction */
 	SPIDriver*         spi_instance;                   /*! which stm32f407 SPI instance to use (there are 3)       */
 	adis_xact_state    state;                          /*! Current state of the ADIS transaction                   */
 	adis_regaddr       reg;                            /*! Register address in this ADIS transaction               */
 	adis_data          adis_txbuf[ADIS_MAX_TX_BUFFER]; /*! Transmit buffer                                         */
 	adis_data          adis_rxbuf[ADIS_MAX_RX_BUFFER]; /*! Receive buffer                                          */
+	uint8_t            debug_cb_count;
 } ADIS_Driver;
 
 /*!
@@ -159,7 +161,8 @@ typedef struct {
 extern const SPIConfig      adis_spicfg ;
 extern const adis_connect   adis_connections ;
 extern       adis_cache     adis_cache_data;
-extern       EventSource    adis_newdata_event;
+extern       EventSource    adis_spi_cb_event;
+
 extern       ADIS_Driver    adis_driver;
 
 void     adis_init(void);
@@ -171,7 +174,6 @@ void     adis_write_smpl_prd(uint8_t time_base, uint8_t sample_prd);
 void     adis_read_brst_mode(void);
 void     adis_read_id(SPIDriver *spip);
 void     spi_test(SPIDriver *spip);
-
 
 /*!
  * @}

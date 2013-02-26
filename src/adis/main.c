@@ -25,10 +25,9 @@
 
 #include "main.h"
 
-
-EventSource   wkup_event;
-EventSource   spi1_event;
-
+EventSource        wkup_event;
+EventSource        adis_dio1_event;
+EventSource        adis_newdata_event;
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -47,12 +46,14 @@ static const ShellConfig shell_cfg1 = {
  *
  * For burst mode ADIS SPI is limited to 1Mhz.
  */
-//const SPIConfig adis_spicfg = {
-//  adis_spi_cb,
-//  GPIOA,
-//  4,
-//  SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
-//};
+#if 1
+const SPIConfig adis_spicfg = {
+  adis_spi_cb,
+  GPIOA,
+  4,
+  SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
+};
+#else
 const SPIConfig adis_spicfg = {
   NULL,
   GPIOA,
@@ -60,6 +61,7 @@ const SPIConfig adis_spicfg = {
   SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
 };
 
+#endif
 /*
  * Maximum speed SPI configuration (21MHz, CPHA=0, CPOL=0, MSb first).
  */
@@ -86,65 +88,104 @@ const adis_connect adis_connections = {
     12          // dio4_pad
 };
 
+/*! \brief check reset status and then start iwatchdog
+ *
+ * Check the CSR register for reset source then start
+ * the independent watchdog counter.
+ *
+ */
+static void begin_iwdg(void) {
+	// was this a reset caused by the iwdg?
+	if( (RCC->CSR & RCC_CSR_WDGRSTF) != 0) {
+		// \todo Log WDG reset event somewhere.
+		RCC->CSR = RCC->CSR | RCC_CSR_RMVF;  // clear the IWDGRSTF
+	}
+	iwdg_lld_set_prescale(IWDG_PS_DIV16); // This should be about 2 second at 32kHz
+	iwdg_lld_reload();
+	iwdg_lld_init();
+}
+
 /*
  * WKUP button handler
  *
+ * Used for debugging
  */
 static void WKUP_button_handler(eventid_t id) {
-	uint8_t i = 0;
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
-	chprintf(chp, "spi1->cr1: 0x%x\r\n", SPI1->CR1);
-	chprintf(chp, "spi1->cr2: 0x%x\r\n", SPI1->CR2);
-	chprintf(chp, "spi1->sr: 0x%x\r\n", SPI1->SR);
-	chprintf(chp, "spi1->dr: 0x%x\r\n", SPI1->DR);
-	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream0);
-	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream1);
-	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream2);
-	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream3);
-	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream4);
-	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream5);
-	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream6);
-	chprintf(chp, "dmastream0: 0x%x\r\n", DMA2_Stream7);
-    for(i=0; i< 10; ++i) {
-    	chprintf(chp, "0x%x ", adis_driver.adis_rxbuf[i]);
-    }
-    chprintf(chp, "\r\n");
 }
 
-/*!
- * spi1_event handler
- *
- * Start an asynchronous spi transaction
- *
- * spi1_event is an DIO1 data ready interrupt from ADIS
+
+/*! \brief Process information from a adis_spi_cb
  *
  */
-static void SPI1_handler(eventid_t id) {
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-	chprintf(chp, "SPI1. eventid: %d\r\n", id);
+static void adis_spi_event_handler(void) {
+	switch(adis_driver.state) {
+		case ADIS_TX_PEND:
+			switch(adis_driver.reg) {
+				case ADIS_PRODUCT_ID:
+					spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
+					adis_driver.state             = ADIS_RX_PEND;
+					break;
+				default:
+					adis_driver.state             = ADIS_RX_PEND;
+					break;
+			}
+			break;
+		case ADIS_RX_PEND:
+			chEvtBroadcast(&adis_newdata_event);
+			adis_driver.state             = ADIS_IDLE;
 
-	chThdSleepMilliseconds(300);
-	//adis_read_id(&SPID1);
-	spi_test(&SPID1);
-
+			spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
+			spiReleaseBus(adis_driver.spi_instance);              /* Ownership release.               */
+			adis_driver.state             = ADIS_IDLE;
+			break;
+		default:
+			adis_driver.state             = ADIS_IDLE;
+			spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
+			spiReleaseBus(adis_driver.spi_instance);              /* Ownership release.               */
+			break;
+	}
 }
 
-static void adis_handler(eventid_t id) {
+/*! \brief Process an adis_newdata_event
+ */
+static void adis_newdata_event_handler(void) {
 	uint8_t                 i = 0;
 	BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
-	chprintf(chp, "adis_newdata. eventid: %d\r\n", id);
-
+	chprintf(chp, "\r\nrx bytes: ");
 	for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
-		chprintf(chp, "%d", adis_cache_data.adis_rx_cache[i]);
+		chprintf(chp, "0x%x ", adis_cache_data.adis_rx_cache[i]);
 	}
 	chprintf(chp,"\r\n");
+}
+
+/*! \brief Process events from adis interaction
+ *
+ * @param id
+ */
+static void adis_event_handler(eventid_t id) {
+	//BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
+	switch(id) {
+		case 0:
+			adis_read_id(&SPID1);
+			break;
+		case 1:  /*! adis_newdata_event */
+			adis_newdata_event_handler();
+			break;
+		case 2:  /*! adis spi cb_event */
+			//chprintf(chp, "adis_cb. cb_count: %d\r\n", adis_driver.debug_cb_count);
+			adis_spi_event_handler();
+			break;
+		default:
+			break;
+	}
 }
 
 /*
  * Green LED blinker thread, times are in milliseconds.
  */
-static WORKING_AREA(waThread1, 128);
+static WORKING_AREA(waThread1, 64);
 static msg_t Thread1(void *arg) {
 
 	(void)arg;
@@ -163,20 +204,23 @@ static msg_t Thread1(void *arg) {
  * Waking every 5 us to look for interrupt seems ok for a start.
  *
  */
-static WORKING_AREA(waThread2, 128);
+static WORKING_AREA(waThread2, 256);
 static msg_t Thread2(void *arg) {
 	(void)arg;
 	static const evhandler_t evhndl_spi1[]       = {
-			SPI1_handler,
-			adis_handler
+			adis_event_handler,
+			adis_event_handler,
+			adis_event_handler
 	};
 	struct EventListener     evl_spi0;
 	struct EventListener     evl_spi1;
+	struct EventListener     evl_spi2;
 
-	chRegSetThreadName("spi1_adis");
+	chRegSetThreadName("adis_events");
 
-	chEvtRegister(&spi1_event,         &evl_spi0, 0);
+	chEvtRegister(&adis_dio1_event,    &evl_spi0, 0);
 	chEvtRegister(&adis_newdata_event, &evl_spi1, 1);
+	chEvtRegister(&adis_spi_cb_event,  &evl_spi2, 2);
 
 	while (TRUE) {
 		chThdSleepMicroseconds(5);
@@ -200,23 +244,6 @@ static msg_t Thread3(void *arg) {
 	return -1;
 }
 
-/*! \brief check reset status and then start iwatchdog
- *
- * Check the CSR register for reset source then start
- * the independent watchdog counter.
- *
- */
-static void begin_iwdg(void) {
-	// was this a reset caused by the iwdg?
-	if( (RCC->CSR & RCC_CSR_WDGRSTF) != 0) {
-		// \todo Log WDG reset event somewhere.
-		RCC->CSR = RCC->CSR | RCC_CSR_RMVF;  // clear the IWDGRSTF
-	}
-	iwdg_lld_set_prescale(IWDG_PS_DIV16); // This should be about 2 second at 32kHz
-	iwdg_lld_reload();
-	iwdg_lld_init();
-}
-
 /*
  * Application entry point.
  */
@@ -238,19 +265,13 @@ int main(void) {
 	chSysInit();
 
 	chEvtInit(&wkup_event);
-	chEvtInit(&spi1_event);
+	chEvtInit(&adis_dio1_event);
+	chEvtInit(&adis_spi_cb_event);
 	chEvtInit(&adis_newdata_event);
 
 
 	palSetPad(GPIOA, GPIOA_SPI1_SCK);
-	chThdSleepMilliseconds(50);
-	palClearPad(GPIOA, GPIOA_SPI1_SCK);
-	chThdSleepMilliseconds(50);
-	palSetPad(GPIOA, GPIOA_SPI1_SCK);
-	chThdSleepMilliseconds(50);
-	palClearPad(GPIOA, GPIOA_SPI1_SCK);
-	chThdSleepMilliseconds(50);
-
+	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
 	/*
 	 * SPI1 I/O pins setup.
@@ -263,9 +284,7 @@ int main(void) {
 			PAL_STM32_OSPEED_HIGHEST );       /* New MOSI.    */
 	palSetPadMode(GPIOA, 4, PAL_MODE_OUTPUT_PUSHPULL |
 			PAL_STM32_OSPEED_HIGHEST);       /* New CS.      */
-	palSetPad(GPIOA, 4);
-
-
+	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
 	/*!
 	 * Initializes a serial-over-USB CDC driver.
@@ -292,6 +311,8 @@ int main(void) {
 	 * configuration.
 	 */
 	sdStart(&SD6, NULL);
+
+	spiStart(&SPID1, &adis_spicfg);       /* Setup transfer parameters.       */
 
 	adis_init();
 	adis_reset();
