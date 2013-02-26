@@ -71,7 +71,7 @@ void extcb_adis_dio1(EXTDriver *extp, expchannel_t channel) {
 	(void)channel;
 
 	chSysLockFromIsr();
-	chEvtBroadcastI(&spi1_event);
+	chEvtBroadcastI(&adis_dio1_event);
 
 	chSysUnlockFromIsr();
 }
