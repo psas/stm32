@@ -39,6 +39,9 @@ void adis_reset() {
 void adis_init() {
     uint8_t     i              = 0;
 
+    chMtxInit(&adis_driver.adis_mtx);
+    chCondInit(&adis_driver.adis_cv1);
+
     adis_driver.spi_instance   = &SPID1;
     adis_driver.state          = ADIS_IDLE;
     adis_driver.reg            = ADIS_PRODUCT_ID;
@@ -85,7 +88,6 @@ void adis_spi_cb(SPIDriver *spip) {
 			adis_cache_data.reg                  = adis_driver.reg;
 			adis_cache_data.current_rx_numbytes  = adis_driver.rx_numbytes;
 			adis_cache_data.current_tx_numbytes  = adis_driver.tx_numbytes;
-
 			chEvtBroadcastI(&adis_spi_cb_event);
 			break;
 		default:
@@ -95,6 +97,7 @@ void adis_spi_cb(SPIDriver *spip) {
 		//	spiReleaseBus(spip);
 			break;
 	}
+    palClearPad(GPIOC, GPIOC_LED);
     chSysUnlockFromIsr();
 }
 

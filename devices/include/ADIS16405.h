@@ -22,6 +22,8 @@ extern "C" {
 #define     ADIS_MAX_RX                       32
 
 #define     ADIS_RESET_MSECS                  500
+#define     ADIS_TSTALL_US                    10
+#define     ADIS_TSTALL_US_LOWPOWER           75
 
 #define     ADIS_MAX_RX_BUFFER                64
 #define     ADIS_MAX_TX_BUFFER                16
@@ -96,6 +98,8 @@ typedef enum {
  *
  */
 typedef struct {
+	Mutex              adis_mtx;                       /*! Mutex for conditional variable wait                     */
+	CondVar            adis_cv1;                       /*! Condition variable for ADIS                             */
 	uint8_t            rx_numbytes;                    /*! number of bytes to receive in this current transaction  */
 	uint8_t            tx_numbytes;                    /*! number of bytes to transmit in this current transaction */
 	SPIDriver*         spi_instance;                   /*! which stm32f407 SPI instance to use (there are 3)       */
