@@ -16,6 +16,8 @@
 extern "C" {
 #endif
 
+extern           CondVar         adis_cv1;
+
 extern const     EXTConfig       extcfg;
 extern           EventSource     wkup_event;
 extern           EventSource     adis_dio1_event;

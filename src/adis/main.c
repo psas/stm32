@@ -124,6 +124,9 @@ static void adis_spi_event_handler(void) {
 		case ADIS_TX_PEND:
 			switch(adis_driver.reg) {
 				case ADIS_PRODUCT_ID:
+					spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
+					chThdSleepMicroseconds(ADIS_TSTALL_US);
+					spiSelect(adis_driver.spi_instance);                    /* Slave Select assertion.          */
 					spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
 					adis_driver.state             = ADIS_RX_PEND;
 					break;
@@ -133,11 +136,10 @@ static void adis_spi_event_handler(void) {
 			}
 			break;
 		case ADIS_RX_PEND:
-			chEvtBroadcast(&adis_newdata_event);
 			adis_driver.state             = ADIS_IDLE;
-
 			spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
 			spiReleaseBus(adis_driver.spi_instance);              /* Ownership release.               */
+			chEvtBroadcast(&adis_newdata_event);
 			adis_driver.state             = ADIS_IDLE;
 			break;
 		default:
@@ -152,12 +154,17 @@ static void adis_spi_event_handler(void) {
  */
 static void adis_newdata_event_handler(void) {
 	uint8_t                 i = 0;
+	static uint32_t                 j = 0;
 	BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
-	chprintf(chp, "\r\nrx bytes: ");
-	for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
-		chprintf(chp, "0x%x ", adis_cache_data.adis_rx_cache[i]);
+	j++;
+	if(j==2000) {
+		chprintf(chp, "\r\nrx bytes: ");
+		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
+			chprintf(chp, "0x%x ", adis_cache_data.adis_rx_cache[i]);
+		}
+		chprintf(chp,"\r\n");
+		j = 0;
 	}
-	chprintf(chp,"\r\n");
 }
 
 /*! \brief Process events from adis interaction
@@ -191,7 +198,7 @@ static msg_t Thread1(void *arg) {
 	(void)arg;
 	chRegSetThreadName("blinker");
 	while (TRUE) {
-		palTogglePad(GPIOC, GPIOC_LED);
+	    palTogglePad(GPIOC, GPIOC_LED);
 		chThdSleepMilliseconds(500);
 	}
 	return -1;
@@ -223,8 +230,8 @@ static msg_t Thread2(void *arg) {
 	chEvtRegister(&adis_spi_cb_event,  &evl_spi2, 2);
 
 	while (TRUE) {
-		chThdSleepMicroseconds(5);
-		chEvtDispatch(evhndl_spi1, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(20)));
+		chThdSleepMicroseconds(1);
+		chEvtDispatch(evhndl_spi1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), MS2ST(50)));
 	}
 	return -1;
 }
@@ -270,6 +277,7 @@ int main(void) {
 	chEvtInit(&adis_newdata_event);
 
 
+	palSetPad(GPIOC, GPIOC_LED);
 	palSetPad(GPIOA, GPIOA_SPI1_SCK);
 	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
@@ -316,7 +324,7 @@ int main(void) {
 
 	adis_init();
 	adis_reset();
-
+	chCondInit(&adis_cv1);
 	/*!
 	 * Activates the EXT driver 1.
 	 * This is for the external interrupt
@@ -335,6 +343,6 @@ int main(void) {
 			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
 			shelltp = NULL;           /* Triggers spawning of a new shell.        */
 		}
-		chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
+		chEvtDispatch(evhndl, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
 	}
 }

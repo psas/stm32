@@ -6,8 +6,11 @@
  * \defgroup extdetail EXT Utilities
  * @{
  */
-#include "extdetail.h"
 
+#include "extdetail.h"
+static Thread *tp;
+
+CondVar       adis_cv1;
 
 /*! \sa HAL_USE_EXT in hal_conf.h
  */
@@ -72,8 +75,9 @@ void extcb_adis_dio1(EXTDriver *extp, expchannel_t channel) {
 
 	chSysLockFromIsr();
 	chEvtBroadcastI(&adis_dio1_event);
-
 	chSysUnlockFromIsr();
+
+
 }
 
 
