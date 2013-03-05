@@ -110,11 +110,13 @@ static void begin_iwdg(void) {
 static void WKUP_button_handler(eventid_t id) {
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
+	chprintf(chp, "\r\ndebug_spi: %d\r\n", adis_driver.debug_spi_count);
 }
 
 /*! \brief Process an adis_newdata_event
  */
 static void adis_newdata_handler(eventid_t id) {
+	(void)                id;
 	uint8_t               i      = 0;
 	static uint32_t       j      = 0;
 	static uint32_t       xcount = 0;
@@ -123,6 +125,7 @@ static void adis_newdata_handler(eventid_t id) {
 
 	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
 
+	/*! \todo Package for UDP transmission to fc here */
 	++j;
 	if(j>2000) {
 		chprintf(chp, "\r\n%d rx bytes: ", xcount);
@@ -133,30 +136,23 @@ static void adis_newdata_handler(eventid_t id) {
 		j=0;
 		++xcount;
 	}
-	adis_driver.state             = ADIS_IDLE;
+
+	adis_driver.state             = ADIS_IDLE;   /* don't go to idle until data processed */
 }
 
 static void adis_read_id_handler(eventid_t id) {
+	(void) id;
 	adis_read_id(&SPID1);
 }
 
-/*! \brief Process information from a adis_spi_cb
+/*! \brief Process information from a adis_spi_cb event
  *
  */
-static void adis_spi_handler(eventid_t id) {
+static void adis_spi_cb_txdone_handler(eventid_t id) {
+	(void) id;
 	switch(adis_driver.reg) {
 		case ADIS_PRODUCT_ID:
 			spiUnselect(adis_driver.spi_instance);
-
-			/*!
-			 *  This is the ADIS T_stall time.
-			 *  Counting to 100 takes about 11uS.
-			 *  Measured on oscilloscope.
-			 *
-			 *  \todo Should eventually use a timer/counter unit to generate T_stall
-			 *  delays
-			 */
-
 			spiReleaseBus(adis_driver.spi_instance);
 			adis_tstall_delay();
 			spiAcquireBus(adis_driver.spi_instance);
@@ -165,17 +161,18 @@ static void adis_spi_handler(eventid_t id) {
 			adis_driver.state             = ADIS_RX_PEND;
 			break;
 		default:
-			adis_driver.state             = ADIS_RX_PEND;
+			spiUnselect(adis_driver.spi_instance);
+			spiReleaseBus(adis_driver.spi_instance);
+			adis_driver.state             = ADIS_IDLE;
 			break;
 	}
 }
 
-/*
- * Green LED blinker thread, times are in milliseconds.
+/*!
+ * Green LED blinker thread
  */
-static WORKING_AREA(waThread1, 64);
-static msg_t Thread1(void *arg) {
-
+static WORKING_AREA(waThread_blinker, 64);
+static msg_t Thread_blinker(void *arg) {
 	(void)arg;
 	chRegSetThreadName("blinker");
 	while (TRUE) {
@@ -185,44 +182,39 @@ static msg_t Thread1(void *arg) {
 	return -1;
 }
 
-static WORKING_AREA(waThread_spi_cb, 128);
-static msg_t Thread_spi_cb(void *arg) {
+/*!
+ * ADIS Newdata Thread
+ */
+static WORKING_AREA(waThread_adis_newdata, 128);
+static msg_t Thread_adis_newdata(void *arg) {
 	(void)arg;
-	//BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
+	chRegSetThreadName("adis_newdata");
 
-
-	static const evhandler_t evhndl2[]       = {
-			NULL,
-			NULL,
+	static const evhandler_t evhndl_newdata[]       = {
 			adis_newdata_handler
 	};
 	struct EventListener     evl_spi_cb2;
 
-	chEvtRegister(&spi_cb_event2, &evl_spi_cb2, 2);
+	chEvtRegister(&spi_cb_newdata, &evl_spi_cb2, 0);
 
 	while (TRUE) {
-		chEvtDispatch(evhndl2, chEvtWaitOneTimeout((eventmask_t)4, US2ST(50)));
-		++adis_driver.debug_cb_count;
+		chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
 	}
 	return -1;
 }
 
-
 /*
- * SPI1 thread
+ * ADIS DIO1 thread
  *
  * For burst mode transactions t_readrate is 1uS
- * Waking every 5 us to look for interrupt seems ok for a start.
  *
  */
 static WORKING_AREA(waThread_dio1, 128);
 static msg_t Thread_dio1(void *arg) {
 	(void)arg;
-	BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
-
-	static const evhandler_t evhndl_spi1[]       = {
+	static const evhandler_t evhndl_dio1[]       = {
 			adis_read_id_handler,
-			adis_spi_handler,
+			adis_spi_cb_txdone_handler,
 			adis_release_bus
 	};
 	struct EventListener     evl_dio;
@@ -231,13 +223,12 @@ static msg_t Thread_dio1(void *arg) {
 
 	chRegSetThreadName("adis_dio");
 
-	chEvtRegister(&dio1_event,       &evl_dio, 0);
-	chEvtRegister(&spi_cb_event,     &evl_spi_ev, 1);
-	chEvtRegister(&spi_cb_event2,    &evl_spi_release, 2);
+	chEvtRegister(&dio1_event,           &evl_dio,         0);
+	chEvtRegister(&spi_cb_txdone_event,  &evl_spi_ev,      1);
+	chEvtRegister(&spi_cb_releasebus,    &evl_spi_release, 2);
 
 	while (TRUE) {
-		chEvtDispatch(evhndl_spi1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), US2ST(50)));
-		//chprintf(chp, "%d %d\r\n", adis_driver.debug_cb_count, adis_driver.debug_spi_count);
+		chEvtDispatch(evhndl_dio1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), US2ST(50)));
 	}
 	return -1;
 }
@@ -262,7 +253,7 @@ static msg_t Thread_indwatchdog(void *arg) {
  */
 int main(void) {
 	static Thread            *shelltp       = NULL;
-	static const evhandler_t evhndl[]       = {
+	static const evhandler_t evhndl_main[]       = {
 			WKUP_button_handler
 	};
 	struct EventListener     el0;
@@ -279,9 +270,9 @@ int main(void) {
 
 	chEvtInit(&wkup_event);
 	chEvtInit(&dio1_event);
-	chEvtInit(&spi_cb_event);
-	chEvtInit(&spi_newdata_event);
-	chEvtInit(&spi_cb_event2);
+	chEvtInit(&spi_cb_txdone_event);
+	chEvtInit(&spi_cb_newdata);
+	chEvtInit(&spi_cb_releasebus);
 
 	palSetPad(GPIOC, GPIOC_LED);
 	palSetPad(GPIOA, GPIOA_SPI1_SCK);
@@ -328,20 +319,21 @@ int main(void) {
 
 	spiStart(&SPID1, &adis_spicfg);       /* Setup transfer parameters.       */
 
-	chThdSleepSeconds(1);
+	chThdSleepMilliseconds(300);
 
 	adis_init();
 	adis_reset();
+
 	/*!
 	 * Activates the EXT driver 1.
 	 * This is for the external interrupt
 	 */
 	extStart(&EXTD1, &extcfg);
 
-	chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
-	chThdCreateStatic(waThread_dio1, sizeof(waThread_dio1), NORMALPRIO, Thread_dio1, NULL);
-	chThdCreateStatic(waThread_spi_cb, sizeof(waThread_spi_cb), NORMALPRIO, Thread_spi_cb, NULL);
-	chThdCreateStatic(waThread_indwatchdog, sizeof(waThread_indwatchdog), NORMALPRIO, Thread_indwatchdog, NULL);
+	chThdCreateStatic(waThread_blinker, sizeof(waThread_blinker), NORMALPRIO,           Thread_blinker,      NULL);
+	chThdCreateStatic(waThread_dio1, sizeof(waThread_dio1), NORMALPRIO,                 Thread_dio1,         NULL);
+	chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
+	chThdCreateStatic(waThread_indwatchdog, sizeof(waThread_indwatchdog), NORMALPRIO,   Thread_indwatchdog,  NULL);
 
 	chEvtRegister(&wkup_event, &el0, 0);
 	while (TRUE) {
@@ -351,6 +343,6 @@ int main(void) {
 			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
 			shelltp = NULL;           /* Triggers spawning of a new shell.        */
 		}
-		chEvtDispatch(evhndl, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
+		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
 	}
 }

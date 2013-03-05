@@ -24,16 +24,15 @@ enum thread_messages {
 	ADIS_NEWDATA_MSG
 };
 
-extern           Thread          *tp_dio1;
-extern           Thread          *tp_spi_cb;
-extern           Thread          *tp_spi_newdata;
+//extern           Thread          *tp_dio1;
+//extern           Thread          *tp_spi_cb;
+//extern           Thread          *tp_spi_newdata;
 
 extern           EventSource     wkup_event;
 extern           EventSource     dio1_event;
-extern           EventSource     spi_cb_event;
-extern           EventSource     spi_cb_event2;
-extern           EventSource     spi_newdata_event;
-
+extern           EventSource     spi_cb_txdone_event;
+extern           EventSource     spi_cb_newdata;
+extern           EventSource     spi_cb_releasebus;
 
 //! @}
 
