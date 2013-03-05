@@ -90,7 +90,6 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_COMMON)/iwdg_lld.c \
        $(PSAS_DEV_SRC)/ADIS16405.c \
-       threaddetail.c \
        cmddetail.c \
        extdetail.c \
        usbdetail.c \

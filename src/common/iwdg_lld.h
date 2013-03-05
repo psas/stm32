@@ -32,11 +32,11 @@ typedef enum {
 	IWDG_PS_DIV256
 } iwdg_ps_val;
 
-
 void iwdg_lld_init(void) ;
 void iwdg_lld_reload(void) ;
 void iwdg_lld_set_prescale(iwdg_ps_val s) ;
 void iwdg_lld_set_reloadval(uint16_t r) ;
+void iwdg_begin(void) ;
 
 #ifdef __cplusplus
 }

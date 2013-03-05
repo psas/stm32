@@ -7,16 +7,21 @@
  * @{
  */
 
+#include "ch.h"
+#include "hal.h"
+#include "chprintf.h"
+
 #include "ADIS16405.h"
-#include "threaddetail.h"
+#include "usbdetail.h"
 #include "extdetail.h"
 
+EventSource     extdetail_wkup_event;
 
 /*! \sa HAL_USE_EXT in hal_conf.h
  */
 const EXTConfig extcfg = {
 		{
-				{EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOA, extcb_wkup_btn},   // WKUP Button PA0
+				{EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOA, extdetail_wkup_btn},   // WKUP Button PA0
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
@@ -25,7 +30,7 @@ const EXTConfig extcfg = {
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD, extcb_adis_dio1},
+				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD, extdetail_adis_dio1},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
@@ -43,15 +48,29 @@ const EXTConfig extcfg = {
 };
 
 
-void green_led_off(void *arg) {
+void extdetail_init() {
+	chEvtInit(&extdetail_wkup_event);
+}
+
+static void green_led_off(void *arg) {
 	(void)arg;
 	palSetPad(GPIOC, GPIOC_LED);
 }
 
-/* Triggered when the WKUP button is pressed or released. The LED is set to ON.*/
+/*
+ * WKUP button handler
+ *
+ * Used for debugging
+ */
+void extdetail_WKUP_button_handler(eventid_t id) {
+	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+	chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
+	chprintf(chp, "\r\ndebug_spi: %d\r\n", adis_driver.debug_spi_count);
+}
 
+/* Triggered when the WKUP button is pressed or released. The LED is set to ON.*/
 /* Challenge: Add de-bouncing */
-void extcb_wkup_btn(EXTDriver *extp, expchannel_t channel) {
+void extdetail_wkup_btn(EXTDriver *extp, expchannel_t channel) {
 	static VirtualTimer vt4;
 
 	(void)extp;
@@ -59,7 +78,7 @@ void extcb_wkup_btn(EXTDriver *extp, expchannel_t channel) {
 
 	palClearPad(GPIOC, GPIOC_LED);
 	chSysLockFromIsr();
-	chEvtBroadcastI(&wkup_event);
+	chEvtBroadcastI(&extdetail_wkup_event);
 
 	if (chVTIsArmedI(&vt4))
 		chVTResetI(&vt4);
@@ -69,17 +88,13 @@ void extcb_wkup_btn(EXTDriver *extp, expchannel_t channel) {
 	chSysUnlockFromIsr();
 }
 
-void extcb_adis_dio1(EXTDriver *extp, expchannel_t channel) {
+void extdetail_adis_dio1(EXTDriver *extp, expchannel_t channel) {
 	(void)extp;
 	(void)channel;
 
 	chSysLockFromIsr();
-
-	/* Broadcast an event? */
-	chEvtBroadcastI(&dio1_event);
-
+	chEvtBroadcastI(&adis_dio1_event);
 	chSysUnlockFromIsr();
-
 }
 
 

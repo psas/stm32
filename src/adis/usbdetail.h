@@ -41,7 +41,6 @@ const USBDescriptor *get_descriptor(USBDriver *usbp,
 		                             uint8_t dindex,
 		                             uint16_t lang);
 
-
 #ifdef __cplusplus
 }
 #endif

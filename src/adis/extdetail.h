@@ -16,14 +16,14 @@
 extern "C" {
 #endif
 
-
-extern           Thread          *tp_dio1;
+extern           EventSource     extdetail_wkup_event;
 
 extern const     EXTConfig       extcfg;
 
-void green_led_off(void *arg);
-void extcb_wkup_btn(EXTDriver *extp, expchannel_t channel) ;
-void extcb_adis_dio1(EXTDriver *extp, expchannel_t channel) ;
+void extdetail_WKUP_button_handler(eventid_t id) ;
+void extdetail_init(void) ;
+void extdetail_wkup_btn(EXTDriver *extp, expchannel_t channel) ;
+void extdetail_adis_dio1(EXTDriver *extp, expchannel_t channel) ;
 
 #ifdef __cplusplus
 }
