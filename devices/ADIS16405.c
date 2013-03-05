@@ -23,12 +23,65 @@
 ADIS_Driver        adis_driver;
 
 adis_cache         adis_cache_data;
+adis_burst_data    burst_data;
 
 EventSource        adis_dio1_event;
 EventSource        adis_spi_cb_txdone_event;
 EventSource        adis_spi_cb_newdata;
 EventSource        adis_spi_cb_releasebus;
 
+/*! \brief Create a read address
+ *
+ * @param s
+ * @return  formatted read address for adis
+ */
+static uint8_t adis_create_read_addr(adis_regaddr s) {
+	return (s & 0b01111111);
+}
+
+/*! \brief Create a write address
+ *
+ * @param s
+ * @return  formatted write address for adis
+ */
+//static adis_regaddr adis_create_write_addr(adis_regaddr s) {
+//    return (s | 0b10000000);
+//}
+
+static void adis_read_id(SPIDriver *spip) {
+	if(adis_driver.state == ADIS_IDLE) {
+		adis_driver.spi_instance        = spip;
+		adis_driver.adis_txbuf[0]       = adis_create_read_addr(ADIS_PRODUCT_ID);
+		adis_driver.adis_txbuf[1]       = (adis_reg_data) 0x0;
+		adis_driver.adis_txbuf[2]       = (adis_reg_data) 0x0;
+		adis_driver.reg                 = ADIS_PRODUCT_ID;
+		adis_driver.rx_numbytes         = 2;
+		adis_driver.tx_numbytes         = 2;
+		adis_driver.debug_cb_count      = 0;
+
+		spiAcquireBus(spip);                /* Acquire ownership of the bus.    */
+		spiSelect(spip);                    /* Slave Select assertion.          */
+		spiStartSend(spip, adis_driver.tx_numbytes, adis_driver.adis_txbuf);
+		adis_driver.state             = ADIS_TX_PEND;
+	}
+}
+
+static void adis_burst_read(SPIDriver *spip) {
+	if(adis_driver.state == ADIS_IDLE) {
+		adis_driver.spi_instance        = spip;
+		adis_driver.adis_txbuf[0]       = adis_create_read_addr(ADIS_GLOB_CMD);
+		adis_driver.adis_txbuf[1]       = (adis_reg_data) 0x0;
+		adis_driver.reg                 = ADIS_GLOB_CMD;
+		adis_driver.rx_numbytes         = (ADIS_NUM_BURSTREAD_REGS *2);
+		adis_driver.tx_numbytes         = 2;
+		adis_driver.debug_cb_count      = 0;
+
+		spiAcquireBus(spip);                /* Acquire ownership of the bus.    */
+		spiSelect(spip);                    /* Slave Select assertion.          */
+		spiStartSend(spip, adis_driver.tx_numbytes, adis_driver.adis_txbuf);
+		adis_driver.state             = ADIS_TX_PEND;
+	}
+}
 /*! \brief Reset the ADIS
  */
 void adis_reset() {
@@ -78,7 +131,7 @@ void adis_tstall_delay() {
 	 *  Counting to 100 takes about 11uS.
 	 *  Measured on oscilloscope.
 	 *
-	 *  \todo Use a hw (not virtual) timer/counter unit to generate T_stall delays
+	 *  \todo Use a HW (not virtual) timer/counter unit to generate T_stall delays
 	 */
 	j = 0;
 	for(i=0; i<100; ++i) {
@@ -93,61 +146,6 @@ void adis_tstall_delay() {
 void adis_release_bus(eventid_t id) {
 	(void) id;
 	spiReleaseBus(adis_driver.spi_instance);
-}
-
-
-/*! \brief Process an adis_newdata_event
- */
-void adis_newdata_handler(eventid_t id) {
-	(void)                id;
-	uint8_t               i      = 0;
-	static uint32_t       j      = 0;
-	static uint32_t       xcount = 0;
-
-	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU1;
-
-	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
-
-	/*! \todo Package for UDP transmission to fc here */
-	++j;
-	if(j>2000) {
-		chprintf(chp, "\r\n%d rx bytes: ", xcount);
-		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
-			chprintf(chp, "0x%x ", adis_cache_data.adis_rx_cache[i]);
-		}
-		chprintf(chp,"\r\n");
-		j=0;
-		++xcount;
-	}
-	adis_driver.state             = ADIS_IDLE;   /* don't go to idle until data processed */
-}
-
-void adis_read_id_handler(eventid_t id) {
-	(void) id;
-	adis_read_id(&SPID1);
-}
-
-/*! \brief Process information from a adis_spi_cb event
- *
- */
-void adis_spi_cb_txdone_handler(eventid_t id) {
-	(void) id;
-	switch(adis_driver.reg) {
-		case ADIS_PRODUCT_ID:
-			spiUnselect(adis_driver.spi_instance);
-			spiReleaseBus(adis_driver.spi_instance);
-			adis_tstall_delay();
-			spiAcquireBus(adis_driver.spi_instance);
-			spiSelect(adis_driver.spi_instance);
-			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
-			adis_driver.state             = ADIS_RX_PEND;
-			break;
-		default:
-			spiUnselect(adis_driver.spi_instance);
-			spiReleaseBus(adis_driver.spi_instance);
-			adis_driver.state             = ADIS_IDLE;
-			break;
-	}
 }
 
 /*! \brief adis_spi_cb
@@ -182,40 +180,84 @@ void adis_spi_cb(SPIDriver *spip) {
 	chSysUnlockFromIsr();
 }
 
-/*! \brief Create a read address
- *
- * @param s
- * @return  formatted read address for adis
+/*! \brief Process an adis_newdata_event
  */
-static uint8_t adis_create_read_addr(adis_regaddr s) {
-	return (s & 0b01111111);
+void adis_newdata_handler(eventid_t id) {
+	(void)                id;
+	//uint8_t               i      = 0;
+	static uint32_t       j      = 0;
+	static uint32_t       xcount = 0;
+
+	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU1;
+
+	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
+
+	if(adis_driver.reg == ADIS_GLOB_CMD) {
+		burst_data.adis_supply_out   = ((adis_cache_data.adis_rx_cache[0]  << 8) | adis_cache_data.adis_rx_cache[1] );
+		burst_data.adis_xgyro_out    = ((adis_cache_data.adis_rx_cache[2]  << 8) | adis_cache_data.adis_rx_cache[3] );
+		burst_data.adis_ygyro_out    = ((adis_cache_data.adis_rx_cache[4]  << 8) | adis_cache_data.adis_rx_cache[5] );
+		burst_data.adis_zgyro_out    = ((adis_cache_data.adis_rx_cache[6]  << 8) | adis_cache_data.adis_rx_cache[7] );
+		burst_data.adis_xaccl_out    = ((adis_cache_data.adis_rx_cache[8]  << 8) | adis_cache_data.adis_rx_cache[9] );
+		burst_data.adis_yaccl_out    = ((adis_cache_data.adis_rx_cache[10] << 8) | adis_cache_data.adis_rx_cache[11]);
+		burst_data.adis_zaccl_out    = ((adis_cache_data.adis_rx_cache[12] << 8) | adis_cache_data.adis_rx_cache[13]);
+		burst_data.adis_xmagn_out    = ((adis_cache_data.adis_rx_cache[14] << 8) | adis_cache_data.adis_rx_cache[15]);
+		burst_data.adis_ymagn_out    = ((adis_cache_data.adis_rx_cache[16] << 8) | adis_cache_data.adis_rx_cache[17]);
+		burst_data.adis_zmagn_out    = ((adis_cache_data.adis_rx_cache[18] << 8) | adis_cache_data.adis_rx_cache[19]);
+		burst_data.adis_temp_out     = ((adis_cache_data.adis_rx_cache[20] << 8) | adis_cache_data.adis_rx_cache[21]);
+		burst_data.adis_aux_adc      = ((adis_cache_data.adis_rx_cache[22] << 8) | adis_cache_data.adis_rx_cache[23]);
+	}
+
+	/*! \todo Package for UDP transmission to fc here */
+	++j;
+	if(j>1000) {
+		chprintf(chp, "%d: x: %x y: %x z: %x\r\n", xcount, burst_data.adis_xaccl_out, burst_data.adis_yaccl_out, burst_data.adis_zaccl_out);
+    //	chprintf(chp, "%d: supply: %x %d\r\n", xcount, burst_data.adis_supply_out,( burst_data.adis_supply_out * 2418));
+
+		//		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
+//		    chprintf(chp, "%x ", adis_cache_data.adis_rx_cache[i]);
+//		}
+//		chprintf(chp,"\r\n");
+		j=0;
+		++xcount;
+	}
+	adis_driver.state             = ADIS_IDLE;   /* don't go to idle until data processed */
 }
 
-/*! \brief Create a write address
+void adis_read_id_handler(eventid_t id) {
+	(void) id;
+	adis_read_id(&SPID1);
+}
+
+void adis_burst_read_handler(eventid_t id) {
+	(void) id;
+	adis_burst_read(&SPID1);
+}
+
+/*! \brief Process information from a adis_spi_cb event
  *
- * @param s
- * @return  formatted write address for adis
  */
-//static adis_regaddr adis_create_write_addr(adis_regaddr s) {
-//    return (s | 0b10000000);
-//}
-
-void adis_read_id(SPIDriver *spip) {
-	if(adis_driver.state == ADIS_IDLE) {
-		adis_driver.spi_instance        = spip;
-		adis_driver.adis_txbuf[0]       = adis_create_read_addr(ADIS_PRODUCT_ID);
-		adis_driver.adis_txbuf[1]       = (adis_data) 0x0;
-		adis_driver.adis_txbuf[2]       = (adis_data) 0x0;
-		adis_driver.reg                 = ADIS_PRODUCT_ID;
-		adis_driver.rx_numbytes         = 2;
-		adis_driver.tx_numbytes         = 2;
-		adis_driver.debug_cb_count      = 0;
-
-		spiAcquireBus(spip);                /* Acquire ownership of the bus.    */
-		spiSelect(spip);                    /* Slave Select assertion.          */
-		spiStartSend(spip, adis_driver.tx_numbytes, adis_driver.adis_txbuf);
-		adis_driver.state             = ADIS_TX_PEND;
+void adis_spi_cb_txdone_handler(eventid_t id) {
+	(void) id;
+	switch(adis_driver.reg) {
+		case ADIS_PRODUCT_ID:
+			spiUnselect(adis_driver.spi_instance);
+			spiReleaseBus(adis_driver.spi_instance);
+			adis_tstall_delay();
+			spiAcquireBus(adis_driver.spi_instance);
+			spiSelect(adis_driver.spi_instance);
+			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
+			adis_driver.state             = ADIS_RX_PEND;
+			break;
+		case ADIS_GLOB_CMD:
+			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
+			adis_driver.state             = ADIS_RX_PEND;
+			break;
+		default:
+			spiUnselect(adis_driver.spi_instance);
+			spiReleaseBus(adis_driver.spi_instance);
+			adis_driver.state             = ADIS_IDLE;
+			break;
 	}
 }
 
-// @}
+//! @}

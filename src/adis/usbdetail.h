@@ -19,27 +19,27 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/*
- * Serial over USB Driver structure.
- */
-extern struct SerialUSBDriver SDU1;
+    /*
+     * Serial over USB Driver structure.
+     */
+    extern struct SerialUSBDriver SDU1;
 
-/*
- * USB driver configuration.
- */
-extern const USBConfig usbcfg;
+    /*
+     * USB driver configuration.
+     */
+    extern const USBConfig usbcfg;
 
-/*
- * Serial over USB driver configuration.
- */
-extern const SerialUSBConfig serusbcfg;
+    /*
+     * Serial over USB driver configuration.
+     */
+    extern const SerialUSBConfig serusbcfg;
 
-void usb_event(USBDriver *usbp, usbevent_t event) ;
+    void usb_event(USBDriver *usbp, usbevent_t event) ;
 
-const USBDescriptor *get_descriptor(USBDriver *usbp,
-		                             uint8_t dtype,
-		                             uint8_t dindex,
-		                             uint16_t lang);
+    const USBDescriptor *get_descriptor(USBDriver *usbp,
+            uint8_t dtype,
+            uint8_t dindex,
+            uint16_t lang);
 
 #ifdef __cplusplus
 }
