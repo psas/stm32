@@ -20,14 +20,11 @@
 #include "usbdetail.h"
 #include "extdetail.h"
 #include "cmddetail.h"
+#include "threaddetail.h"
 
 #include "ADIS16405.h"
 
 #include "main.h"
-
-EventSource        wkup_event;
-EventSource        adis_dio1_event;
-EventSource        adis_newdata_event;
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -100,7 +97,7 @@ static void begin_iwdg(void) {
 		// \todo Log WDG reset event somewhere.
 		RCC->CSR = RCC->CSR | RCC_CSR_RMVF;  // clear the IWDGRSTF
 	}
-	iwdg_lld_set_prescale(IWDG_PS_DIV16); // This should be about 2 second at 32kHz
+	iwdg_lld_set_prescale(IWDG_PS_DIV32); // This should be about 2 second at 32kHz
 	iwdg_lld_reload();
 	iwdg_lld_init();
 }
@@ -115,76 +112,60 @@ static void WKUP_button_handler(eventid_t id) {
 	chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
 }
 
-
-/*! \brief Process information from a adis_spi_cb
- *
- */
-static void adis_spi_event_handler(void) {
-	switch(adis_driver.state) {
-		case ADIS_TX_PEND:
-			switch(adis_driver.reg) {
-				case ADIS_PRODUCT_ID:
-					spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
-					chThdSleepMicroseconds(ADIS_TSTALL_US);
-					spiSelect(adis_driver.spi_instance);                    /* Slave Select assertion.          */
-					spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
-					adis_driver.state             = ADIS_RX_PEND;
-					break;
-				default:
-					adis_driver.state             = ADIS_RX_PEND;
-					break;
-			}
-			break;
-		case ADIS_RX_PEND:
-			adis_driver.state             = ADIS_IDLE;
-			spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
-			spiReleaseBus(adis_driver.spi_instance);              /* Ownership release.               */
-			chEvtBroadcast(&adis_newdata_event);
-			adis_driver.state             = ADIS_IDLE;
-			break;
-		default:
-			adis_driver.state             = ADIS_IDLE;
-			spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
-			spiReleaseBus(adis_driver.spi_instance);              /* Ownership release.               */
-			break;
-	}
-}
-
 /*! \brief Process an adis_newdata_event
  */
-static void adis_newdata_event_handler(void) {
-	uint8_t                 i = 0;
-	static uint32_t                 j = 0;
-	BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
-	j++;
-	if(j==2000) {
-		chprintf(chp, "\r\nrx bytes: ");
+static void adis_newdata_handler(eventid_t id) {
+	uint8_t               i      = 0;
+	static uint32_t       j      = 0;
+	static uint32_t       xcount = 0;
+
+	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU1;
+
+	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
+
+	++j;
+	if(j>2000) {
+		chprintf(chp, "\r\n%d rx bytes: ", xcount);
 		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
 			chprintf(chp, "0x%x ", adis_cache_data.adis_rx_cache[i]);
 		}
 		chprintf(chp,"\r\n");
-		j = 0;
+		j=0;
+		++xcount;
 	}
+	adis_driver.state             = ADIS_IDLE;
 }
 
-/*! \brief Process events from adis interaction
+static void adis_read_id_handler(eventid_t id) {
+	adis_read_id(&SPID1);
+}
+
+/*! \brief Process information from a adis_spi_cb
  *
- * @param id
  */
-static void adis_event_handler(eventid_t id) {
-	//BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
-	switch(id) {
-		case 0:
-			adis_read_id(&SPID1);
-			break;
-		case 1:  /*! adis_newdata_event */
-			adis_newdata_event_handler();
-			break;
-		case 2:  /*! adis spi cb_event */
-			//chprintf(chp, "adis_cb. cb_count: %d\r\n", adis_driver.debug_cb_count);
-			adis_spi_event_handler();
+static void adis_spi_handler(eventid_t id) {
+	switch(adis_driver.reg) {
+		case ADIS_PRODUCT_ID:
+			spiUnselect(adis_driver.spi_instance);
+
+			/*!
+			 *  This is the ADIS T_stall time.
+			 *  Counting to 100 takes about 11uS.
+			 *  Measured on oscilloscope.
+			 *
+			 *  \todo Should eventually use a timer/counter unit to generate T_stall
+			 *  delays
+			 */
+
+			spiReleaseBus(adis_driver.spi_instance);
+			adis_tstall_delay();
+			spiAcquireBus(adis_driver.spi_instance);
+			spiSelect(adis_driver.spi_instance);
+			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
+			adis_driver.state             = ADIS_RX_PEND;
 			break;
 		default:
+			adis_driver.state             = ADIS_RX_PEND;
 			break;
 	}
 }
@@ -204,6 +185,29 @@ static msg_t Thread1(void *arg) {
 	return -1;
 }
 
+static WORKING_AREA(waThread_spi_cb, 128);
+static msg_t Thread_spi_cb(void *arg) {
+	(void)arg;
+	//BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
+
+
+	static const evhandler_t evhndl2[]       = {
+			NULL,
+			NULL,
+			adis_newdata_handler
+	};
+	struct EventListener     evl_spi_cb2;
+
+	chEvtRegister(&spi_cb_event2, &evl_spi_cb2, 2);
+
+	while (TRUE) {
+		chEvtDispatch(evhndl2, chEvtWaitOneTimeout((eventmask_t)4, US2ST(50)));
+		++adis_driver.debug_cb_count;
+	}
+	return -1;
+}
+
+
 /*
  * SPI1 thread
  *
@@ -211,27 +215,29 @@ static msg_t Thread1(void *arg) {
  * Waking every 5 us to look for interrupt seems ok for a start.
  *
  */
-static WORKING_AREA(waThread2, 256);
-static msg_t Thread2(void *arg) {
+static WORKING_AREA(waThread_dio1, 128);
+static msg_t Thread_dio1(void *arg) {
 	(void)arg;
+	BaseSequentialStream *chp = (BaseSequentialStream *)&SDU1;
+
 	static const evhandler_t evhndl_spi1[]       = {
-			adis_event_handler,
-			adis_event_handler,
-			adis_event_handler
+			adis_read_id_handler,
+			adis_spi_handler,
+			adis_release_bus
 	};
-	struct EventListener     evl_spi0;
-	struct EventListener     evl_spi1;
-	struct EventListener     evl_spi2;
+	struct EventListener     evl_dio;
+	struct EventListener     evl_spi_ev;
+	struct EventListener     evl_spi_release;
 
-	chRegSetThreadName("adis_events");
+	chRegSetThreadName("adis_dio");
 
-	chEvtRegister(&adis_dio1_event,    &evl_spi0, 0);
-	chEvtRegister(&adis_newdata_event, &evl_spi1, 1);
-	chEvtRegister(&adis_spi_cb_event,  &evl_spi2, 2);
+	chEvtRegister(&dio1_event,       &evl_dio, 0);
+	chEvtRegister(&spi_cb_event,     &evl_spi_ev, 1);
+	chEvtRegister(&spi_cb_event2,    &evl_spi_release, 2);
 
 	while (TRUE) {
-		chThdSleepMicroseconds(1);
-		chEvtDispatch(evhndl_spi1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), MS2ST(50)));
+		chEvtDispatch(evhndl_spi1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), US2ST(50)));
+		//chprintf(chp, "%d %d\r\n", adis_driver.debug_cb_count, adis_driver.debug_spi_count);
 	}
 	return -1;
 }
@@ -239,8 +245,8 @@ static msg_t Thread2(void *arg) {
 /*
  * Watchdog thread
  */
-static WORKING_AREA(waThread3, 64);
-static msg_t Thread3(void *arg) {
+static WORKING_AREA(waThread_indwatchdog, 64);
+static msg_t Thread_indwatchdog(void *arg) {
 	(void)arg;
 
 	chRegSetThreadName("iwatchdog");
@@ -272,10 +278,10 @@ int main(void) {
 	chSysInit();
 
 	chEvtInit(&wkup_event);
-	chEvtInit(&adis_dio1_event);
-	chEvtInit(&adis_spi_cb_event);
-	chEvtInit(&adis_newdata_event);
-
+	chEvtInit(&dio1_event);
+	chEvtInit(&spi_cb_event);
+	chEvtInit(&spi_newdata_event);
+	chEvtInit(&spi_cb_event2);
 
 	palSetPad(GPIOC, GPIOC_LED);
 	palSetPad(GPIOA, GPIOA_SPI1_SCK);
@@ -322,9 +328,10 @@ int main(void) {
 
 	spiStart(&SPID1, &adis_spicfg);       /* Setup transfer parameters.       */
 
+	chThdSleepSeconds(1);
+
 	adis_init();
 	adis_reset();
-	chCondInit(&adis_cv1);
 	/*!
 	 * Activates the EXT driver 1.
 	 * This is for the external interrupt
@@ -332,8 +339,9 @@ int main(void) {
 	extStart(&EXTD1, &extcfg);
 
 	chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
-	chThdCreateStatic(waThread2, sizeof(waThread2), NORMALPRIO, Thread2, NULL);
-	chThdCreateStatic(waThread3, sizeof(waThread3), NORMALPRIO, Thread3, NULL);
+	chThdCreateStatic(waThread_dio1, sizeof(waThread_dio1), NORMALPRIO, Thread_dio1, NULL);
+	chThdCreateStatic(waThread_spi_cb, sizeof(waThread_spi_cb), NORMALPRIO, Thread_spi_cb, NULL);
+	chThdCreateStatic(waThread_indwatchdog, sizeof(waThread_indwatchdog), NORMALPRIO, Thread_indwatchdog, NULL);
 
 	chEvtRegister(&wkup_event, &el0, 0);
 	while (TRUE) {

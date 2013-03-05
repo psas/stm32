@@ -7,10 +7,10 @@
  * @{
  */
 
+#include "ADIS16405.h"
+#include "threaddetail.h"
 #include "extdetail.h"
-static Thread *tp;
 
-CondVar       adis_cv1;
 
 /*! \sa HAL_USE_EXT in hal_conf.h
  */
@@ -74,9 +74,11 @@ void extcb_adis_dio1(EXTDriver *extp, expchannel_t channel) {
 	(void)channel;
 
 	chSysLockFromIsr();
-	chEvtBroadcastI(&adis_dio1_event);
-	chSysUnlockFromIsr();
 
+	/* Broadcast an event? */
+	chEvtBroadcastI(&dio1_event);
+
+	chSysUnlockFromIsr();
 
 }
 
