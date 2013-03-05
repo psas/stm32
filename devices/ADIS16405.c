@@ -44,10 +44,10 @@ void adis_init() {
     chMtxInit(&adis_driver.adis_mtx);
     chCondInit(&adis_driver.adis_cv1);
 
-    adis_driver.spi_instance   = &SPID1;
-    adis_driver.state          = ADIS_IDLE;
-    adis_driver.reg            = ADIS_PRODUCT_ID;
-    adis_driver.debug_cb_count = 0;
+    adis_driver.spi_instance    = &SPID1;
+    adis_driver.state           = ADIS_IDLE;
+    adis_driver.reg             = ADIS_PRODUCT_ID;
+    adis_driver.debug_cb_count  = 0;
     adis_driver.debug_spi_count = 0;
 
     for(i=0; i<ADIS_MAX_TX_BUFFER; ++i) {
@@ -84,6 +84,8 @@ void adis_tstall_delay() {
  * @param spip
  */
 void adis_release_bus(eventid_t id) {
+	(void) id;
+
 	spiReleaseBus(adis_driver.spi_instance);
 }
 
@@ -101,11 +103,9 @@ void adis_spi_cb(SPIDriver *spip) {
 	uint8_t       i                              = 0;
 
 	chDbgCheck(adis_driver.spi_instance == spip, "adis_spi_cb driver mismatch");
-	++adis_driver.debug_spi_count;
 	if(adis_driver.state == ADIS_TX_PEND) {
-			chEvtBroadcastI(&spi_cb_event);
+			chEvtBroadcastI(&spi_cb_txdone_event);
 	} else {
-			++adis_driver.debug_spi_count;
 			for(i=0; i<adis_driver.tx_numbytes; ++i) {
 				adis_cache_data.adis_tx_cache[i] = adis_driver.adis_txbuf[i];
 			}
@@ -115,8 +115,8 @@ void adis_spi_cb(SPIDriver *spip) {
 			adis_cache_data.reg                  = adis_driver.reg;
 			adis_cache_data.current_rx_numbytes  = adis_driver.rx_numbytes;
 			adis_cache_data.current_tx_numbytes  = adis_driver.tx_numbytes;
-			chEvtBroadcastI(&spi_cb_event2);
-			++adis_driver.debug_spi_count;
+			chEvtBroadcastI(&spi_cb_newdata);
+			chEvtBroadcastI(&spi_cb_releasebus);
 	}
 	chSysUnlockFromIsr();
 }
@@ -142,8 +142,7 @@ static uint8_t adis_create_read_addr(adis_regaddr s) {
 
 
 void adis_read_id(SPIDriver *spip) {
-	//if(adis_driver.state == ADIS_IDLE) {
-
+	if(adis_driver.state == ADIS_IDLE) {
 		adis_driver.spi_instance        = spip;
 		adis_driver.adis_txbuf[0]       = adis_create_read_addr(ADIS_PRODUCT_ID);
 		adis_driver.adis_txbuf[1]       = (adis_data) 0x0;
@@ -157,7 +156,7 @@ void adis_read_id(SPIDriver *spip) {
 		spiSelect(spip);                    /* Slave Select assertion.          */
 		spiStartSend(spip, adis_driver.tx_numbytes, adis_driver.adis_txbuf);
 		adis_driver.state             = ADIS_TX_PEND;
-	//}
+	}
 }
 
 
