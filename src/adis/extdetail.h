@@ -16,11 +16,10 @@
 extern "C" {
 #endif
 
-extern           CondVar         adis_cv1;
+
+extern           Thread          *tp_dio1;
 
 extern const     EXTConfig       extcfg;
-extern           EventSource     wkup_event;
-extern           EventSource     adis_dio1_event;
 
 void green_led_off(void *arg);
 void extcb_wkup_btn(EXTDriver *extp, expchannel_t channel) ;

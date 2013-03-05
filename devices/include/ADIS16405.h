@@ -32,6 +32,7 @@ extern "C" {
 
 typedef     uint8_t                           adis_data;
 
+
 /*! \typedef adis_regaddr
  *
  * ADIS Register addresses
@@ -108,6 +109,7 @@ typedef struct {
 	adis_data          adis_txbuf[ADIS_MAX_TX_BUFFER]; /*! Transmit buffer                                         */
 	adis_data          adis_rxbuf[ADIS_MAX_RX_BUFFER]; /*! Receive buffer                                          */
 	uint8_t            debug_cb_count;
+	uint8_t            debug_spi_count;
 } ADIS_Driver;
 
 /*!
@@ -165,19 +167,21 @@ typedef struct {
 extern const SPIConfig      adis_spicfg ;
 extern const adis_connect   adis_connections ;
 extern       adis_cache     adis_cache_data;
-extern       EventSource    adis_spi_cb_event;
 
 extern       ADIS_Driver    adis_driver;
 
-void     adis_init(void);
-void     adis_reset(void);
+void         adis_init(void);
+void 	     adis_tstall_delay(void);
 
-void     adis_spi_cb(SPIDriver *spip) ;
+void 	     adis_release_bus(eventid_t id) ;
+void         adis_reset(void);
 
-void     adis_write_smpl_prd(uint8_t time_base, uint8_t sample_prd);
-void     adis_read_brst_mode(void);
-void     adis_read_id(SPIDriver *spip);
-void     spi_test(SPIDriver *spip);
+void         adis_spi_cb(SPIDriver *spip) ;
+
+void         adis_write_smpl_prd(uint8_t time_base, uint8_t sample_prd);
+void         adis_read_brst_mode(void);
+void         adis_read_id(SPIDriver *spip);
+void         spi_test(SPIDriver *spip);
 
 /*!
  * @}
