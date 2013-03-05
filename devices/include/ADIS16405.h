@@ -27,7 +27,8 @@ extern "C" {
 
 #define     ADIS_NUM_BURSTREAD_REGS           12
 
-typedef     uint8_t                           adis_data;
+typedef     uint8_t                           adis_spi_data;
+typedef     uint16_t                          adis_reg_data;
 
 /*! \typedef adis_regaddr
  *
@@ -102,11 +103,26 @@ typedef struct {
 	SPIDriver*         spi_instance;                   /*! which stm32f407 SPI instance to use (there are 3)       */
 	adis_xact_state    state;                          /*! Current state of the ADIS transaction                   */
 	adis_regaddr       reg;                            /*! Register address in this ADIS transaction               */
-	adis_data          adis_txbuf[ADIS_MAX_TX_BUFFER]; /*! Transmit buffer                                         */
-	adis_data          adis_rxbuf[ADIS_MAX_RX_BUFFER]; /*! Receive buffer                                          */
+	adis_spi_data      adis_txbuf[ADIS_MAX_TX_BUFFER]; /*! Transmit buffer                                         */
+	adis_spi_data      adis_rxbuf[ADIS_MAX_RX_BUFFER]; /*! Receive buffer                                          */
 	uint8_t            debug_cb_count;
 	uint8_t            debug_spi_count;
 } ADIS_Driver;
+
+typedef struct {
+	adis_reg_data      adis_supply_out; //  Power supply measurement
+	adis_reg_data      adis_xgyro_out;  //  X-axis gyroscope output
+	adis_reg_data      adis_ygyro_out;  //  Y-axis gyroscope output
+	adis_reg_data      adis_zgyro_out;  //  Z-axis gyroscope output
+	adis_reg_data      adis_xaccl_out;  //  X-axis accelerometer output
+	adis_reg_data      adis_yaccl_out;  //  Y-axis accelerometer output
+	adis_reg_data      adis_zaccl_out;  //  Z-axis accelerometer output
+	adis_reg_data      adis_xmagn_out;  //  X-axis magnetometer measurement
+	adis_reg_data      adis_ymagn_out;  //  Y-axis magnetometer measurement
+	adis_reg_data      adis_zmagn_out;  //  Z-axis magnetometer measurement
+	adis_reg_data      adis_temp_out;   //  Temperature output
+	adis_reg_data      adis_aux_adc;    //  Auxiliary ADC measurement
+} adis_burst_data;
 
 /*!
  * Another transaction may begin which would corrupt the tx and rx
@@ -117,8 +133,8 @@ typedef struct {
 	uint8_t            current_rx_numbytes;
 	uint8_t            current_tx_numbytes;
 	adis_regaddr       reg;
-	adis_data          adis_tx_cache[ADIS_MAX_TX_BUFFER];
-	adis_data          adis_rx_cache[ADIS_MAX_RX_BUFFER];
+	adis_spi_data          adis_tx_cache[ADIS_MAX_TX_BUFFER];
+	adis_spi_data          adis_rx_cache[ADIS_MAX_RX_BUFFER];
 } adis_cache;
 
 /*! \typedef adis_config
@@ -165,16 +181,18 @@ typedef struct {
 } adis_connect;
 
 
-extern const SPIConfig      adis_spicfg ;
-extern const adis_connect   adis_connections ;
-extern       adis_cache     adis_cache_data;
+extern const SPIConfig          adis_spicfg ;
+extern const adis_connect       adis_connections ;
+extern       adis_cache         adis_cache_data;
 
-extern       ADIS_Driver    adis_driver;
+extern       ADIS_Driver        adis_driver;
 
-extern       EventSource    adis_dio1_event;
-extern       EventSource    adis_spi_cb_txdone_event;
-extern       EventSource    adis_spi_cb_newdata;
-extern       EventSource    adis_spi_cb_releasebus;
+extern       EventSource        adis_dio1_event;
+extern       EventSource        adis_spi_cb_txdone_event;
+extern       EventSource        adis_spi_cb_newdata;
+extern       EventSource        adis_spi_cb_releasebus;
+
+extern       adis_burst_data    burst_data;
 
 void         adis_init(void);
 void 	     adis_tstall_delay(void);
@@ -185,13 +203,8 @@ void         adis_reset(void);
 void         adis_spi_cb(SPIDriver *spip) ;
 void         adis_newdata_handler(eventid_t id) ;
 void         adis_read_id_handler(eventid_t id) ;
+void         adis_burst_read_handler(eventid_t id) ;
 void         adis_spi_cb_txdone_handler(eventid_t id) ;
-
-
-void         adis_write_smpl_prd(uint8_t time_base, uint8_t sample_prd);
-void         adis_read_brst_mode(void);
-void         adis_read_id(SPIDriver *spip);
-void         spi_test(SPIDriver *spip);
 
 /*!
  * @}

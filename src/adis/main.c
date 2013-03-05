@@ -25,6 +25,7 @@
 
 #include "main.h"
 
+
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
 		{"threads", cmd_threads},
@@ -101,7 +102,7 @@ static msg_t Thread_blinker(void *arg) {
 /*!
  * ADIS Newdata Thread
  */
-static WORKING_AREA(waThread_adis_newdata, 128);
+static WORKING_AREA(waThread_adis_newdata, 256);
 static msg_t Thread_adis_newdata(void *arg) {
 	(void)arg;
 	chRegSetThreadName("adis_newdata");
@@ -125,11 +126,11 @@ static msg_t Thread_adis_newdata(void *arg) {
  * For burst mode transactions t_readrate is 1uS
  *
  */
-static WORKING_AREA(waThread_dio1, 128);
-static msg_t Thread_dio1(void *arg) {
+static WORKING_AREA(waThread_adis_dio1, 128);
+static msg_t Thread_adis_dio1(void *arg) {
 	(void)arg;
 	static const evhandler_t evhndl_dio1[]       = {
-			adis_read_id_handler,
+			adis_burst_read_handler,
 			adis_spi_cb_txdone_handler,
 			adis_release_bus
 	};
@@ -192,16 +193,19 @@ int main(void) {
 	 */
 	palSetPadMode(adis_connections.spi_sck_port, adis_connections.spi_sck_pad,
 			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST);                                /* New SCK.     */
+			PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(adis_connections.spi_miso_port, adis_connections.spi_miso_pad,
 			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_FLOATING);       /* New MISO.    */
+			PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_FLOATING);
 	palSetPadMode(adis_connections.spi_mosi_port, adis_connections.spi_mosi_pad,
 			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST );                               /* New MOSI.    */
+			PAL_STM32_OSPEED_HIGHEST );
 	palSetPadMode(adis_connections.spi_cs_port, adis_connections.spi_cs_pad,
 			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);                                /* New CS.      */
+			PAL_STM32_OSPEED_HIGHEST);
+
+	palSetPad(GPIOA, GPIOA_SPI1_SCK);
+	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
 	/*!
 	 * Initializes a serial-over-USB CDC driver.
@@ -229,21 +233,18 @@ int main(void) {
 	 */
 	sdStart(&SD6, NULL);
 
-	spiStart(&SPID1, &adis_spicfg);       /* Setup transfer parameters.       */
+	spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
 	chThdSleepMilliseconds(300);
 
 	adis_init();
 	adis_reset();
 
-	/*!
-	 * Activates the EXT driver 1.
-	 * This is for the external interrupt
-	 */
+	/*! Activates the EXT driver 1. */
 	extStart(&EXTD1, &extcfg);
 
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
-	chThdCreateStatic(waThread_dio1,         sizeof(waThread_dio1),         NORMALPRIO, Thread_dio1,         NULL);
+	chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
 	chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 
