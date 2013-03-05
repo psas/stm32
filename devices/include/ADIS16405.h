@@ -18,9 +18,6 @@ extern "C" {
 #include "ch.h"
 #include "hal.h"
 
-#define     ADIS_MAX_TX                       64
-#define     ADIS_MAX_RX                       32
-
 #define     ADIS_RESET_MSECS                  500
 #define     ADIS_TSTALL_US                    10
 #define     ADIS_TSTALL_US_LOWPOWER           75
@@ -31,7 +28,6 @@ extern "C" {
 #define     ADIS_NUM_BURSTREAD_REGS           12
 
 typedef     uint8_t                           adis_data;
-
 
 /*! \typedef adis_regaddr
  *
@@ -99,8 +95,8 @@ typedef enum {
  *
  */
 typedef struct {
-	Mutex              adis_mtx;                       /*! Mutex for conditional variable wait                     */
-	CondVar            adis_cv1;                       /*! Condition variable for ADIS                             */
+	//Mutex              adis_mtx;                       /*! Mutex for conditional variable wait                     */
+	//CondVar            adis_cv1;                       /*! Condition variable for ADIS                             */
 	uint8_t            rx_numbytes;                    /*! number of bytes to receive in this current transaction  */
 	uint8_t            tx_numbytes;                    /*! number of bytes to transmit in this current transaction */
 	SPIDriver*         spi_instance;                   /*! which stm32f407 SPI instance to use (there are 3)       */
@@ -130,37 +126,42 @@ typedef struct {
  * Configuration for the ADIS connections EXCEPT SPI
  */
 typedef struct {
-	/*! \brief The reset line port
-	 */
+	/*! \brief The SPI SCK port */
+	ioportid_t               spi_sck_port;
+	/*! \brief The SPI SCK pad */
+	uint16_t                 spi_sck_pad;
+	/*! \brief The SPI MISO port */
+	ioportid_t               spi_miso_port;
+	/*! \brief The SPI MISO pad */
+	uint16_t                 spi_miso_pad;
+	/*! \brief The SPI MOSI port */
+	ioportid_t               spi_mosi_port;
+	/*! \brief The SPI MOSI pad */
+	uint16_t                 spi_mosi_pad;
+	/*! \brief The SPI CS port */
+	ioportid_t               spi_cs_port;
+	/*! \brief The SPI CS pad */
+	uint16_t                 spi_cs_pad;
+	/*! \brief The reset line port */
 	ioportid_t               reset_port;
-	/*! \brief The reset line pad number.
-	 */
+	/*! \brief The reset line pad number. */
 	uint16_t                 reset_pad;
-	/*! \brief The DIO1 port
-	 */
+	/*! \brief The DIO1 port */
 	ioportid_t               dio1_port;
-	/*! \brief The DIO1 pad number.
-	 */
+	/*! \brief The DIO1 pad number. */
 	uint16_t                 dio1_pad;
-	/*! \brief The DIO2 port
-	 */
+	/*! \brief The DIO2 port */
 	ioportid_t               dio2_port;
-	/*! \brief The DIO2 pad number.
-	 */
+	/*! \brief The DIO2 pad number. */
 	uint16_t                 dio2_pad;
-	/*! \brief The DIO3 port
-	 */
+	/*! \brief The DIO3 port */
 	ioportid_t               dio3_port;
-	/*! \brief The DIO3 pad number.
-	 */
+	/*! \brief The DIO3 pad number. */
 	uint16_t                 dio3_pad;
-	/*! \brief The DIO4 port
-	 */
+	/*! \brief The DIO4 port */
 	ioportid_t               dio4_port;
-	/*! \brief The DIO4 pad number.
-	 */
+	/*! \brief The DIO4 pad number. */
 	uint16_t                 dio4_pad;
-
 } adis_connect;
 
 
@@ -170,6 +171,11 @@ extern       adis_cache     adis_cache_data;
 
 extern       ADIS_Driver    adis_driver;
 
+extern       EventSource    adis_dio1_event;
+extern       EventSource    adis_spi_cb_txdone_event;
+extern       EventSource    adis_spi_cb_newdata;
+extern       EventSource    adis_spi_cb_releasebus;
+
 void         adis_init(void);
 void 	     adis_tstall_delay(void);
 
@@ -177,6 +183,10 @@ void 	     adis_release_bus(eventid_t id) ;
 void         adis_reset(void);
 
 void         adis_spi_cb(SPIDriver *spip) ;
+void         adis_newdata_handler(eventid_t id) ;
+void         adis_read_id_handler(eventid_t id) ;
+void         adis_spi_cb_txdone_handler(eventid_t id) ;
+
 
 void         adis_write_smpl_prd(uint8_t time_base, uint8_t sample_prd);
 void         adis_read_brst_mode(void);

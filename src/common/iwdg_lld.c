@@ -55,6 +55,23 @@ void iwdg_lld_set_reloadval(uint16_t r) {
 	chSysUnlock();
 }
 
+/*! \brief check reset status and then start iwatchdog
+ *
+ * Check the CSR register for reset source then start
+ * the independent watchdog counter.
+ *
+ */
+void iwdg_begin(void) {
+	// was this a reset caused by the iwdg?
+	if( (RCC->CSR & RCC_CSR_WDGRSTF) != 0) {
+		// \todo Log WDG reset event somewhere.
+		RCC->CSR = RCC->CSR | RCC_CSR_RMVF;  // clear the IWDGRSTF
+	}
+	iwdg_lld_set_prescale(IWDG_PS_DIV32); // This should be about 2 second at 32kHz
+	iwdg_lld_reload();
+	iwdg_lld_init();
+}
+
 
 //! @}
 
