@@ -210,8 +210,12 @@ void adis_newdata_handler(eventid_t id) {
 	/*! \todo Package for UDP transmission to fc here */
 	++j;
 	if(j>1000) {
-		chprintf(chp, "%d: x: %x y: %x z: %x\r\n", xcount, burst_data.adis_xaccl_out, burst_data.adis_yaccl_out, burst_data.adis_zaccl_out);
-    //	chprintf(chp, "%d: supply: %x %d\r\n", xcount, burst_data.adis_supply_out,( burst_data.adis_supply_out * 2418));
+		//chprintf(chp, "%d: x: %x y: %x z: %x\r\n", xcount, burst_data.adis_xaccl_out, burst_data.adis_yaccl_out, burst_data.adis_zaccl_out);
+    	if(adis_driver.reg == ADIS_GLOB_CMD) {
+    		chprintf(chp, "%d: supply: %x %d\r\n", xcount, burst_data.adis_supply_out,( burst_data.adis_supply_out * 2418));
+    	} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
+    		chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );
+    	}
 
 		//		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
 //		    chprintf(chp, "%x ", adis_cache_data.adis_rx_cache[i]);
