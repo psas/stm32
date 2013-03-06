@@ -18,6 +18,9 @@ extern "C" {
 #include "ch.h"
 #include "hal.h"
 
+#define     ADIS_14_BIT_MASK                  0x3fff
+#define     ADIS_12_BIT_MASK                  0x0fff
+
 #define     ADIS_RESET_MSECS                  500
 #define     ADIS_TSTALL_US                    10
 #define     ADIS_TSTALL_US_LOWPOWER           75
