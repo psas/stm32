@@ -20,6 +20,10 @@
 
 #include "ADIS16405.h"
 
+#if !defined(ADIS_DEBUG) || defined(__DOXYGEN__)
+#define 	ADIS_DEBUG                   0
+#endif
+
 ADIS_Driver        adis_driver;
 
 adis_cache         adis_cache_data;
@@ -29,6 +33,31 @@ EventSource        adis_dio1_event;
 EventSource        adis_spi_cb_txdone_event;
 EventSource        adis_spi_cb_newdata;
 EventSource        adis_spi_cb_releasebus;
+
+#if ADIS_DEBUG || defined(__DOXYGEN__)
+	/*! \brief Convert an ADIS 14 bit accel. value to micro-g
+	 *
+	 * @param decimal
+	 * @param accel reading
+	 * @return   TRUE if less than zero, FALSE if greater or equal to zero
+	 */
+	static bool adis_accel2ug(uint32_t* decimal, uint16_t* twos_num) {
+		uint16_t ones_comp;
+		bool     isnegative = false;
+
+		//! bit 13 is 14-bit two's complement sign bit
+		isnegative   = (((uint16_t)(1<<13) & *twos_num) != 0) ? true : false;
+
+		if(isnegative) {
+			ones_comp    = ~(*twos_num & (uint16_t)0x3fff) & 0x3fff;
+			*decimal     = (ones_comp) + 1;
+		} else {
+			*decimal     = *twos_num;
+		}
+		*decimal     *= 3330;
+		return isnegative;
+	}
+#endif
 
 /*! \brief Create a read address
  *
@@ -184,35 +213,47 @@ void adis_spi_cb(SPIDriver *spip) {
  */
 void adis_newdata_handler(eventid_t id) {
 	(void)                id;
-	//uint8_t               i      = 0;
-	static uint32_t       j      = 0;
-	static uint32_t       xcount = 0;
-
-	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU1;
 
 	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
 
 	if(adis_driver.reg == ADIS_GLOB_CMD) {
-		burst_data.adis_supply_out   = ((adis_cache_data.adis_rx_cache[0]  << 8) | adis_cache_data.adis_rx_cache[1] );
-		burst_data.adis_xgyro_out    = ((adis_cache_data.adis_rx_cache[2]  << 8) | adis_cache_data.adis_rx_cache[3] );
-		burst_data.adis_ygyro_out    = ((adis_cache_data.adis_rx_cache[4]  << 8) | adis_cache_data.adis_rx_cache[5] );
-		burst_data.adis_zgyro_out    = ((adis_cache_data.adis_rx_cache[6]  << 8) | adis_cache_data.adis_rx_cache[7] );
-		burst_data.adis_xaccl_out    = ((adis_cache_data.adis_rx_cache[8]  << 8) | adis_cache_data.adis_rx_cache[9] );
-		burst_data.adis_yaccl_out    = ((adis_cache_data.adis_rx_cache[10] << 8) | adis_cache_data.adis_rx_cache[11]);
-		burst_data.adis_zaccl_out    = ((adis_cache_data.adis_rx_cache[12] << 8) | adis_cache_data.adis_rx_cache[13]);
-		burst_data.adis_xmagn_out    = ((adis_cache_data.adis_rx_cache[14] << 8) | adis_cache_data.adis_rx_cache[15]);
-		burst_data.adis_ymagn_out    = ((adis_cache_data.adis_rx_cache[16] << 8) | adis_cache_data.adis_rx_cache[17]);
-		burst_data.adis_zmagn_out    = ((adis_cache_data.adis_rx_cache[18] << 8) | adis_cache_data.adis_rx_cache[19]);
-		burst_data.adis_temp_out     = ((adis_cache_data.adis_rx_cache[20] << 8) | adis_cache_data.adis_rx_cache[21]);
-		burst_data.adis_aux_adc      = ((adis_cache_data.adis_rx_cache[22] << 8) | adis_cache_data.adis_rx_cache[23]);
+		burst_data.adis_supply_out   = (((adis_cache_data.adis_rx_cache[0]  << 8) | adis_cache_data.adis_rx_cache[1] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_xgyro_out    = (((adis_cache_data.adis_rx_cache[2]  << 8) | adis_cache_data.adis_rx_cache[3] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_ygyro_out    = (((adis_cache_data.adis_rx_cache[4]  << 8) | adis_cache_data.adis_rx_cache[5] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_zgyro_out    = (((adis_cache_data.adis_rx_cache[6]  << 8) | adis_cache_data.adis_rx_cache[7] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_xaccl_out    = (((adis_cache_data.adis_rx_cache[8]  << 8) | adis_cache_data.adis_rx_cache[9] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_yaccl_out    = (((adis_cache_data.adis_rx_cache[10] << 8) | adis_cache_data.adis_rx_cache[11]) & ADIS_14_BIT_MASK );
+		burst_data.adis_zaccl_out    = (((adis_cache_data.adis_rx_cache[12] << 8) | adis_cache_data.adis_rx_cache[13]) & ADIS_14_BIT_MASK );
+		burst_data.adis_xmagn_out    = (((adis_cache_data.adis_rx_cache[14] << 8) | adis_cache_data.adis_rx_cache[15]) & ADIS_14_BIT_MASK );
+		burst_data.adis_ymagn_out    = (((adis_cache_data.adis_rx_cache[16] << 8) | adis_cache_data.adis_rx_cache[17]) & ADIS_14_BIT_MASK );
+		burst_data.adis_zmagn_out    = (((adis_cache_data.adis_rx_cache[18] << 8) | adis_cache_data.adis_rx_cache[19]) & ADIS_14_BIT_MASK );
+		burst_data.adis_temp_out     = (((adis_cache_data.adis_rx_cache[20] << 8) | adis_cache_data.adis_rx_cache[21]) & ADIS_12_BIT_MASK );
+		burst_data.adis_aux_adc      = (((adis_cache_data.adis_rx_cache[22] << 8) | adis_cache_data.adis_rx_cache[23]) & ADIS_12_BIT_MASK );
 	}
 
 	/*! \todo Package for UDP transmission to fc here */
+
+#if ADIS_DEBUG
+	bool                  negative = false;
+	uint32_t              result_ug = 0;
+	static uint32_t       j        = 0;
+	static uint32_t       xcount   = 0;
+
+	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU1;
+
 	++j;
-	if(j>1000) {
-		//chprintf(chp, "%d: x: %x y: %x z: %x\r\n", xcount, burst_data.adis_xaccl_out, burst_data.adis_yaccl_out, burst_data.adis_zaccl_out);
+	if(j>4000) {
     	if(adis_driver.reg == ADIS_GLOB_CMD) {
-    		chprintf(chp, "%d: supply: %x %d\r\n", xcount, burst_data.adis_supply_out,( burst_data.adis_supply_out * 2418));
+    		// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
+    		//negative = twos2dec(&burst_data.adis_xaccl_out);
+
+    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_zaccl_out);
+    		chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
+    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_xaccl_out);
+    		chprintf(chp, "%d: x: 0x%x  %s%d ug\r\n", xcount, burst_data.adis_xaccl_out, (negative) ? "-" : "", result_ug);
+    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_yaccl_out);
+    		chprintf(chp, "%d: y: 0x%x  %s%d ug\r\n\r\n", xcount, burst_data.adis_yaccl_out, (negative) ? "-" : "", result_ug);
+
     	} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
     		chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );
     	}
@@ -224,6 +265,8 @@ void adis_newdata_handler(eventid_t id) {
 		j=0;
 		++xcount;
 	}
+#endif
+
 	adis_driver.state             = ADIS_IDLE;   /* don't go to idle until data processed */
 }
 
