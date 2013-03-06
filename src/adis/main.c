@@ -5,6 +5,12 @@
  * This implementation is specific to the Olimex stm32-e407 board.
  */
 
+
+/*!
+ * \defgroup mainapp Application
+ * @{
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -24,7 +30,6 @@
 #include "ADIS16405.h"
 
 #include "main.h"
-
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -61,7 +66,7 @@ const SPIConfig adis_spicfg = {
 #endif
 
 
-/*! ADIS SPI Pin connections
+/*! \brief ADIS SPI Pin connections
  *
  */
 const adis_connect adis_connections = {
@@ -85,10 +90,10 @@ const adis_connect adis_connections = {
 		12          // dio4_pad
 };
 
-/*!
- * Green LED blinker thread
- */
+
 static WORKING_AREA(waThread_blinker, 64);
+/*! \brief Green LED blinker thread
+ */
 static msg_t Thread_blinker(void *arg) {
 	(void)arg;
 	chRegSetThreadName("blinker");
@@ -99,10 +104,9 @@ static msg_t Thread_blinker(void *arg) {
 	return -1;
 }
 
-/*!
- * ADIS Newdata Thread
- */
 static WORKING_AREA(waThread_adis_newdata, 256);
+/*! \brief ADIS Newdata Thread
+ */
 static msg_t Thread_adis_newdata(void *arg) {
 	(void)arg;
 	chRegSetThreadName("adis_newdata");
@@ -120,13 +124,13 @@ static msg_t Thread_adis_newdata(void *arg) {
 	return -1;
 }
 
-/*!
- * ADIS DIO1 thread
+
+static WORKING_AREA(waThread_adis_dio1, 128);
+/*! \brief ADIS DIO1 thread
  *
  * For burst mode transactions t_readrate is 1uS
  *
  */
-static WORKING_AREA(waThread_adis_dio1, 128);
 static msg_t Thread_adis_dio1(void *arg) {
 	(void)arg;
 	static const evhandler_t evhndl_dio1[]       = {
@@ -150,10 +154,9 @@ static msg_t Thread_adis_dio1(void *arg) {
 	return -1;
 }
 
-/*!
- * Watchdog thread
- */
 static WORKING_AREA(waThread_indwatchdog, 64);
+/*! \brief  Watchdog thread
+ */
 static msg_t Thread_indwatchdog(void *arg) {
 	(void)arg;
 
@@ -259,3 +262,6 @@ int main(void) {
 		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
 	}
 }
+
+
+//! @}

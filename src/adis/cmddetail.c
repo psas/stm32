@@ -17,6 +17,12 @@
 
 #include "cmddetail.h"
 
+/*! \brief Show memory usage
+ *
+ * @param chp
+ * @param argc
+ * @param argv
+ */
 void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
 	size_t n, size;
 
@@ -31,6 +37,12 @@ void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
 	chprintf(chp, "heap free total  : %u bytes\r\n", size);
 }
 
+/*! \brief Show running threads
+ *
+ * @param chp
+ * @param argc
+ * @param argv
+ */
 void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
 	static const char *states[] = {THD_STATE_NAMES};
 	Thread *tp;
