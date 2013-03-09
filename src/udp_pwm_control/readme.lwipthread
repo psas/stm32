@@ -1,0 +1,39 @@
+
+
+In os/various a change is made to lwipthread as follows:
+
+To toggle an IO on a packet send receive:
+
+    @@ -292,12 +292,15 @@ msg_t lwip_thread(void *p) {
+             /* IP or ARP packet? */
+             case ETHTYPE_IP:
+             case ETHTYPE_ARP:
+    +            palTogglePad(GPIOC, GPIOC_LED);
+    +            palTogglePad(GPIOE, GPIOE_PIN2);
+    +
+     #if PPPOE_SUPPORT
+    -        /* PPPoE packet? */
+    +               /* PPPoE packet? */
+             case ETHTYPE_PPPOEDISC:
+             case ETHTYPE_PPPOE:
+     #endif /* PPPOE_SUPPORT */
+    -          /* full packet send to tcpip_thread to process */
+    +               /* full packet send to tcpip_thread to process */
+               if (thisif.input(p, &thisif) == ERR_OK)
+                 break;
+               LWIP_DEBUGF(NETIF_DEBUG, ("ethernetif_input: IP input error\n"));
+    
+
+Change the local address of the ethernet connection:
+    ------------- ChibiOS_2.5.1/os/various/lwip_bindings/lwipthread.h -------------
+    index fc60864..0e77084 100644
+    @@ -35,7 +35,7 @@
+     
+     /** @brief IP Address. */
+     #if !defined(LWIP_IPADDR) || defined(__DOXYGEN__)
+    -#define LWIP_IPADDR(p)          IP4_ADDR(p, 192, 168, 1, 20)
+    +#define LWIP_IPADDR(p)          IP4_ADDR(p, 172, 16 , 0, 87)
+     #endif
+     
+     /** @brief IP Gateway. */
+    
