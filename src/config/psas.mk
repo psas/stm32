@@ -1,6 +1,7 @@
-# Directory for PSAS configuration
-PSAS_CFG=../config
-PSAS_DEV_SRC=../../devices
+# Directories for PSAS configuration
+PSAS_CFG       = ../config
+PSAS_COMMON    = ../common
+PSAS_DEV_SRC   = ../../devices
 %:
 	mkdir -p $(OBJDIR)
 	mkdir -p $(LSTDIR)

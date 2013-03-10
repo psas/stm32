@@ -12,113 +12,59 @@
 
 #include <stdbool.h>
 
+#include "ch.h"
+#include "hal.h"
+
+#include "usbdetail.h"
+#include "chprintf.h"
+
 #include "ADIS16405.h"
 
-adis_cache                adis_data_cache;
+#if !defined(ADIS_DEBUG) || defined(__DOXYGEN__)
+#define 	ADIS_DEBUG                   0
+#endif
 
-/*! \brief Reset the ADIS
- */
-void adis_reset() {
+ADIS_Driver        adis_driver;
 
-	ADIS_RESET_LOW;
+adis_cache         adis_cache_data;
+adis_burst_data    burst_data;
 
-	util_wait_msecs(ADIS_RESET_MSECS);
+EventSource        adis_dio1_event;
+EventSource        adis_spi_cb_txdone_event;
+EventSource        adis_spi_cb_newdata;
+EventSource        adis_spi_cb_releasebus;
 
-	ADIS_RESET_HIGH;
+#if ADIS_DEBUG || defined(__DOXYGEN__)
+	/*! \brief Convert an ADIS 14 bit accel. value to micro-g
+	 *
+	 * @param decimal
+	 * @param accel reading
+	 * @return   TRUE if less than zero, FALSE if greater or equal to zero
+	 */
+	static bool adis_accel2ug(uint32_t* decimal, uint16_t* twos_num) {
+		uint16_t ones_comp;
+		bool     isnegative = false;
 
-	util_wait_msecs(ADIS_RESET_MSECS);
-}
+		//! bit 13 is 14-bit two's complement sign bit
+		isnegative   = (((uint16_t)(1<<13) & *twos_num) != 0) ? true : false;
 
-bool adis_read_cache(adis_regaddr adis_recent, uint16_t* adis_data) {
-
-	adis_cache*       c;
-	c               = &adis_data_cache;
-
-	if((adis_recent== ADIS_PRODUCT_ID)) {
-		adis_data[0] = ( (c->adis_prod_id.data_high << 8) |  c->adis_prod_id.data_low);
-		return true;
-	}
-	if((adis_recent== ADIS_SMPL_PRD)) {
-		adis_data[0] = ( (c->adis_sampl_per.data_high << 8) |  c->adis_sampl_per.data_low);
-		return true;
-	}
-	return false;
-}
-
-void adis_get_data() {
-
-	bool            ok            = false;
-
-	adis_regaddr    adis_recent  = 0;
-
-	uint16_t        adis_data[ADIS_MAX_DATA_BUFFER];
-
-	ok = rb_get_elem((uint8_t *) &adis_recent, &adis_spi_done_q);
-	if(ok) {
-		ok = adis_read_cache(adis_recent, adis_data);
-		if(ok) {
-			switch(adis_recent) {
-
-			case ADIS_PRODUCT_ID:
-				printf_lpc(UART0, "ID 0x%x\r\n",      adis_data[0]) ;
-				break;
-			case ADIS_SMPL_PRD:
-				printf_lpc(UART0, "SMPL_PER 0x%x\r\n",      adis_data[0]) ;
-				break;
-			default:
-				break;
-
-			}
+		if(isnegative) {
+			ones_comp    = ~(*twos_num & (uint16_t)0x3fff) & 0x3fff;
+			*decimal     = (ones_comp) + 1;
+		} else {
+			*decimal     = *twos_num;
 		}
+		*decimal     *= 3330;
+		return isnegative;
 	}
-}
-
-void adis_write_cb(spi_master_xact_data* caller, spi_master_xact_data* spi_xact, void* data) {
-
-}
-
-
-void adis_read_cb(spi_master_xact_data* caller, spi_master_xact_data* spi_xact, void* data) {
-
-	uint16_t i             = 0;
-	adis_regaddr  regaddr  = 0;
-
-	// copy out read buffer.
-	for(i=0; i<spi_xact->read_numbytes; ++i) {
-		caller->readbuf[i] = spi_xact->readbuf[i];
-	}
-	// copy out write buffer.
-	for(i=0; i<spi_xact->write_numbytes; ++i) {
-		caller->writebuf[i] = spi_xact->writebuf[i];
-	}
-
-	// The register address is always the first byte of the write buffer.
-	regaddr = caller->writebuf[0];
-
-	switch(regaddr) {
-		case ADIS_PRODUCT_ID:
-			adis_data_cache.adis_prod_id.data_high   = caller->readbuf[1];
-			adis_data_cache.adis_prod_id.data_low    = caller->readbuf[2];
-
-			break;
-		case ADIS_SMPL_PRD:
-			adis_data_cache.adis_sampl_per.data_high  = caller->readbuf[1];
-			adis_data_cache.adis_sampl_per.data_low   = caller->readbuf[2];
-			break;
-		default:
-			break;
-	}
-	if(!rb_is_full(&adis_spi_done_q)) {
-		rb_put_elem((char) regaddr, &adis_spi_done_q);
-	}       // now check queue not empty in main loop to see if there is fresh data.
-}
+#endif
 
 /*! \brief Create a read address
  *
  * @param s
  * @return  formatted read address for adis
  */
-static adis_regaddr adis_create_read_addr(adis_regaddr s) {
+static uint8_t adis_create_read_addr(adis_regaddr s) {
 	return (s & 0b01111111);
 }
 
@@ -127,137 +73,238 @@ static adis_regaddr adis_create_read_addr(adis_regaddr s) {
  * @param s
  * @return  formatted write address for adis
  */
-static adis_regaddr adis_create_write_addr(adis_regaddr s) {
-	return (s | 0b10000000);
-}
+//static adis_regaddr adis_create_write_addr(adis_regaddr s) {
+//    return (s | 0b10000000);
+//}
 
-/*! \brief write the smpl_prd register
- *
- * @param time_base    The time base parameter (0 or 1)
- * @param sample_prd   7 bit sample prd parameter
- */
-void adis_write_smpl_prd(uint8_t time_base, uint8_t sample_prd) {
+static void adis_read_id(SPIDriver *spip) {
+	if(adis_driver.state == ADIS_IDLE) {
+		adis_driver.spi_instance        = spip;
+		adis_driver.adis_txbuf[0]       = adis_create_read_addr(ADIS_PRODUCT_ID);
+		adis_driver.adis_txbuf[1]       = (adis_reg_data) 0x0;
+		adis_driver.adis_txbuf[2]       = (adis_reg_data) 0x0;
+		adis_driver.reg                 = ADIS_PRODUCT_ID;
+		adis_driver.rx_numbytes         = 2;
+		adis_driver.tx_numbytes         = 2;
+		adis_driver.debug_cb_count      = 0;
 
-	/* tb is a 1 bit field */
-	uint8_t  tb = time_base & 0b01;
-	/* Ns is a 7 bit field */
-	uint8_t  Ns = sample_prd & 0b01111111;
-
-	spi_init_master_xact_data(&adis_read_smpl_prd_xact);
-
-	adis_read_smpl_prd_xact.spi_cpha_val    = SPI_SCK_SECOND_CLK;
-	adis_read_smpl_prd_xact.spi_cpol_val    = SPI_SCK_ACTIVE_HIGH;
-	adis_read_smpl_prd_xact.spi_lsbf_val    = SPI_DATA_MSB_FIRST;
-
-	adis_read_smpl_prd_xact.writebuf[0]     = adis_create_write_addr(ADIS_SMPL_PRD);
-	adis_read_smpl_prd_xact.writebuf[1]     = ((tb<<7) | Ns);
-	adis_read_smpl_prd_xact.write_numbytes  = 2;
-	adis_read_smpl_prd_xact.read_numbytes   = 0;
-	adis_read_smpl_prd_xact.dummy_value     = 0x7f;
-
-	// Start the transaction
-	start_spi_master_xact_intr(&adis_read_smpl_prd_xact, adis_write_cb) ;
-
-}
-
-
-void adis_read_brst_mode(SPI_XACT_FnCallback cb) {
-	bool success = false;
-
-	spi_init_master_xact_data(&adis_read_brst_mode_xact);
-
-	adis_read_brst_mode_xact.spi_cpha_val    = SPI_SCK_SECOND_CLK;
-	adis_read_brst_mode_xact.spi_cpol_val    = SPI_SCK_ACTIVE_HIGH;
-	adis_read_brst_mode_xact.spi_lsbf_val    = SPI_DATA_MSB_FIRST;
-
-	adis_read_brst_mode_xact.writebuf[0]     = adis_create_read_addr(ADIS_GLOB_CMD);
-	adis_read_brst_mode_xact.writebuf[1]     = 0x0;
-	adis_read_brst_mode_xact.write_numbytes  = 2;
-	adis_read_brst_mode_xact.read_numbytes   = (ADIS_NUM_BURSTREAD_REGS * 2);
-	adis_read_brst_mode_xact.dummy_value     = 0x7f;
-
-	// Start the transaction
-	success = start_spi_master_xact_intr(&adis_read_brst_mode_xact, cb) ;
-	if(!success) {
-		uart0_putstring("burst SPI fail\n");
+		spiAcquireBus(spip);                /* Acquire ownership of the bus.    */
+		spiSelect(spip);                    /* Slave Select assertion.          */
+		spiStartSend(spip, adis_driver.tx_numbytes, adis_driver.adis_txbuf);
+		adis_driver.state             = ADIS_TX_PEND;
 	}
 }
 
+static void adis_burst_read(SPIDriver *spip) {
+	if(adis_driver.state == ADIS_IDLE) {
+		adis_driver.spi_instance        = spip;
+		adis_driver.adis_txbuf[0]       = adis_create_read_addr(ADIS_GLOB_CMD);
+		adis_driver.adis_txbuf[1]       = (adis_reg_data) 0x0;
+		adis_driver.reg                 = ADIS_GLOB_CMD;
+		adis_driver.rx_numbytes         = (ADIS_NUM_BURSTREAD_REGS *2);
+		adis_driver.tx_numbytes         = 2;
+		adis_driver.debug_cb_count      = 0;
 
-void adis_read_smpl_prd() {
-
-	spi_init_master_xact_data(&adis_read_smpl_prd_xact);
-
-	adis_read_smpl_prd_xact.spi_cpha_val    = SPI_SCK_SECOND_CLK;
-	adis_read_smpl_prd_xact.spi_cpol_val    = SPI_SCK_ACTIVE_HIGH;
-	adis_read_smpl_prd_xact.spi_lsbf_val    = SPI_DATA_MSB_FIRST;
-
-	adis_read_smpl_prd_xact.writebuf[0]     = adis_create_read_addr(ADIS_SMPL_PRD);
-	adis_read_smpl_prd_xact.writebuf[1]     = 0x0;
-	adis_read_smpl_prd_xact.write_numbytes  = 2;
-	adis_read_smpl_prd_xact.read_numbytes   = 2;
-	adis_read_smpl_prd_xact.dummy_value     = 0x7f;
-
-	// Start the transaction
-	start_spi_master_xact_intr(&adis_read_smpl_prd_xact, adis_read_cb) ;
-
+		spiAcquireBus(spip);                /* Acquire ownership of the bus.    */
+		spiSelect(spip);                    /* Slave Select assertion.          */
+		spiStartSend(spip, adis_driver.tx_numbytes, adis_driver.adis_txbuf);
+		adis_driver.state             = ADIS_TX_PEND;
+	}
+}
+/*! \brief Reset the ADIS
+ */
+void adis_reset() {
+	palClearPad(adis_connections.reset_port, adis_connections.reset_pad);
+	chThdSleepMilliseconds(ADIS_RESET_MSECS);
+	palSetPad(adis_connections.reset_port, adis_connections.reset_pad);
+	chThdSleepMilliseconds(ADIS_RESET_MSECS);
 }
 
-void adis_read_id() {
+/*! \brief Initialize ADIS driver
+ *
+ */
+void adis_init() {
+	uint8_t     i              = 0;
 
-	spi_init_master_xact_data(&adis_read_id_xact);
+	//chMtxInit(&adis_driver.adis_mtx);
+	//chCondInit(&adis_driver.adis_cv1);
 
-	adis_read_id_xact.spi_cpha_val    = SPI_SCK_SECOND_CLK;
-	adis_read_id_xact.spi_cpol_val    = SPI_SCK_ACTIVE_HIGH;
-	adis_read_id_xact.spi_lsbf_val    = SPI_DATA_MSB_FIRST;
+	adis_driver.spi_instance    = &SPID1;
+	adis_driver.state           = ADIS_IDLE;
+	adis_driver.reg             = ADIS_PRODUCT_ID;
+	adis_driver.debug_cb_count  = 0;
+	adis_driver.debug_spi_count = 0;
 
-	adis_read_id_xact.writebuf[0]     = adis_create_read_addr(ADIS_PRODUCT_ID);
-	adis_read_id_xact.writebuf[1]     = 0x0;
-	adis_read_id_xact.write_numbytes  = 2;
-	adis_read_id_xact.read_numbytes   = 2;
-	adis_read_id_xact.dummy_value     = 0x7f;
-
-	// Start the transaction
-	start_spi_master_xact_intr(&adis_read_id_xact, adis_read_cb) ;
-}
-
-void adis_read_gpio_ctl() {
-
-	spi_init_master_xact_data(&adis_read_id_xact);
-
-	adis_read_gpio_xact.spi_cpha_val    = SPI_SCK_SECOND_CLK;
-	adis_read_gpio_xact.spi_cpol_val    = SPI_SCK_ACTIVE_HIGH;
-	adis_read_gpio_xact.spi_lsbf_val    = SPI_DATA_MSB_FIRST;
-
-	adis_read_gpio_xact.writebuf[0]     = adis_create_read_addr(ADIS_GPIO_CTRL);
-	adis_read_gpio_xact.writebuf[1]     = 0x0;
-	adis_read_gpio_xact.write_numbytes  = 2;
-	adis_read_gpio_xact.read_numbytes   = 2;
-	adis_read_gpio_xact.dummy_value     = 0x7f;
-
-	// Start the transaction
-	start_spi_master_xact_intr(&adis_read_gpio_xact, adis_read_cb) ;
-}
-
-void adis_write_gpio_ctl() {
-
-	spi_init_master_xact_data(&adis_read_id_xact);
-
-	adis_write_gpio_xact.spi_cpha_val    = SPI_SCK_SECOND_CLK;
-	adis_write_gpio_xact.spi_cpol_val    = SPI_SCK_ACTIVE_HIGH;
-	adis_write_gpio_xact.spi_lsbf_val    = SPI_DATA_MSB_FIRST;
-
-	adis_write_gpio_xact.writebuf[0]     = adis_create_write_addr(ADIS_GPIO_CTRL);
-	printf_lpc(UART0, "read addr is: 0x%x\n", adis_write_gpio_xact.writebuf[0]);
-	adis_write_gpio_xact.writebuf[1]     = 0x0;
-	adis_write_gpio_xact.write_numbytes  = 2;
-	adis_write_gpio_xact.read_numbytes   = 0;
-	adis_write_gpio_xact.dummy_value     = 0x7f;
-
-	// Start the transaction
-	start_spi_master_xact_intr(&adis_write_gpio_xact, adis_read_cb) ;
+	for(i=0; i<ADIS_MAX_TX_BUFFER; ++i) {
+		adis_driver.adis_txbuf[i]        = 0;
+		adis_cache_data.adis_tx_cache[i] = 0;
+	}
+	for(i=0; i<ADIS_MAX_RX_BUFFER; ++i) {
+		adis_driver.adis_rxbuf[i]        = 0xa5;
+		adis_cache_data.adis_rx_cache[i] = 0xa5;
+	}
+	chEvtInit(&adis_dio1_event);
+	chEvtInit(&adis_spi_cb_txdone_event);
+	chEvtInit(&adis_spi_cb_newdata);
+	chEvtInit(&adis_spi_cb_releasebus);
 }
 
 /*!
- * @}
+ * t_stall is 9uS according to ADIS datasheet.
  */
+void adis_tstall_delay() {
+	volatile uint32_t i, j;
+
+	/*!
+	 *  This is the ADIS T_stall time.
+	 *  Counting to 100 takes about 11uS.
+	 *  Measured on oscilloscope.
+	 *
+	 *  \todo Use a HW (not virtual) timer/counter unit to generate T_stall delays
+	 */
+	j = 0;
+	for(i=0; i<100; ++i) {
+		j++;
+	}
+}
+
+/*!
+ *
+ * @param spip
+ */
+void adis_release_bus(eventid_t id) {
+	(void) id;
+	spiReleaseBus(adis_driver.spi_instance);
+}
+
+/*! \brief adis_spi_cb
+ *
+ * What happens at end of ADIS SPI transaction
+ *
+ * This is executed during the SPI interrupt.
+ *
+ * @param spip
+ */
+void adis_spi_cb(SPIDriver *spip) {
+	chSysLockFromIsr();
+
+	uint8_t       i                              = 0;
+
+	chDbgCheck(adis_driver.spi_instance == spip, "adis_spi_cb driver mismatch");
+	if(adis_driver.state == ADIS_TX_PEND) {
+		chEvtBroadcastI(&adis_spi_cb_txdone_event);
+	} else {
+		for(i=0; i<adis_driver.tx_numbytes; ++i) {
+			adis_cache_data.adis_tx_cache[i] = adis_driver.adis_txbuf[i];
+		}
+		for(i=0; i<adis_driver.rx_numbytes; ++i) {
+			adis_cache_data.adis_rx_cache[i] = adis_driver.adis_rxbuf[i];
+		}
+		adis_cache_data.reg                  = adis_driver.reg;
+		adis_cache_data.current_rx_numbytes  = adis_driver.rx_numbytes;
+		adis_cache_data.current_tx_numbytes  = adis_driver.tx_numbytes;
+		chEvtBroadcastI(&adis_spi_cb_newdata);
+		chEvtBroadcastI(&adis_spi_cb_releasebus);
+	}
+	chSysUnlockFromIsr();
+}
+
+/*! \brief Process an adis_newdata_event
+ */
+void adis_newdata_handler(eventid_t id) {
+	(void)                id;
+
+	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
+
+	if(adis_driver.reg == ADIS_GLOB_CMD) {
+		burst_data.adis_supply_out   = (((adis_cache_data.adis_rx_cache[0]  << 8) | adis_cache_data.adis_rx_cache[1] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_xgyro_out    = (((adis_cache_data.adis_rx_cache[2]  << 8) | adis_cache_data.adis_rx_cache[3] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_ygyro_out    = (((adis_cache_data.adis_rx_cache[4]  << 8) | adis_cache_data.adis_rx_cache[5] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_zgyro_out    = (((adis_cache_data.adis_rx_cache[6]  << 8) | adis_cache_data.adis_rx_cache[7] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_xaccl_out    = (((adis_cache_data.adis_rx_cache[8]  << 8) | adis_cache_data.adis_rx_cache[9] ) & ADIS_14_BIT_MASK );
+		burst_data.adis_yaccl_out    = (((adis_cache_data.adis_rx_cache[10] << 8) | adis_cache_data.adis_rx_cache[11]) & ADIS_14_BIT_MASK );
+		burst_data.adis_zaccl_out    = (((adis_cache_data.adis_rx_cache[12] << 8) | adis_cache_data.adis_rx_cache[13]) & ADIS_14_BIT_MASK );
+		burst_data.adis_xmagn_out    = (((adis_cache_data.adis_rx_cache[14] << 8) | adis_cache_data.adis_rx_cache[15]) & ADIS_14_BIT_MASK );
+		burst_data.adis_ymagn_out    = (((adis_cache_data.adis_rx_cache[16] << 8) | adis_cache_data.adis_rx_cache[17]) & ADIS_14_BIT_MASK );
+		burst_data.adis_zmagn_out    = (((adis_cache_data.adis_rx_cache[18] << 8) | adis_cache_data.adis_rx_cache[19]) & ADIS_14_BIT_MASK );
+		burst_data.adis_temp_out     = (((adis_cache_data.adis_rx_cache[20] << 8) | adis_cache_data.adis_rx_cache[21]) & ADIS_12_BIT_MASK );
+		burst_data.adis_aux_adc      = (((adis_cache_data.adis_rx_cache[22] << 8) | adis_cache_data.adis_rx_cache[23]) & ADIS_12_BIT_MASK );
+	}
+
+	/*! \todo Package for UDP transmission to fc here */
+
+#if ADIS_DEBUG
+	bool                  negative = false;
+	uint32_t              result_ug = 0;
+	static uint32_t       j        = 0;
+	static uint32_t       xcount   = 0;
+
+	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU1;
+
+	++j;
+	if(j>4000) {
+    	if(adis_driver.reg == ADIS_GLOB_CMD) {
+    		// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
+    		//negative = twos2dec(&burst_data.adis_xaccl_out);
+
+    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_zaccl_out);
+    		chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
+    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_xaccl_out);
+    		chprintf(chp, "%d: x: 0x%x  %s%d ug\r\n", xcount, burst_data.adis_xaccl_out, (negative) ? "-" : "", result_ug);
+    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_yaccl_out);
+    		chprintf(chp, "%d: y: 0x%x  %s%d ug\r\n\r\n", xcount, burst_data.adis_yaccl_out, (negative) ? "-" : "", result_ug);
+
+    	} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
+    		chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );
+    	}
+
+		//		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
+//		    chprintf(chp, "%x ", adis_cache_data.adis_rx_cache[i]);
+//		}
+//		chprintf(chp,"\r\n");
+		j=0;
+		++xcount;
+	}
+#endif
+
+	adis_driver.state             = ADIS_IDLE;   /* don't go to idle until data processed */
+}
+
+void adis_read_id_handler(eventid_t id) {
+	(void) id;
+	adis_read_id(&SPID1);
+}
+
+void adis_burst_read_handler(eventid_t id) {
+	(void) id;
+	adis_burst_read(&SPID1);
+}
+
+/*! \brief Process information from a adis_spi_cb event
+ *
+ */
+void adis_spi_cb_txdone_handler(eventid_t id) {
+	(void) id;
+	switch(adis_driver.reg) {
+		case ADIS_PRODUCT_ID:
+			spiUnselect(adis_driver.spi_instance);
+			spiReleaseBus(adis_driver.spi_instance);
+			adis_tstall_delay();
+			spiAcquireBus(adis_driver.spi_instance);
+			spiSelect(adis_driver.spi_instance);
+			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
+			adis_driver.state             = ADIS_RX_PEND;
+			break;
+		case ADIS_GLOB_CMD:
+			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
+			adis_driver.state             = ADIS_RX_PEND;
+			break;
+		default:
+			spiUnselect(adis_driver.spi_instance);
+			spiReleaseBus(adis_driver.spi_instance);
+			adis_driver.state             = ADIS_IDLE;
+			break;
+	}
+}
+
+//! @}
