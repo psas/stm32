@@ -88,6 +88,8 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
+       $(PSAS_COMMON)/iwdg_lld.c \
+       $(PSAS_DEV_SRC)/ADIS16405.c \
        cmddetail.c \
        extdetail.c \
        usbdetail.c \
@@ -122,7 +124,9 @@ ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
-         $(CHIBIOS)/os/various
+         $(CHIBIOS)/os/various \
+         $(PSAS_COMMON) \
+         $(PSAS_DEV_SRC)/include
 
 #
 # Project, sources and paths
@@ -193,7 +197,8 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = -DADIS_DEBUG=0
+
 
 # Define ASM defines here
 UADEFS =
