@@ -26,6 +26,11 @@
 #include "extdetail.h"
 #include "cmddetail.h"
 
+// I think this order matters...kw.
+#include "data_udp.h"
+#include "lwipopts.h"
+#include "lwipthread.h"
+
 #include "main.h"
 
 static const ShellCommand commands[] = {
@@ -114,7 +119,6 @@ int main(void) {
 	sdStart(&SD6, NULL);
 
 	chThdSleepMilliseconds(300);
-
 
 	/*! Activates the EXT driver 1. */
 	extStart(&EXTD1, &extcfg);
