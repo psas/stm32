@@ -32,6 +32,7 @@
  * @{
  */
 
+#include <string.h>
 #include "ch.h"
 
 #include "lwip/opt.h"
@@ -47,28 +48,30 @@
 WORKING_AREA(wa_data_udp_server, DATA_UDP_THREAD_STACK_SIZE);
 
 msg_t data_udp_server(void *p) {
+	void * arg __attribute__ ((unused)) = p;
+
 	struct     netconn    *conn;
-	char                   msg[]="testing" ;
+	char                   msg[]="PSAS Rockets!" ;
 	struct     netbuf     *buf;
 	char*                  data;
 
+
+//    netconn_connect(tftptxcon,&modsrv_addr,ip_data_out.port);    // Open connection
+//    tftptxcon->pcb.udp->local_port=69;   // Set local (source) port
+//    tftpsrvbuf=netbuf_new();        // Create netbuf
+//      .....
+//
 	conn       = netconn_new( NETCONN_UDP );
-	netconn_bind(conn, NULL, 1234 ); //local port
+	netconn_bind(conn, NULL, 35000 ); //local port
 
-	192.168.0.91 is 0xC0A8005B
-
-	htonl = Host TO Network Long, converts a long from host byte order to network byte order
-	ntohl = Network TO Host Long, you get the idea.
-
-	There are also the short versions a
 	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_THREAD_PORT );
 	for( ;; ){
-		buf = netbuf_new();
-		data =netbuf_alloc(buf, sizeof(msg));
+		buf     =  netbuf_new();
+		data    =  netbuf_alloc(buf, sizeof(msg));
 		memcpy (data, msg, sizeof (msg));
 		netconn_send(conn, buf);
 		netbuf_delete(buf); // De-allocate packet buffer
-	    chThdSleepMilliseconds( 500);
+	    chThdSleepMilliseconds(500);
 	}
 }
 

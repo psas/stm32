@@ -93,6 +93,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_COMMON)/iwdg_lld.c \
+       ./data_udp/data_udp.c \
        cmddetail.c \
        extdetail.c \
        usbdetail.c \
@@ -129,6 +130,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
          $(PSAS_COMMON) \
+         ./data_udp \
          $(PSAS_DEV_SRC)/include
 
 #
