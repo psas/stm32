@@ -125,6 +125,10 @@ int main(void) {
 
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
+	chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2,
+	                    lwip_thread, NULL);
+    chThdCreateStatic(wa_data_udp_server, sizeof(wa_data_udp_server), NORMALPRIO,
+    		data_udp_server, NULL);
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {

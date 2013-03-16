@@ -1,3 +1,4 @@
+
 /*!
  * \file data_udp.h
  */
@@ -56,6 +57,16 @@
 #ifndef DATA_UDP_THREAD_PRIORITY
 #define DATA_UDP_THREAD_PRIORITY     (LOWPRIO + 2)
 #endif
+
+
+#define PSAS_IP_BROADCAST            0xffffffff
+
+	// htonl = Host TO Network Long, converts a long from host byte order to network byte order
+	// ntohl = Network TO Host Long, you get the idea.
+	// 192.168.0.91 is 0xC0A8005B
+	// 192.168.1.30	is 0xC0A8011E
+#define PSAS_IP_HOST                 (htonl(0xC0A8011E))
+
 
 extern WORKING_AREA(wa_data_udp_server, DATA_UDP_THREAD_STACK_SIZE);
 
