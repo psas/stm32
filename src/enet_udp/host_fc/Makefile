@@ -1,6 +1,7 @@
 
-
 CC=gcc
+
+.PHONY: clean
 
 all: eth_udp_fc
 

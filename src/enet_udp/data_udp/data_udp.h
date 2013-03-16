@@ -32,32 +32,19 @@
 #define _DATA_UDP_H
 
 /** @brief IP Address. */
-#if !defined(LWIP_IPADDR) || defined(__DOXYGEN__)
 #define LWIP_IPADDR(p)                      IP4_ADDR(p, 192, 168, 1, 20)
-#endif
 
 /** @brief IP Gateway. */
-#if !defined(LWIP_GATEWAY) || defined(__DOXYGEN__)
 #define LWIP_GATEWAY(p)                     IP4_ADDR(p, 192, 168, 1, 1)
-#endif
 
 /** @brief IP netmask. */
-#if !defined(LWIP_NETMASK) || defined(__DOXYGEN__)
 #define LWIP_NETMASK(p)                     IP4_ADDR(p, 255, 255, 255, 0)
-#endif
 
-#ifndef DATA_UDP_THREAD_STACK_SIZE
 #define DATA_UDP_THREAD_STACK_SIZE   1024
-#endif
 
-#ifndef DATA_UDP_THREAD_PORT
 #define DATA_UDP_THREAD_PORT         35000
-#endif
 
-#ifndef DATA_UDP_THREAD_PRIORITY
 #define DATA_UDP_THREAD_PRIORITY     (LOWPRIO + 2)
-#endif
-
 
 #define PSAS_IP_BROADCAST            0xffffffff
 
@@ -66,7 +53,6 @@
 	// 192.168.0.91 is 0xC0A8005B
 	// 192.168.1.30	is 0xC0A8011E
 #define PSAS_IP_HOST                 (htonl(0xC0A8011E))
-
 
 extern WORKING_AREA(wa_data_udp_server, DATA_UDP_THREAD_STACK_SIZE);
 
