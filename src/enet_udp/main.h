@@ -5,14 +5,13 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
-/*! \mainpage adis ADIS IMU over Ethernet UDP experiments
+/*! \mainpage STM32 LWIP Ethernet UDP experiments
 *
 *
 * \section intro Introduction
 *
-* Further developing the experiment started with adis, this code
-* adds processing to package and deliver a UDP packet of ADIS output
-* to a host computer running a Linux based OS.h
+* Experiment with creating an stm32 - flight computer datapath usinw LwIP
+* and ChibiOS.
 *
 * \section filestructure File Tree
 *

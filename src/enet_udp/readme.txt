@@ -1,7 +1,6 @@
 
-
-This experiment develops the adis code further by
-adding ethernet connection with the UDP protocol.
+Experiment with creating the stm32fxxx to flight computer
+datapath over ethernet using UDP protocol
 
 This experiment uses the lwip stack in the ChibiOS/ext
 directory..
