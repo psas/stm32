@@ -29,6 +29,8 @@
 #include "chprintf.h"
 #include "shell.h"
 
+#include "lwipopts.h"
+
 #include "lwipthread.h"
 #include "web/web.h"
 
