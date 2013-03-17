@@ -129,9 +129,9 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_COMMON) \
-         ./data_udp \
-         $(PSAS_DEV_SRC)/include
+	     $(PSAS_COMMON) \
+         $(PSAS_DEV_SRC)/include \
+          ./data_udp
 
 #
 # Project, sources and paths

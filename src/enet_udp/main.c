@@ -26,12 +26,15 @@
 #include "extdetail.h"
 #include "cmddetail.h"
 
-// I think this order matters...kw.
+#include <lwip/ip_addr.h>
+
 #include "data_udp.h"
 #include "lwipopts.h"
 #include "lwipthread.h"
 
 #include "main.h"
+
+static       uint8_t      macAddress[6]    =     {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -77,6 +80,8 @@ int main(void) {
 			extdetail_WKUP_button_handler
 	};
 	struct EventListener     el0;
+
+	struct lwipthread_opts   ip_opts;
 
 	/*
 	 * System initializations.
@@ -125,10 +130,25 @@ int main(void) {
 
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
+
+	struct ip_addr ip, gateway, netmask;
+	IP4_ADDR(&ip,      192, 168, 0,   196);
+	IP4_ADDR(&gateway, 192, 168, 1,   1  );
+	IP4_ADDR(&netmask, 255, 255, 255, 0  );
+
+	ip_opts.macaddress = macAddress;
+	ip_opts.address    = ip.addr;
+	ip_opts.netmask    = netmask.addr;
+	ip_opts.gateway    = gateway.addr;
+
 	chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2,
-	                    lwip_thread, NULL);
-    chThdCreateStatic(wa_data_udp_server, sizeof(wa_data_udp_server), NORMALPRIO,
-    		data_udp_server, NULL);
+	                    lwip_thread, &ip_opts);
+
+    chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO,
+    		data_udp_send_thread, NULL);
+
+    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO,
+      		data_udp_receive_thread, NULL);
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
