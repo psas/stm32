@@ -31,35 +31,35 @@
 #ifndef _DATA_UDP_H
 #define _DATA_UDP_H
 
-/** @brief IP Address. */
-#define LWIP_IPADDR(p)                      IP4_ADDR(p, 192, 168, 1, 20)
 
-/** @brief IP Gateway. */
-#define LWIP_GATEWAY(p)                     IP4_ADDR(p, 192, 168, 1, 1)
 
-/** @brief IP netmask. */
-#define LWIP_NETMASK(p)                     IP4_ADDR(p, 255, 255, 255, 0)
+#define DATA_UDP_SEND_THREAD_STACK_SIZE      512
+#define DATA_UDP_RECEIVE_THREAD_STACK_SIZE   512
 
-#define DATA_UDP_THREAD_STACK_SIZE   1024
+#define DATA_UDP_THREAD_PORT                 35000
+#define DATA_UDP_RX_THREAD_PORT              35003
 
-#define DATA_UDP_THREAD_PORT         35000
+#define DATA_UDP_RX_THD_PRIORITY             (LOWPRIO)
+#define DATA_UDP_THREAD_PRIORITY             (LOWPRIO + 2)
 
-#define DATA_UDP_THREAD_PRIORITY     (LOWPRIO + 2)
-
-#define PSAS_IP_BROADCAST            0xffffffff
+#define PSAS_IP_BROADCAST                    0xffffffff
 
 	// htonl = Host TO Network Long, converts a long from host byte order to network byte order
 	// ntohl = Network TO Host Long, you get the idea.
 	// 192.168.0.91 is 0xC0A8005B
 	// 192.168.1.30	is 0xC0A8011E
-#define PSAS_IP_HOST                 (htonl(0xC0A8011E))
+#define PSAS_IP_HOST                         (htonl(0xC0A8011E))
+#define DATA_UDP_MSG_SIZE                    50
 
-extern WORKING_AREA(wa_data_udp_server, DATA_UDP_THREAD_STACK_SIZE);
+extern WORKING_AREA(wa_data_udp_send_thread,    DATA_UDP_SEND_THREAD_STACK_SIZE);
+extern WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-  msg_t data_udp_server(void *p);
+  msg_t data_udp_send_thread(void *p);
+  msg_t data_udp_receive_thread(void *p);
+
 #ifdef __cplusplus
 }
 #endif
