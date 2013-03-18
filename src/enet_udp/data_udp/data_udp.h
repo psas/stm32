@@ -31,6 +31,7 @@
 #ifndef _DATA_UDP_H
 #define _DATA_UDP_H
 
+#include "lwip/ip_addr.h"
 
 
 #define DATA_UDP_SEND_THREAD_STACK_SIZE      512
@@ -42,14 +43,18 @@
 #define DATA_UDP_RX_THD_PRIORITY             (LOWPRIO)
 #define DATA_UDP_THREAD_PRIORITY             (LOWPRIO + 2)
 
-#define PSAS_IP_BROADCAST                    0xffffffff
+#define PSAS_IP_BROADCAST                    ((uint32_t)0xffffffffUL)
 
 	// htonl = Host TO Network Long, converts a long from host byte order to network byte order
 	// ntohl = Network TO Host Long, you get the idea.
-	// 192.168.0.91 is 0xC0A8005B
-	// 192.168.1.30	is 0xC0A8011E
-#define PSAS_IP_HOST                         (htonl(0xC0A8011E))
+
+
+//#define PSAS_IP_HOST                         (htonl(0xC0A8011E))     // 192.168.1.30	is 0xC0A8011E
+#define PSAS_IP_HOST                        (htonl(0xC0A8005B))     //  192.168.0.91  is 0xC0A8005B
+
 #define DATA_UDP_MSG_SIZE                    50
+
+extern     ip_addr_t         ip_addr_fc;
 
 extern WORKING_AREA(wa_data_udp_send_thread,    DATA_UDP_SEND_THREAD_STACK_SIZE);
 extern WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
