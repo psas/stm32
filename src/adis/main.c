@@ -1,21 +1,14 @@
-/*
-    ChibiOS/RT - Copyright (C) 2006,2007,2008,2009,2010,
-                 2011,2012 Giovanni Di Sirio.
+/*! \file main.c
+ *
+ * Development for ADIS IMU on ChibiOS
+ *
+ * This implementation is specific to the Olimex stm32-e407 board.
+ */
 
-    This file is part of ChibiOS/RT.
 
-    ChibiOS/RT is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    ChibiOS/RT is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+/*!
+ * \defgroup mainapp Application
+ * @{
  */
 
 #include <stdio.h>
@@ -29,19 +22,15 @@
 #include "chprintf.h"
 #include "shell.h"
 
+#include "iwdg_lld.h"
 #include "usbdetail.h"
 #include "extdetail.h"
 #include "cmddetail.h"
 
+#include "ADIS16405.h"
+
 #include "main.h"
 
-/* Olimex stm32-e407 board */
-
-EventSource   wkup_event;
-
-/*
- * Challenge: add additional command line functions
- */
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
 		{"threads", cmd_threads},
@@ -53,12 +42,59 @@ static const ShellConfig shell_cfg1 = {
 		commands
 };
 
-/*
- * Green LED blinker thread, times are in milliseconds.
+/*! \brief ADIS SPI configuration
+ *
+ * 656250Hz, CPHA=1, CPOL=1, MSb first.
+ *
+ * For burst mode ADIS SPI is limited to 1Mhz.
  */
-static WORKING_AREA(waThread1, 128);
-static msg_t Thread1(void *arg) {
+#if 1
+const SPIConfig adis_spicfg = {
+		adis_spi_cb,
+		GPIOA,
+		4,
+		SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
+};
+#else
+const SPIConfig adis_spicfg = {
+		NULL,
+		GPIOA,
+		4,
+		SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
+};
 
+#endif
+
+
+/*! \brief ADIS SPI Pin connections
+ *
+ */
+const adis_connect adis_connections = {
+		GPIOA,      // spi_sck_port
+		5,          // spi_sck_pad;
+		GPIOA,      // spi_miso_port;
+		6,          // spi_miso_pad;
+		GPIOB,      // spi_mosi_port;
+		5,          // spi_mosi_pad;
+		GPIOA,      // spi_cs_port;
+		4,          // spi_cs_pad;
+		GPIOD,      // reset_port
+		8,          // reset_pad;
+		GPIOD,      // dio1_port;
+		9,          // dio1_pad;
+		GPIOD,      // dio2_port;
+		10,         // dio2_pad;
+		GPIOD,      // dio3_port;
+		11,         // dio3_pad;
+		GPIOD,      // dio4_port;
+		12          // dio4_pad
+};
+
+
+static WORKING_AREA(waThread_blinker, 64);
+/*! \brief Green LED blinker thread
+ */
+static msg_t Thread_blinker(void *arg) {
 	(void)arg;
 	chRegSetThreadName("blinker");
 	while (TRUE) {
@@ -68,23 +104,75 @@ static msg_t Thread1(void *arg) {
 	return -1;
 }
 
-/*
- * WKUP button handler
- *
- * Challenge: Do something more interesting here.
+static WORKING_AREA(waThread_adis_newdata, 256);
+/*! \brief ADIS Newdata Thread
  */
-static void WKUP_button_handler(eventid_t id) {
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
+static msg_t Thread_adis_newdata(void *arg) {
+	(void)arg;
+	chRegSetThreadName("adis_newdata");
+
+	static const evhandler_t evhndl_newdata[]       = {
+			adis_newdata_handler
+	};
+	struct EventListener     evl_spi_cb2;
+
+	chEvtRegister(&adis_spi_cb_newdata, &evl_spi_cb2, 0);
+
+	while (TRUE) {
+		chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
+	}
+	return -1;
 }
 
-/*
- * Application entry point.
+
+static WORKING_AREA(waThread_adis_dio1, 128);
+/*! \brief ADIS DIO1 thread
+ *
+ * For burst mode transactions t_readrate is 1uS
+ *
  */
+static msg_t Thread_adis_dio1(void *arg) {
+	(void)arg;
+	static const evhandler_t evhndl_dio1[]       = {
+			adis_burst_read_handler,
+			//adis_read_id_handler,
+			adis_spi_cb_txdone_handler,
+			adis_release_bus
+	};
+	struct EventListener     evl_dio;
+	struct EventListener     evl_spi_ev;
+	struct EventListener     evl_spi_release;
+
+	chRegSetThreadName("adis_dio");
+
+	chEvtRegister(&adis_dio1_event,           &evl_dio,         0);
+	chEvtRegister(&adis_spi_cb_txdone_event,  &evl_spi_ev,      1);
+	chEvtRegister(&adis_spi_cb_releasebus,    &evl_spi_release, 2);
+
+	while (TRUE) {
+		chEvtDispatch(evhndl_dio1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), US2ST(50)));
+	}
+	return -1;
+}
+
+static WORKING_AREA(waThread_indwatchdog, 64);
+/*! \brief  Watchdog thread
+ */
+static msg_t Thread_indwatchdog(void *arg) {
+	(void)arg;
+
+	chRegSetThreadName("iwatchdog");
+	while (TRUE) {
+		iwdg_lld_reload();
+		chThdSleepMilliseconds(250);
+	}
+	return -1;
+}
+
 int main(void) {
 	static Thread            *shelltp       = NULL;
-	static const evhandler_t evhndl[]       = {
-			WKUP_button_handler
+	static const evhandler_t evhndl_main[]       = {
+			extdetail_WKUP_button_handler
 	};
 	struct EventListener     el0;
 
@@ -98,18 +186,38 @@ int main(void) {
 	halInit();
 	chSysInit();
 
-	/*
-	 * Initialize event structures BEFORE using them
-	 */
-	chEvtInit(&wkup_event);
+	extdetail_init();
+
+	palSetPad(GPIOC, GPIOC_LED);
+	palSetPad(GPIOA, GPIOA_SPI1_SCK);
+	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
 	/*
+	 * SPI1 I/O pins setup.
+	 */
+	palSetPadMode(adis_connections.spi_sck_port, adis_connections.spi_sck_pad,
+			PAL_MODE_ALTERNATE(5) |
+			PAL_STM32_OSPEED_HIGHEST);
+	palSetPadMode(adis_connections.spi_miso_port, adis_connections.spi_miso_pad,
+			PAL_MODE_ALTERNATE(5) |
+			PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_FLOATING);
+	palSetPadMode(adis_connections.spi_mosi_port, adis_connections.spi_mosi_pad,
+			PAL_MODE_ALTERNATE(5) |
+			PAL_STM32_OSPEED_HIGHEST );
+	palSetPadMode(adis_connections.spi_cs_port, adis_connections.spi_cs_pad,
+			PAL_MODE_OUTPUT_PUSHPULL |
+			PAL_STM32_OSPEED_HIGHEST);
+
+	palSetPad(GPIOA, GPIOA_SPI1_SCK);
+	palSetPad(GPIOA, GPIOA_SPI1_NSS);
+
+	/*!
 	 * Initializes a serial-over-USB CDC driver.
 	 */
 	sduObjectInit(&SDU1);
 	sduStart(&SDU1, &serusbcfg);
 
-	/*
+	/*!
 	 * Activates the USB driver and then the USB bus pull-up on D+.
 	 * Note, a delay is inserted in order to not have to disconnect the cable
 	 * after a reset.
@@ -119,33 +227,32 @@ int main(void) {
 	usbStart(serusbcfg.usbp, &usbcfg);
 	usbConnectBus(serusbcfg.usbp);
 
-	/*
-	 * Shell manager initialization.
-	 */
 	shellInit();
 
-	/*
+	iwdg_begin();
+
+	/*!
 	 * Activates the serial driver 6 and SDC driver 1 using default
 	 * configuration.
 	 */
 	sdStart(&SD6, NULL);
 
-	/*
-	 * Activates the EXT driver 1.
-	 * This is for the external interrupt
-	 */
+	spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
+
+	chThdSleepMilliseconds(300);
+
+	adis_init();
+	adis_reset();
+
+	/*! Activates the EXT driver 1. */
 	extStart(&EXTD1, &extcfg);
 
-	/*
-	 * Creates the blinker thread.
-	 */
-	chThdCreateStatic(waThread1, sizeof(waThread1), NORMALPRIO, Thread1, NULL);
+	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
+	chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
+	chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
+	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 
-	/*
-	 * Normal main() thread activity, in this demo it does nothing except
-	 * sleeping in a loop and listen for events.
-	 */
-	chEvtRegister(&wkup_event, &el0, 0);
+	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
 		if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
 			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
@@ -153,6 +260,9 @@ int main(void) {
 			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
 			shelltp = NULL;           /* Triggers spawning of a new shell.        */
 		}
-		chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
+		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
 	}
 }
+
+
+//! @}
