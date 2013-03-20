@@ -3,7 +3,7 @@ To install the binaries:
 
 cd to /opt/psas/
 untar the archive there.
-Then edit your .bashrc to add the following to your path:
+Then edit your ~/.profile to add the following to your path:
 
 /opt/psas/x-tools/stm32f407/arm-psas-eabi/bin
 
