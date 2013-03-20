@@ -2,6 +2,11 @@
  *
  */
 
+/*!
+ * \defgroup pwmdetail PWM Utilities
+ * @{
+ */
+
 #include "ch.h"
 #include "hal.h"
 
@@ -36,3 +41,5 @@ PWMConfig pwmcfg_led = {
 		},
 		0
 };
+
+//! @}
