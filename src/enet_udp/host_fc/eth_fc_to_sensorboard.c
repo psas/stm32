@@ -14,9 +14,8 @@
 
 #define         BUFLEN          10
 #define         NPACK           2
-#define         PORT            35000
 #define         OUTPORT         35003
-#define         SRV_IP          "192.168.1.20"
+#define         SRV_IP          "192.168.0.196"
 
 void die_nice(char *s) {
     perror(s);
@@ -46,7 +45,10 @@ int main(void) {
     if (sendto(s, buf, BUFLEN, 0,(struct sockaddr *) &si_other, slen)==-1) {
       die_nice("sendto()");
     }
-    sleep(2);
+    printf("Sent packet to %s:%d\nData: %s\n\n",
+                inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port), buf);
+ 
+    sleep(1);
   }
 
   close(s);
