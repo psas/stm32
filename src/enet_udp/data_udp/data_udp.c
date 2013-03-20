@@ -130,16 +130,16 @@ msg_t data_udp_receive_thread(void *p) {
 
   chThdSleepSeconds(2);
 
-  IP4_ADDR(&ip_addr_fc, 192,168,0,91);
-//  IP4_ADDR(&ip_addr_fc, 192,168,0,196);
+//  IP4_ADDR(&ip_addr_fc, 192,168,0,91);
+  IP4_ADDR(&ip_addr_fc, 192,168,0,196);
   /* Create a new UDP connection handle */
   conn = netconn_new(NETCONN_UDP);
   LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
 
-  netconn_bind(conn, NULL, DATA_UDP_RX_THREAD_PORT);
+  netconn_bind(conn, &ip_addr_fc, DATA_UDP_RX_THREAD_PORT);
 
   while(1) {
-    netconn_connect(conn,  &ip_addr_fc, DATA_UDP_RX_THREAD_PORT );
+    //netconn_connect(conn,  &ip_addr_fc, DATA_UDP_RX_THREAD_PORT );
     data_udp_rx_serve(conn);
   }
   return RDY_OK;
