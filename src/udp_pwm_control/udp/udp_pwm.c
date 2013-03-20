@@ -1,5 +1,8 @@
 /*based heavily upon udp echo server example*/
 #include "ch.h"
+#include "hal.h"
+#include "chprintf.h"
+/*#include "usb_cdc.h"*/
 #include "lwip/opt.h"
 #include "lwip/arch.h"
 #include "lwip/api.h"
@@ -7,8 +10,9 @@
 #include "lwip/udp.h"
 #include <stdio.h>
 #include "udp_pwm.h"
+/*BaseSequentialStream *chp;*/
 void udp_receive_server_init(void) {
-	struct udp_pcp *upcb;
+	struct udp_pcb *upcb;
 	err_t err;
 	/*create the control block*/
 	upcb = udp_new();
@@ -21,15 +25,14 @@ void udp_receive_server_init(void) {
 			udp_recv(upcb, udp_pwm_control_receive_callback, NULL);
 		} else {
 			/*couldn't bind to ip/port*/
-			printf("Unable to bind to ip/port\n");
 		}
 	} else {
 		/*No control block for us*/
-		printf("Could not create UDP control block.\n");
 	}
 }
 
 void udp_pwm_control_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, struct ip_addr *addr, u16_t port) {
 	/*need to figure out how to tear the packet apart and read from it*/
+	chEvtBroadcast(&packet_event);
 	printf("We got a packet!\n");
 }
