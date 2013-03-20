@@ -96,9 +96,9 @@ static void data_udp_rx_serve(struct netconn *conn) {
 
   /* Read the data from the port, blocking if nothing yet there.
    We assume the request (the part we care about) is in one netbuf */
-  chprintf(chp, "...\r\n");
+  chprintf(chp, ".w.\r\n");
   err = netconn_recv(conn, &inbuf);
-
+  chprintf(chp, ".+.\r\n");
   if (err == ERR_OK) {
     netbuf_data(inbuf, (void **)&buf, &buflen);
     for(i=0; i<buflen; ++i) {
@@ -123,13 +123,15 @@ WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
  */
 msg_t data_udp_receive_thread(void *p) {
   void * arg __attribute__ ((unused)) = p;
-  ip_addr_fc.addr =  PSAS_IP_HOST ;
+
   struct netconn *conn;
 
   chRegSetThreadName("data_udp_receive_thread");
 
   chThdSleepSeconds(2);
 
+  IP4_ADDR(&ip_addr_fc, 192,168,0,91);
+//  IP4_ADDR(&ip_addr_fc, 192,168,0,196);
   /* Create a new UDP connection handle */
   conn = netconn_new(NETCONN_UDP);
   LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
@@ -137,7 +139,7 @@ msg_t data_udp_receive_thread(void *p) {
   netconn_bind(conn, NULL, DATA_UDP_RX_THREAD_PORT);
 
   while(1) {
-    netconn_connect(conn,  IP_ADDR_BROADCAST, DATA_UDP_RX_THREAD_PORT );
+    netconn_connect(conn,  &ip_addr_fc, DATA_UDP_RX_THREAD_PORT );
     data_udp_rx_serve(conn);
   }
   return RDY_OK;
