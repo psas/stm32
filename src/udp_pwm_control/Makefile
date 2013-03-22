@@ -62,7 +62,6 @@ endif
 
 # Define project name here
 PROJECT = ch
-
 # Imported source files and paths
 PSAS= ../config
 include $(PSAS)/psas.mk
@@ -72,9 +71,7 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
-include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
-include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
-include $(CHIBIOS)/test/test.mk
+
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
 #LDSCRIPT= $(PORTLD)/STM32F407xG_CCM.ld
@@ -83,7 +80,6 @@ LDSCRIPT= $(PORTLD)/STM32F407xG.ld
 # setting.
 CSRC = $(PORTSRC) \
        $(KERNSRC) \
-       $(TESTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
@@ -92,7 +88,11 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
-       main.c udp/udp_pwm.c
+       $(PSAS_COMMON)/iwdg_lld.c \
+       cmddetail.c \
+       extdetail.c \
+       usbdetail.c \
+	main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -122,9 +122,10 @@ TCPPSRC =
 ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC) \
-         $(FATFSINC) \
-         $(CHIBIOS)/os/various
+         $(HALINC) $(PLATFORMINC) $(BOARDINC) \
+         $(CHIBIOS)/os/various \
+         $(PSAS_COMMON) \
+         $(PSAS_DEV_SRC)/include
 
 #
 # Project, sources and paths
@@ -195,12 +196,14 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = -DADIS_DEBUG=1
+
 
 # Define ASM defines here
 UADEFS =
 
 # List all user directories here
+# UINCDIR = ./boards/OLIMEX_STM32_E407
 UINCDIR =
 
 # List the user directory to look for the libraries here
