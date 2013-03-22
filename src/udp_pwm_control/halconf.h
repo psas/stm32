@@ -19,7 +19,7 @@
 */
 
 /**
- * @file    templates/halconf.h
+ * @file    halconf.h
  * @brief   HAL configuration header.
  * @details HAL configuration file, this file allows to enable or disable the
  *          various device drivers from your application. You may also use
@@ -66,7 +66,7 @@
  * @brief   Enables the EXT subsystem.
  */
 #if !defined(HAL_USE_EXT) || defined(__DOXYGEN__)
-#define HAL_USE_EXT                 FALSE
+#define HAL_USE_EXT                 TRUE
 #endif
 
 /**
@@ -94,7 +94,7 @@
  * @brief   Enables the MAC subsystem.
  */
 #if !defined(HAL_USE_MAC) || defined(__DOXYGEN__)
-#define HAL_USE_MAC                 TRUE
+#define HAL_USE_MAC                 FALSE
 #endif
 
 /**
@@ -122,7 +122,7 @@
  * @brief   Enables the SDC subsystem.
  */
 #if !defined(HAL_USE_SDC) || defined(__DOXYGEN__)
-#define HAL_USE_SDC                 TRUE
+#define HAL_USE_SDC                 FALSE
 #endif
 
 /**
@@ -143,7 +143,7 @@
  * @brief   Enables the SPI subsystem.
  */
 #if !defined(HAL_USE_SPI) || defined(__DOXYGEN__)
-#define HAL_USE_SPI                 FALSE
+#define HAL_USE_SPI                 TRUE
 #endif
 
 /**
@@ -205,6 +205,13 @@
 /*===========================================================================*/
 /* MAC driver related settings.                                              */
 /*===========================================================================*/
+
+/**
+ * @brief   Enables an event sources for incoming packets.
+ */
+#if !defined(MAC_USE_ZERO_COPY) || defined(__DOXYGEN__)
+#define MAC_USE_ZERO_COPY           FALSE
+#endif
 
 /**
  * @brief   Enables an event sources for incoming packets.
@@ -303,7 +310,8 @@
  *          default configuration.
  */
 #if !defined(SERIAL_DEFAULT_BITRATE) || defined(__DOXYGEN__)
-#define SERIAL_DEFAULT_BITRATE      38400
+// #define SERIAL_DEFAULT_BITRATE      38400
+#define SERIAL_DEFAULT_BITRATE      115200
 #endif
 
 /**
