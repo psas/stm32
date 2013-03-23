@@ -29,11 +29,14 @@
 #include "chprintf.h"
 #include "shell.h"
 
-#include "lwipthread.h"
+
 #include "lwip/pbuf.h"
 #include "lwip/udp.h"
 #include "lwip/tcp.h"
-#include "udp_pwm.h"
+
+#include "lwipthread.h"
+#include "web/web.h"
+#include "udp/udp_pwm.h"
 #include "web/web.h"
 
 #include "ff.h"
@@ -601,15 +604,29 @@ static msg_t Thread1(void *arg) {
 }
 
 /*
+ * packet event stuff
+ */
+static EventSource packet_event;
+
+static void packetReceivedHandler (eventid_t id) {
+	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+	chprintf(chp, "Received packet - eventid: %d\r\n", id);
+}
+
+/*
  * Application entry point.
  */
+
 int main(void) {
   static Thread *shelltp = NULL;
   static const evhandler_t evhndl[] = {
     InsertHandler,
-    RemoveHandler
+    RemoveHandler,
+	 packetReceivedHandler
   };
-  struct EventListener el0, el1;
+  struct EventListener el0, el1, el2;
+	chEvtRegister(&packet_event, &el2, 0);
+	chEvtInit(&packet_event);
 
   /*
    * System initializations.
@@ -668,8 +685,15 @@ int main(void) {
   /*
    * Creates the HTTP thread (it changes priority internally).
    */
+	/*
   chThdCreateStatic(wa_http_server, sizeof(wa_http_server), NORMALPRIO + 1,
                     http_server, NULL);
+
+	*/
+
+	WORKING_AREA(wa_udp_receive_server, PWM_REC_STACK_SIZE);
+	chThdCreateStatic(wa_udp_receive_server, sizeof(wa_udp_receive_server), NORMALPRIO +1,
+							udp_receive_server_init, NULL);
 
   /*
    * Normal main() thread activity, in this demo it does nothing except
