@@ -27,8 +27,7 @@
  * author is unknown because the file didn't contain any license information.
  */
 
-/*!
- * \brief Experiment with sending sensor data over UDP connection.
+/*! \brief Experiment with sending sensor data over UDP connection.
  * \defgroup dataudp Data UDP PSAS Experiment
  * @{
  */
@@ -51,7 +50,7 @@
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
-ip_addr_t ip_addr_fc;
+ip_addr_t ip_addr_sensor;
 
 WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 
@@ -65,11 +64,6 @@ msg_t data_udp_send_thread(void *p) {
 
 	  chRegSetThreadName("data_udp_send_thread");
 
-//    netconn_connect(tftptxcon,&modsrv_addr,ip_data_out.port);    // Open connection
-//    tftptxcon->pcb.udp->local_port=69;   // Set local (source) port
-//    tftpsrvbuf=netbuf_new();        // Create netbuf
-//      .....
-//
 	conn       = netconn_new( NETCONN_UDP );
 	netconn_bind(conn, NULL, 35000 ); //local port
 
@@ -86,31 +80,33 @@ msg_t data_udp_send_thread(void *p) {
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
-  BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU1;
 
-  struct netbuf   *inbuf;
-  char            *buf;
-  uint16_t        buflen = 0;
-  uint16_t        i      = 0;
-  err_t           err;
+	struct netbuf        *inbuf;
+	char                 *buf;
+	uint16_t             buflen = 0;
+	uint16_t             i      = 0;
+	err_t                err;
 
-  /* Read the data from the port, blocking if nothing yet there.
-   We assume the request (the part we care about) is in one netbuf */
-  chprintf(chp, ".w.\r\n");
-  err = netconn_recv(conn, &inbuf);
-  chprintf(chp, ".+.\r\n");
-  if (err == ERR_OK) {
-    netbuf_data(inbuf, (void **)&buf, &buflen);
-    for(i=0; i<buflen; ++i) {
-    	chprintf(chp, "\r\ndata_udp_rx: %d", buf[i]);
-    }
-	chprintf(chp, "\r\n");
-  }
-  netconn_close(conn);
+	/*
+	 * Read the data from the port, blocking if nothing yet there.
+     * We assume the request (the part we care about) is in one netbuf
+     */
+	err = netconn_recv(conn, &inbuf);
+	if (err == ERR_OK) {
+		netbuf_data(inbuf, (void **)&buf, &buflen);
+		chprintf(chp, "\r\ndata_udp_rx (from FC): ");
+		for(i=0; i<buflen; ++i) {
+			chprintf(chp, "%c", buf[i]);
+		}
+		chprintf(chp, "\r\n");
+	}
+	netconn_close(conn);
 
-  /* Delete the buffer (netconn_recv gives us ownership,
-   so we have to make sure to deallocate the buffer) */
-  netbuf_delete(inbuf);
+	/* Delete the buffer (netconn_recv gives us ownership,
+     * so we have to make sure to deallocate the buffer)
+     */
+	netbuf_delete(inbuf);
 }
 
 /*!
@@ -122,29 +118,37 @@ WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
  * data_udp_rx  thread.
  */
 msg_t data_udp_receive_thread(void *p) {
-  void * arg __attribute__ ((unused)) = p;
+	void * arg __attribute__ ((unused)) = p;
 
-  struct netconn *conn;
+	err_t             err;
+	struct netconn    *conn;
 
-  chRegSetThreadName("data_udp_receive_thread");
+	chRegSetThreadName("data_udp_receive_thread");
 
-  chThdSleepSeconds(2);
+	chThdSleepSeconds(2);
 
-//  IP4_ADDR(&ip_addr_fc, 192,168,0,91);
-  IP4_ADDR(&ip_addr_fc, 192,168,0,196);
-  /* Create a new UDP connection handle */
-  conn = netconn_new(NETCONN_UDP);
-  LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
+	IP4_ADDR(&ip_addr_sensor, 192,168,0,196);
 
-  netconn_bind(conn, &ip_addr_fc, DATA_UDP_RX_THREAD_PORT);
+	/*
+	 *  Create a new UDP connection handle
+	 */
+	conn = netconn_new(NETCONN_UDP);
+	LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
 
-  while(1) {
-    //netconn_connect(conn,  &ip_addr_fc, DATA_UDP_RX_THREAD_PORT );
-    data_udp_rx_serve(conn);
-  }
-  return RDY_OK;
+	/*
+	 * Bind sensor address to a udp port
+	 */
+	err = netconn_bind(conn, &ip_addr_sensor, DATA_UDP_RX_THREAD_PORT);
+
+	if (err == ERR_OK) {
+		while(1) {
+			data_udp_rx_serve(conn);
+		}
+		return RDY_OK;
+	} else {
+		return RDY_RESET;
+	}
 }
-
 
 #endif
 
