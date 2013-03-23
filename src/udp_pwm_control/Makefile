@@ -126,7 +126,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various  $(LWINC)\
          $(PSAS_COMMON) \
-         $(PSAS_DEV_SRC)/include
+         $(PSAS_DEV_SRC)/include \
+				./data_udp
 
 #
 # Project, sources and paths
