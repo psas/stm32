@@ -124,7 +124,7 @@ ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
-         $(CHIBIOS)/os/various \
+         $(CHIBIOS)/os/various  $(LWINC)\
          $(PSAS_COMMON) \
          $(PSAS_DEV_SRC)/include
 
