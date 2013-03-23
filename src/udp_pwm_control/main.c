@@ -69,6 +69,8 @@ int main(void) {
 			extdetail_WKUP_button_handler
 	};
 	struct EventListener     el0;
+	/*lwip options data structure*/
+	struct lwipthread_opts   ip_opts;
 	/*initialize HAL*/
 	halInit();
 	chSysInit();
@@ -92,6 +94,16 @@ int main(void) {
 	extStart(&EXTD1, &extcfg);
 	/*create blinker thread*/
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
+	/*configure ethernet, ip stuff*/
+	static       uint8_t      macAddress[6]    =     {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
+	struct ip_addr ip, gateway, netmask;
+   IP4_ADDR(&ip,      10, 0, 0, 2);
+   IP4_ADDR(&gateway, 10, 0, 0, 254);
+   IP4_ADDR(&netmask, 255, 255, 255, 0);
+   ip_opts.address    = ip.addr;
+   ip_opts.netmask    = netmask.addr;
+   ip_opts.gateway    = gateway.addr;
+
 	/*create watchdog thread*/
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 	/*create lwip thread*/
