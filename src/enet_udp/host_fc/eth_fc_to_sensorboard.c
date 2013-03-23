@@ -41,7 +41,7 @@ int main(void) {
 
   for (i=0; i<NPACK; i++) {
     printf("Sending packet %d\n", i);
-    sprintf(buf, "%d", i);
+    sprintf(buf, "%s", "Shinybit\n");
     if (sendto(s, buf, BUFLEN, 0,(struct sockaddr *) &si_other, slen)==-1) {
       die_nice("sendto()");
     }
