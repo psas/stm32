@@ -55,6 +55,7 @@ WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 msg_t data_udp_send_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
 
+	err_t                 err;
 	uint8_t               count = 0;
 
 	struct     netconn    *conn;
@@ -71,29 +72,37 @@ msg_t data_udp_send_thread(void *p) {
 
 	chRegSetThreadName("data_udp_send_thread");
 
-	conn       = netconn_new( NETCONN_UDP );
+	conn   = netconn_new( NETCONN_UDP );
 
 	/* Bind to the local address, or to ANY address */
 	//	netconn_bind(conn, NULL, DATA_UDP_TX_THREAD_PORT ); //local port, NULL is bind to ALL ADDRESSES! (IP_ADDR_ANY)
-	netconn_bind(conn, &ip_addr_sensor, DATA_UDP_TX_THREAD_PORT ); //local port
+	err    = netconn_bind(conn, &ip_addr_sensor, DATA_UDP_TX_THREAD_PORT ); //local port
 
-	/* Connect to specific address or a broadcast address */
-	/*
-	 * \todo Understand why a UDP needs a connect...
-	 *   This may be a LwIP thing that chooses between tcp_/udp_/raw_ connections internally.
-	 *
-	 */
-	//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
-	netconn_connect(conn, &ip_addr_fc, DATA_UDP_TX_THREAD_PORT );
-
-	for( ;; ){
-		buf     =  netbuf_new();
-		data    =  netbuf_alloc(buf, sizeof(msg));
-		sprintf(msg, "PSAS Rockets! %d", count++);
-		memcpy (data, msg, sizeof (msg));
-		netconn_send(conn, buf);
-		netbuf_delete(buf); // De-allocate packet buffer
-		chThdSleepMilliseconds(500);
+	if (err == ERR_OK) {
+		/* Connect to specific address or a broadcast address */
+		/*
+		 * \todo Understand why a UDP needs a connect...
+		 *   This may be a LwIP thing that chooses between tcp_/udp_/raw_ connections internally.
+		 *
+		 */
+		//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
+		err = netconn_connect(conn, &ip_addr_fc, DATA_UDP_TX_THREAD_PORT );
+		if(err == ERR_OK) {
+			for( ;; ){
+				buf     =  netbuf_new();
+				data    =  netbuf_alloc(buf, sizeof(msg));
+				sprintf(msg, "PSAS Rockets! %d", count++);
+				memcpy (data, msg, sizeof (msg));
+				netconn_send(conn, buf);
+				netbuf_delete(buf); // De-allocate packet buffer
+				chThdSleepMilliseconds(500);
+			}
+			return RDY_OK;
+		} else {
+			return RDY_RESET;
+		}
+	} else {
+		return RDY_RESET;
 	}
 }
 
