@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 #define         BUFLEN          10
-#define         NPACK           2
+#define         NPACK           5
 #define         OUTPORT         35003
 #define         SRV_IP          "192.168.0.196"
 
