@@ -74,6 +74,9 @@ int main(void) {
 	/*initialize HAL*/
 	halInit();
 	chSysInit();
+	/*need to become familiar with this still*/
+	extdetail_init();
+	palSetPad(GPIOC, GPIOC_LED);
 	/*initialize serial over usb driver*/
 	sduObjectInit(&SDU1);
 	sduStart(&SDU1, &serusbcfg);
@@ -103,15 +106,16 @@ int main(void) {
    ip_opts.address    = ip.addr;
    ip_opts.netmask    = netmask.addr;
    ip_opts.gateway    = gateway.addr;
-
+	ip_opts.macaddress = macAddress;
 	/*create watchdog thread*/
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 	/*create lwip thread*/
 	chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2, lwip_thread, &ip_opts);
 	/*create udp send thread */
-	chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO, data_udp_send_thread, NULL);
+	/*chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO, data_udp_send_thread, NULL);*/
 	/*create udp receive thread*/
 	chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO, data_udp_receive_thread, NULL);
+	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
 		if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
 			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);

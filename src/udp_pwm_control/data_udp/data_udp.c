@@ -35,7 +35,6 @@
 
 #include <stdio.h>
 #include <string.h>
-
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
@@ -89,22 +88,33 @@ static void data_udp_rx_serve(struct netconn *conn) {
   BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 
   struct netbuf   *inbuf;
-  char            *buf;
+  /*char            *buf;*/
+  struct pbuf *buf;
+  char cmdbuf[64];
   uint16_t        buflen = 0;
   uint16_t        i      = 0;
   err_t           err;
-
+  /*fill buffer with nulls*/
+  for (i = 0; i < 64; i ++) {
+    cmdbuf[i] = 0;
+  }
   /* Read the data from the port, blocking if nothing yet there.
    We assume the request (the part we care about) is in one netbuf */
   chprintf(chp, ".w.\r\n");
   err = netconn_recv(conn, &inbuf);
   chprintf(chp, ".+.\r\n");
   if (err == ERR_OK) {
-    netbuf_data(inbuf, (void **)&buf, &buflen);
-    for(i=0; i<buflen; ++i) {
-    	chprintf(chp, "\r\ndata_udp_rx: %d", buf[i]);
-    }
+    /*netbuf_data(inbuf, (void **)&buf, &buflen);*/
+	 /*int bytesCopied = netbuf_copy(inbuf, (void **)&buf, &buflen); */
+	int bytesCopied = netbuf_copy(inbuf, cmdbuf, 64);
+  chprintf(chp, "\r\ndata_udp_rx: %s", cmdbuf);
 	chprintf(chp, "\r\n");
+	chprintf(chp, "copied %d bytes\n", bytesCopied);
+	sendResponsePacket();
+  }
+  /*fill buffer with nulls*/
+  for (i = 0; i < 64; i ++) {
+    cmdbuf[i] = 0;
   }
   netconn_close(conn);
 
@@ -131,7 +141,7 @@ msg_t data_udp_receive_thread(void *p) {
   chThdSleepSeconds(2);
 
 //  IP4_ADDR(&ip_addr_fc, 192,168,0,91);
-  IP4_ADDR(&ip_addr_fc, 192,168,0,196);
+  IP4_ADDR(&ip_addr_fc, 10,0,0,2);
   /* Create a new UDP connection handle */
   conn = netconn_new(NETCONN_UDP);
   LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
@@ -145,6 +155,25 @@ msg_t data_udp_receive_thread(void *p) {
   return RDY_OK;
 }
 
+void sendResponsePacket() {
+   struct     netconn    *conn;
+   char                   msg[DATA_UDP_MSG_SIZE] ;
+   struct     netbuf     *buf;
+   char*                  data;
+	struct ip_addr addr;
+	addr.addr = PSAS_UDP_TARGET;
+   conn       = netconn_new( NETCONN_UDP );
+   netconn_bind(conn, NULL, 35001 ); //local port
+
+   netconn_connect(conn, &addr , DATA_UDP_REPLY_PORT );
+   buf     =  netbuf_new();
+   data    =  netbuf_alloc(buf, sizeof(msg));
+   sprintf(msg, "REPLY MESSAGE");
+   memcpy (data, msg, sizeof (msg));
+   netconn_send(conn, buf);
+   netbuf_delete(buf); // De-allocate packet buffer
+	netconn_disconnect(conn);
+}
 
 #endif
 
