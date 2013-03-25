@@ -93,9 +93,9 @@ msg_t data_udp_send_thread(void *p) {
 				data    =  netbuf_alloc(buf, sizeof(msg));
 				sprintf(msg, "sensor tx: %d", count++);
 				memcpy (data, msg, sizeof (msg));
-				palSetPad(GPIOD, GPIOD_PIN5);
+				palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 				netconn_send(conn, buf);
-				palClearPad(GPIOD, GPIOD_PIN5);
+				palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 				netbuf_delete(buf); // De-allocate packet buffer
 				chThdSleepMilliseconds(500);
 			}
@@ -129,7 +129,9 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	err = netconn_recv(conn, &inbuf);
 	if (err == ERR_OK) {
 		netbuf_data(inbuf, (void **)&buf, &buflen);
+		palClearPad(TIMEINPUT_PORT, TIMEINPUT_PIN);     // negative pulse for input.
 		chprintf(chp, "\r\nsensor rx (from FC): %d ", count++);
+		palSetPad(TIMEINPUT_PORT, TIMEINPUT_PIN);
 		for(i=0; i<buflen; ++i) {
 			chprintf(chp, "%c", buf[i]);
 		}

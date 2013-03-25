@@ -230,7 +230,7 @@
 #define TIMEOUTPUT_PORT             GPIOD
 #define TIMEINPUT_PORT              GPIOD
 #define TIMEOUTPUT_PIN              GPIOD_PIN5
-#define TIMEINPUT_PIN               GPIOD_PIN9
+#define TIMEINPUT_PIN               GPIOD_PIN3
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
