@@ -59,7 +59,7 @@ extern     ip_addr_t         ip_addr_fc;
 
 extern WORKING_AREA(wa_data_udp_send_thread,    DATA_UDP_SEND_THREAD_STACK_SIZE);
 extern WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
-
+void sendResponsePacket( char * payload);
 #ifdef __cplusplus
 extern "C" {
 #endif
