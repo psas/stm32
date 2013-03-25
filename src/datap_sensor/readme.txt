@@ -16,3 +16,10 @@ directory..
 
 It is developed on an Olimex stm32-e407 board
 
+Note:
+Pin PD5 is used as a 'start' signal, a positive pulse of width approx 30uS
+is issued at the start of the command to send a packet.
+
+
+
+

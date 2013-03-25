@@ -91,7 +91,7 @@ msg_t data_udp_send_thread(void *p) {
 			for( ;; ){
 				buf     =  netbuf_new();
 				data    =  netbuf_alloc(buf, sizeof(msg));
-				sprintf(msg, "PSAS Rockets! %d", count++);
+				sprintf(msg, "sensor tx: %d", count++);
 				memcpy (data, msg, sizeof (msg));
 				palSetPad(GPIOD, GPIOD_PIN5);
 				netconn_send(conn, buf);
@@ -111,6 +111,8 @@ msg_t data_udp_send_thread(void *p) {
 static void data_udp_rx_serve(struct netconn *conn) {
 	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU1;
 
+	static uint8_t       count  = 0;
+
 	struct netbuf        *inbuf;
 
 	char                 *buf;
@@ -127,7 +129,7 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	err = netconn_recv(conn, &inbuf);
 	if (err == ERR_OK) {
 		netbuf_data(inbuf, (void **)&buf, &buflen);
-		chprintf(chp, "\r\ndata_udp_rx (from FC): ");
+		chprintf(chp, "\r\nsensor rx (from FC): %d ", count++);
 		for(i=0; i<buflen; ++i) {
 			chprintf(chp, "%c", buf[i]);
 		}
