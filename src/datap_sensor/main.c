@@ -97,8 +97,17 @@ int main(void) {
 	extdetail_init();
 
 	palSetPad(    GPIOC, GPIOC_LED);
+
+	/*!
+	 * GPIO Pins for generating pulses at data input detect and data output send.
+	 * Used for measuring latency timing of data
+	 *
+	 * \sa board.h
+	 */
 	palClearPad(  TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 	palSetPadMode(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
+	palSetPad(    TIMEINPUT_PORT, TIMEINPUT_PIN);
+	palSetPadMode(TIMEINPUT_PORT, TIMEINPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL );
 
 	/*!
 	 * Initializes a serial-over-USB CDC driver.
