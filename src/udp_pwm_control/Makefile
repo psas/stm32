@@ -90,6 +90,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_COMMON)/iwdg_lld.c \
 		 ./data_udp/data_udp.c \
+		 ./pwm/pwm_config.c \
        cmddetail.c \
        extdetail.c \
        usbdetail.c \
@@ -127,7 +128,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(CHIBIOS)/os/various  $(LWINC)\
          $(PSAS_COMMON) \
          $(PSAS_DEV_SRC)/include \
-				./data_udp
+				./data_udp ./pwm
 
 #
 # Project, sources and paths
