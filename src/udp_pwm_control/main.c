@@ -20,7 +20,7 @@
 #include "data_udp.h"
 #include "lwipopts.h"
 #include "lwipthread.h"
-
+#include "pwm.h"
 
 #include "main.h"
 
@@ -97,6 +97,8 @@ int main(void) {
 	extStart(&EXTD1, &extcfg);
 	/*create blinker thread*/
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
+	/*start pwm*/
+	pwmBegin();
 	/*configure ethernet, ip stuff*/
 	static       uint8_t      macAddress[6]    =     {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
 	struct ip_addr ip, gateway, netmask;
