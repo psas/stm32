@@ -46,7 +46,7 @@
 
 #include "usbdetail.h"
 #include "data_udp.h"
-
+#include "pwm_config.h"
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
@@ -107,10 +107,20 @@ static void data_udp_rx_serve(struct netconn *conn) {
     /*netbuf_data(inbuf, (void **)&buf, &buflen);*/
 	 /*int bytesCopied = netbuf_copy(inbuf, (void **)&buf, &buflen); */
 	int bytesCopied = netbuf_copy(inbuf, cmdbuf, 64);
-  chprintf(chp, "\r\ndata_udp_rx: %s", cmdbuf);
+   chprintf(chp, "\r\ndata_udp_rx: %s", cmdbuf);
 	chprintf(chp, "\r\n");
 	chprintf(chp, "copied %d bytes\n", bytesCopied);
-	sendResponsePacket();
+	if (strncmp("GETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
+		char respBuf[64];
+		unsigned int pulseWidth = getPulseWidth();
+		sprintf(respBuf, "PULSE WIDTH %d", pulseWidth);
+		sendResponsePacket(respBuf);
+	} else if (strncmp("SETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
+		setPulseWidth(20000);
+	} else {
+		sendResponsePacket("CMDUNDEF");
+	};
+
   }
   /*fill buffer with nulls*/
   for (i = 0; i < 64; i ++) {
@@ -155,7 +165,7 @@ msg_t data_udp_receive_thread(void *p) {
   return RDY_OK;
 }
 
-void sendResponsePacket() {
+void sendResponsePacket( char  payload[]) {
    struct     netconn    *conn;
    char                   msg[DATA_UDP_MSG_SIZE] ;
    struct     netbuf     *buf;
@@ -168,7 +178,7 @@ void sendResponsePacket() {
    netconn_connect(conn, &addr , DATA_UDP_REPLY_PORT );
    buf     =  netbuf_new();
    data    =  netbuf_alloc(buf, sizeof(msg));
-   sprintf(msg, "REPLY MESSAGE");
+   sprintf(msg, "%s", payload);
    memcpy (data, msg, sizeof (msg));
    netconn_send(conn, buf);
    netbuf_delete(buf); // De-allocate packet buffer
