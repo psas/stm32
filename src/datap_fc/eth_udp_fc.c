@@ -16,9 +16,10 @@
 #define         NPACK           100
 #define         PORT            35000
 #define         OUTPORT         35003
-#define         SRV_IP          "192.168.0.197"
+#define         SENSOR_IP       "192.168.0.196"
+#define         CONTROL_IP      "192.168.0.197"
 
-void die_nice(char *s) {
+static void die_nice(char *s) {
     perror(s);
     exit(1);
 }
@@ -35,11 +36,8 @@ int main(void) {
     memset((char *) &si_me, 0, sizeof(si_me));
     si_me.sin_family       = AF_INET;
     si_me.sin_port         = htons(PORT);
-  //  si_me.sin_addr.s_addr  = htonl(INADDR_ANY);
-    if (inet_aton(SRV_IP, &si_other.sin_addr)==0) {
-    	fprintf(stderr, "inet_aton() failed\n");
-    	exit(1);
-    }
+    si_me.sin_addr.s_addr  = htonl(INADDR_ANY);
+
     if (bind(s, (struct sockaddr *)&si_me, (socklen_t)  sizeof(si_me))==-1)
         die_nice("bind");
 
