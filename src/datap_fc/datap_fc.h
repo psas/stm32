@@ -25,7 +25,8 @@ typedef enum boards {
 typedef struct Ports {
 	unsigned int       thread_id;
     struct sockaddr_in si_me;
-    struct sockaddr_in si_other;
+    struct sockaddr_in si_sensor;
+    struct sockaddr_in si_control;
 } Ports;
 
 

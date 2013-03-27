@@ -15,7 +15,7 @@
 #define         BUFLEN          10
 #define         NPACK           5
 #define         OUTPORT         35003
-#define         SRV_IP          "192.168.0.197"
+#define         SRV_IP          "192.168.0.196"
 
 void die_nice(char *s) {
     perror(s);

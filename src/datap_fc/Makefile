@@ -4,7 +4,7 @@ CFLAGS += -lpthread -g
 
 .PHONY: clean
 
-all: datap_fc
+all: datap_fc eth_udp_fc eth_fc_to_sensorboard
 
 datap_fc: datap_fc.c
 

@@ -95,13 +95,16 @@ void *datap_io_thread (void* ptr) {
 
 	int         s, i;
 	int         me_len    = sizeof(port_info->si_me);
-	int         other_len = sizeof(port_info->si_other);
+	int         sensor_len = sizeof(port_info->si_sensor);
+	int         control_len = sizeof(port_info->si_control);
+
 
 	char        msgbuf[STRINGBUFLEN];
 	char        netbuf[NETBUFLEN];
 
 	snprintf(msgbuf, STRINGBUFLEN, "%s: thread %d",  __func__, port_info->thread_id);
 	log_msg(msgbuf);
+
 
 	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1) {
 		die_nice("socket");
@@ -112,15 +115,21 @@ void *datap_io_thread (void* ptr) {
 	}
 
 	for (i=0; i<NPACK; ++i) {
-		if (recvfrom(s, netbuf, NETBUFLEN, 0, (struct sockaddr *)&port_info->si_other, &other_len)==-1) {
+		if (recvfrom(s, netbuf, NETBUFLEN, 0, (struct sockaddr *)&port_info->si_sensor, &sensor_len)==-1) {
 			die_nice("recvfrom()");
 		}
 		printf("Received packet from %s:%d\nData: %s\n\n",
-				inet_ntoa(port_info->si_other.sin_addr), ntohs(port_info->si_other.sin_port), netbuf);
+				inet_ntoa(port_info->si_sensor.sin_addr), ntohs(port_info->si_sensor.sin_port), netbuf);
+
+		sprintf(netbuf, "%s", "Shinybit\n");
+		if (sendto(s, netbuf, 10, 0,(struct sockaddr *) &port_info->si_control, control_len)==-1) {
+			die_nice("sendto()");
+		}
+		printf("Sent packet to %s:%d\nData: %s\n\n",
+				inet_ntoa(port_info->si_control.sin_addr), ntohs(port_info->si_control.sin_port), netbuf);
+
 	}
-
 	close(s);
-
 }
 
 
@@ -147,14 +156,22 @@ int main(void) {
 	log_msg(buf);
 
 	memset((char *) &th_data[SENSOR_BOARD].si_me,    0, sizeof(th_data[SENSOR_BOARD].si_me));
-	memset((char *) &th_data[SENSOR_BOARD].si_other, 0, sizeof(th_data[SENSOR_BOARD].si_other));
+	memset((char *) &th_data[SENSOR_BOARD].si_sensor, 0, sizeof(th_data[SENSOR_BOARD].si_sensor));
+	memset((char *) &th_data[SENSOR_BOARD].si_control, 0, sizeof(th_data[SENSOR_BOARD].si_control));
+
 
 	th_data[SENSOR_BOARD].si_me.sin_family       = AF_INET;
 	th_data[SENSOR_BOARD].si_me.sin_port         = htons(PORT_OUT);
 
-	th_data[SENSOR_BOARD].si_other.sin_family    = AF_INET;
-	th_data[SENSOR_BOARD].si_other.sin_port      = htons(PORT_IN);
-	if (inet_aton(SENSOR_IP, &th_data[SENSOR_BOARD].si_other.sin_addr)==0) {
+	th_data[SENSOR_BOARD].si_sensor.sin_family    = AF_INET;
+	th_data[SENSOR_BOARD].si_sensor.sin_port      = htons(PORT_IN);
+	if (inet_aton(SENSOR_IP, &th_data[SENSOR_BOARD].si_sensor.sin_addr)==0) {
+		die_nice("inet_aton() failed\n");
+	}
+
+	th_data[SENSOR_BOARD].si_control.sin_family    = AF_INET;
+	th_data[SENSOR_BOARD].si_control.sin_port      = htons(PORT_IN);
+	if (inet_aton(SENSOR_IP, &th_data[SENSOR_BOARD].si_control.sin_addr)==0) {
 		die_nice("inet_aton() failed\n");
 	}
 
