@@ -1,4 +1,12 @@
 /*! \file datap_fc.c
+ *
+ * Additional background on network programming can be found here:
+ *
+ * Reference:
+ * Hall, Brian B. "Beej's Guide to Network Programming." Beej's Guide to Network Programming. Brain Hall, 3 July 2012. Web. 30 Mar. 2013.
+ * http://beej.us/guide/bgnet/
+ *
+ * This code uses the 'getaddrinfo' and IPv4/IPv6 techniques presented in the above document.
  */
 
 /*!
@@ -19,6 +27,8 @@
 
 #include <unistd.h>
 
+#include "fc_net.h"
+#include "device_net.h"
 #include "datap_fc.h"
 
 #define         MAX_THREADS          4
@@ -82,12 +92,29 @@ static int get_numprocs() {
 	return numprocs;
 }
 
-// get sockaddr, IPv4 or IPv6:
+/*! \brief return the port number from a sockaddr
+ *
+ * Return IPv4 or IPv6 as appropriate
+ *
+ * @param sa
+ */
+static void *get_in_addr_socket(struct sockaddr *sa) {
+	if (sa->sa_family == AF_INET) {
+		return &(((struct sockaddr_in*)sa)->sin_port);
+	}
+	return &(((struct sockaddr_in6*)sa)->sin6_port);
+}
+
+/*! \brief return the ip address from a sockaddr
+ *
+ * Return IPv4 or IPv6 as appropriate
+ *
+ * @param sa
+ */
 static void *get_in_addr(struct sockaddr *sa) {
 	if (sa->sa_family == AF_INET) {
 		return &(((struct sockaddr_in*)sa)->sin_addr);
 	}
-
 	return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
@@ -100,28 +127,33 @@ static void init_thread_state(Ports* p, unsigned int i) {
  * @param ptr  pointer to Ports type with input and output ip address and port.
  */
 void *datap_io_thread (void* ptr) {
-	Ports*             port_info;
+	Ports*                    port_info;
 	port_info = (Ports*) ptr;
 
-	pthread_t          my_id;
+	int                       i = 0;
+	int                       status;
+	int                       retval;
+	int                       hostsocket_fd;
+	int                       clientsocket_fd;
+	int                       numbytes;
+	socklen_t                 addr_len;
 
-	struct addrinfo    hints, *res, *p;
-	int                status;
-	char               ipstr[INET6_ADDRSTRLEN];
-	socklen_t          addr_len;
-	int                socket_fd;
-	int                numbytes;
-	char               recvbuf[MAXBUFLEN];
-	char               s[INET6_ADDRSTRLEN];
+	char                      ipstr[INET6_ADDRSTRLEN];
+	char                      recvbuf[MAXBUFLEN];
+	char                      s[INET6_ADDRSTRLEN];
 
-	struct sockaddr_storage their_addr;
+	pthread_t                 my_id;
+
+	struct addrinfo           hints, *res, *p, *ai_client;
+	struct sockaddr_storage   control_addr;
 
 	memset(&hints, 0, sizeof hints);
-	hints.ai_family                = AF_UNSPEC; // AF_INET or AF_INET6 to force version
-	hints.ai_socktype              = SOCK_DGRAM;
+	hints.ai_family                = AF_UNSPEC;  // AF_INET or AF_INET6 to force version
+	hints.ai_socktype              = SOCK_DGRAM; // UDP
 	hints.ai_flags                 = AI_PASSIVE; // use local host address.
 
 	fprintf(stderr, "%s: listen port %s\n", __func__, port_info->host_listen_port);
+
 	/*!
 	 * Getting address of THIS machine.
 	 */
@@ -160,30 +192,59 @@ void *datap_io_thread (void* ptr) {
 		printf("  %s: %s\n", ipver, ipstr);
 	}
 
-	if((socket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
+	if((hostsocket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
 		die_nice("socket");
 	}
 
-	if(bind(socket_fd, res->ai_addr, res->ai_addrlen) == -1) {
+	if(bind(hostsocket_fd, res->ai_addr, res->ai_addrlen) == -1) {
 		die_nice("bind");
 	}
 
-	addr_len = sizeof their_addr;
-	if ((numbytes = recvfrom(socket_fd, recvbuf, MAXBUFLEN-1 , 0,
-			(struct sockaddr *)&their_addr, &addr_len)) == -1) {
-		perror("recvfrom");
-		exit(1);
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+
+	if ((retval = getaddrinfo(port_info->client_addr, port_info->client_port, &hints, &res)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(retval));
+		die_nice("client get address");
 	}
 
-	printf("listener: got packet from %s\n",
-			inet_ntop(their_addr.ss_family,
-					get_in_addr((struct sockaddr *)&their_addr),
-					s, sizeof s));
-	printf("listener: packet is %d bytes long\n", numbytes);
-	recvbuf[numbytes] = '\0';
-	printf("listener: packet contains \"%s\"\n", recvbuf);
+	/* Create a socket for the client */
+	for(ai_client = res; ai_client != NULL; ai_client = ai_client->ai_next) {
+		if ((clientsocket_fd = socket(ai_client->ai_family, ai_client->ai_socktype,
+				ai_client->ai_protocol)) == -1) {
+			perror("clientsocket");
+			continue;
+		}
+		break;
+	}
 
-	close(socket_fd);
+	if (ai_client == NULL) {
+		die_nice("failed to bind control socket\n");
+	}
+
+	for(i=0; i<NPACK; ++i) {
+		addr_len = sizeof control_addr;
+		if ((numbytes = recvfrom(hostsocket_fd, recvbuf, MAXBUFLEN-1 , 0,
+				(struct sockaddr *)&control_addr, &addr_len)) == -1) {
+			die_nice("recvfrom");
+		}
+
+		printf("listener: got packet from %s\n",
+				inet_ntop(control_addr.ss_family,
+						get_in_addr((struct sockaddr *)&control_addr),
+						s, sizeof s));
+		printf("listener: packet is %d bytes long\n", numbytes);
+		recvbuf[numbytes] = '\0';
+		printf("listener: packet contains \"%s\"\n", recvbuf);
+
+		if ((numbytes = sendto(clientsocket_fd, recvbuf, strlen(recvbuf), 0,
+				ai_client->ai_addr, ai_client->ai_addrlen)) == -1) {
+			die_nice("client sendto");
+		}
+	}
+	close(hostsocket_fd);
+	close(clientsocket_fd);
 	freeaddrinfo(res); // free the linked list
 
 	return 0;
@@ -254,7 +315,9 @@ int main(void) {
 	snprintf(buf, STRINGBUFLEN, "Number of processors: %d", get_numprocs());
 	log_msg(buf);
 
-	sprintf(th_data[CONTROL_LISTENER].host_listen_port , "%d", FC_LISTEN_PORT_CONTROL);
+	snprintf(th_data[CONTROL_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_CONTROL);
+    snprintf(th_data[CONTROL_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
+    snprintf(th_data[CONTROL_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
 
 	printf("start threads\n");
 

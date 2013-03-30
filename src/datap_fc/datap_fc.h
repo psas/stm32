@@ -12,7 +12,7 @@
 
 #define         MAXBUFLEN               100
 #define         NETBUFLEN               512
-#define         NPACK                   100
+#define         NPACK                   10
 #define         PORT_STRING_LEN         6
 
 typedef enum thd_index {
@@ -23,6 +23,8 @@ typedef enum thd_index {
 typedef struct Ports {
 	unsigned int       thread_id;
 	char               host_listen_port[PORT_STRING_LEN];
+	char               client_addr[INET6_ADDRSTRLEN];
+	char               client_port[PORT_STRING_LEN];
 } Ports;
 
 
