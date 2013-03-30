@@ -92,19 +92,6 @@ static int get_numprocs() {
 	return numprocs;
 }
 
-/*! \brief return the port number from a sockaddr
- *
- * Return IPv4 or IPv6 as appropriate
- *
- * @param sa
- */
-static void *get_in_addr_socket(struct sockaddr *sa) {
-	if (sa->sa_family == AF_INET) {
-		return &(((struct sockaddr_in*)sa)->sin_port);
-	}
-	return &(((struct sockaddr_in6*)sa)->sin6_port);
-}
-
 /*! \brief return the ip address from a sockaddr
  *
  * Return IPv4 or IPv6 as appropriate
@@ -145,7 +132,9 @@ void *datap_io_thread (void* ptr) {
 	pthread_t                 my_id;
 
 	struct addrinfo           hints, *res, *p, *ai_client;
-	struct sockaddr_storage   control_addr;
+	struct sockaddr_storage   client_addr;
+	socklen_t                 client_addr_len;
+	client_addr_len           = sizeof(struct sockaddr_storage);
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family                = AF_UNSPEC;  // AF_INET or AF_INET6 to force version
@@ -162,9 +151,9 @@ void *datap_io_thread (void* ptr) {
 		return ;
 	}
 
-    /*!
-     * Get address of any machine from DNS
-     */
+	/*!
+	 * Get address of any machine from DNS
+	 */
 	//	if ((status = getaddrinfo(argv[1], NULL, &hints, &res)) != 0) {
 	//		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
 	//		return 2;
@@ -201,7 +190,7 @@ void *datap_io_thread (void* ptr) {
 	}
 
 	memset(&hints, 0, sizeof hints);
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family   = AF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
 
 	if ((retval = getaddrinfo(port_info->client_addr, port_info->client_port, &hints, &res)) != 0) {
@@ -224,19 +213,24 @@ void *datap_io_thread (void* ptr) {
 	}
 
 	for(i=0; i<NPACK; ++i) {
-		addr_len = sizeof control_addr;
+		struct sockaddr        *sa;
+		socklen_t              len;
+		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+
+		addr_len = sizeof client_addr;
 		if ((numbytes = recvfrom(hostsocket_fd, recvbuf, MAXBUFLEN-1 , 0,
-				(struct sockaddr *)&control_addr, &addr_len)) == -1) {
+				(struct sockaddr *)&client_addr, &addr_len)) == -1) {
 			die_nice("recvfrom");
 		}
 
-		printf("listener: got packet from %s\n",
-				inet_ntop(control_addr.ss_family,
-						get_in_addr((struct sockaddr *)&control_addr),
-						s, sizeof s));
-		printf("listener: packet is %d bytes long\n", numbytes);
+		if (getnameinfo((struct sockaddr *)&client_addr, client_addr_len, hbuf, sizeof(hbuf), sbuf,
+		            sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
+		    printf("got packet from %s:%s\n", hbuf, sbuf);
+		}
+
+		printf("fc: packet is %d bytes long\n", numbytes);
 		recvbuf[numbytes] = '\0';
-		printf("listener: packet contains \"%s\"\n", recvbuf);
+		printf("fc: packet contains \"%s\"\n\n", recvbuf);
 
 		if ((numbytes = sendto(clientsocket_fd, recvbuf, strlen(recvbuf), 0,
 				ai_client->ai_addr, ai_client->ai_addrlen)) == -1) {
@@ -249,49 +243,6 @@ void *datap_io_thread (void* ptr) {
 
 	return 0;
 }
-
-
-
-//	int         s, i;
-//	int         me_len      = sizeof(port_info->si_me);
-//	int         sensor_len  = sizeof(port_info->si_sensor);
-//	int         control_len = sizeof(port_info->si_control);
-//
-//
-//	char        msgbuf[STRINGBUFLEN];
-//	char        netbuf[NETBUFLEN];
-//
-//	snprintf(msgbuf, STRINGBUFLEN, "%s: thread %d",  __func__, port_info->thread_id);
-//	log_msg(msgbuf);
-//
-//
-//	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1) {
-//		die_nice("socket");
-//	}
-//
-//	fprintf(stderr, "%s: binding to: %s\n", __func__, inet_ntoa(port_info->si_me.sin_addr));
-//	if (bind(s, (struct sockaddr *)&port_info->si_me, (socklen_t)  sizeof(port_info->si_me))==-1) {
-//		die_nice("bind fail");
-//	}
-//
-//	for (i=0; i<NPACK; ++i) {
-//		if (recvfrom(s, netbuf, NETBUFLEN, 0, (struct sockaddr *)&port_info->si_sensor, &sensor_len)==-1) {
-//			die_nice("recvfrom()");
-//		}
-//		printf("Received packet from %s:%d\nData: %s\n\n",
-//				inet_ntoa(port_info->si_sensor.sin_addr), ntohs(port_info->si_sensor.sin_port), netbuf);
-//
-//		// sprintf(netbuf, "%s", "Shinybit\n");
-//		if (sendto(s, netbuf, 10, 0,(struct sockaddr *) &port_info->si_control, control_len)==-1) {
-//			die_nice("sendto()");
-//		}
-//		printf("Sent packet to %s:%d\nData: %s\n\n",
-//				inet_ntoa(port_info->si_control.sin_addr), ntohs(port_info->si_control.sin_port), netbuf);
-//
-//	}
-//	close(s);
-//}
-
 
 int main(void) {
 	unsigned int     i          = 0;
@@ -316,8 +267,8 @@ int main(void) {
 	log_msg(buf);
 
 	snprintf(th_data[CONTROL_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_CONTROL);
-    snprintf(th_data[CONTROL_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
-    snprintf(th_data[CONTROL_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
+	snprintf(th_data[CONTROL_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
+	snprintf(th_data[CONTROL_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
 
 	printf("start threads\n");
 
@@ -329,6 +280,7 @@ int main(void) {
 		}
 	}
 
+	// Things happen...then join threads as they return.
 
 	for(j=0; j<numthreads; ++j) {
 		tj = pthread_join(thread_id[j], NULL);
