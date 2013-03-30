@@ -8,22 +8,23 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+#include "fc_net.h"
 
-#define         NETBUFLEN       512
-#define         NPACK           100
+#define         NETBUFLEN               512
+#define         NPACK                   100
+#define         PORT_STRING_LEN         6
 
-#define         PORT_OUT        35000
-#define         PORT_IN         35003
-#define         SENSOR_IP       "192.168.0.196"
-#define         CONTROL_IP      "192.168.0.197"
+#define         NODE_OUT                35000
+#define         NODE_IN                 35003
 
-typedef enum boards {
-	SENSOR_BOARD,
-	CONTROL_BOARD
-} Board;
+typedef enum thd_index {
+	SENSOR_LISTENER,
+	CONTROL_LISTENER
+} Thdindex;
 
 typedef struct Ports {
 	unsigned int       thread_id;
+	char               host_listen_port[PORT_STRING_LEN];
     struct sockaddr_in si_me;
     struct sockaddr_in si_sensor;
     struct sockaddr_in si_control;

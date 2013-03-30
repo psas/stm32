@@ -10,10 +10,13 @@
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+
 #include <unistd.h>
 
 #include "datap_fc.h"
@@ -88,49 +91,117 @@ static void init_thread_state(Ports* p, unsigned int i) {
  * @param ptr  pointer to Ports type with input and output ip address and port.
  */
 void *datap_io_thread (void* ptr) {
-	Ports*      port_info;
+	Ports*             port_info;
 	port_info = (Ports*) ptr;
 
-	pthread_t   my_id;
+	pthread_t          my_id;
 
-	int         s, i;
-	int         me_len    = sizeof(port_info->si_me);
-	int         sensor_len = sizeof(port_info->si_sensor);
-	int         control_len = sizeof(port_info->si_control);
+	struct addrinfo    hints, *res, *p;
+	int                status;
+	char               ipstr[INET6_ADDRSTRLEN];
+
+	int                socket_fd;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family                = AF_UNSPEC; // AF_INET or AF_INET6 to force version
+	hints.ai_socktype              = SOCK_DGRAM;
+	hints.ai_flags                 = AI_PASSIVE; // use local host address.
+
+	fprintf(stderr, "%s: listen port %s\n", __func__, port_info->host_listen_port);
+	/*!
+	 * Getting address of THIS machine.
+	 */
+	if ((status = getaddrinfo(NULL, port_info->host_listen_port, &hints, &res)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+		return ;
+	}
+
+    /*!
+     * Get address of any machine from DNS
+     */
+	//	if ((status = getaddrinfo(argv[1], NULL, &hints, &res)) != 0) {
+	//		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+	//		return 2;
+	//	}
 
 
-	char        msgbuf[STRINGBUFLEN];
-	char        netbuf[NETBUFLEN];
+	for(p = res; p != NULL; p = p->ai_next) {
+		void *addr;
+		char *ipver;
 
-	snprintf(msgbuf, STRINGBUFLEN, "%s: thread %d",  __func__, port_info->thread_id);
-	log_msg(msgbuf);
+		// get the pointer to the address itself,
+		// different fields in IPv4 and IPv6:
+		if (p->ai_family == AF_INET) { // IPv4
+			struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+			addr = &(ipv4->sin_addr);
+			ipver = "IPv4";
+		} else { // IPv6
+			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+			addr = &(ipv6->sin6_addr);
+			ipver = "IPv6";
+		}
 
+		// convert the IP to a string and print it:
+		inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+		printf("  %s: %s\n", ipver, ipstr);
+	}
 
-	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1) {
+	if((socket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
 		die_nice("socket");
 	}
 
-	if (bind(s, (struct sockaddr *)&port_info->si_me, (socklen_t)  sizeof(port_info->si_me))==-1) {
+	if(bind(socket_fd, res->ai_addr, res->ai_addrlen) == -1) {
 		die_nice("bind");
 	}
 
-	for (i=0; i<NPACK; ++i) {
-		if (recvfrom(s, netbuf, NETBUFLEN, 0, (struct sockaddr *)&port_info->si_sensor, &sensor_len)==-1) {
-			die_nice("recvfrom()");
-		}
-		printf("Received packet from %s:%d\nData: %s\n\n",
-				inet_ntoa(port_info->si_sensor.sin_addr), ntohs(port_info->si_sensor.sin_port), netbuf);
 
-		sprintf(netbuf, "%s", "Shinybit\n");
-		if (sendto(s, netbuf, 10, 0,(struct sockaddr *) &port_info->si_control, control_len)==-1) {
-			die_nice("sendto()");
-		}
-		printf("Sent packet to %s:%d\nData: %s\n\n",
-				inet_ntoa(port_info->si_control.sin_addr), ntohs(port_info->si_control.sin_port), netbuf);
+	close(socket_fd);
+	freeaddrinfo(res); // free the linked list
 
-	}
-	close(s);
+	return 0;
 }
+
+
+
+//	int         s, i;
+//	int         me_len      = sizeof(port_info->si_me);
+//	int         sensor_len  = sizeof(port_info->si_sensor);
+//	int         control_len = sizeof(port_info->si_control);
+//
+//
+//	char        msgbuf[STRINGBUFLEN];
+//	char        netbuf[NETBUFLEN];
+//
+//	snprintf(msgbuf, STRINGBUFLEN, "%s: thread %d",  __func__, port_info->thread_id);
+//	log_msg(msgbuf);
+//
+//
+//	if ((s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP))==-1) {
+//		die_nice("socket");
+//	}
+//
+//	fprintf(stderr, "%s: binding to: %s\n", __func__, inet_ntoa(port_info->si_me.sin_addr));
+//	if (bind(s, (struct sockaddr *)&port_info->si_me, (socklen_t)  sizeof(port_info->si_me))==-1) {
+//		die_nice("bind fail");
+//	}
+//
+//	for (i=0; i<NPACK; ++i) {
+//		if (recvfrom(s, netbuf, NETBUFLEN, 0, (struct sockaddr *)&port_info->si_sensor, &sensor_len)==-1) {
+//			die_nice("recvfrom()");
+//		}
+//		printf("Received packet from %s:%d\nData: %s\n\n",
+//				inet_ntoa(port_info->si_sensor.sin_addr), ntohs(port_info->si_sensor.sin_port), netbuf);
+//
+//		// sprintf(netbuf, "%s", "Shinybit\n");
+//		if (sendto(s, netbuf, 10, 0,(struct sockaddr *) &port_info->si_control, control_len)==-1) {
+//			die_nice("sendto()");
+//		}
+//		printf("Sent packet to %s:%d\nData: %s\n\n",
+//				inet_ntoa(port_info->si_control.sin_addr), ntohs(port_info->si_control.sin_port), netbuf);
+//
+//	}
+//	close(s);
+//}
 
 
 int main(void) {
@@ -155,25 +226,52 @@ int main(void) {
 	snprintf(buf, STRINGBUFLEN, "Number of processors: %d", get_numprocs());
 	log_msg(buf);
 
-	memset((char *) &th_data[SENSOR_BOARD].si_me,    0, sizeof(th_data[SENSOR_BOARD].si_me));
-	memset((char *) &th_data[SENSOR_BOARD].si_sensor, 0, sizeof(th_data[SENSOR_BOARD].si_sensor));
-	memset((char *) &th_data[SENSOR_BOARD].si_control, 0, sizeof(th_data[SENSOR_BOARD].si_control));
+	memset((char *) &th_data[SENSOR_LISTENER].si_me,      0, sizeof(th_data[SENSOR_LISTENER].si_me));
+	memset((char *) &th_data[SENSOR_LISTENER].si_sensor,  0, sizeof(th_data[SENSOR_LISTENER].si_sensor));
+	memset((char *) &th_data[SENSOR_LISTENER].si_control, 0, sizeof(th_data[SENSOR_LISTENER].si_control));
 
 
-	th_data[SENSOR_BOARD].si_me.sin_family       = AF_INET;
-	th_data[SENSOR_BOARD].si_me.sin_port         = htons(PORT_OUT);
-
-	th_data[SENSOR_BOARD].si_sensor.sin_family    = AF_INET;
-	th_data[SENSOR_BOARD].si_sensor.sin_port      = htons(PORT_IN);
-	if (inet_aton(SENSOR_IP, &th_data[SENSOR_BOARD].si_sensor.sin_addr)==0) {
+	th_data[SENSOR_LISTENER].si_me.sin_family       = AF_INET;
+	th_data[SENSOR_LISTENER].si_me.sin_port         = htons(FC_LISTEN_PORT_A);
+	sprintf(th_data[SENSOR_LISTENER].host_listen_port , "%d", FC_LISTEN_PORT_A);
+	if (inet_aton(SENSOR_IP, &th_data[SENSOR_LISTENER].si_me.sin_addr)==0) {
 		die_nice("inet_aton() failed\n");
 	}
 
-	th_data[SENSOR_BOARD].si_control.sin_family    = AF_INET;
-	th_data[SENSOR_BOARD].si_control.sin_port      = htons(PORT_IN);
-	if (inet_aton(SENSOR_IP, &th_data[SENSOR_BOARD].si_control.sin_addr)==0) {
+	th_data[SENSOR_LISTENER].si_sensor.sin_family    = AF_INET;
+	th_data[SENSOR_LISTENER].si_sensor.sin_port      = htons(NODE_IN);
+	if (inet_aton(SENSOR_IP, &th_data[SENSOR_LISTENER].si_sensor.sin_addr)==0) {
 		die_nice("inet_aton() failed\n");
 	}
+
+	th_data[SENSOR_LISTENER].si_control.sin_family    = AF_INET;
+	th_data[SENSOR_LISTENER].si_control.sin_port      = htons(NODE_OUT);
+	if (inet_aton(CONTROL_IP, &th_data[SENSOR_LISTENER].si_control.sin_addr)==0) {
+		die_nice("inet_aton() failed\n");
+	}
+
+	memset((char *) &th_data[CONTROL_LISTENER].si_me,      0, sizeof(th_data[CONTROL_LISTENER].si_me));
+	memset((char *) &th_data[CONTROL_LISTENER].si_sensor,  0, sizeof(th_data[CONTROL_LISTENER].si_sensor));
+	memset((char *) &th_data[CONTROL_LISTENER].si_control, 0, sizeof(th_data[CONTROL_LISTENER].si_control));
+
+
+//	th_data[CONTROL_LISTENER].si_me.sin_family       = AF_INET;
+//	th_data[CONTROL_LISTENER].si_me.sin_port         = htons(PORT_OUT);
+//	if (inet_aton(CONTROL_IP, &th_data[CONTROL_LISTENER].si_me.sin_addr)==0) {
+//		die_nice("inet_aton() failed\n");
+//	}
+//
+//	th_data[CONTROL_LISTENER].si_control.sin_family    = AF_INET;
+//	th_data[CONTROL_LISTENER].si_control.sin_port      = htons(PORT_IN);
+//	if (inet_aton(CONTROL_IP, &th_data[CONTROL_LISTENER].si_control.sin_addr)==0) {
+//		die_nice("inet_aton() failed\n");
+//	}
+//
+//	th_data[CONTROL_LISTENER].si_sensor.sin_family    = AF_INET;
+//	th_data[CONTROL_LISTENER].si_sensor.sin_port      = htons(PORT_IN);
+//	if (inet_aton(SENSOR_IP, &th_data[CONTROL_LISTENER].si_sensor.sin_addr)==0) {
+//		die_nice("inet_aton() failed\n");
+//	}
 
 	printf("start threads\n");
 
