@@ -14,8 +14,7 @@
 
 #define         BUFLEN          512
 #define         NPACK           100
-#define         PORT            35000
-#define         OUTPORT         35003
+#define         PORT            35004
 #define         SRV_IP          "192.168.0.197"
 
 void die_nice(char *s) {
@@ -34,7 +33,7 @@ int main(void) {
 
     memset((char *) &si_me, 0, sizeof(si_me));
     si_me.sin_family       = AF_INET;
-    si_me.sin_port         = htons(PORT);
+    si_me.sin_port         = htons(36002);
   //  si_me.sin_addr.s_addr  = htonl(INADDR_ANY);
     if (inet_aton(SRV_IP, &si_other.sin_addr)==0) {
     	fprintf(stderr, "inet_aton() failed\n");

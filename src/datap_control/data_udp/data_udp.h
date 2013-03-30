@@ -32,26 +32,15 @@
 #define _DATA_UDP_H
 
 #include "lwip/ip_addr.h"
-
+#include "fc_net.h"
 
 #define DATA_UDP_SEND_THREAD_STACK_SIZE      512
 #define DATA_UDP_RECEIVE_THREAD_STACK_SIZE   512
-
-#define DATA_UDP_TX_THREAD_PORT              35000
-#define DATA_UDP_RX_THREAD_PORT              35003
 
 #define DATA_UDP_RX_THD_PRIORITY             (LOWPRIO)
 #define DATA_UDP_THREAD_PRIORITY             (LOWPRIO + 2)
 
 #define PSAS_IP_BROADCAST                    ((uint32_t)0xffffffffUL)
-
-	// htonl = Host TO Network Long, converts a long from host byte order to network byte order
-	// ntohl = Network TO Host Long, you get the idea.
-
-//#define PSAS_IP_HOST                         (htonl(0xC0A8011E))     // 192.168.1.30	is 0xC0A8011E
-//     (htonl(0xC0A8005B))                 //  192.168.0.91  is 0xC0A8005B
-#define IP_PSAS_FC(p)                        IP4_ADDR(p, 192, 168, 0, 91)
-#define IP_PSAS_SENSOR(p)                    IP4_ADDR(p, 192, 168, 0, 197);
 
 #define DATA_UDP_MSG_SIZE                    50
 
