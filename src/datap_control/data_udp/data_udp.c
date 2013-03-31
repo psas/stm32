@@ -34,6 +34,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "ch.h"
 #include "hal.h"
