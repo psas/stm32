@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <pthread.h>
 #include <errno.h>
 
@@ -76,6 +77,15 @@ static void die_nice(char *s) {
 	log_error("exiting\n");
 	perror(s);
 	exit(1);
+}
+
+static bool ports_equal(char* pa, int pb) {
+    bool     retval = false;
+	char     portb[PORT_STRING_LEN];
+
+    snprintf(portb, PORT_STRING_LEN, "%d", pb);
+    retval   = strncmp( pa, portb, PORT_STRING_LEN);
+    return retval;
 }
 
 /*! \brief Get the number of processors available on this (Linux-os) machine
@@ -225,12 +235,18 @@ void *datap_io_thread (void* ptr) {
 
 		if (getnameinfo((struct sockaddr *)&client_addr, client_addr_len, hbuf, sizeof(hbuf), sbuf,
 		            sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
-		    printf("got packet from %s:%s\n", hbuf, sbuf);
+			if(ports_equal(sbuf, IMU_A_TX_PORT)) {
+				printf("IMU Packet %s:%s\n", hbuf, sbuf);
+			} else if (ports_equal(sbuf, ROLL_CTL_TX_PORT)) {
+				printf("\tROLL CTL Packet: %s:%s\n", hbuf, sbuf);
+			} else {
+				printf("Unrecognized Packet %s:%s\n", hbuf, sbuf);
+			}
 		}
 
-		printf("fc: packet is %d bytes long\n", numbytes);
+	//	printf("fc: packet is %d bytes long\n", numbytes);
 		recvbuf[numbytes] = '\0';
-		printf("fc: packet contains \"%s\"\n\n", recvbuf);
+	//	printf("fc: packet contains \"%s\"\n\n", recvbuf);
 
 		if ((numbytes = sendto(clientsocket_fd, recvbuf, strlen(recvbuf), 0,
 				ai_client->ai_addr, ai_client->ai_addrlen)) == -1) {
@@ -248,7 +264,7 @@ int main(void) {
 	unsigned int     i          = 0;
 	unsigned int     j          = 0;
 
-	char             buf[STRINGBUFLEN];
+	char             msgbuf[STRINGBUFLEN];
 
 	int              numthreads = NUM_THREADS;
 	int              tc         = 0;
@@ -263,8 +279,8 @@ int main(void) {
 		init_thread_state(&th_data[i], i);
 	}
 
-	snprintf(buf, STRINGBUFLEN, "Number of processors: %d", get_numprocs());
-	log_msg(buf);
+	snprintf(msgbuf, STRINGBUFLEN, "Number of processors: %d", get_numprocs());
+	log_msg(msgbuf);
 
 	snprintf(th_data[CONTROL_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_CONTROL);
 	snprintf(th_data[CONTROL_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
