@@ -32,7 +32,7 @@
 #include "datap_fc.h"
 
 #define         MAX_THREADS          4
-#define         NUM_THREADS          1
+#define         NUM_THREADS          2
 #define         TIMEBUFLEN           80
 #define         STRINGBUFLEN         80
 
@@ -55,7 +55,7 @@ static void get_current_time(char* ts) {
 	strftime (ts, TIMEBUFLEN, "%T %F",timeinfo);
 }
 
-static void log_msg(char *s) {
+static void log_msg(volatile char *s) {
 	pthread_mutex_lock(&msg_mutex);
 	char   timebuf[TIMEBUFLEN];
 	get_current_time(timebuf);
@@ -63,7 +63,7 @@ static void log_msg(char *s) {
 	pthread_mutex_unlock(&msg_mutex);
 }
 
-static void log_error(char *s) {
+static void log_error(volatile char *s) {
 	pthread_mutex_lock(&msg_mutex);
 	char   timebuf[TIMEBUFLEN];
 	get_current_time(timebuf);
@@ -240,7 +240,7 @@ void *datap_io_thread (void* ptr) {
 	close(hostsocket_fd);
 	close(clientsocket_fd);
 	freeaddrinfo(res); // free the linked list
-
+	fprintf(stderr, "Leaving thread %d\n", port_info->thread_id);
 	return 0;
 }
 
@@ -269,6 +269,10 @@ int main(void) {
 	snprintf(th_data[CONTROL_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_CONTROL);
 	snprintf(th_data[CONTROL_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
 	snprintf(th_data[CONTROL_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
+
+	snprintf(th_data[SENSOR_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_SENSOR);
+	snprintf(th_data[SENSOR_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
+	snprintf(th_data[SENSOR_LISTENER].client_port     , PORT_STRING_LEN , "%d", IMU_A_LISTEN_PORT);
 
 	printf("start threads\n");
 

@@ -10,7 +10,7 @@
 
 #include "fc_net.h"
 
-#define         MAXBUFLEN               100
+#define         MAXBUFLEN               512
 #define         NETBUFLEN               512
 #define         NPACK                   10
 #define         PORT_STRING_LEN         6

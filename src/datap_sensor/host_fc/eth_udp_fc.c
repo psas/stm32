@@ -15,7 +15,6 @@
 #define         BUFLEN          512
 #define         NPACK           100
 #define         PORT            35002
-#define         SRV_IP          "192.168.0.196"
 
 void die_nice(char *s) {
     perror(s);

@@ -34,8 +34,10 @@
 
 #include "board.h"
 
-#include "main.h"
+#include "device_net.h"
+#include "fc_net.h"
 
+#include "main.h"
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -96,7 +98,7 @@ int main(void) {
 
 	extdetail_init();
 
-	palSetPad(    GPIOC, GPIOC_LED);
+	palSetPad(GPIOC, GPIOC_LED);
 
 	/*!
 	 * GPIO Pins for generating pulses at data input detect and data output send.
@@ -143,18 +145,13 @@ int main(void) {
 	chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
 	chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
-	/*!
-	 * Use a locally administered MAC address second LSbit of MSB of MAC should be 1
-	 * Use unicast address LSbit of MSB of MAC should be 0
-	 */
-	//static       uint8_t      macAddress[6]         =     {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
-	static       uint8_t      macAddress[6]         =     {0xE6, 0x10, 0x20, 0x30, 0x40, 0x11};
+	static       uint8_t      IMU_macAddress[6]           = IMU_A_MAC_ADDRESS;
 	struct       ip_addr      ip, gateway, netmask;
-	IP4_ADDR(&ip,      192, 168, 0,   196);
-	IP4_ADDR(&gateway, 192, 168, 1,   1  );
-	IP4_ADDR(&netmask, 255, 255, 255, 0  );
+	IMU_A_IP_ADDR(&ip);
+	IMU_A_GATEWAY(&gateway);
+	IMU_A_NETMASK(&netmask);
 
-	ip_opts.macaddress = macAddress;
+	ip_opts.macaddress = IMU_macAddress;
 	ip_opts.address    = ip.addr;
 	ip_opts.netmask    = netmask.addr;
 	ip_opts.gateway    = gateway.addr;
