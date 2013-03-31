@@ -1,12 +1,12 @@
 /*! \file main.c
  *
- * UDP Datapath experiment
+ * UDP Datapath experiment - Control
  *
  * This implementation is specific to the Olimex stm32-e407 board.
  */
 
 /*!
- * \defgroup mainapp Application
+ * \defgroup mainapp Application Control
  * @{
  */
 
@@ -33,6 +33,9 @@
 #include "lwipthread.h"
 
 #include "board.h"
+
+#include "device_net.h"
+#include "fc_net.h"
 
 #include "main.h"
 
@@ -96,7 +99,7 @@ int main(void) {
 
 	extdetail_init();
 
-	palSetPad(    GPIOC, GPIOC_LED);
+	palSetPad(GPIOC, GPIOC_LED);
 
 	/*!
 	 * GPIO Pins for generating pulses at data input detect and data output send.
@@ -147,13 +150,13 @@ int main(void) {
 	 * Use a locally administered MAC address second LSbit of MSB of MAC should be 1
 	 * Use unicast address LSbit of MSB of MAC should be 0
 	 */
-	static       uint8_t      macAddress[6]         =     {0xE6, 0x10, 0x20, 0x30, 0x40, 0xaa};
+	static       uint8_t      ROLL_CTL_macAddress[6]         = ROLL_CTL_MAC_ADDRESS;
 	struct       ip_addr      ip, gateway, netmask;
-	IP4_ADDR(&ip,      192, 168, 0,   197);
-	IP4_ADDR(&gateway, 192, 168, 1,   1  );
-	IP4_ADDR(&netmask, 255, 255, 255, 0  );
+	ROLL_CTL_IP_ADDR(&ip);
+	ROLL_CTL_GATEWAY(&gateway);
+	ROLL_CTL_NETMASK(&netmask);
 
-	ip_opts.macaddress = macAddress;
+	ip_opts.macaddress = ROLL_CTL_macAddress;
 	ip_opts.address    = ip.addr;
 	ip_opts.netmask    = netmask.addr;
 	ip_opts.gateway    = gateway.addr;

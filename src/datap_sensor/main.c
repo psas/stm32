@@ -1,12 +1,12 @@
 /*! \file main.c
  *
- * UDP Datapath experiment
+ * UDP Datapath experiment - Sensor
  *
  * This implementation is specific to the Olimex stm32-e407 board.
  */
 
 /*!
- * \defgroup mainapp Application
+ * \defgroup mainapp Application Sensor
  * @{
  */
 
@@ -38,6 +38,7 @@
 #include "fc_net.h"
 
 #include "main.h"
+
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
