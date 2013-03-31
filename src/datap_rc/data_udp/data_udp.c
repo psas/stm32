@@ -1,8 +1,6 @@
 /*!
  * \file data_udp.c
- */
 
-/*
     ChibiOS/RT - Copyright (C) 2006,2007,2008,2009,2010,
                  2011,2012 Giovanni Di Sirio.
 
@@ -27,13 +25,14 @@
  * author is unknown because the file didn't contain any license information.
  */
 
-/*! \brief Sensor datapath node.
- * \defgroup dataudp Data Sensor UDP PSAS Experiment
+/*! \brief Control datapath node.
+ * \defgroup dataudp_ctl Data Control UDP PSAS Experiment
  * @{
  */
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "ch.h"
 #include "hal.h"
@@ -66,10 +65,10 @@ msg_t data_udp_send_thread(void *p) {
 	char*                  data;
 	char                   msg[DATA_UDP_MSG_SIZE] ;
 
-	ip_addr_t              ip_addr_sensor;
+	ip_addr_t              ip_addr_control;
 	ip_addr_t              ip_addr_fc;
 
-	IMU_A_IP_ADDR(&ip_addr_sensor);
+	ROLL_CTL_IP_ADDR(&ip_addr_control);
 	IP_PSAS_FC(&ip_addr_fc);
 
 	chRegSetThreadName("data_udp_send_thread");
@@ -78,7 +77,7 @@ msg_t data_udp_send_thread(void *p) {
 
 	/* Bind to the local address, or to ANY address */
 	//	netconn_bind(conn, NULL, DATA_UDP_TX_THREAD_PORT ); //local port, NULL is bind to ALL ADDRESSES! (IP_ADDR_ANY)
-	err    = netconn_bind(conn, &ip_addr_sensor, IMU_A_TX_PORT ); //local port
+	err    = netconn_bind(conn, &ip_addr_control, ROLL_CTL_TX_PORT); //local port
 
 	if (err == ERR_OK) {
 		/* Connect to specific address or a broadcast address */
@@ -88,12 +87,12 @@ msg_t data_udp_send_thread(void *p) {
 		 *
 		 */
 		//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
-		err = netconn_connect(conn, &ip_addr_fc, FC_LISTEN_PORT_SENSOR );
+		err = netconn_connect(conn, &ip_addr_fc, FC_LISTEN_PORT_ROLL_CTL );
 		if(err == ERR_OK) {
 			for( ;; ){
 				buf     =  netbuf_new();
 				data    =  netbuf_alloc(buf, sizeof(msg));
-				sprintf(msg, "sensor tx: %d", count++);
+				sprintf(msg, "control tx: %d", count++);
 				memcpy (data, msg, sizeof (msg));
 				palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 				netconn_send(conn, buf);
@@ -162,11 +161,11 @@ msg_t data_udp_receive_thread(void *p) {
 
 	struct netconn    *conn;
 
-	ip_addr_t         ip_addr_sensor;
+	ip_addr_t         ip_addr_control;
 
 	chRegSetThreadName("data_udp_receive_thread");
 
-	IMU_A_IP_ADDR(&ip_addr_sensor);
+	ROLL_CTL_IP_ADDR(&ip_addr_control);
 
 	/*
 	 *  Create a new UDP connection handle
@@ -177,7 +176,7 @@ msg_t data_udp_receive_thread(void *p) {
 	/*
 	 * Bind sensor address to a udp port
 	 */
-	err = netconn_bind(conn, &ip_addr_sensor, IMU_A_LISTEN_PORT);
+	err = netconn_bind(conn, &ip_addr_control, ROLL_CTL_LISTEN_PORT);
 
 	if (err == ERR_OK) {
 		while(1) {
