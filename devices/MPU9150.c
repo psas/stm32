@@ -18,80 +18,53 @@
 #include "usbdetail.h"
 #include "chprintf.h"
 
-#include "ADIS16405.h"
+#include "MPU9150.h"
 
-#if !defined(ADIS_DEBUG) || defined(__DOXYGEN__)
-#define 	ADIS_DEBUG                   0
+#if !defined(MPU9150_DEBUG) || defined(__DOXYGEN__)
+#define 	MPU9150_DEBUG                   0
 #endif
 
-ADIS_Driver        adis_driver;
 
-adis_cache         adis_cache_data;
-adis_burst_data    burst_data;
+mpu9150_cache            adis_cache_data;
+mpu9150_a_g_burst_data   a_g_burst_data;
+mpu9150_magn_burst_data  magn_burst_data;
 
-EventSource        adis_dio1_event;
-EventSource        adis_spi_cb_txdone_event;
-EventSource        adis_spi_cb_newdata;
-EventSource        adis_spi_cb_releasebus;
+EventSource              mpu9150_int_event;
 
-#if ADIS_DEBUG || defined(__DOXYGEN__)
-	/*! \brief Convert an ADIS 14 bit accel. value to micro-g
-	 *
-	 * @param decimal
-	 * @param accel reading
-	 * @return   TRUE if less than zero, FALSE if greater or equal to zero
-	 */
-	static bool adis_accel2ug(uint32_t* decimal, uint16_t* twos_num) {
-		uint16_t ones_comp;
-		bool     isnegative = false;
 
-		//! bit 13 is 14-bit two's complement sign bit
-		isnegative   = (((uint16_t)(1<<13) & *twos_num) != 0) ? true : false;
+#if MPU9150_DEBUG || defined(__DOXYGEN__)
 
-		if(isnegative) {
-			ones_comp    = ~(*twos_num & (uint16_t)0x3fff) & 0x3fff;
-			*decimal     = (ones_comp) + 1;
-		} else {
-			*decimal     = *twos_num;
-		}
-		*decimal     *= 3330;
-		return isnegative;
-	}
 #endif
 
 /*! \brief Create a read address
  *
  * @param s
- * @return  formatted read address for adis
+ * @return  formatted read address for mpu9150
  */
-static uint8_t adis_create_read_addr(adis_regaddr s) {
-	return (s & 0b01111111);
+static i2c_mpu_addr mpu_create_a_g_read_addr(mpu9150_a_g_regaddr s) {
+	return (s );
 }
 
 /*! \brief Create a write address
  *
  * @param s
- * @return  formatted write address for adis
+ * @return  formatted write address for mpu9150
  */
-//static adis_regaddr adis_create_write_addr(adis_regaddr s) {
-//    return (s | 0b10000000);
-//}
+static i2c_mpu_addr mpu_create_a_g_write_addr(mpu9150_a_g_regaddr s) {
+    return (s );
+}
 
-static void adis_read_id(SPIDriver *spip) {
-	if(adis_driver.state == ADIS_IDLE) {
-		adis_driver.spi_instance        = spip;
-		adis_driver.adis_txbuf[0]       = adis_create_read_addr(ADIS_PRODUCT_ID);
-		adis_driver.adis_txbuf[1]       = (adis_reg_data) 0x0;
-		adis_driver.adis_txbuf[2]       = (adis_reg_data) 0x0;
-		adis_driver.reg                 = ADIS_PRODUCT_ID;
-		adis_driver.rx_numbytes         = 2;
-		adis_driver.tx_numbytes         = 2;
-		adis_driver.debug_cb_count      = 0;
 
-		spiAcquireBus(spip);                /* Acquire ownership of the bus.    */
-		spiSelect(spip);                    /* Slave Select assertion.          */
-		spiStartSend(spip, adis_driver.tx_numbytes, adis_driver.adis_txbuf);
-		adis_driver.state             = ADIS_TX_PEND;
+start here next time
+static void mpu9150_a_g_read_id(SPIDriver *spip) {
+	txbuf[0] = ACCEL_CTRL_REG1; /* register address */
+	txbuf[1] = 0x1;
+	i2cAcquireBus(&I2CD2);
+	status = i2cMasterTransmitTimeout(&I2CD2, mma8451_addr, txbuf, 2, rxbuf, 0, tmo);
+	i2cReleaseBus(&I2CD2);
+
+	if (status != RDY_OK){
+		errors = i2cGetErrors(&I2CD2);
 	}
 }
 

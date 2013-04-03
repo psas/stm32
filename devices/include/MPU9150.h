@@ -28,7 +28,7 @@ extern "C" {
 
 typedef     uint8_t                           mpu_i2c_data;
 typedef     uint16_t                          mpu_reg_data;
-
+typedef     uint8_t                           i2c_mpu_addr;
 
 /*! \typedef mpu9150_magn_regaddr
  *
