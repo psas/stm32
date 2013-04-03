@@ -30,8 +30,6 @@ void extdetail_mpu9150_int(EXTDriver *extp, expchannel_t channel) ;
 }
 #endif
 
-
-
 //! @}
 
 

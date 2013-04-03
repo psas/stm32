@@ -11,6 +11,7 @@
 #include "hal.h"
 #include "chprintf.h"
 
+#include "MPU9150.h"
 #include "ADIS16405.h"
 #include "usbdetail.h"
 #include "extdetail.h"
@@ -119,7 +120,7 @@ void extdetail_mpu9150_int(EXTDriver *extp, expchannel_t channel) {
 	(void)channel;
 
 	chSysLockFromIsr();
-	chEvtBroadcastI(&mpu9150_event);
+	chEvtBroadcastI(&mpu9150_int_event);
 	chSysUnlockFromIsr();
 }
 //! @}
