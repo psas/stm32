@@ -31,6 +31,7 @@
 #include "extdetail.h"
 #include "cmddetail.h"
 
+#include "MPU9150.h"
 #include "ADIS16405.h"
 
 #include "main.h"
@@ -94,6 +95,27 @@ const adis_connect adis_connections = {
 		12          // dio4_pad
 };
 
+/*!
+ * Clock 400Mhz
+ */
+const I2CConfig mpu9150_config = {
+    OPMODE_I2C,
+    400000,
+    FAST_DUTY_CYCLE_2,
+};
+
+/*! \typedef mpu9150_config
+ *
+ * Configuration for the MPU IMU connections
+ */
+const mpu9150_connect mpu9150_connections = {
+	GPIOF,                // i2c sda port
+	0,                    // i2c_sda_pad
+	GPIOF,                // i2c_scl_port
+	1,                    // i2c scl pad
+	GPIOF,                // interrupt port
+	2,                    // interrupt pad;
+};
 
 static WORKING_AREA(waThread_blinker, 64);
 /*! \brief Green LED blinker thread
@@ -108,6 +130,7 @@ static msg_t Thread_blinker(void *arg) {
 	return -1;
 }
 
+#if 0
 static WORKING_AREA(waThread_adis_newdata, 256);
 /*! \brief ADIS Newdata Thread
  */
@@ -158,6 +181,7 @@ static msg_t Thread_adis_dio1(void *arg) {
 	}
 	return -1;
 }
+#endif
 
 static WORKING_AREA(waThread_indwatchdog, 64);
 /*! \brief  Watchdog thread
@@ -215,6 +239,22 @@ int main(void) {
 	palSetPad(GPIOA, GPIOA_SPI1_SCK);
 	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
+	/*
+	 * I2C2 I/O pins setup.
+	 */
+	palSetPadMode(mpu9150_connections.i2c_sda_port , mpu9150_connections.i2c_sda_pad,
+			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
+	palSetPadMode(mpu9150_connections.i2c_scl_port, mpu9150_connections.i2c_scl_pad,
+			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_PULLUP);
+
+	/*
+	 * MPU9150 Interrupt pin setup
+	 */
+	palSetPadMode(mpu9150_connections.int_port, mpu9150_connections.int_pad,
+			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_PULLUP | PAL_STM32_MODE_INPUT);
+
+	palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
+
 	/*!
 	 * Initializes a serial-over-USB CDC driver.
 	 */
@@ -244,16 +284,16 @@ int main(void) {
 	spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
 	chThdSleepMilliseconds(300);
-
-	adis_init();
-	adis_reset();
+//
+//	adis_init();
+//	adis_reset();
 
 	/*! Activates the EXT driver 1. */
 	extStart(&EXTD1, &extcfg);
 
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
-	chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
-	chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
+	//chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
+	//chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
