@@ -130,6 +130,41 @@ static msg_t Thread_blinker(void *arg) {
 	return -1;
 }
 
+static WORKING_AREA(waThread_mpu9150_int, 128);
+static msg_t Thread_mpu9150_int(void* arg) {
+	(void) arg;
+	static const evhandler_t evhndl_mpu9150[]       = {
+			mpu9150_int_event_handler
+	};
+	struct EventListener     evl_mpu9150;
+
+	chRegSetThreadName("mpu9150_int");
+
+	chEvtRegister(&mpu9150_int_event,           &evl_mpu9150,         0);
+
+	while (TRUE) {
+		chEvtDispatch(evhndl_mpu9150, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), MS2ST(50)));
+	}
+	return -1;
+}
+
+static WORKING_AREA(waThread_mpu9150, 256);
+/*! \brief MPU9150 thread
+ */
+static msg_t Thread_mpu9150(void *arg) {
+	(void)arg;
+	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+
+	chRegSetThreadName("mpu9150");
+	while(TRUE) {
+		chThdSleepMilliseconds(750);
+		mpu9150_a_g_read_id(mpu9150_driver.i2c_instance);
+		chprintf(chp, "\r\nmpu9150 id: %d\r\n", mpu9150_driver.rxbuf[0]);
+	}
+	return -1;
+}
+
+
 #if 0
 static WORKING_AREA(waThread_adis_newdata, 256);
 /*! \brief ADIS Newdata Thread
@@ -284,9 +319,9 @@ int main(void) {
 	spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
 	chThdSleepMilliseconds(300);
-//
-//	adis_init();
-//	adis_reset();
+
+	mpu9150_init(&I2CD2);
+	i2cStart(mpu9150_driver.i2c_instance, &mpu9150_config);
 
 	/*! Activates the EXT driver 1. */
 	extStart(&EXTD1, &extcfg);
@@ -295,6 +330,8 @@ int main(void) {
 	//chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
 	//chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
+	chThdCreateStatic(waThread_mpu9150_int,  sizeof(waThread_mpu9150_int),  NORMALPRIO, Thread_mpu9150_int,  NULL);
+	chThdCreateStatic(waThread_mpu9150,      sizeof(waThread_mpu9150),      NORMALPRIO, Thread_mpu9150,      NULL);
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
