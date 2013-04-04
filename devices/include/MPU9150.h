@@ -23,12 +23,14 @@ extern "C" {
 #include "ch.h"
 #include "hal.h"
 
-#define     MPU_RESET_MSECS                  500
-#define     MPU_MAX_DATABUF                  20
+#define     MPU_RESET_MSECS                       500
+#define     MPU9150_MAX_TX_BUFFER                 50
+#define     MPU9150_MAX_RX_BUFFER                 50
 
-typedef     uint8_t                           mpu_i2c_data;
-typedef     uint16_t                          mpu_reg_data;
-typedef     uint8_t                           i2c_mpu_addr;
+typedef     uint8_t                               mpu9150_i2c_data;
+typedef     uint16_t                              mpu9150_reg_data;
+typedef     uint8_t                               mpu9150_reg_addr;
+
 
 /*! \typedef mpu9150_magn_regaddr
  *
@@ -164,7 +166,7 @@ typedef enum {
  *
  */
 typedef struct {
-	mpu_reg_data      mpu_who_ami;
+	mpu9150_reg_data      mpu_who_ami;
 } mpu9150_a_g_burst_data;
 
 
@@ -173,7 +175,7 @@ typedef struct {
  *
  */
 typedef struct {
-	mpu_reg_data      mpu_magn_who_ami;
+	mpu9150_reg_data      mpu_magn_who_ami;
 } mpu9150_magn_burst_data;
 
 
@@ -186,9 +188,22 @@ typedef struct {
 	uint8_t               current_tx_numbytes;
 	mpu9150_a_g_regaddr   a_g_reg;
 	mpu9150_magn_regaddr  magn_reg;
-	mpu_reg_data          mpu_tx_cache[MPU_MAX_DATABUF];
-	mpu_reg_data          mpu_rx_cache[MPU_MAX_DATABUF];
+	mpu9150_reg_data          tx_cache[MPU9150_MAX_TX_BUFFER];
+	mpu9150_reg_data          rx_cache[MPU9150_MAX_RX_BUFFER];
 } mpu9150_cache;
+
+
+/*! \typedef Structure for keeping track of an MPU9150 transaction
+ *
+ *
+ */
+typedef struct mpu9150_driver {
+	i2cflags_t         i2c_errors;
+	I2CDriver*         i2c_instance;                 /*! which stm32f407 I2C instance to use (there are 3)       */
+	mpu9150_i2c_data   txbuf[MPU9150_MAX_TX_BUFFER]; /*! Transmit buffer                                         */
+	mpu9150_i2c_data   rxbuf[MPU9150_MAX_RX_BUFFER]; /*! Receive buffer                                          */
+} MPU9150_Driver;
+
 
 /*! \typedef mpu9150_config
  *
@@ -209,17 +224,19 @@ typedef struct {
 	uint16_t                 int_pad;
 } mpu9150_connect;
 
-extern const I2CConfig          mpu9150_config;
-extern const mpu9150_connect    mpu9150_connections ;
-extern       mpu9150_cache      mpu9150_cache_data;
+extern const I2CConfig                 mpu9150_config;
+extern const mpu9150_connect           mpu9150_connections ;
+extern       mpu9150_cache             mpu9150_cache_data;
 
-extern       EventSource        mpu9150_int_event;
+extern       EventSource               mpu9150_int_event;
 
-extern       mpu9150_a_g_burst_data    burst_a_g_data;
-extern       mpu9150_magn_burst_data   burst_magn_data;
+extern       mpu9150_a_g_burst_data    mpu9150_burst_a_g_data;
+extern       mpu9150_magn_burst_data   mpu9150_burst_magn_data;
+extern       MPU9150_Driver            mpu9150_driver;
 
-void         mpu_init(void);
-void         mpu_reset(void);
+void         mpu9150_int_event_handler(eventid_t id) ;
+void         mpu9150_init(I2CDriver* i2c) ;
+void         mpu9150_a_g_read_id(I2CDriver* i2cptr) ;
 
 /*!
  * @}

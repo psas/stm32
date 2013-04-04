@@ -24,260 +24,66 @@
 #define 	MPU9150_DEBUG                   0
 #endif
 
+mpu9150_cache            mpu9150_cache_data;
+mpu9150_a_g_burst_data   mpu9150_burst_a_g_data;
+mpu9150_magn_burst_data  mpu9150_burst_magn_data;
 
-mpu9150_cache            adis_cache_data;
-mpu9150_a_g_burst_data   a_g_burst_data;
-mpu9150_magn_burst_data  magn_burst_data;
-
+MPU9150_Driver           mpu9150_driver;
 EventSource              mpu9150_int_event;
+
+const       systime_t    mpu9150_i2c_timeout        = MS2ST(4);
+const       uint8_t      mpu9150_i2c_a_g_addr       = 0x68; // See page 8 , MPU9150 Register Map and Descriptions r4.0
+const       uint8_t      mpu9150_i2c_magn_addr      = 0x0C; // See page 28, MPU9150 Product Specification r4.0
 
 
 #if MPU9150_DEBUG || defined(__DOXYGEN__)
 
 #endif
 
-/*! \brief Create a read address
+/*! mpu9150 interrupt event
  *
- * @param s
- * @return  formatted read address for mpu9150
+ * @param id
  */
-static i2c_mpu_addr mpu_create_a_g_read_addr(mpu9150_a_g_regaddr s) {
-	return (s );
+void mpu9150_int_event_handler(eventid_t id) {
+	(void) id;
+
 }
 
-/*! \brief Create a write address
- *
- * @param s
- * @return  formatted write address for mpu9150
- */
-static i2c_mpu_addr mpu_create_a_g_write_addr(mpu9150_a_g_regaddr s) {
-    return (s );
-}
-
-
-start here next time
-static void mpu9150_a_g_read_id(SPIDriver *spip) {
-	txbuf[0] = ACCEL_CTRL_REG1; /* register address */
-	txbuf[1] = 0x1;
-	i2cAcquireBus(&I2CD2);
-	status = i2cMasterTransmitTimeout(&I2CD2, mma8451_addr, txbuf, 2, rxbuf, 0, tmo);
-	i2cReleaseBus(&I2CD2);
-
-	if (status != RDY_OK){
-		errors = i2cGetErrors(&I2CD2);
-	}
-}
-
-static void adis_burst_read(SPIDriver *spip) {
-	if(adis_driver.state == ADIS_IDLE) {
-		adis_driver.spi_instance        = spip;
-		adis_driver.adis_txbuf[0]       = adis_create_read_addr(ADIS_GLOB_CMD);
-		adis_driver.adis_txbuf[1]       = (adis_reg_data) 0x0;
-		adis_driver.reg                 = ADIS_GLOB_CMD;
-		adis_driver.rx_numbytes         = (ADIS_NUM_BURSTREAD_REGS *2);
-		adis_driver.tx_numbytes         = 2;
-		adis_driver.debug_cb_count      = 0;
-
-		spiAcquireBus(spip);                /* Acquire ownership of the bus.    */
-		spiSelect(spip);                    /* Slave Select assertion.          */
-		spiStartSend(spip, adis_driver.tx_numbytes, adis_driver.adis_txbuf);
-		adis_driver.state             = ADIS_TX_PEND;
-	}
-}
-/*! \brief Reset the ADIS
- */
-void adis_reset() {
-	palClearPad(adis_connections.reset_port, adis_connections.reset_pad);
-	chThdSleepMilliseconds(ADIS_RESET_MSECS);
-	palSetPad(adis_connections.reset_port, adis_connections.reset_pad);
-	chThdSleepMilliseconds(ADIS_RESET_MSECS);
-}
-
-/*! \brief Initialize ADIS driver
+/*! \brief Initialize MPU9150 driver
  *
  */
-void adis_init() {
+void mpu9150_init(I2CDriver* i2c) {
 	uint8_t     i              = 0;
 
-	//chMtxInit(&adis_driver.adis_mtx);
-	//chCondInit(&adis_driver.adis_cv1);
-
-	adis_driver.spi_instance    = &SPID1;
-	adis_driver.state           = ADIS_IDLE;
-	adis_driver.reg             = ADIS_PRODUCT_ID;
-	adis_driver.debug_cb_count  = 0;
-	adis_driver.debug_spi_count = 0;
-
-	for(i=0; i<ADIS_MAX_TX_BUFFER; ++i) {
-		adis_driver.adis_txbuf[i]        = 0;
-		adis_cache_data.adis_tx_cache[i] = 0;
+	mpu9150_driver.i2c_errors   = 0;
+	mpu9150_driver.i2c_instance = i2c;
+	for(i=0; i<MPU9150_MAX_TX_BUFFER; ++i) {
+		mpu9150_driver.txbuf[i]        = 0;
+		mpu9150_cache_data.tx_cache[i] = 0;
 	}
-	for(i=0; i<ADIS_MAX_RX_BUFFER; ++i) {
-		adis_driver.adis_rxbuf[i]        = 0xa5;
-		adis_cache_data.adis_rx_cache[i] = 0xa5;
+	for(i=0; i<MPU9150_MAX_RX_BUFFER; ++i) {
+		mpu9150_driver.rxbuf[i]        = 0xa5;
+		mpu9150_cache_data.rx_cache[i] = 0xa5;
 	}
-	chEvtInit(&adis_dio1_event);
-	chEvtInit(&adis_spi_cb_txdone_event);
-	chEvtInit(&adis_spi_cb_newdata);
-	chEvtInit(&adis_spi_cb_releasebus);
+	chEvtInit(&mpu9150_int_event);
 }
 
-/*!
- * t_stall is 9uS according to ADIS datasheet.
- */
-void adis_tstall_delay() {
-	volatile uint32_t i, j;
-
-	/*!
-	 *  This is the ADIS T_stall time.
-	 *  Counting to 100 takes about 11uS.
-	 *  Measured on oscilloscope.
-	 *
-	 *  \todo Use a HW (not virtual) timer/counter unit to generate T_stall delays
-	 */
-	j = 0;
-	for(i=0; i<100; ++i) {
-		j++;
-	}
-}
-
-/*!
- *
- * @param spip
- */
-void adis_release_bus(eventid_t id) {
-	(void) id;
-	spiReleaseBus(adis_driver.spi_instance);
-}
-
-/*! \brief adis_spi_cb
- *
- * What happens at end of ADIS SPI transaction
- *
- * This is executed during the SPI interrupt.
- *
- * @param spip
- */
-void adis_spi_cb(SPIDriver *spip) {
-	chSysLockFromIsr();
-
-	uint8_t       i                              = 0;
-
-	chDbgCheck(adis_driver.spi_instance == spip, "adis_spi_cb driver mismatch");
-	if(adis_driver.state == ADIS_TX_PEND) {
-		chEvtBroadcastI(&adis_spi_cb_txdone_event);
-	} else {
-		for(i=0; i<adis_driver.tx_numbytes; ++i) {
-			adis_cache_data.adis_tx_cache[i] = adis_driver.adis_txbuf[i];
-		}
-		for(i=0; i<adis_driver.rx_numbytes; ++i) {
-			adis_cache_data.adis_rx_cache[i] = adis_driver.adis_rxbuf[i];
-		}
-		adis_cache_data.reg                  = adis_driver.reg;
-		adis_cache_data.current_rx_numbytes  = adis_driver.rx_numbytes;
-		adis_cache_data.current_tx_numbytes  = adis_driver.tx_numbytes;
-		chEvtBroadcastI(&adis_spi_cb_newdata);
-		chEvtBroadcastI(&adis_spi_cb_releasebus);
-	}
-	chSysUnlockFromIsr();
-}
-
-/*! \brief Process an adis_newdata_event
- */
-void adis_newdata_handler(eventid_t id) {
-	(void)                id;
-
-	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
-
-	if(adis_driver.reg == ADIS_GLOB_CMD) {
-		burst_data.adis_supply_out   = (((adis_cache_data.adis_rx_cache[0]  << 8) | adis_cache_data.adis_rx_cache[1] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_xgyro_out    = (((adis_cache_data.adis_rx_cache[2]  << 8) | adis_cache_data.adis_rx_cache[3] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_ygyro_out    = (((adis_cache_data.adis_rx_cache[4]  << 8) | adis_cache_data.adis_rx_cache[5] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_zgyro_out    = (((adis_cache_data.adis_rx_cache[6]  << 8) | adis_cache_data.adis_rx_cache[7] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_xaccl_out    = (((adis_cache_data.adis_rx_cache[8]  << 8) | adis_cache_data.adis_rx_cache[9] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_yaccl_out    = (((adis_cache_data.adis_rx_cache[10] << 8) | adis_cache_data.adis_rx_cache[11]) & ADIS_14_BIT_MASK );
-		burst_data.adis_zaccl_out    = (((adis_cache_data.adis_rx_cache[12] << 8) | adis_cache_data.adis_rx_cache[13]) & ADIS_14_BIT_MASK );
-		burst_data.adis_xmagn_out    = (((adis_cache_data.adis_rx_cache[14] << 8) | adis_cache_data.adis_rx_cache[15]) & ADIS_14_BIT_MASK );
-		burst_data.adis_ymagn_out    = (((adis_cache_data.adis_rx_cache[16] << 8) | adis_cache_data.adis_rx_cache[17]) & ADIS_14_BIT_MASK );
-		burst_data.adis_zmagn_out    = (((adis_cache_data.adis_rx_cache[18] << 8) | adis_cache_data.adis_rx_cache[19]) & ADIS_14_BIT_MASK );
-		burst_data.adis_temp_out     = (((adis_cache_data.adis_rx_cache[20] << 8) | adis_cache_data.adis_rx_cache[21]) & ADIS_12_BIT_MASK );
-		burst_data.adis_aux_adc      = (((adis_cache_data.adis_rx_cache[22] << 8) | adis_cache_data.adis_rx_cache[23]) & ADIS_12_BIT_MASK );
-	}
-
-	/*! \todo Package for UDP transmission to fc here */
-
-#if ADIS_DEBUG
-	bool                  negative = false;
-	uint32_t              result_ug = 0;
-	static uint32_t       j        = 0;
-	static uint32_t       xcount   = 0;
-
-	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU1;
-
-	++j;
-	if(j>4000) {
-    	if(adis_driver.reg == ADIS_GLOB_CMD) {
-    		// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
-    		//negative = twos2dec(&burst_data.adis_xaccl_out);
-
-    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_zaccl_out);
-    		chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
-    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_xaccl_out);
-    		chprintf(chp, "%d: x: 0x%x  %s%d ug\r\n", xcount, burst_data.adis_xaccl_out, (negative) ? "-" : "", result_ug);
-    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_yaccl_out);
-    		chprintf(chp, "%d: y: 0x%x  %s%d ug\r\n\r\n", xcount, burst_data.adis_yaccl_out, (negative) ? "-" : "", result_ug);
-
-    	} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
-    		chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );
-    	}
-
-		//		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
-//		    chprintf(chp, "%x ", adis_cache_data.adis_rx_cache[i]);
-//		}
-//		chprintf(chp,"\r\n");
-		j=0;
-		++xcount;
-	}
-#endif
-
-	adis_driver.state             = ADIS_IDLE;   /* don't go to idle until data processed */
-}
-
-void adis_read_id_handler(eventid_t id) {
-	(void) id;
-	adis_read_id(&SPID1);
-}
-
-void adis_burst_read_handler(eventid_t id) {
-	(void) id;
-	adis_burst_read(&SPID1);
-}
-
-/*! \brief Process information from a adis_spi_cb event
+/*! \read the id
  *
  */
-void adis_spi_cb_txdone_handler(eventid_t id) {
-	(void) id;
-	switch(adis_driver.reg) {
-		case ADIS_PRODUCT_ID:
-			spiUnselect(adis_driver.spi_instance);
-			spiReleaseBus(adis_driver.spi_instance);
-			adis_tstall_delay();
-			spiAcquireBus(adis_driver.spi_instance);
-			spiSelect(adis_driver.spi_instance);
-			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
-			adis_driver.state             = ADIS_RX_PEND;
-			break;
-		case ADIS_GLOB_CMD:
-			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
-			adis_driver.state             = ADIS_RX_PEND;
-			break;
-		default:
-			spiUnselect(adis_driver.spi_instance);
-			spiReleaseBus(adis_driver.spi_instance);
-			adis_driver.state             = ADIS_IDLE;
-			break;
+void mpu9150_a_g_read_id(I2CDriver* i2cptr) {
+	msg_t status = RDY_OK;
+
+	mpu9150_driver.txbuf[0] = A_G_WHO_AM_I;
+	i2cAcquireBus(i2cptr);
+	status = i2cMasterTransmitTimeout(i2cptr, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 1, mpu9150_driver.rxbuf, 1, mpu9150_i2c_timeout);
+	i2cReleaseBus(i2cptr);
+
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
 	}
 }
+
+
 
 //! @}
