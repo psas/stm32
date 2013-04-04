@@ -157,9 +157,9 @@ static msg_t Thread_mpu9150(void *arg) {
 
 	chRegSetThreadName("mpu9150");
 	while(TRUE) {
-		chThdSleepMilliseconds(750);
+		chThdSleepMilliseconds(1000);
 		mpu9150_a_g_read_id(mpu9150_driver.i2c_instance);
-		chprintf(chp, "\r\nmpu9150 id: %d\r\n", mpu9150_driver.rxbuf[0]);
+		chprintf(chp, "\r\nmpu9150 id: 0x%x\ti2c error: %d\r\n", mpu9150_driver.rxbuf[0], mpu9150_driver.i2c_errors);
 	}
 	return -1;
 }
