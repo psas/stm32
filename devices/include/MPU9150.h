@@ -23,6 +23,8 @@ extern "C" {
 #include "ch.h"
 #include "hal.h"
 
+#define     DEBUG_MPU9150                         1
+
 #define     MPU_RESET_MSECS                       500
 #define     MPU9150_MAX_TX_BUFFER                 50
 #define     MPU9150_MAX_RX_BUFFER                 50
@@ -30,6 +32,19 @@ extern "C" {
 typedef     uint8_t                               mpu9150_i2c_data;
 typedef     uint16_t                              mpu9150_reg_data;
 typedef     uint8_t                               mpu9150_reg_addr;
+
+#if DEBUG_MPU9150
+
+/* see hal/include/i2c.h */
+typedef struct i2c_error_info {
+    const char* err_string;
+    int         error_number;
+} i2c_error_info;
+
+const char* i2c_errno_str(int32_t err) ;
+
+#endif
+
 
 
 /*! \typedef mpu9150_magn_regaddr
