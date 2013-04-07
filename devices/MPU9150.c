@@ -31,9 +31,9 @@ mpu9150_magn_burst_data  mpu9150_burst_magn_data;
 MPU9150_Driver           mpu9150_driver;
 EventSource              mpu9150_int_event;
 
-const       systime_t    mpu9150_i2c_timeout        = MS2ST(4);
-const       uint8_t      mpu9150_i2c_a_g_addr       = 0x68; // See page 8 , MPU9150 Register Map and Descriptions r4.0
-const       uint8_t      mpu9150_i2c_magn_addr      = 0x0C; // See page 28, MPU9150 Product Specification r4.0
+const       systime_t    mpu9150_i2c_timeout        = MS2ST(400);
+const       uint8_t      mpu9150_i2c_a_g_addr       = 0x68;    // See page 8 , MPU9150 Register Map and Descriptions r4.0
+const       uint8_t      mpu9150_i2c_magn_addr      = 0x0C;    // See page 28, MPU9150 Product Specification r4.0
 
 #if DEBUG_MPU9150 || defined(__DOXYGEN__)
 static i2c_error_info i2c_debug_errors[] = {
