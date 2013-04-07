@@ -100,8 +100,9 @@ const adis_connect adis_connections = {
  */
 const I2CConfig mpu9150_config = {
     OPMODE_I2C,
-    400000,
-    FAST_DUTY_CYCLE_2,
+    100000,
+    // FAST_DUTY_CYCLE_2,
+    STD_DUTY_CYCLE,
 };
 
 /*! \typedef mpu9150_config
@@ -281,9 +282,9 @@ int main(void) {
 	 * I2C2 I/O pins setup.
 	 */
 	palSetPadMode(mpu9150_connections.i2c_sda_port , mpu9150_connections.i2c_sda_pad,
-			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_PULLUP);
+			PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST |PAL_STM32_PUDR_FLOATING );
 	palSetPadMode(mpu9150_connections.i2c_scl_port, mpu9150_connections.i2c_scl_pad,
-			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_PULLUP);
+			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
 
 	/*
 	 * MPU9150 Interrupt pin setup
