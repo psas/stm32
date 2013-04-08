@@ -106,6 +106,35 @@ void mpu9150_a_g_read_id(I2CDriver* i2cptr) {
 	}
 }
 
+void mpu9150_setup(I2CDriver* i2cptr) {
+	msg_t status = RDY_OK;
 
+	/*! configure the interrupt and bypass */
+	mpu9150_driver.txbuf[0] = A_G_INT_PIN_CFG;
+	mpu9150_driver.txbuf[1] = MPU9150_I2C_BYPASS | MPU9150_INT_LEVEL;
+	i2cAcquireBus(i2cptr);
+	status = i2cMasterTransmitTimeout(i2cptr, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 2, mpu9150_driver.rxbuf, 0, mpu9150_i2c_timeout);
+	i2cReleaseBus(i2cptr);
+
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+}
+
+/*! \read the id
+ *
+ */
+void mpu9150_magn_read_id(I2CDriver* i2cptr) {
+	msg_t status = RDY_OK;
+
+	mpu9150_driver.txbuf[0] = MAGN_DEVICE_ID;
+	i2cAcquireBus(i2cptr);
+	status = i2cMasterTransmitTimeout(i2cptr, mpu9150_i2c_magn_addr, mpu9150_driver.txbuf, 1, mpu9150_driver.rxbuf, 1, mpu9150_i2c_timeout);
+	i2cReleaseBus(i2cptr);
+
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+}
 
 //! @}

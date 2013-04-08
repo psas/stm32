@@ -25,9 +25,18 @@ extern "C" {
 
 #define     DEBUG_MPU9150                         1
 
-#define     MPU_RESET_MSECS                       500
 #define     MPU9150_MAX_TX_BUFFER                 50
 #define     MPU9150_MAX_RX_BUFFER                 50
+
+/*! register 55 INT pin/Bypass */
+#define     MPU9150_CLKOUT_EN                     ((uint8_t)(1<<0))
+#define     MPU9150_I2C_BYPASS                    ((uint8_t)(1<<1))
+#define     MPU9150_FSCYNC_INT_EN                 ((uint8_t)(1<<2))
+#define     MPU9150_FSCYNC_INT_LEVEL              ((uint8_t)(1<<3))
+#define     MPU9150_INT_RD_CLEAR                  ((uint8_t)(1<<4))
+#define     MPU9150_LATCH_INT_EN                  ((uint8_t)(1<<5))
+#define     MPU9150_INT_OPEN                      ((uint8_t)(1<<6))
+#define     MPU9150_INT_LEVEL                     ((uint8_t)(1<<7))
 
 typedef     uint8_t                               mpu9150_i2c_data;
 typedef     uint16_t                              mpu9150_reg_data;
@@ -46,12 +55,11 @@ const char* i2c_errno_str(int32_t err) ;
 #endif
 
 
-
 /*! \typedef mpu9150_magn_regaddr
  *
  * MPU Magnetometer addresses
  *
- * Note the address of the Magnetometer is 0x0c and is accessed through the auxiliary i2c bus
+ * Note the i2c address of the Magnetometer is 0x0c and is accessed through the auxiliary i2c bus
  * when the mpu9150 is in 'pass-through' mode. See block diagram.
  */
 typedef enum {
@@ -78,7 +86,7 @@ typedef enum {
 
 /*! \typedef mpu9150_a_g_regaddr
  *
- * whoami register is i2c slave address: 0x68
+ * i2c slave address: 0x68   (see also who_am_i register)
  *
  * MPU Accelerometer and Gyroscope Register addresses
  */
@@ -251,7 +259,11 @@ extern       MPU9150_Driver            mpu9150_driver;
 
 void         mpu9150_int_event_handler(eventid_t id) ;
 void         mpu9150_init(I2CDriver* i2c) ;
+void         mpu9150_setup(I2CDriver* i2cptr) ;
+
+
 void         mpu9150_a_g_read_id(I2CDriver* i2cptr) ;
+void         mpu9150_magn_read_id(I2CDriver* i2cptr);
 
 /*!
  * @}
