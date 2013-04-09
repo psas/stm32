@@ -66,7 +66,7 @@ uint32_t microsecondsToPWMTicks(const uint32_t microseconds);
 uint32_t pwmGetPclk(void);
 
 static const GPTConfig gpt1cfg = {
-	100000,
+	1000000,
 	motordrive
 };
 
@@ -78,8 +78,8 @@ static const ADCConversionGroup adcgrp1cfg5 = {
 	/* HW dependent part.*/
 	0,
 	ADC_CR2_SWSTART,
-	ADC_SMPR2_SMP_AN5(ADC_SAMPLE_56),
 	0,
+	ADC_SMPR2_SMP_AN5(ADC_SAMPLE_56),
 	ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
 	0,
 	ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5)
@@ -93,8 +93,8 @@ static const ADCConversionGroup adcgrp1cfg4 = {
 	/* HW dependent part.*/
 	0,
 	ADC_CR2_SWSTART,
-	ADC_SMPR2_SMP_AN4(ADC_SAMPLE_56),
 	0,
+	ADC_SMPR2_SMP_AN4(ADC_SAMPLE_56),
 	ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
 	0,
 	ADC_SQR3_SQ1_N(ADC_CHANNEL_IN4)
@@ -108,8 +108,8 @@ static const ADCConversionGroup adcgrp2cfg = {
 	/* HW dependent part.*/
 	0,
 	ADC_CR2_SWSTART,
-	ADC_SMPR2_SMP_AN4(ADC_SAMPLE_56) | ADC_SMPR2_SMP_AN5(ADC_SAMPLE_56),
 	0,
+	ADC_SMPR2_SMP_AN4(ADC_SAMPLE_112) | ADC_SMPR2_SMP_AN5(ADC_SAMPLE_112),
 	ADC_SQR1_NUM_CH(ADC_GRP2_NUM_CHANNELS),
 	0,
 	ADC_SQR3_SQ2_N(ADC_CHANNEL_IN4) | ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5)
@@ -223,6 +223,16 @@ static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
 	chprintf(chp, "heap free total  : %u bytes\r\n", size);
 }
 
+/******************************************************************************
+ * Function name:	cmd_data
+ *
+ * Description:		Displays control data
+ *
+ * Arguments:		NULL: Displays data for both axes
+ * 					l: Displays data for lateral axis
+ * 					v: Displays data for vertical axis
+ *
+ *****************************************************************************/
 static void cmd_data(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 	(void)argv; (void)argc;
@@ -255,6 +265,13 @@ static void cmd_data(BaseSequentialStream *chp, int argc, char *argv[]) {
 	DisplayData(chp, &vertAxisStruct);
 	}
 }
+
+/******************************************************************************
+ * Function name:	DisplayData
+ *
+ * Description:		Displays axis data
+ *
+ *****************************************************************************/
 void DisplayData(BaseSequentialStream *chp, CONTROL_AXIS_STRUCT *axis_p) {
 
 	chprintf(chp, " PositionActual : %d counts ", axis_p->S16PositionActual);
@@ -266,10 +283,16 @@ void DisplayData(BaseSequentialStream *chp, CONTROL_AXIS_STRUCT *axis_p) {
 	chprintf(chp, "    Interlocked : %d\r\n", axis_p->U8DriveIsInterlocked);
 	chprintf(chp, "    Pos Neutral : %d\r\n", axis_p->U8PositionNeutral);
 	chprintf(chp, "    Vel Neutral : %d\r\n\n", axis_p->U8VelocityNeutral);
-
-
 }
 
+/******************************************************************************
+ * Function name:	cmd_stop
+ *
+ * Description:		Disables axes
+ *
+ * Arguments:		NULL: Disables all axes
+ *
+ *****************************************************************************/
 static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 	(void)argv;
@@ -280,6 +303,14 @@ static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[]) {
 	chprintf(chp, "System Disabled. Type 'enable' to resume. \r\n");
 }
 
+/******************************************************************************
+ * Function name:	cmd_enable
+ *
+ * Description:		Enables axes
+ *
+ * Arguments:		NULL: Enables all axes
+ *
+ *****************************************************************************/
 static void cmd_enable(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 	(void)argv;
@@ -291,6 +322,102 @@ static void cmd_enable(BaseSequentialStream *chp, int argc, char *argv[]) {
 	chprintf(chp, "System Enabled.\r\n");
 }
 
+/******************************************************************************
+ * Function name:	cmd_freeze
+ *
+ * Description:		Switches to position mode and holds axes in current
+ * 					commanded position
+ *
+ * Arguments:		NULL: Freezes all axes
+ * 					l: Freezes lateral axis
+ * 					v: Freezes vertical axis
+ *
+ *****************************************************************************/
+static void cmd_freeze(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+//CONTROL_AXIS_STRUCT *axis_p = NULL;
+
+	(void)argv;
+	if (argc > 1) {
+		chprintf(chp, "Usage: Freeze\r\n");
+		return;
+	}
+	if (*argv[0] == 'V' || *argv[0] == 'v') {
+		U8ShellMode = 3;
+		vertAxisStruct.U8FreezeAxis = 1;
+		chprintf(chp, "Vertical Axis ");
+	}
+	else if(*argv[0] == 'L' || *argv[0] == 'l') {
+		U8ShellMode = 3;
+		latAxisStruct.U8FreezeAxis = 1;
+		chprintf(chp, "Lateral Axis ");
+	}
+	else {
+		U8ShellMode = 3;
+		latAxisStruct.U8FreezeAxis = 1;
+		vertAxisStruct.U8FreezeAxis = 1;
+		chprintf(chp, "Both Axes ");
+	}
+	chprintf(chp, "Frozen.\r\n");
+}
+
+/******************************************************************************
+ * Function name:	cmd_unfreeze
+ *
+ * Description:		Switches to position mode and holds axes in current
+ * 					commanded position
+ *
+ * Arguments:		NULL: Unfreezes all axes
+ * 					l: Unfreezes lateral axis
+ * 					v: Unfreezes vertical axis
+ *
+ *****************************************************************************/
+static void cmd_unfreeze(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+//CONTROL_AXIS_STRUCT *axis_p = NULL;
+
+	(void)argv;
+	if (argc > 1) {
+		chprintf(chp, "Usage: Unfreeze\r\n");
+		return;
+	}
+	if (*argv[0] == 'V' || *argv[0] == 'v') {
+		U8ShellMode = 1;
+		vertAxisStruct.U8FreezeAxis = 0;
+		chprintf(chp, "Vertical Axis ");
+	}
+	else if(*argv[0] == 'L' || *argv[0] == 'l') {
+		U8ShellMode = 2;
+		latAxisStruct.U8FreezeAxis = 0;
+		chprintf(chp, "Lateral Axis ");
+	}
+	else {
+		U8ShellMode = 2;
+		latAxisStruct.U8FreezeAxis = 0;
+		vertAxisStruct.U8FreezeAxis = 0;
+		chprintf(chp, "Both Axes ");
+	}
+	chprintf(chp, "Unfrozen.\r\n");
+
+	if(U8PosnVelModeSwitch > 0) {
+		chprintf(chp, "Mode : Position\r\n");
+	}
+	else {
+		chprintf(chp, "Mode : Velocity\r\n");
+	}
+}
+
+/******************************************************************************
+ * Function name:	cmd_mode
+ *
+ * Description:		Selects/displays mode or reverts to mode switch state
+ *
+ * Arguments:		NULL: Displays current mode
+ * 					0: Shell Override Mode: Velocity
+ * 					1: Shell Override Mode: Position
+ * 					2: Mode switch
+ *
+ *****************************************************************************/
 static void cmd_mode(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 	(void)argv;
@@ -304,7 +431,7 @@ static void cmd_mode(BaseSequentialStream *chp, int argc, char *argv[]) {
 	}
 	if(U8ShellMode != 2) {
 		chprintf(chp, "\tShell Override ");
-		if(U8ShellMode == 1) {
+		if(U8ShellMode > 0) {
 			chprintf(chp, "Mode : Position\r\n");
 		}
 		else {
@@ -312,7 +439,7 @@ static void cmd_mode(BaseSequentialStream *chp, int argc, char *argv[]) {
 		}
 	}
 	else {
-		if(U8PosnVelModeSwitch == 1) {
+		if(U8PosnVelModeSwitch > 0) {
 			chprintf(chp, "Mode : Position\r\n");
 		}
 		else {
@@ -321,6 +448,28 @@ static void cmd_mode(BaseSequentialStream *chp, int argc, char *argv[]) {
 	}
 }
 
+/******************************************************************************
+ * Function name:	cmd_stop
+ *
+ * Description:		Displays/modifies PID feedback coefficients
+ *
+ * Arguments:		l p: Displays lateral proportional coefficient
+ * 					l i: Displays lateral integral coefficient
+ * 					l d: Displays lateral derivative coefficient
+ *
+ * 					v p: Displays vertical proportional coefficient
+ * 					v i: Displays vertical integral coefficient
+ * 					v d: Displays vertical derivative coefficient
+ *
+ * 					l p #: Sets lateral proportional coefficient to #
+ * 					l i #: Sets lateral integral coefficient to #
+ * 					l d #: Sets lateral derivative coefficient to #
+ *
+ * 					v p #: Sets vertical proportional coefficient to #
+ * 					v i #: Sets vertical integral coefficient to #
+ * 					v d #: Sets vertical derivative coefficient to #
+ *
+ *****************************************************************************/
 static void cmd_gain(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 CONTROL_AXIS_STRUCT *axis_p = NULL;
@@ -354,6 +503,11 @@ CONTROL_AXIS_STRUCT *axis_p = NULL;
 			if(argv[2])
 				axis_p->U16PositionDGain = atoi(argv[2]);
 			chprintf(chp, "D Gain : %d \r\n", axis_p->U16PositionDGain);
+		}
+		else {
+			chprintf(chp, "\n\tP Gain : %d \r\n", axis_p->U16PositionPGain);
+			chprintf(chp, "\tI Gain : %d \r\n", axis_p->U16PositionIGain);
+			chprintf(chp, "\tD Gain : %d \r\n", axis_p->U16PositionDGain);
 		}
 	}
 }
@@ -391,7 +545,9 @@ static const ShellCommand commands[] = {
 	{"enable", cmd_enable},
 	{"mode", cmd_mode},
 	{"gain", cmd_gain},
-	{NULL, NULL}
+	{"freeze", cmd_freeze},
+	{"unfreeze", cmd_unfreeze},
+	{NULL, cmd_stop}
 };
 
 static const ShellConfig shell_cfg1 = {
@@ -409,7 +565,7 @@ static void adccb1(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
 	/* Note, only in the ADC_COMPLETE state because the ADC driver fires an
 	 intermediate callback when the buffer is half full.*/
 	if (adcp->state == ADC_COMPLETE) {
-		ControlAxis(&vertAxisStruct, vertFeedbackSample[0], 3, 4);
+		ControlAxis(&vertAxisStruct, vertFeedbackSample[0], 1, 2);
 	}
 }
 
@@ -423,7 +579,7 @@ static void adccb2(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
 	/* Note, only in the ADC_COMPLETE state because the ADC driver fires an
 	 intermediate callback when the buffer is half full.*/
 	if (adcp->state == ADC_COMPLETE) {
-		ControlAxis(&latAxisStruct, latFeedbackSample[0], 1, 2);
+		ControlAxis(&latAxisStruct, latFeedbackSample[0], 3, 4);
 	}
 }
 
@@ -463,15 +619,16 @@ static void motordrive(GPTDriver *gptp) {
 
 //TODO undo the constant enable
 	// Read input switch positions
-	U8EnableDriveSwitch = 1;
-//	U8EnableDriveSwitch = palReadPad(GPIOD, GPIOD_PIN8); // PD8
-	U8PosnVelModeSwitch = 1; // PD9
-//	U8PosnVelModeSwitch = palReadPad(GPIOD, GPIOD_PIN9); // PD9
+//	U8EnableDriveSwitch = 1;
+	U8EnableDriveSwitch = palReadPad(GPIOD, GPIOD_PIN8); // PD8
+//	U8PosnVelModeSwitch = 1; // PD9
+	U8PosnVelModeSwitch = palReadPad(GPIOD, GPIOD_PIN9); // PD9
 
 	// Handle ENABLE on GMD and LEDs on GFE
 	if(U8EnableDriveSwitch > 0 && U8ShellEnable > 0) {
 		// Turn ON enable
 		palSetPad(GPIOD, GPIOD_PIN10);
+		palSetPad(GPIOD, GPIOD_PIN6);
 //		// Turn Green LED on, Red LED off
 //		palSetPad(GPIOD, GPIOD_PIN0);
 //		palClearPad(GPIOD, GPIOD_PIN1);
@@ -489,15 +646,11 @@ static void motordrive(GPTDriver *gptp) {
 				latAxisStruct.U8DriveIsInterlocked = 1;
 			}
 		}
-//		// Lock drives if Position / Velocity switch is changed
-//		if(U8PosnVelModeSwitch != U8PrevPosnVelModeSwitchState) {
-//			vertAxisStruct.U8DriveIsInterlocked = 1;
-//			latAxisStruct.U8DriveIsInterlocked = 1;
-//		}
 	}
 	else {
 		// Otherwise enable is OFF
 		palClearPad(GPIOD, GPIOD_PIN10);
+		palClearPad(GPIOD, GPIOD_PIN6);
 //		// Turn Green LED off, Red LED on
 //		palClearPad(GPIOD, GPIOG_PIN0);
 //		palSetPad(GPIOD, GPIOD_PIN1);
@@ -523,6 +676,7 @@ static void motordrive(GPTDriver *gptp) {
 	if(u8WatchDogCycleCount > 7){
 		u8WatchDogCycleCount = 0;
 		palTogglePad(GPIOD, GPIOD_PIN11);
+		palTogglePad(GPIOD, GPIOD_PIN5);
 	}
 	else
 		u8WatchDogCycleCount++;
@@ -585,7 +739,7 @@ int main(void) {
 
 	// Enable Continuous GPT for 1ms Interval
 	gptStart(&GPTD1, &gpt1cfg);
-	gptStartContinuous(&GPTD1,100);
+	gptStartContinuous(&GPTD1,1000);
 
 	/*
 	* Shell manager initialization.
@@ -604,10 +758,6 @@ int main(void) {
 	palSetPadMode(GPIOD, GPIOD_PIN3, PAL_MODE_OUTPUT_PUSHPULL);
 	// PD4: Lateral Axis LED
 	palSetPadMode(GPIOD, GPIOD_PIN4, PAL_MODE_OUTPUT_PUSHPULL);
-	// PD5: Vertical Axis LED
-	palSetPadMode(GPIOD, GPIOD_PIN5, PAL_MODE_OUTPUT_PUSHPULL);
-	// PD6: Lateral Axis LED
-	palSetPadMode(GPIOD, GPIOD_PIN6, PAL_MODE_OUTPUT_PUSHPULL);
 
 	// Configure pins for switches
 	// PD8: Drive Enable Switch
@@ -615,7 +765,13 @@ int main(void) {
 	// PD9: Mode Select Switch
 	palSetPadMode(GPIOD, GPIOD_PIN9, PAL_MODE_INPUT);
 
-	// Configure pins for GMD Enable/Watchdog
+	// Configure pins for long lead GMD Enable/Watchdog
+	// PD5: Enable out to GMD
+	palSetPadMode(GPIOD, GPIOD_PIN5, PAL_MODE_OUTPUT_PUSHPULL);
+	// PD6: Watchdog out to GMD
+	palSetPadMode(GPIOD, GPIOD_PIN6, PAL_MODE_OUTPUT_PUSHPULL);
+
+	// Configure pins for short lead GMD Enable/Watchdog
 	// PD10: Enable out to GMD
 	palSetPadMode(GPIOD, GPIOD_PIN10, PAL_MODE_OUTPUT_PUSHPULL);
 	// PD11: Watchdog out to GMD
@@ -642,41 +798,6 @@ int main(void) {
 	pwmEnableChannel(&PWMD4, 1, 0);
 	pwmEnableChannel(&PWMD4, 2, 0);
 	pwmEnableChannel(&PWMD4, 3, 0);
-
-	// Configure pins for Feedback ADC's
-	palSetPadMode(GPIOA, GPIOA_PIN4, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, GPIOA_PIN5, PAL_MODE_INPUT_ANALOG);
-	// Configure pins for Input ADC's
-	palSetPadMode(GPIOF, GPIOF_PIN6, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOF, GPIOF_PIN7, PAL_MODE_INPUT_ANALOG);
-
-	// Configure pins for LED's
-	// PD3: Vertical Axis LED
-	palSetPadMode(GPIOD, GPIOD_PIN3, PAL_MODE_OUTPUT_PUSHPULL);
-	// PD4: Lateral Axis LED
-	palSetPadMode(GPIOD, GPIOD_PIN4, PAL_MODE_OUTPUT_PUSHPULL);
-	// PD5: Vertical Axis LED
-	palSetPadMode(GPIOD, GPIOD_PIN5, PAL_MODE_OUTPUT_PUSHPULL);
-	// PD6: Lateral Axis LED
-	palSetPadMode(GPIOD, GPIOD_PIN6, PAL_MODE_OUTPUT_PUSHPULL);
-
-	// Configure pins for switches
-	// PD8: Drive Enable Switch
-	palSetPadMode(GPIOD, GPIOD_PIN8, PAL_MODE_INPUT);
-	// PD9: Mode Select Switch
-	palSetPadMode(GPIOD, GPIOD_PIN9, PAL_MODE_INPUT);
-
-	// Configure pins for GMD Enable/Watchdog
-	// PD10: Enable out to GMD
-	palSetPadMode(GPIOD, GPIOD_PIN10, PAL_MODE_OUTPUT_PUSHPULL);
-	// PD11: Watchdog out to GMD
-	palSetPadMode(GPIOD, GPIOD_PIN11, PAL_MODE_OUTPUT_PUSHPULL);
-
-	// Configure pins for PWM output (D12-D15: TIM4, channel 1-4)
-	palSetPadMode(GPIOD, GPIOD_PIN12, PAL_MODE_ALTERNATE(2));	//U-pole, short lead
-	palSetPadMode(GPIOD, GPIOD_PIN13, PAL_MODE_ALTERNATE(2));	//V-pole, short lead
-	palSetPadMode(GPIOD, GPIOD_PIN14, PAL_MODE_ALTERNATE(2));	//U-pole, long lead
-	palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));	//V-pole, long lead
 
 	// Set axis control gain and limit values
 	// Set Vertical Axis Gains
@@ -785,6 +906,7 @@ void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, adcsample_t sample, uint8_t PWM_U_
  * Function name:	processLeds
  *
  * Description:		Manages LEDs based on system state
+ *
  *****************************************************************************/
 static void processLeds(void){
 
@@ -836,14 +958,14 @@ static void processLeds(void){
 		break;
 	}
 
-	// Process Posn / Vel LEDs on PD5 and PD6
-	if(U8PosnVelModeSwitch > 0){
-		palSetPad(GPIOD, GPIOD_PIN5);
-		palClearPad(GPIOD, GPIOD_PIN6);
-	}else{
-		palClearPad(GPIOD, GPIOD_PIN5);
-		palSetPad(GPIOD, GPIOD_PIN6);
-	}
+//	// Process Posn / Vel LEDs on PD5 and PD6
+//	if(U8PosnVelModeSwitch > 0){
+//		palSetPad(GPIOD, GPIOD_PIN5);
+//		palClearPad(GPIOD, GPIOD_PIN6);
+//	}else{
+//		palClearPad(GPIOD, GPIOD_PIN5);
+//		palSetPad(GPIOD, GPIOD_PIN6);
+//	}
 	// Process flashing Green Wake-up LED
 	if(U8LedState){palSetPad(GPIOC, GPIOC_LED);}
 	else{palClearPad(GPIOC, GPIOC_LED);}
