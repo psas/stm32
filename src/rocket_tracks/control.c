@@ -17,9 +17,12 @@
 void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 {
 	// Accumulator scaling multiplier
-	const uint16_t U16PosDesAccumMultiplyer = 512;
-	const uint16_t U16PosDesAccumExponentialDivisor = 256;
-	const uint16_t U16VelocityDeadband = 20;
+	const uint16_t U16PosDesAccumMultiplyer = 2048;
+	const uint16_t U16PosDesAccumExponentialDivisor = 1024;
+	const uint16_t U16VelocityDeadband = 80;
+//	const uint16_t U16PosDesAccumMultiplyer = 512;
+//	const uint16_t U16PosDesAccumExponentialDivisor = 256;
+//	const uint16_t U16VelocityDeadband = 20;
 
 	// ************* Position Loop *************
 
@@ -29,9 +32,10 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	// Check position (1) / velocity (0) mode
 	if(ptr->U8PosnVelMode > 0)
 	{
-		// Compute desired position directly from input
-		ptr->S16PositionDesired = (adcsample_t)ptr->U16InputADC + 2048;
-
+		// Compute desired position directly from input if axis not frozen
+		if(!ptr->U8FreezeAxis) {
+			ptr->S16PositionDesired = (adcsample_t)ptr->U16InputADC + 2048;
+		}
 		// Initialize accum to present position
 		ptr->S32PositionDesiredAccumulator = ptr->S16PositionActual * U16PosDesAccumMultiplyer;
 	}else
@@ -39,11 +43,13 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 		// Compute desired velocity with deadband
 //		ptr->S16VelocityDesired = (adcsample_t)ptr->U16InputADC + 2048;
 		ptr->S16VelocityDesired = (adcsample_t)ptr->U16InputADC - 2048;
-		if(ptr->S16VelocityDesired > U16VelocityDeadband){
+		if(ptr->S16VelocityDesired > U16VelocityDeadband) {
 			ptr->S16VelocityDesired -= U16VelocityDeadband;
-		}else if(ptr->S16VelocityDesired < -U16VelocityDeadband){
+		}
+		else if(ptr->S16VelocityDesired < -U16VelocityDeadband) {
 			ptr->S16VelocityDesired += U16VelocityDeadband;
-		}else{
+		}
+		else {
 			ptr->S16VelocityDesired = 0;
 		}
 
@@ -143,14 +149,13 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	// If in position mode and position error is low
 	if(ptr->U8PosnVelMode > 0)
 	{
-		if( (ptr->S16PositionError < 150) && (ptr->S16PositionError > -150) )
+		if( (ptr->S16PositionError < 40) && (ptr->S16PositionError > -40) )
 		{
 			ptr->U8PositionNeutral = 1;
 		}
 	}else{ // If in velocity mode and velocity command is neutral
-//		if( (ptr->S16VelocityDesired == 0) )
-		if( (ptr->S16VelocityDesired == 0) && (ptr->S16PositionError < 150) &&
-				(ptr->S16PositionError > -150) )
+		if( (ptr->S16VelocityDesired == 0) && (ptr->S16PositionError < 40) &&
+				(ptr->S16PositionError > -40) )
 		{
 			ptr->U8VelocityNeutral = 1;
 		}
