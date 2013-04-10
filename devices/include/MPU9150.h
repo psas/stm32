@@ -23,24 +23,27 @@ extern "C" {
 #include "ch.h"
 #include "hal.h"
 
+typedef     uint8_t                               mpu9150_i2c_data;
+typedef     uint8_t                               mpu9150_reg_data;
+typedef     uint8_t                               mpu9150_reg_addr;
+
 #define     DEBUG_MPU9150                         1
 
 #define     MPU9150_MAX_TX_BUFFER                 50
 #define     MPU9150_MAX_RX_BUFFER                 50
 
 /*! register 55 INT pin/Bypass */
-#define     MPU9150_CLKOUT_EN                     ((uint8_t)(1<<0))
-#define     MPU9150_I2C_BYPASS                    ((uint8_t)(1<<1))
-#define     MPU9150_FSCYNC_INT_EN                 ((uint8_t)(1<<2))
-#define     MPU9150_FSCYNC_INT_LEVEL              ((uint8_t)(1<<3))
-#define     MPU9150_INT_RD_CLEAR                  ((uint8_t)(1<<4))
-#define     MPU9150_LATCH_INT_EN                  ((uint8_t)(1<<5))
-#define     MPU9150_INT_OPEN                      ((uint8_t)(1<<6))
-#define     MPU9150_INT_LEVEL                     ((uint8_t)(1<<7))
+#define     MPU9150_CLKOUT_EN                     ((mpu9150_reg_data)(1<<0))
+#define     MPU9150_I2C_BYPASS                    ((mpu9150_reg_data)(1<<1))
+#define     MPU9150_FSCYNC_INT_EN                 ((mpu9150_reg_data)(1<<2))
+#define     MPU9150_FSCYNC_INT_LEVEL              ((mpu9150_reg_data)(1<<3))
+#define     MPU9150_INT_RD_CLEAR                  ((mpu9150_reg_data)(1<<4))
+#define     MPU9150_LATCH_INT_EN                  ((mpu9150_reg_data)(1<<5))
+#define     MPU9150_INT_OPEN                      ((mpu9150_reg_data)(1<<6))
+#define     MPU9150_INT_LEVEL                     ((mpu9150_reg_data)(1<<7))
 
-typedef     uint8_t                               mpu9150_i2c_data;
-typedef     uint16_t                              mpu9150_reg_data;
-typedef     uint8_t                               mpu9150_reg_addr;
+/*! register 107 Power management 1 */
+#define     MPU9150_X_GYRO_CLOCKREF               ((mpu9150_reg_data)(1<<0))
 
 #if DEBUG_MPU9150
 
@@ -258,12 +261,16 @@ extern       mpu9150_magn_burst_data   mpu9150_burst_magn_data;
 extern       MPU9150_Driver            mpu9150_driver;
 
 void         mpu9150_int_event_handler(eventid_t id) ;
+void         mpu9150_start(I2CDriver* i2c) ;
 void         mpu9150_init(I2CDriver* i2c) ;
+
 void         mpu9150_setup(I2CDriver* i2cptr) ;
+void         mpu9150_test(I2CDriver* i2cptr) ;
 
 
 void         mpu9150_a_g_read_id(I2CDriver* i2cptr) ;
 void         mpu9150_magn_read_id(I2CDriver* i2cptr);
+void         mpu9150_write_pm1(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 
 /*!
  * @}

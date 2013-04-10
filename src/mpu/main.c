@@ -164,14 +164,23 @@ static msg_t Thread_mpu9150(void *arg) {
 	chprintf(chp, "\r\nmpu9150 reg: 0x%x\ti2c error: %d\r\n", mpu9150_driver.txbuf[0], mpu9150_driver.i2c_errors);
 	chprintf(chp, "error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
 #endif
-
-	while(TRUE) {
-		//chThdSleepMilliseconds(1000);
-		mpu9150_a_g_read_id(mpu9150_driver.i2c_instance);
-		chprintf(chp, "\r\nmpu9150 id: 0x%x\ti2c error: %d\r\n", mpu9150_driver.rxbuf[0], mpu9150_driver.i2c_errors);
-#if DEBUG_MPU9150
+	mpu9150_test(mpu9150_driver.i2c_instance);
+	#if DEBUG_MPU9150
+		chprintf(chp, "\r\nmpu9150 reg: 0x%x\t0x%x\ti2c error: %d\r\n", mpu9150_driver.txbuf[0], mpu9150_driver.rxbuf[0], mpu9150_driver.i2c_errors);
 		chprintf(chp, "error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
-#endif
+	#endif
+	while(TRUE) {
+		chThdSleepMilliseconds(1000);
+//		mpu9150_a_g_read_id(mpu9150_driver.i2c_instance);
+//		chprintf(chp, "\r\nmpu9150 id: 0x%x\ti2c error: %d\r\n", mpu9150_driver.rxbuf[0], mpu9150_driver.i2c_errors);
+//#if DEBUG_MPU9150
+//		chprintf(chp, "a_g error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
+//#endif
+		mpu9150_magn_read_id(mpu9150_driver.i2c_instance);
+				chprintf(chp, "\r\nmpu9150 magn addr: 0x%x\t0x%x\ti2c error: %d\r\n", mpu9150_driver.txbuf[0], mpu9150_driver.rxbuf[0], mpu9150_driver.i2c_errors);
+		#if DEBUG_MPU9150
+				chprintf(chp, "error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
+		#endif
 	}
 	return -1;
 }
@@ -332,7 +341,7 @@ int main(void) {
 
 	chThdSleepMilliseconds(300);
 
-	mpu9150_init(&I2CD2);
+	mpu9150_start(&I2CD2);
 	i2cStart(mpu9150_driver.i2c_instance, &mpu9150_config);
 
 	/*! Activates the EXT driver 1. */
