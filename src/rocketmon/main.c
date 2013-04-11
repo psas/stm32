@@ -16,6 +16,7 @@
 #include "main.h"
 #include "shell.h"
 unsigned int	client_s;
+//unsigned int	server_s;
 int main() {
 	//when we fold this in to the main system, this probably should be a thread
 	serverInit();
