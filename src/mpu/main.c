@@ -95,12 +95,12 @@ const adis_connect adis_connections = {
 		12          // dio4_pad
 };
 
-/*!
- * Clock 400Mhz
+/*! configure the i2c module on stm32
+ *
  */
 const I2CConfig mpu9150_config = {
     OPMODE_I2C,
-    100000,
+    100000,                // i2c clock speed. Test at 400000 when r=4.7k
     // FAST_DUTY_CYCLE_2,
     STD_DUTY_CYCLE,
 };
