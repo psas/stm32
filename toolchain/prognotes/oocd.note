@@ -1,1 +1,39 @@
-sudo /opt/psas/openocd/bin/openocd -f olimex_stm32_e407.cfg --search /opt/psas/openocd/share/openocd/scripts
+
+# Openocd Notes
+
+## Notes for moving object files to the flash on the stm32f4xx:
+
+- Download and compile openocd:
+
+    - <http://openocd.sourceforge.net/>
+    - <http://sourceforge.net/projects/openocd/files/openocd/0.6.1/>
+
+- Configure openocd
+
+    - Here is an example to enable both the Olimex arm-usb-ocd programmer and the ST stlink-v2 (Run from the openocd... directory):
+
+    ./configure --enable-maintainer-mode --enable-ft2232_libftdi --enable-stlink --prefix /opt/psas/openocd
+    
+    Then:
+    
+    make && sudo make install
+
+- Run openocd from build directory (or where the .hex file exists)
+
+    sudo /opt/psas/openocd/bin/openocd -f olimex_stm32_e407.cfg --search /opt/psas/openocd/share/openocd/scripts
+
+---
+
+- Please notice there is a .cfg file for the stlink.
+    - <https://github.com/psas/stm32/tree/master/openocd>
+
+If you use the ST stlink-v2 use this configuration file: stlinkv2_stm32_e407.cfg
+If you use the Olimex arm-usb-ocd use this one:          olimex_stm32_e407.cfg
+
+## References:
+
+ST:       <http://www.st.com>
+Olimex:   <http://www.olimex.com>
+Openocd:  <http://openocd.sourceforge.net/>
+
+
