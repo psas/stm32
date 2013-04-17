@@ -93,17 +93,17 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	// Compute Integral Term and Saturate Result
 	ptr->S32PositionIAccumulator = ptr->S32PositionIAccumulator +
 			((int32_t)ptr->S16PositionError * (int32_t)ptr->U16PositionIGain);
-	if(ptr->S32PositionIAccumulator > (256*ptr->U16CommandLimit)){
-		ptr->S32PositionIAccumulator = (256*ptr->U16CommandLimit);
+	if(ptr->S32PositionIAccumulator > (1024*ptr->U16CommandLimit)){
+		ptr->S32PositionIAccumulator = (1024*ptr->U16CommandLimit);
 	}
-	else if(ptr->S32PositionIAccumulator < (-256*ptr->U16CommandLimit)){
-		ptr->S32PositionIAccumulator = (-256*ptr->U16CommandLimit);
+	else if(ptr->S32PositionIAccumulator < (-1024*ptr->U16CommandLimit)){
+		ptr->S32PositionIAccumulator = (-1024*ptr->U16CommandLimit);
 	}
-	ptr->S32PositionITerm = ptr->S32PositionIAccumulator / 256;
+	ptr->S32PositionITerm = ptr->S32PositionIAccumulator / 1024;
 
 	// Compute Derivative Term and Saturate Result
 	ptr->S32PositionDTerm = ( (ptr->S16PositionError - ptr->S16PositionErrorPrevious) *
-			ptr->U16PositionDGain) / 10;
+			ptr->U16PositionDGain) / 40;
 	if(ptr->S32PositionDTerm > ptr->U16CommandLimit){
 		ptr->S32PositionDTerm = ptr->U16CommandLimit;
 	}
