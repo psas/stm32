@@ -7,7 +7,7 @@ PSAS_NET_COMMON    = ../net_common
 	mkdir -p $(OBJDIR)
 	mkdir -p $(LSTDIR)
 	cp $(PSAS_CFG)/olimex_stm32_e407.cfg $(BUILDDIR)
-	cp $(PSAS_CFG)/olimex_stm32_e407_stlinkv2.cfg $(BUILDDIR)
+	cp $(PSAS_CFG)/stlinkv2_stm32_e407.cfg $(BUILDDIR)
 	cp $(PSAS_CFG)/oocd_flash_stm32f407.script $(BUILDDIR)
 
 
