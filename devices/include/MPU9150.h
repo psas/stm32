@@ -43,7 +43,9 @@ typedef     uint8_t                               mpu9150_reg_addr;
 #define     MPU9150_INT_LEVEL                     ((mpu9150_reg_data)(1<<7))
 
 /*! register 107 Power management 1 */
-#define     MPU9150_X_GYRO_CLOCKREF               ((mpu9150_reg_data)(1<<0))
+#define     MPU9150_PM1_X_GYRO_CLOCKREF           ((mpu9150_reg_data)(1<<0))
+#define     MPU9150_PM1_SLEEP                     ((mpu9150_reg_data)(1<<6))
+#define     MPU9150_PM1_RESET                     ((mpu9150_reg_data)(1<<7))
 
 #if DEBUG_MPU9150
 
@@ -264,13 +266,12 @@ void         mpu9150_int_event_handler(eventid_t id) ;
 void         mpu9150_start(I2CDriver* i2c) ;
 void         mpu9150_init(I2CDriver* i2c) ;
 
-void         mpu9150_setup(I2CDriver* i2cptr) ;
 void         mpu9150_test(I2CDriver* i2cptr) ;
-
 
 void         mpu9150_a_g_read_id(I2CDriver* i2cptr) ;
 void         mpu9150_magn_read_id(I2CDriver* i2cptr);
 void         mpu9150_write_pm1(I2CDriver* i2cptr, mpu9150_reg_data d) ;
+void         mpu9150_write_pin_cfg(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 
 /*!
  * @}
