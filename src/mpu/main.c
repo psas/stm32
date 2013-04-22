@@ -156,6 +156,8 @@ static msg_t Thread_mpu9150(void *arg) {
 	(void)arg;
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 
+	MPU9150_accel_data accel_xyz;
+
 	chRegSetThreadName("mpu9150");
 
 	chThdSleepMilliseconds(1500);
@@ -171,6 +173,11 @@ static msg_t Thread_mpu9150(void *arg) {
 		chprintf(chp, "\r\nmpu9150 id: 0x%x\ti2c error: %d\r\n", mpu9150_driver.rxbuf[0], mpu9150_driver.i2c_errors);
 #if DEBUG_MPU9150
 		chprintf(chp, "a_g error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
+
+		mpu9150_a_read_x_y_z(mpu9150_driver.i2c_instance, &accel_xyz);
+
+		chprintf(chp, "a_g error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
+		chprintf(chp, "x: %d\r\n", accel_xyz.x);
 #endif
 
 	}
