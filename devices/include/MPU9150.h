@@ -189,22 +189,27 @@ typedef enum {
     A_G_WHO_AM_I           = 0x75     // RESET VAL: 0x68
 } mpu9150_a_g_regaddr;
 
-/*! \typedef mpu9150_a_g_burst_data
- * Burst data collection
- *
+/*! \typedef Accel High Pass Filter
+ * See Accel Config register ACCEL_HPF[2:0]
  */
-typedef struct {
-	mpu9150_reg_data      mpu_who_ami;
-} mpu9150_a_g_burst_data;
+typedef enum mpu9150_accel_hpf {
+	MPU9150_A_HPF_RESET  = 0b000,//!< MPU9150_A_HPF_RESET
+	MPU9150_A_HPF_5HZ    = 0b001,//!< MPU9150_A_HPF_5HZ
+	MPU9150_A_HPF_2p5HZ  = 0b010,//!< MPU9150_A_HPF_2p5HZ
+	MPU9150_A_HPF_1p25HZ = 0b011,//!< MPU9150_A_HPF_1p25HZ
+	MPU9150_A_HPF_0p63HZ = 0b100,//!< MPU9150_A_HPF_0p63HZ
+	MPU9150_A_HPF_HOLD   = 0b111 //!< MPU9150_A_HPF_HOLD
+} mpu9150_accel_hpf;
 
-
-/*! \typedef mpu9150_magn_burst_data
- * Burst data collection
- *
+/*! \typedef Accel Full Scale
+ * See Accel Config AFS_SEL[1:0]
  */
-typedef struct {
-	mpu9150_reg_data      mpu_magn_who_ami;
-} mpu9150_magn_burst_data;
+typedef enum mpu9150_accel_scale {
+	MPU9150_A_SCALE_pm2g   = (0b00 << 3),//!< MPU9150_A_SCALE_pm2g
+	MPU9150_A_SCALE_pm4g   = (0b01 << 3),//!< MPU9150_A_SCALE_pm4g
+	MPU9150_A_SCALE_pm8g   = (0b10 << 3),//!< MPU9150_A_SCALE_pm8g
+	MPU9150_A_SCALE_pm16g  = (0b11 << 3) //!< MPU9150_A_SCALE_pm16g
+} mpu9150_accel_scale;
 
 
 /*!
@@ -233,6 +238,16 @@ typedef struct mpu9150_driver {
 } MPU9150_Driver;
 
 
+/*! \typedef Structure for accelerometer data
+ *
+ *
+ */
+typedef struct mpu9150_accel_data {
+	uint16_t x;
+	uint16_t y;
+	uint16_t z;
+} MPU9150_accel_data;
+
 /*! \typedef mpu9150_config
  *
  * Configuration for the MPU IMU connections
@@ -258,8 +273,6 @@ extern       mpu9150_cache             mpu9150_cache_data;
 
 extern       EventSource               mpu9150_int_event;
 
-extern       mpu9150_a_g_burst_data    mpu9150_burst_a_g_data;
-extern       mpu9150_magn_burst_data   mpu9150_burst_magn_data;
 extern       MPU9150_Driver            mpu9150_driver;
 
 void         mpu9150_int_event_handler(eventid_t id) ;
@@ -272,6 +285,7 @@ void         mpu9150_a_g_read_id(I2CDriver* i2cptr) ;
 void         mpu9150_magn_read_id(I2CDriver* i2cptr);
 void         mpu9150_write_pm1(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 void         mpu9150_write_pin_cfg(I2CDriver* i2cptr, mpu9150_reg_data d) ;
+void         mpu9150_a_read_x_y_z(I2CDriver* i2cptr, MPU9150_accel_data* d) ;
 
 /*!
  * @}

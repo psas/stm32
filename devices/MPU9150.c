@@ -10,6 +10,9 @@
  * @{
  */
 
+/*! Is the mpu9150 really a MPU6050 & AKM8975 in the same package?
+ */
+
 #include <stdbool.h>
 
 #include "ch.h"
@@ -20,13 +23,11 @@
 
 #include "MPU9150.h"
 
-#if !defined(MPU9150_DEBUG) || defined(__DOXYGEN__)
-#define 	MPU9150_DEBUG                   0
+#if !defined(DEBUG_MPU9150) || defined(__DOXYGEN__)
+#define 	DEBUG_MPU9150                   0
 #endif
 
 mpu9150_cache            mpu9150_cache_data;
-mpu9150_a_g_burst_data   mpu9150_burst_a_g_data;
-mpu9150_magn_burst_data  mpu9150_burst_magn_data;
 
 MPU9150_Driver           mpu9150_driver;
 EventSource              mpu9150_int_event;
@@ -69,6 +70,21 @@ const       uint8_t      mpu9150_i2c_magn_addr      = 0x0C;    // See page 28, M
 void mpu9150_int_event_handler(eventid_t id) {
 	(void) id;
 
+}
+
+static msg_t mpu9150_read_register(I2CDriver* i2cptr, mpu9150_a_g_regaddr ra, mpu9150_reg_data* d) {
+	msg_t status = RDY_OK;
+
+	mpu9150_driver.txbuf[0] = ra;
+	i2cAcquireBus(i2cptr);
+	status = i2cMasterTransmitTimeout(i2cptr, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 1, mpu9150_driver.rxbuf, 1, mpu9150_i2c_timeout);
+	i2cReleaseBus(i2cptr);
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+	*d = mpu9150_driver.rxbuf[0];
+
+	return status;
 }
 
 static msg_t mpu9150_write_register(I2CDriver* i2cptr, mpu9150_a_g_regaddr ra, mpu9150_reg_data d) {
@@ -126,7 +142,6 @@ void mpu9150_write_pm1(I2CDriver* i2cptr, mpu9150_reg_data d) {
 }
 
 void mpu9150_write_pin_cfg(I2CDriver* i2cptr, mpu9150_reg_data d) {
-	/*! Turn on power */
 	msg_t status = RDY_OK;
 
 	status = mpu9150_write_register(i2cptr, A_G_INT_PIN_CFG, d);
@@ -135,6 +150,27 @@ void mpu9150_write_pin_cfg(I2CDriver* i2cptr, mpu9150_reg_data d) {
 		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
 	}
 }
+
+void mpu9150_write_accel_config(I2CDriver* i2cptr, mpu9150_reg_data d) {
+	msg_t status = RDY_OK;
+
+	status = mpu9150_write_register(i2cptr, A_G_ACCEL_CONFIG, d);
+
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+}
+
+void mpu9150_write_fifo_en(I2CDriver* i2cptr, mpu9150_reg_data d) {
+	msg_t status = RDY_OK;
+
+	status = mpu9150_write_register(i2cptr, A_G_FIFO_EN, d);
+
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+}
+
 /*! \brief Initialize mpu9150
  *
  */
@@ -146,10 +182,13 @@ void mpu9150_init(I2CDriver* i2cptr) {
     mpu9150_write_pm1(i2cptr, rdata);
     rdata = MPU9150_I2C_BYPASS | MPU9150_INT_LEVEL;
     mpu9150_write_pin_cfg(i2cptr, rdata);
+    rdata = MPU9150_A_HPF_RESET | MPU9150_A_SCALE_pm8g;
+    mpu9150_write_accel_config(i2cptr, rdata);
+
 }
 
 
-/*! \read the id
+/*! \brief read the accel-gyro id
  *
  */
 void mpu9150_a_g_read_id(I2CDriver* i2cptr) {
@@ -165,22 +204,60 @@ void mpu9150_a_g_read_id(I2CDriver* i2cptr) {
 	}
 }
 
-void mpu9150_test(I2CDriver* i2cptr) {
-	msg_t status = RDY_OK;
+/*! \brief read the accel-gyro fifo count
+ *
+ */
+uint16_t mpu9150_a_g_fifo_cnt(I2CDriver* i2cptr) {
+	msg_t    status     = RDY_OK;
 
-	/*! configure the interrupt and bypass */
-	mpu9150_driver.txbuf[0] = A_G_USER_CTRL;
-	//mpu9150_driver.txbuf[1] = MPU9150_I2C_BYPASS | MPU9150_INT_LEVEL;
+	uint16_t fifo_count = 0;
+
+	mpu9150_driver.txbuf[0] = A_G_FIFO_COUNTH;
 	i2cAcquireBus(i2cptr);
 	status = i2cMasterTransmitTimeout(i2cptr, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 1, mpu9150_driver.rxbuf, 1, mpu9150_i2c_timeout);
 	i2cReleaseBus(i2cptr);
-
 	if (status != RDY_OK){
 		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
 	}
+	fifo_count          = mpu9150_driver.rxbuf[0] << 8;
+
+	mpu9150_driver.txbuf[0] = A_G_FIFO_COUNTL;
+	i2cAcquireBus(i2cptr);
+	status = i2cMasterTransmitTimeout(i2cptr, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 1, mpu9150_driver.rxbuf, 1, mpu9150_i2c_timeout);
+	i2cReleaseBus(i2cptr);
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+	fifo_count          = fifo_count | (mpu9150_driver.rxbuf[0] << 8);
+
+	return fifo_count;
 }
 
-/*! \read the id
+/*! \brief read the accel x,y,z
+ *
+ */
+void mpu9150_a_read_x_y_z(I2CDriver* i2cptr, MPU9150_accel_data* d) {
+	msg_t    status     = RDY_OK;
+
+	mpu9150_reg_data rdata = 0;
+
+	status = mpu9150_read_register(i2cptr, A_G_ACCEL_XOUT_H, &rdata);
+	mpu9150_driver.txbuf[0] = A_G_ACCEL_XOUT_H;
+	d->x            = rdata << 8;
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+	status = mpu9150_read_register(i2cptr, A_G_ACCEL_XOUT_L, &rdata);
+	mpu9150_driver.txbuf[0] = A_G_ACCEL_XOUT_H;
+	d->x            = (d->x | rdata);
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+}
+
+/*! \read the magnetometer AK8975C id
  *
  */
 void mpu9150_magn_read_id(I2CDriver* i2cptr) {
