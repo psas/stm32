@@ -242,19 +242,40 @@ void mpu9150_a_read_x_y_z(I2CDriver* i2cptr, MPU9150_accel_data* d) {
 	mpu9150_reg_data rdata = 0;
 
 	status = mpu9150_read_register(i2cptr, A_G_ACCEL_XOUT_H, &rdata);
-	mpu9150_driver.txbuf[0] = A_G_ACCEL_XOUT_H;
 	d->x            = rdata << 8;
 	if (status != RDY_OK){
 		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
 	}
 
 	status = mpu9150_read_register(i2cptr, A_G_ACCEL_XOUT_L, &rdata);
-	mpu9150_driver.txbuf[0] = A_G_ACCEL_XOUT_H;
 	d->x            = (d->x | rdata);
 	if (status != RDY_OK){
 		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
 	}
 
+	status = mpu9150_read_register(i2cptr, A_G_ACCEL_YOUT_H, &rdata);
+	d->y            = rdata << 8;
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+	status = mpu9150_read_register(i2cptr, A_G_ACCEL_YOUT_L, &rdata);
+	d->y            = (d->y | rdata);
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+	status = mpu9150_read_register(i2cptr, A_G_ACCEL_ZOUT_H, &rdata);
+	d->z            = rdata << 8;
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+	status = mpu9150_read_register(i2cptr, A_G_ACCEL_ZOUT_L, &rdata);
+	d->z            = (d->z | rdata);
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
 }
 
 /*! \read the magnetometer AK8975C id

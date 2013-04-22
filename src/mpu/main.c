@@ -177,7 +177,7 @@ static msg_t Thread_mpu9150(void *arg) {
 		mpu9150_a_read_x_y_z(mpu9150_driver.i2c_instance, &accel_xyz);
 
 		chprintf(chp, "a_g error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
-		chprintf(chp, "x: %d\r\n", accel_xyz.x);
+		chprintf(chp, "x: %d\ty: %d\tz: %d\r\n", accel_xyz.x, accel_xyz.y, accel_xyz.z);
 #endif
 
 	}
