@@ -161,6 +161,16 @@ void mpu9150_write_accel_config(I2CDriver* i2cptr, mpu9150_reg_data d) {
 	}
 }
 
+void mpu9150_write_gyro_config(I2CDriver* i2cptr, mpu9150_reg_data d) {
+	msg_t status = RDY_OK;
+
+	status = mpu9150_write_register(i2cptr, A_G_GYRO_CONFIG, d);
+
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+}
+
 void mpu9150_write_fifo_en(I2CDriver* i2cptr, mpu9150_reg_data d) {
 	msg_t status = RDY_OK;
 
@@ -184,7 +194,8 @@ void mpu9150_init(I2CDriver* i2cptr) {
     mpu9150_write_pin_cfg(i2cptr, rdata);
     rdata = MPU9150_A_HPF_RESET | MPU9150_A_SCALE_pm8g;
     mpu9150_write_accel_config(i2cptr, rdata);
-
+    rdata = MPU9150_G_SCALE_pm500;
+    mpu9150_write_gyro_config(i2cptr, rdata);
 }
 
 
@@ -277,6 +288,55 @@ void mpu9150_a_read_x_y_z(I2CDriver* i2cptr, MPU9150_accel_data* d) {
 		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
 	}
 }
+
+
+/*! \brief read the gyro x,y,z
+ *
+ */
+void mpu9150_g_read_x_y_z(I2CDriver* i2cptr, MPU9150_gyro_data* d) {
+	msg_t    status     = RDY_OK;
+
+	mpu9150_reg_data rdata = 0;
+
+	status = mpu9150_read_register(i2cptr, A_G_GYRO_XOUT_H, &rdata);
+	d->x            = rdata << 8;
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+	status = mpu9150_read_register(i2cptr, A_G_GYRO_XOUT_L, &rdata);
+	d->x            = (d->x | rdata);
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+	status = mpu9150_read_register(i2cptr, A_G_GYRO_YOUT_H, &rdata);
+	d->y            = rdata << 8;
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+	status = mpu9150_read_register(i2cptr, A_G_GYRO_YOUT_L, &rdata);
+	d->y            = (d->y | rdata);
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+	status = mpu9150_read_register(i2cptr, A_G_GYRO_ZOUT_H, &rdata);
+	d->z            = rdata << 8;
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+
+	status = mpu9150_read_register(i2cptr, A_G_GYRO_ZOUT_L, &rdata);
+	d->z            = (d->z | rdata);
+	if (status != RDY_OK){
+		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+	}
+}
+
+
+
 
 /*! \read the magnetometer AK8975C id
  *
