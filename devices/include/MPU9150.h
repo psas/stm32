@@ -212,6 +212,16 @@ typedef enum mpu9150_accel_scale {
 } mpu9150_accel_scale;
 
 
+/*! \typedef Gyro Full Scale
+ *
+ */
+typedef enum mpu9150_gyro_scale {
+	MPU9150_G_SCALE_pm250   = (0b00 << 3),//!< MPU9150_G_SCALE_pm250
+	MPU9150_G_SCALE_pm500   = (0b01 << 3),//!< MPU9150_G_SCALE_pm500
+	MPU9150_G_SCALE_pm1000  = (0b10 << 3),//!< MPU9150_G_SCALE_pm1000
+	MPU9150_G_SCALE_pm2000  = (0b11 << 3) //!< MPU9150_G_SCALE_pm2000
+} mpu9150_gyro_scale;
+
 /*!
  * Another transaction may begin which would corrupt the tx and rx
  * buffers.
@@ -248,6 +258,17 @@ typedef struct mpu9150_accel_data {
 	uint16_t z;
 } MPU9150_accel_data;
 
+
+/*! \typedef Structure for gyroscope data
+ *
+ *
+ */
+typedef struct mpu9150_gyro_data {
+	uint16_t x;
+	uint16_t y;
+	uint16_t z;
+} MPU9150_gyro_data;
+
 /*! \typedef mpu9150_config
  *
  * Configuration for the MPU IMU connections
@@ -278,6 +299,8 @@ extern       MPU9150_Driver            mpu9150_driver;
 void         mpu9150_int_event_handler(eventid_t id) ;
 void         mpu9150_start(I2CDriver* i2c) ;
 void         mpu9150_init(I2CDriver* i2c) ;
+void         mpu9150_write_gyro_config(I2CDriver* i2cptr, mpu9150_reg_data d) ;
+void         mpu9150_write_accel_config(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 
 void         mpu9150_test(I2CDriver* i2cptr) ;
 
@@ -286,6 +309,7 @@ void         mpu9150_magn_read_id(I2CDriver* i2cptr);
 void         mpu9150_write_pm1(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 void         mpu9150_write_pin_cfg(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 void         mpu9150_a_read_x_y_z(I2CDriver* i2cptr, MPU9150_accel_data* d) ;
+void         mpu9150_g_read_x_y_z(I2CDriver* i2cptr, MPU9150_gyro_data* d) ;
 
 /*!
  * @}
