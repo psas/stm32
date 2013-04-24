@@ -189,8 +189,7 @@ typedef enum {
 
 
 //type for MPL3115A2 registers
-
-typedev enum  {
+typedef enum  {
 	STATUS 						= 0x00,
 	OUT_P_MSB					= 0x01,
 	OUT_P_CSB					= 0x02,
@@ -198,7 +197,7 @@ typedev enum  {
 	OUT_T_MSB					= 0x04,
 	OUT_T_LSB					= 0x05,
 	DR_STATUS					= 0x06,
-	OUT_P_DELTA MSB			= 0x07,
+	OUT_P_DELTA_MSB			= 0x07,
 	OUT_P_DELTA_CSB			= 0x08,
 	OUT_P_DELTA_LSB			= 0x09,
 	OUT_T_DELTA_MSB			= 0x0A,
@@ -238,6 +237,8 @@ typedev enum  {
 	OFF_T							= 0x2C,
 	OFF_H							= 0x2D
 } mpl3115a2_regaddr;
+
+
 /*! \typedef mpu9150_a_g_burst_data
  * Burst data collection
  *
