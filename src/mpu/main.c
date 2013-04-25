@@ -100,10 +100,66 @@ const adis_connect adis_connections = {
  */
 const I2CConfig mpu9150_config = {
     OPMODE_I2C,
-    100000,                // i2c clock speed. Test at 400000 when r=4.7k
-    // FAST_DUTY_CYCLE_2,
-    STD_DUTY_CYCLE,
+    400000,                // i2c clock speed. Test at 400000 when r=4.7k
+    FAST_DUTY_CYCLE_2,
+    // STD_DUTY_CYCLE,
 };
+
+
+/*! \brief Initialize mpu9150
+ *
+ */
+
+static void mpu9150_init(I2CDriver* i2cptr) {
+	mpu9150_reg_data           rdata;
+
+	mpu9150_reset(i2cptr);
+
+	rdata = MPU9150_PM1_X_GYRO_CLOCKREF & (~(MPU9150_PM1_SLEEP));   // make sure device is 'awake'
+    mpu9150_write_pm1(i2cptr, rdata);
+
+    rdata = 16;                                          // 2 ms sample period.
+    mpu9150_write_gyro_sample_rate_div(i2cptr, rdata);
+
+    rdata = MPU9150_I2C_BYPASS | MPU9150_INT_LEVEL | MPU9150_LATCH_INT_EN;
+    mpu9150_write_pin_cfg(i2cptr, rdata);
+
+    rdata = MPU9150_A_HPF_RESET | MPU9150_A_SCALE_pm8g;
+    mpu9150_write_accel_config(i2cptr, rdata);
+
+    rdata = MPU9150_G_SCALE_pm500;
+    mpu9150_write_gyro_config(i2cptr, rdata);
+
+    rdata = MPU9150_INT_EN_DATA_RD_EN;
+    mpu9150_write_int_enable(i2cptr, rdata);
+}
+
+static void mpu9150_int_event_handler(eventid_t id) {
+	(void) id;
+	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+	uint16_t raw_temp;
+
+	MPU9150_accel_data accel_xyz;
+	MPU9150_gyro_data  gyro_xyz;
+
+	mpu9150_a_read_x_y_z(mpu9150_driver.i2c_instance, &accel_xyz);
+
+	mpu9150_g_read_x_y_z(mpu9150_driver.i2c_instance, &gyro_xyz);
+
+
+	raw_temp =  mpu9150_a_g_read_temperature(mpu9150_driver.i2c_instance) ;
+
+	mpu9150_a_g_read_int_status(mpu9150_driver.i2c_instance);
+
+
+#if	DEBUG_MPU9150
+	chprintf(chp, "raw_temp: %d C\r\n", mpu9150_temp_to_dC(raw_temp));
+	chprintf(chp, "x: %d\ty: %d\tz: %d\r\n", accel_xyz.x, accel_xyz.y, accel_xyz.z);
+	chprintf(chp, "GRYO:  x: 0x%x\ty: 0x%x\tz: 0x%x\r\n", gyro_xyz.x, gyro_xyz.y, gyro_xyz.z);
+#endif
+
+}
+
 
 /*! \typedef mpu9150_config
  *
@@ -131,7 +187,7 @@ static msg_t Thread_blinker(void *arg) {
 	return -1;
 }
 
-static WORKING_AREA(waThread_mpu9150_int, 128);
+static WORKING_AREA(waThread_mpu9150_int, 512);
 static msg_t Thread_mpu9150_int(void* arg) {
 	(void) arg;
 	static const evhandler_t evhndl_mpu9150[]       = {
@@ -144,51 +200,26 @@ static msg_t Thread_mpu9150_int(void* arg) {
 	chEvtRegister(&mpu9150_int_event,           &evl_mpu9150,         0);
 
 	while (TRUE) {
-		chEvtDispatch(evhndl_mpu9150, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), MS2ST(50)));
+		chEvtDispatch(evhndl_mpu9150, chEvtWaitOneTimeout(EVENT_MASK(0), MS2ST(50)));
 	}
 	return -1;
 }
 
-static WORKING_AREA(waThread_mpu9150, 256);
-/*! \brief MPU9150 thread
- */
-static msg_t Thread_mpu9150(void *arg) {
-	(void)arg;
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-
-	MPU9150_accel_data accel_xyz;
-	MPU9150_gyro_data  gyro_xyz;
-
-	chRegSetThreadName("mpu9150");
-
-	chThdSleepMilliseconds(1500);
-	mpu9150_init(mpu9150_driver.i2c_instance);
-#if DEBUG_MPU9150
-	chprintf(chp, "\r\nmpu9150 reg: 0x%x\ti2c error: %d\r\n", mpu9150_driver.txbuf[0], mpu9150_driver.i2c_errors);
-	chprintf(chp, "error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
-#endif
-	void mpu9150_init(I2CDriver* i2cptr) ;
-	while(TRUE) {
-		chThdSleepMilliseconds(1000);
-		mpu9150_a_g_read_id(mpu9150_driver.i2c_instance);
-		chprintf(chp, "\r\nmpu9150 id: 0x%x\ti2c error: %d\r\n", mpu9150_driver.rxbuf[0], mpu9150_driver.i2c_errors);
-#if DEBUG_MPU9150
-		chprintf(chp, "a_g error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
-
-		mpu9150_a_read_x_y_z(mpu9150_driver.i2c_instance, &accel_xyz);
-
-		chprintf(chp, "a_g error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
-		chprintf(chp, "ACCEL: x: %d\ty: %d\tz: %d\r\n", accel_xyz.x, accel_xyz.y, accel_xyz.z);
-
-		mpu9150_g_read_x_y_z(mpu9150_driver.i2c_instance, &gyro_xyz);
-
-		chprintf(chp, "a_g error: %s\r\n", i2c_errno_str(mpu9150_driver.i2c_errors));
-		chprintf(chp, "GRYO:  x: 0x%x\ty: 0x%x\tz: 0x%x\r\n", gyro_xyz.x, gyro_xyz.y, gyro_xyz.z);
-#endif
-
-	}
-	return -1;
-}
+//static WORKING_AREA(waThread_mpu9150, 256);
+///*! \brief MPU9150 thread
+// */
+//static msg_t Thread_mpu9150(void *arg) {
+//	(void)arg;
+//	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+//
+//
+//	chRegSetThreadName("mpu9150");
+//
+//	chThdSleepMilliseconds(1500);
+//
+//
+//	return -1;
+//}
 
 
 #if 0
@@ -311,8 +342,8 @@ int main(void) {
 	/*
 	 * MPU9150 Interrupt pin setup
 	 */
-	palSetPadMode(mpu9150_connections.int_port, mpu9150_connections.int_pad,
-			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_PULLUP | PAL_STM32_MODE_INPUT);
+//	palSetPadMode(mpu9150_connections.int_port, mpu9150_connections.int_pad,
+//			PAL_MODE_ALTERNATE(0) | PAL_STM32_PUDR_PULLUP |PAL_STM32_OSPEED_HIGHEST| PAL_STM32_MODE_INPUT);
 
 	palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
 
@@ -349,15 +380,20 @@ int main(void) {
 	mpu9150_start(&I2CD2);
 	i2cStart(mpu9150_driver.i2c_instance, &mpu9150_config);
 
-	/*! Activates the EXT driver 1. */
-	extStart(&EXTD1, &extcfg);
+
+	mpu9150_init(mpu9150_driver.i2c_instance);
 
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
 	//chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
 	//chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 	chThdCreateStatic(waThread_mpu9150_int,  sizeof(waThread_mpu9150_int),  NORMALPRIO, Thread_mpu9150_int,  NULL);
-	chThdCreateStatic(waThread_mpu9150,      sizeof(waThread_mpu9150),      NORMALPRIO, Thread_mpu9150,      NULL);
+	//chThdCreateStatic(waThread_mpu9150,      sizeof(waThread_mpu9150),      NORMALPRIO, Thread_mpu9150,      NULL);
+
+
+	/*! Activates the EXT driver 1. */
+	extStart(&EXTD1, &extcfg);
+
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {

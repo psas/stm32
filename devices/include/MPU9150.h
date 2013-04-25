@@ -23,11 +23,13 @@ extern "C" {
 #include "ch.h"
 #include "hal.h"
 
+#if !defined(DEBUG_MPU9150) || defined(__DOXYGEN__)
+#define 	DEBUG_MPU9150                   1
+#endif
+
 typedef     uint8_t                               mpu9150_i2c_data;
 typedef     uint8_t                               mpu9150_reg_data;
 typedef     uint8_t                               mpu9150_reg_addr;
-
-#define     DEBUG_MPU9150                         1
 
 #define     MPU9150_MAX_TX_BUFFER                 50
 #define     MPU9150_MAX_RX_BUFFER                 50
@@ -46,6 +48,7 @@ typedef     uint8_t                               mpu9150_reg_addr;
 #define     MPU9150_PM1_X_GYRO_CLOCKREF           ((mpu9150_reg_data)(1<<0))
 #define     MPU9150_PM1_SLEEP                     ((mpu9150_reg_data)(1<<6))
 #define     MPU9150_PM1_RESET                     ((mpu9150_reg_data)(1<<7))
+#define     MPU9150_INT_EN_DATA_RD_EN             ((mpu9150_reg_data)(1<<0))
 
 #if DEBUG_MPU9150
 
@@ -296,11 +299,10 @@ extern       EventSource               mpu9150_int_event;
 
 extern       MPU9150_Driver            mpu9150_driver;
 
-void         mpu9150_int_event_handler(eventid_t id) ;
 void         mpu9150_start(I2CDriver* i2c) ;
-void         mpu9150_init(I2CDriver* i2c) ;
 void         mpu9150_write_gyro_config(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 void         mpu9150_write_accel_config(I2CDriver* i2cptr, mpu9150_reg_data d) ;
+void         mpu9150_reset(I2CDriver* i2cptr) ;
 
 void         mpu9150_test(I2CDriver* i2cptr) ;
 
@@ -308,8 +310,13 @@ void         mpu9150_a_g_read_id(I2CDriver* i2cptr) ;
 void         mpu9150_magn_read_id(I2CDriver* i2cptr);
 void         mpu9150_write_pm1(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 void         mpu9150_write_pin_cfg(I2CDriver* i2cptr, mpu9150_reg_data d) ;
+void         mpu9150_write_int_enable(I2CDriver* i2cptr, mpu9150_reg_data d) ;
+void         mpu9150_a_g_read_int_status(I2CDriver* i2cptr) ;
 void         mpu9150_a_read_x_y_z(I2CDriver* i2cptr, MPU9150_accel_data* d) ;
 void         mpu9150_g_read_x_y_z(I2CDriver* i2cptr, MPU9150_gyro_data* d) ;
+void         mpu9150_write_gyro_sample_rate_div(I2CDriver* i2cptr, mpu9150_reg_data d) ;
+int16_t      mpu9150_temp_to_dC(int16_t raw_temp) ;
+int16_t      mpu9150_a_g_read_temperature(I2CDriver* i2cptr) ;
 
 /*!
  * @}
