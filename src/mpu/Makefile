@@ -62,6 +62,7 @@ endif
 
 # Define project name here
 PROJECT = ch
+
 # Imported source files and paths
 PSAS= ../config
 include $(PSAS)/psas.mk
@@ -71,6 +72,9 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
+include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
+
+
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
@@ -91,6 +95,7 @@ CSRC = $(PORTSRC) \
        $(PSAS_COMMON)/iwdg_lld.c \
        $(PSAS_DEV_SRC)/ADIS16405.c \
        $(PSAS_DEV_SRC)/MPU9150.c \
+       ./data_udp/data_udp.c \
        cmddetail.c \
        extdetail.c \
        usbdetail.c \
@@ -124,10 +129,12 @@ TCPPSRC =
 ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) \
+         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_COMMON) \
-         $(PSAS_DEV_SRC)/include
+	     $(PSAS_COMMON) \
+	     $(PSAS_NET_COMMON) \
+         $(PSAS_DEV_SRC)/include \
+          ./data_udp
 
 #
 # Project, sources and paths

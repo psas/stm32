@@ -223,7 +223,13 @@
 #define GPIOI_PIN13                 13
 #define GPIOI_PIN14                 14
 #define GPIOI_PIN15                 15
-
+/*
+ * Pin alias names for testing
+ */
+#define TIMEOUTPUT_PORT             GPIOD
+#define TIMEINPUT_PORT              GPIOD
+#define TIMEOUTPUT_PIN              GPIOD_PIN5
+#define TIMEINPUT_PIN               GPIOD_PIN3
 /*
  * I/O ports initial setup, this configuration is established soon after reset
  * in the initialization code.
