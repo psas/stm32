@@ -1,6 +1,6 @@
 
 CC=gcc
-CFLAGS += -I../../net_common -lpthread -g
+CFLAGS += -I../../../devices/include -I../../net_common -lpthread -g
 
 .PHONY: clean
 

@@ -32,6 +32,7 @@
 #include "device_net.h"
 #include "mpu_fc.h"
 
+
 #define         MAX_THREADS          4
 #define         NUM_THREADS          1
 #define         TIMEBUFLEN           80
@@ -39,6 +40,18 @@
 
 static          pthread_mutex_t      msg_mutex;
 
+static          MPU9150_read_data    mpu9150_udp_data;
+
+/*! \brief Convert register value to degrees C
+ *
+ * @param raw_temp
+ * @return
+ */
+static int16_t mpu9150_temp_to_dC(int16_t raw_temp) {
+
+	return(raw_temp/340 + 35);
+
+}
 /*!
  * \warning ts had better be TIMEBUFLEN in length
  *
@@ -248,10 +261,15 @@ void *datap_io_thread (void* ptr) {
 			}
 		}
 
+		printf("fc: size of data struct: %d\n", sizeof(MPU9150_read_data));
+        memcpy (&mpu9150_udp_data, recvbuf, sizeof (MPU9150_read_data));
+
 		printf("fc: packet is %d bytes long\n", numbytes);
 		recvbuf[numbytes] = '\0';
-		printf("fc: packet contains \"%s\"\n\n", recvbuf);
-
+		//printf("fc: packet contains \"%s\"\n\n", recvbuf);
+		printf("\r\nraw_temp: %d C\r\n", mpu9150_temp_to_dC(mpu9150_udp_data.celsius));
+		printf("ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_udp_data.accel_xyz.x, mpu9150_udp_data.accel_xyz.y, mpu9150_udp_data.accel_xyz.z);
+		printf("GRYO:  x: 0x%x\ty: 0x%x\tz: 0x%x\r\n", mpu9150_udp_data.gyro_xyz.x, mpu9150_udp_data.gyro_xyz.y, mpu9150_udp_data.gyro_xyz.z);
 		if ((numbytes = sendto(clientsocket_fd, recvbuf, strlen(recvbuf), 0,
 				ai_client->ai_addr, ai_client->ai_addrlen)) == -1) {
 			die_nice("client sendto");
