@@ -23,9 +23,10 @@
 
 #include "MPU9150.h"
 
-mpu9150_cache            mpu9150_cache_data;
 
 MPU9150_Driver           mpu9150_driver;
+MPU9150_read_data        mpu9150_current_read;
+
 EventSource              mpu9150_int_event;
 
 const       systime_t    mpu9150_i2c_timeout        = MS2ST(400);
@@ -34,15 +35,15 @@ const       uint8_t      mpu9150_i2c_magn_addr      = 0x0C;    // See page 28, M
 
 #if DEBUG_MPU9150 || defined(__DOXYGEN__)
 	static i2c_error_info i2c_debug_errors[] = {
-		{"I2C_NO_ERROR    ",   0x00},
-		{"I2C_BUS_ERROR   ",   0x01},
-		{"I2C_ARBIT_LOST  ",   0x02},
-		{"I2C_ACK_FAIL    ",   0x04},
-		{"I2CD_ACK_FAILURE",   0x04},
-		{"I2CD_OVERRUN    ",   0x08},
-		{"I2CD_PEC_ERROR  ",   0x10},
-		{"I2CD_TIMEOUT    ",   0x20},
-		{"I2CD_SMB_ALERT  ",   0x40}
+			{"I2C_NO_ERROR    ",   0x00},
+			{"I2C_BUS_ERROR   ",   0x01},
+			{"I2C_ARBIT_LOST  ",   0x02},
+			{"I2C_ACK_FAIL    ",   0x04},
+			{"I2CD_ACK_FAILURE",   0x04},
+			{"I2CD_OVERRUN    ",   0x08},
+			{"I2CD_PEC_ERROR  ",   0x10},
+			{"I2CD_TIMEOUT    ",   0x20},
+			{"I2CD_SMB_ALERT  ",   0x40}
 	};
 
 	const char* i2c_errno_str(int32_t err) {
@@ -96,12 +97,18 @@ void mpu9150_start(I2CDriver* i2c) {
 	mpu9150_driver.i2c_instance = i2c;
 	for(i=0; i<MPU9150_MAX_TX_BUFFER; ++i) {
 		mpu9150_driver.txbuf[i]        = 0;
-		mpu9150_cache_data.tx_cache[i] = 0;
 	}
 	for(i=0; i<MPU9150_MAX_RX_BUFFER; ++i) {
 		mpu9150_driver.rxbuf[i]        = 0xa5;
-		mpu9150_cache_data.rx_cache[i] = 0xa5;
 	}
+	mpu9150_current_read.accel_xyz.x  = 0;
+	mpu9150_current_read.accel_xyz.y  = 0;
+	mpu9150_current_read.accel_xyz.z  = 0;
+	mpu9150_current_read.gyro_xyz.x   = 0;
+	mpu9150_current_read.gyro_xyz.y   = 0;
+	mpu9150_current_read.gyro_xyz.z   = 0;
+	mpu9150_current_read.celsius      = 0;
+
 	chEvtInit(&mpu9150_int_event);
 }
 
@@ -193,7 +200,6 @@ void mpu9150_write_fifo_en(I2CDriver* i2cptr, mpu9150_reg_data d) {
 	}
 }
 
-
 /*! \brief read the accel-gyro id
  *
  */
@@ -266,7 +272,6 @@ void mpu9150_a_g_read_int_status(I2CDriver* i2cptr) {
 		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
 	}
 }
-
 
 /*! \brief read the accel-gyro fifo count
  *
@@ -342,7 +347,6 @@ void mpu9150_a_read_x_y_z(I2CDriver* i2cptr, MPU9150_accel_data* d) {
 	}
 }
 
-
 /*! \brief read the gyro x,y,z
  *
  */
@@ -387,9 +391,6 @@ void mpu9150_g_read_x_y_z(I2CDriver* i2cptr, MPU9150_gyro_data* d) {
 		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
 	}
 }
-
-
-
 
 /*! \read the magnetometer AK8975C id
  *

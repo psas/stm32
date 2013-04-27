@@ -244,9 +244,9 @@ void *datap_io_thread (void* ptr) {
 			}
 		}
 
-	//	printf("fc: packet is %d bytes long\n", numbytes);
+		printf("fc: packet is %d bytes long\n", numbytes);
 		recvbuf[numbytes] = '\0';
-	//	printf("fc: packet contains \"%s\"\n\n", recvbuf);
+		printf("fc: packet contains \"%s\"\n\n", recvbuf);
 
 		if ((numbytes = sendto(clientsocket_fd, recvbuf, strlen(recvbuf), 0,
 				ai_client->ai_addr, ai_client->ai_addrlen)) == -1) {

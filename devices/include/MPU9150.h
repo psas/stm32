@@ -225,19 +225,6 @@ typedef enum mpu9150_gyro_scale {
 	MPU9150_G_SCALE_pm2000  = (0b11 << 3) //!< MPU9150_G_SCALE_pm2000
 } mpu9150_gyro_scale;
 
-/*!
- * Another transaction may begin which would corrupt the tx and rx
- * buffers.
- */
-typedef struct {
-	uint8_t               current_rx_numbytes;
-	uint8_t               current_tx_numbytes;
-	mpu9150_a_g_regaddr   a_g_reg;
-	mpu9150_magn_regaddr  magn_reg;
-	mpu9150_reg_data          tx_cache[MPU9150_MAX_TX_BUFFER];
-	mpu9150_reg_data          rx_cache[MPU9150_MAX_RX_BUFFER];
-} mpu9150_cache;
-
 
 /*! \typedef Structure for keeping track of an MPU9150 transaction
  *
@@ -272,6 +259,15 @@ typedef struct mpu9150_gyro_data {
 	uint16_t z;
 } MPU9150_gyro_data;
 
+/*! \typedef Read Data from mpu9150
+ *
+ */
+typedef struct mpu9150_read_data {
+	MPU9150_gyro_data     gyro_xyz;
+	MPU9150_accel_data    accel_xyz;
+	int16_t               celsius;
+} MPU9150_read_data;
+
 /*! \typedef mpu9150_config
  *
  * Configuration for the MPU IMU connections
@@ -293,19 +289,18 @@ typedef struct {
 
 extern const I2CConfig                 mpu9150_config;
 extern const mpu9150_connect           mpu9150_connections ;
-extern       mpu9150_cache             mpu9150_cache_data;
+
+extern       MPU9150_read_data         mpu9150_current_read;
 
 extern       EventSource               mpu9150_int_event;
 
 extern       MPU9150_Driver            mpu9150_driver;
 
 void         mpu9150_start(I2CDriver* i2c) ;
-void         mpu9150_write_gyro_config(I2CDriver* i2cptr, mpu9150_reg_data d) ;
-void         mpu9150_write_accel_config(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 void         mpu9150_reset(I2CDriver* i2cptr) ;
 
-void         mpu9150_test(I2CDriver* i2cptr) ;
-
+void         mpu9150_write_gyro_config(I2CDriver* i2cptr, mpu9150_reg_data d) ;
+void         mpu9150_write_accel_config(I2CDriver* i2cptr, mpu9150_reg_data d) ;
 void         mpu9150_a_g_read_id(I2CDriver* i2cptr) ;
 void         mpu9150_magn_read_id(I2CDriver* i2cptr);
 void         mpu9150_write_pm1(I2CDriver* i2cptr, mpu9150_reg_data d) ;
