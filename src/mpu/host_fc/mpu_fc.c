@@ -10,12 +10,12 @@
  */
 
 /*!
- * Flight computer (Linux-os) running datapath test
- * between two STM based boards
+ * MPU9150 connected to smt32 olimex e407 through i2c connected through ethernet to FC
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <stdbool.h>
 #include <pthread.h>
 #include <errno.h>
@@ -47,11 +47,27 @@ static          MPU9150_read_data    mpu9150_udp_data;
  * @param raw_temp
  * @return
  */
-static int16_t mpu9150_temp_to_dC(int16_t raw_temp) {
-
-	return(raw_temp/340 + 35);
-
+static double mpu9150_temp_to_dC(int16_t raw_temp) {
+	return(((double)raw_temp)/340 + 35);
 }
+
+
+struct timeval GetTimeStamp() {
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return tv;
+}
+
+static double timestamp_now() {
+	struct timeval tv;
+	double tstamp;
+
+	tv          = GetTimeStamp();
+	tstamp      = tv.tv_sec + (tv.tv_usec * .000001);
+
+	return tstamp;
+}
+
 /*!
  * \warning ts had better be TIMEBUFLEN in length
  *
@@ -151,11 +167,14 @@ void *datap_io_thread (void* ptr) {
 	int                       numbytes;
 	socklen_t                 addr_len;
 
+	char                      timestring[TIMEBUFLEN];
 	char                      ipstr[INET6_ADDRSTRLEN];
 	char                      recvbuf[MAXBUFLEN];
 	char                      s[INET6_ADDRSTRLEN];
 
 	pthread_t                 my_id;
+
+	FILE                   *fp;
 
 	struct addrinfo           hints, *res, *p, *ai_client;
 	struct sockaddr_storage   client_addr;
@@ -168,6 +187,12 @@ void *datap_io_thread (void* ptr) {
 	hints.ai_flags                 = AI_PASSIVE; // use local host address.
 
 	fprintf(stderr, "%s: listen port %s\n", __func__, port_info->host_listen_port);
+
+	fp       = fopen("mpu9150_log.txt", "w");
+	get_current_time(timestring) ;
+	fprintf(fp, "# mpu9150 IMU data started at: %s\n", timestring);
+	fprintf(fp, "# mpu9150 IMU raw data\n");
+	fprintf(fp, "# timestamp,ax,ay,az,gx,gy,gz,C\n");
 
 	/*!
 	 * Getting address of THIS machine.
@@ -239,6 +264,7 @@ void *datap_io_thread (void* ptr) {
 	}
 
 	for(i=0; i<NPACK; ++i) {
+
 		struct sockaddr        *sa;
 		socklen_t              len;
 		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
@@ -267,7 +293,17 @@ void *datap_io_thread (void* ptr) {
 		printf("fc: packet is %d bytes long\n", numbytes);
 		recvbuf[numbytes] = '\0';
 		//printf("fc: packet contains \"%s\"\n\n", recvbuf);
-		printf("\r\nraw_temp: %d C\r\n", mpu9150_temp_to_dC(mpu9150_udp_data.celsius));
+		fprintf(fp, "%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
+				timestamp_now(),
+				mpu9150_udp_data.accel_xyz.x,
+				mpu9150_udp_data.accel_xyz.y,
+				mpu9150_udp_data.accel_xyz.z,
+				mpu9150_udp_data.gyro_xyz.x,
+				mpu9150_udp_data.gyro_xyz.y,
+				mpu9150_udp_data.gyro_xyz.z,
+				mpu9150_temp_to_dC(mpu9150_udp_data.celsius) );
+
+		printf("\r\nraw_temp: %3.2f C\r\n", mpu9150_temp_to_dC(mpu9150_udp_data.celsius));
 		printf("ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_udp_data.accel_xyz.x, mpu9150_udp_data.accel_xyz.y, mpu9150_udp_data.accel_xyz.z);
 		printf("GRYO:  x: 0x%x\ty: 0x%x\tz: 0x%x\r\n", mpu9150_udp_data.gyro_xyz.x, mpu9150_udp_data.gyro_xyz.y, mpu9150_udp_data.gyro_xyz.z);
 		if ((numbytes = sendto(clientsocket_fd, recvbuf, strlen(recvbuf), 0,
@@ -275,6 +311,9 @@ void *datap_io_thread (void* ptr) {
 			die_nice("client sendto");
 		}
 	}
+	get_current_time(timestring) ;
+	fprintf(fp, "# mpu9150 IMU data closed at: %s\n", timestring);
+	fclose(fp);
 	close(hostsocket_fd);
 	close(clientsocket_fd);
 	freeaddrinfo(res); // free the linked list
