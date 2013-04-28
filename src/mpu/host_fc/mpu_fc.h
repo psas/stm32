@@ -12,7 +12,7 @@
 
 #define         MAXBUFLEN               512
 #define         NETBUFLEN               512
-#define         NPACK                   10000
+#define         NPACK                   1000
 #define         PORT_STRING_LEN         6
 
 typedef enum thd_index {
