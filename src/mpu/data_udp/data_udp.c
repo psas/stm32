@@ -25,8 +25,8 @@
  * author is unknown because the file didn't contain any license information.
  */
 
-/*! \brief Sensor datapath node.
- * \defgroup dataudp Data Sensor UDP PSAS Experiment
+/*! \brief MPU Sensor datapath node.
+ * \defgroup dataudp-mpu MPU Data Sensor UDP PSAS Experiment
  * @{
  */
 
@@ -56,8 +56,9 @@
 EventSource                        mpu9150_data_event;
 static        MPU9150_MAC_info     mpu9150_mac_info;
 
-WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
-
+/*! \brief Initialize events for threads
+ *
+ */
 void data_udp_init(void) {
 		chEvtInit(&mpu9150_data_event);
 }
@@ -65,29 +66,23 @@ void data_udp_init(void) {
 /*! \brief event handler for mpu9150 udp data
  *  send one packet of mpu9150 data on event.
  */
-void data_udp_send_mpu9150_data(eventid_t id) {
+static void data_udp_send_mpu9150_data(eventid_t id) {
 	(void) id;
-	char                      msg[DATA_UDP_MSG_SIZE] ;
-	static uint8_t                   count = 0;
 	uint8_t*                  data;
-	//BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-	//chprintf(chp, "+");
 
 	mpu9150_mac_info.buf     =  netbuf_new();
 
 	data    =  netbuf_alloc(mpu9150_mac_info.buf, sizeof(MPU9150_read_data));
-//	data    =  netbuf_alloc(mpu9150_mac_info.buf, sizeof(msg));
 	if(data != NULL) {
-		sprintf(msg, "mpu9150 tx: %d", count++);
-		//memcpy (data, msg, sizeof (msg));
 		memcpy (data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data));
-//		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netconn_send(mpu9150_mac_info.conn, mpu9150_mac_info.buf);
-//		palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+		palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netbuf_delete(mpu9150_mac_info.buf);
 	}
 }
 
+WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 msg_t data_udp_send_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
 
@@ -170,14 +165,7 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	netbuf_delete(inbuf);
 }
 
-/*!
- * Stack area for the data_udp_receive_thread.
- */
 WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
-
-/*!
- * data_udp_rx  thread.
- */
 msg_t data_udp_receive_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
 
