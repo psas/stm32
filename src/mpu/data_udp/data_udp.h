@@ -24,7 +24,7 @@
 */
 
  /* \brief UDP Server wrapper thread
- * @addtogroup dataudp
+ * @addtogroup dataudp-mpu
  * @{
  */
 
@@ -61,9 +61,10 @@ extern EventSource                           mpu9150_data_event;
 #ifdef __cplusplus
 extern "C" {
 #endif
+  void data_udp_init(void) ;
   msg_t data_udp_send_thread(void *p);
   msg_t data_udp_receive_thread(void *p);
-  void data_udp_init(void) ;
+
 
 #ifdef __cplusplus
 }

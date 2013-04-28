@@ -5,13 +5,10 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
-/*! \mainpage adis ADIS IMU experiments
+/*! \mainpage mpu MPU IMU experiments
 *
 *
 * \section intro Introduction
-*
-* This code is for experimenting with the STM32F407 microcontroller SPI interface
-* and ChibiOS with the ADIS IMU.
 *
 * \section filestructure File Tree
 *

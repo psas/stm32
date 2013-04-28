@@ -11,7 +11,7 @@
 
 
 /*!
- * \defgroup mainapp Application
+ * \defgroup mpu-mainapp MPU Application
  * @{
  */
 
@@ -116,6 +116,18 @@ const I2CConfig mpu9150_config = {
 		// STD_DUTY_CYCLE,
 };
 
+/*! \typedef mpu9150_config
+ *
+ * Configuration for the MPU IMU connections
+ */
+const mpu9150_connect mpu9150_connections = {
+		GPIOF,                // i2c sda port
+		0,                    // i2c_sda_pad
+		GPIOF,                // i2c_scl_port
+		1,                    // i2c scl pad
+		GPIOF,                // interrupt port
+		2,                    // interrupt pad;
+};
 
 /*! \brief Initialize mpu9150
  *
@@ -157,8 +169,8 @@ static void mpu9150_int_event_handler(eventid_t id) {
 	mpu9150_g_read_x_y_z(mpu9150_driver.i2c_instance, &mpu9150_current_read.gyro_xyz);
 
 	mpu9150_current_read.celsius =  mpu9150_a_g_read_temperature(mpu9150_driver.i2c_instance) ;
-//
-////	/* broadcast event to data_udp thread for enet transmit to FC */
+
+	/* broadcast event to data_udp thread for enet transmit to FC */
 	chEvtBroadcast(&mpu9150_data_event);
 
 	/* clear the interrupt status bits on mpu9150 */
@@ -166,12 +178,6 @@ static void mpu9150_int_event_handler(eventid_t id) {
 
 #if	DEBUG_MPU9150
 	++count;
-	if (count %1000 == 0 ) {
-
-		//	/* broadcast event to data_udp thread for enet transmit to FC */
-		//	chEvtBroadcast(&mpu9150_data_event);
-
-	}
 	if (count > 5000) {
 				chprintf(chp, "\r\nraw_temp: %d C\r\n", mpu9150_temp_to_dC(mpu9150_current_read.celsius));
 				chprintf(chp, "ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_current_read.accel_xyz.x, mpu9150_current_read.accel_xyz.y, mpu9150_current_read.accel_xyz.z);
@@ -181,21 +187,6 @@ static void mpu9150_int_event_handler(eventid_t id) {
 #endif
 
 }
-
-
-/*! \typedef mpu9150_config
- *
- * Configuration for the MPU IMU connections
- */
-const mpu9150_connect mpu9150_connections = {
-		GPIOF,                // i2c sda port
-		0,                    // i2c_sda_pad
-		GPIOF,                // i2c_scl_port
-		1,                    // i2c scl pad
-		GPIOF,                // interrupt port
-		2,                    // interrupt pad;
-};
-
 static WORKING_AREA(waThread_blinker, 64);
 /*! \brief Green LED blinker thread
  */
@@ -226,22 +217,6 @@ static msg_t Thread_mpu9150_int(void* arg) {
 	}
 	return -1;
 }
-
-//static WORKING_AREA(waThread_mpu9150, 256);
-///*! \brief MPU9150 thread
-// */
-//static msg_t Thread_mpu9150(void *arg) {
-//	(void)arg;
-//	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-//
-//
-//	chRegSetThreadName("mpu9150");
-//
-//	chThdSleepMilliseconds(1500);
-//
-//
-//	return -1;
-//}
 
 
 #if 0
@@ -367,18 +342,13 @@ int main(void) {
 	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
 	/*
-	 * I2C2 I/O pins setup.
+	 * I2C2 I/O pins setup
 	 */
 	palSetPadMode(mpu9150_connections.i2c_sda_port , mpu9150_connections.i2c_sda_pad,
 			PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST |PAL_STM32_PUDR_FLOATING );
 	palSetPadMode(mpu9150_connections.i2c_scl_port, mpu9150_connections.i2c_scl_pad,
 			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
 
-	/*
-	 * MPU9150 Interrupt pin setup
-	 */
-	//	palSetPadMode(mpu9150_connections.int_port, mpu9150_connections.int_pad,
-	//			PAL_MODE_ALTERNATE(0) | PAL_STM32_PUDR_PULLUP |PAL_STM32_OSPEED_HIGHEST| PAL_STM32_MODE_INPUT);
 
 	palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
 
