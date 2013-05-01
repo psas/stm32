@@ -110,7 +110,7 @@ msg_t data_udp_send_thread(void *p) {
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
-	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU1;
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
 	static uint8_t       count  = 0;
 

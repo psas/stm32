@@ -89,7 +89,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
-       usbdetail.c \
+       $(PSAS_COMMON)/usbdetail.c \
        pwmdetail.c \
 	main.c
 
@@ -122,6 +122,7 @@ ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
+	 $(PSAS_COMMON) \
          $(CHIBIOS)/os/various
 
 #
