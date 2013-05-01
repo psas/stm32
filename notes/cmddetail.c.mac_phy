@@ -18,9 +18,6 @@
 #include "mac.h"
 #include "cmddetail.h"
 #include "stm32f4xx.h"
-
-#define 		DEBUG_PHY 			0
-
 /*! \brief Show memory usage
  *
  * @param chp
@@ -68,9 +65,27 @@ void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 
-/*! \brief   Read a PHY register.
- *
- */
+/* MII divider optimal value.*/
+#if (STM32_HCLK >= 150000000)
+#define MACMIIDR_CR ETH_MACMIIAR_CR_Div102
+#elif (STM32_HCLK >= 100000000)
+#define MACMIIDR_CR ETH_MACMIIAR_CR_Div62
+#elif (STM32_HCLK >= 60000000)
+#define MACMIIDR_CR     ETH_MACMIIAR_CR_Div42
+#elif (STM32_HCLK >= 35000000)
+#define MACMIIDR_CR     ETH_MACMIIAR_CR_Div26
+#elif (STM32_HCLK >= 20000000)
+#define MACMIIDR_CR     ETH_MACMIIAR_CR_Div16
+#else
+#error "STM32_HCLK below minimum frequency for ETH operations (20MHz)"
+#endif
+
+
+
+
+///* @brief   Reads a PHY register.
+// *
+// */
 static uint32_t mii_read(MACDriver *macp, uint32_t reg) {
 
  ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR | ETH_MACMIIAR_MB;
@@ -78,9 +93,10 @@ static uint32_t mii_read(MACDriver *macp, uint32_t reg) {
    ;
  return ETH->MACMIIDR;
 }
+#define MII_BMCR                0x00    /**< Basic mode control register.   */
 
-#if DEBUG_PHY
-/*! \brief   Writes a PHY register.
+/**
+ * @brief   Writes a PHY register.
  *
  * @param[in] macp      pointer to the @p MACDriver object
  * @param[in] reg       register number
@@ -94,18 +110,16 @@ static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) {
   while ((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
 	  ;
 }
-#endif
-
 void cmd_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
-	uint32_t phy_val     = 0;
+	uint32_t phy_q = 0;
 	uint32_t reg_to_ping = 0;
-
 	//uint32_t bmcr_val = 0;
 
 	if (argc > 1) {
-		chprintf(chp, "Usage: phy reg(decimal)\r\n");
+		chprintf(chp, "Usage: phy reg\r\n");
 		return;
 	}
+
 
 //	bmcr_val = mii_read(&ETHD1, MII_BMCR);
 //
@@ -116,8 +130,8 @@ void cmd_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
 //	mii_write(&ETHD1, 0x1f,( bmcr_val | 1<<13));
 
 	reg_to_ping = atoi(argv[0]);
-	phy_val = mii_read(&ETHD1, reg_to_ping);
-	chprintf(chp, "phy reg 0x%x value:\t0x%x\n\r", reg_to_ping, phy_val);
+	phy_q = mii_read(&ETHD1, reg_to_ping);
+	chprintf(chp, "phy reg 0x%x: 0x%x\n\r", reg_to_ping, phy_q);
 
 }
 //! @}

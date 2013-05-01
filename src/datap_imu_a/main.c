@@ -43,6 +43,7 @@
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
 		{"threads", cmd_threads},
+		{"phy", cmd_phy},
 		{NULL, NULL}
 };
 
