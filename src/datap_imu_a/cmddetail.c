@@ -102,7 +102,7 @@ void cmd_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 	//uint32_t bmcr_val = 0;
 
-	if (argc > 1) {
+	if (argc != 1) {
 		chprintf(chp, "Usage: phy reg(decimal)\r\n");
 		return;
 	}
