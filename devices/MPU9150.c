@@ -101,13 +101,15 @@ void mpu9150_start(I2CDriver* i2c) {
 	for(i=0; i<MPU9150_MAX_RX_BUFFER; ++i) {
 		mpu9150_driver.rxbuf[i]        = 0xa5;
 	}
-	mpu9150_current_read.accel_xyz.x  = 0;
-	mpu9150_current_read.accel_xyz.y  = 0;
-	mpu9150_current_read.accel_xyz.z  = 0;
-	mpu9150_current_read.gyro_xyz.x   = 0;
-	mpu9150_current_read.gyro_xyz.y   = 0;
-	mpu9150_current_read.gyro_xyz.z   = 0;
-	mpu9150_current_read.celsius      = 0;
+	mpu9150_current_read.hdr.data_length = sizeof(MPU9150_read_data) - sizeof(PSAS_data_header);
+	mpu9150_current_read.hdr.id          = ID_MPU9150;
+	mpu9150_current_read.accel_xyz.x     = 0;
+	mpu9150_current_read.accel_xyz.y     = 0;
+	mpu9150_current_read.accel_xyz.z     = 0;
+	mpu9150_current_read.gyro_xyz.x      = 0;
+	mpu9150_current_read.gyro_xyz.y      = 0;
+	mpu9150_current_read.gyro_xyz.z      = 0;
+	mpu9150_current_read.celsius         = 0;
 
 	chEvtInit(&mpu9150_int_event);
 }

@@ -15,6 +15,17 @@
 #define         NPACK                   1000
 #define         PORT_STRING_LEN         6
 
+typedef enum psas_sensor_id {
+	ID_ADIS    = 0,
+	ID_MPU9150,
+	ID_MPL3115A2
+} PSAS_Sensor_id;
+
+typedef struct psas_data_header {
+	PSAS_Sensor_id       id;
+	uint16_t             data_length;
+} PSAS_data_header;
+
 typedef enum thd_index {
 	SENSOR_LISTENER,
 	CONTROL_LISTENER
@@ -27,7 +38,6 @@ typedef struct Ports {
 	char               client_port[PORT_STRING_LEN];
 } Ports;
 
-
 /*! \typedef Structure for accelerometer data
  *
  *
@@ -37,7 +47,6 @@ typedef struct mpu9150_accel_data {
 	uint16_t y;
 	uint16_t z;
 } MPU9150_accel_data;
-
 
 /*! \typedef Structure for gyroscope data
  *
@@ -53,11 +62,11 @@ typedef struct mpu9150_gyro_data {
  *
  */
 typedef struct mpu9150_read_data {
+	PSAS_data_header      hdr;
 	MPU9150_gyro_data     gyro_xyz;
 	MPU9150_accel_data    accel_xyz;
 	int16_t               celsius;
 } MPU9150_read_data;
-
 
 #endif
 
