@@ -69,12 +69,16 @@ void data_udp_init(void) {
 static void data_udp_send_mpu9150_data(eventid_t id) {
 	(void) id;
 	uint8_t*                  data;
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
 	mpu9150_mac_info.buf     =  netbuf_new();
+	chprintf(chp, "ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_current_read.accel_xyz.x, mpu9150_current_read.accel_xyz.y, mpu9150_current_read.accel_xyz.z);
 
 	data    =  netbuf_alloc(mpu9150_mac_info.buf, sizeof(MPU9150_read_data));
 	if(data != NULL) {
 		memcpy (data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data));
+		chprintf(chp, "size: %d\r\n", sizeof(MPU9150_read_data));
+
 		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netconn_send(mpu9150_mac_info.conn, mpu9150_mac_info.buf);
 		palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
@@ -129,7 +133,7 @@ msg_t data_udp_send_thread(void *p) {
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
-	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU1;
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
 	static uint8_t       count  = 0;
 

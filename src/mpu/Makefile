@@ -98,7 +98,7 @@ CSRC = $(PORTSRC) \
        ./data_udp/data_udp.c \
        cmddetail.c \
        extdetail.c \
-       usbdetail.c \
+       $(PSAS_COMMON)/usbdetail.c \
 	main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

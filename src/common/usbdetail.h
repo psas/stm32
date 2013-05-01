@@ -13,16 +13,29 @@
 #include "ch.h"
 #include "hal.h"
 #include "serial_usb.h"
-#include "usb_cdc.h"
 #include "usb.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+// OTG2 connector has problems on Olimex E407 board?
+#define PSAS_USE_OTG1                       1
+
     /*
      * Serial over USB Driver structure.
      */
-    extern struct SerialUSBDriver SDU1;
+extern struct SerialUSBDriver SDU_PSAS;
+
+#if PSAS_USE_OTG1
+	#define USBD1_DATA_REQUEST_EP           1
+	#define USBD1_DATA_AVAILABLE_EP         1
+	#define USBD1_INTERRUPT_REQUEST_EP      2
+#else
+	#define USBD2_DATA_REQUEST_EP           1
+	#define USBD2_DATA_AVAILABLE_EP         1
+	#define USBD2_INTERRUPT_REQUEST_EP      2
+#endif
 
     /*
      * USB driver configuration.

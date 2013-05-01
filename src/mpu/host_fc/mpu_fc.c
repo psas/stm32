@@ -291,7 +291,7 @@ void *datap_io_thread (void* ptr) {
         memcpy (&mpu9150_udp_data, recvbuf, sizeof (MPU9150_read_data));
 
 		printf("fc: packet is %d bytes long\n", numbytes);
-		recvbuf[numbytes] = '\0';
+		// recvbuf[numbytes] = '\0';
 		//printf("fc: packet contains \"%s\"\n\n", recvbuf);
 		fprintf(fp, "%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
 				timestamp_now(),

@@ -15,17 +15,4 @@
 #define         FC_LISTEN_PORT_IMU_A     36000   // different ports for different sensors?
 #define         FC_LISTEN_PORT_ROLL_CTL  36002
 
-typedef enum psas_sensor_id {
-	ID_ADIS    = 0,
-	ID_MPU9150,
-	ID_MPL3115A2
-} PSAS_Sensor_id;
-
-
-typedef struct psas_data_header {
-	PSAS_Sensor_id       id;
-	uint16_t             data_length;
-} PSAS_data_header;
-
-
 #endif

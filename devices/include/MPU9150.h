@@ -262,7 +262,6 @@ typedef struct mpu9150_gyro_data {
  *
  */
 typedef struct mpu9150_read_data {
-	PSAS_data_header      hdr;
 	MPU9150_gyro_data     gyro_xyz;
 	MPU9150_accel_data    accel_xyz;
 	int16_t               celsius;
