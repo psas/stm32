@@ -130,7 +130,7 @@ static msg_t Thread_blinker(void *arg) {
 	}
 	return -1;
 }
-
+/*
 static WORKING_AREA(waThread_mpl3115a2_int, 128);
 static msg_t Thread_mpl3115a2_int(void* arg) {
 	(void) arg;
@@ -148,7 +148,7 @@ static msg_t Thread_mpl3115a2_int(void* arg) {
 	}
 	return -1;
 }
-
+*/
 static WORKING_AREA(waThread_mpl3115a2, 256);
 /*! \brief MPU9150 thread
  */
@@ -349,7 +349,7 @@ int main(void) {
 	//chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
 	//chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
-	chThdCreateStatic(waThread_mpl3115a2_int,  sizeof(waThread_mpl3115a2_int),  NORMALPRIO, Thread_mpl3115a2_int,  NULL);
+	//chThdCreateStatic(waThread_mpl3115a2_int,  sizeof(waThread_mpl3115a2_int),  NORMALPRIO, Thread_mpl3115a2_int,  NULL);
 	chThdCreateStatic(waThread_mpl3115a2,      sizeof(waThread_mpl3115a2),      NORMALPRIO, Thread_mpl3115a2,      NULL);
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
