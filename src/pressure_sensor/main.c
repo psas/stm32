@@ -35,6 +35,7 @@
 #include "ADIS16405.h"
 
 #include "main.h"
+#include "board.h"
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -54,12 +55,16 @@ static const ShellConfig shell_cfg1 = {
  * For burst mode ADIS SPI is limited to 1Mhz.
  */
 #if 1
+
+/*
 const SPIConfig adis_spicfg = {
 		adis_spi_cb,
 		GPIOA,
 		4,
 		SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
 };
+
+*/
 #else
 const SPIConfig adis_spicfg = {
 		NULL,
@@ -74,6 +79,8 @@ const SPIConfig adis_spicfg = {
 /*! \brief ADIS SPI Pin connections
  *
  */
+
+ /*
 const adis_connect adis_connections = {
 		GPIOA,      // spi_sck_port
 		5,          // spi_sck_pad;
@@ -95,12 +102,14 @@ const adis_connect adis_connections = {
 		12          // dio4_pad
 };
 
+*/
+
 /*! configure the i2c module on stm32
  *
  */
 const I2CConfig mpl3115a2_config = {
     OPMODE_I2C,
-    100000,                // i2c clock speed. Test at 400000 when r=4.7k
+    400000,                // i2c clock speed. Test at 400000 when r=4.7k
     // FAST_DUTY_CYCLE_2,
     STD_DUTY_CYCLE,
 };
@@ -155,87 +164,46 @@ static WORKING_AREA(waThread_mpl3115a2, 256);
 static msg_t Thread_mpl3115a2(void *arg) {
 	(void)arg;
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-	float altitude;
-	float temperature;
+	//float altitude;
+	//float temperature;
 	chRegSetThreadName("mpl3115a2");
-
-	chThdSleepMilliseconds(1000);
-	//mpl3115a2_setup(mpl3115a2_driver.i2c_instance);
-	mpl3115a2_start(mpl3115a2_driver.i2c_instance);
 	
-//#if DEBUG_MPU9150
-	//chprintf(chp, "\r\nmpl3115a2 reg: 0x%x\ti2c error: %d\r\n", mpl3115a2_driver.txbuf[0], mpl3115a2_driver.i2c_errors);
-	//chprintf(chp, "error: %s\r\n", i2c_errno_str(mpl3115a2_driver.i2c_errors));
-//#endif
-	while(TRUE) {
-		chThdSleepMilliseconds(1000);
-		//mpl3115a2_a_g_read_id(mpl3115a2_driver.i2c_instance);
-		//chprintf(chp, "\r\nmpl3115a2 id: 0x%x\ti2c error: %d\r\n", mpl3115a2_driver.rxbuf[0], mpl3115a2_driver.i2c_errors);
-//#if DEBUG_MPU9150
-	//	chprintf(chp, "a_g error: %s\r\n", i2c_errno_str(mpl3115a2_driver.i2c_errors));
-//#endif
-		altitude =  mpl3115a2_get_altitude(mpl3115a2_driver.i2c_instance);
-		temperature = mpl3115a2_get_temperature(mpl3115a2_driver.i2c_instance);
-		chprintf(chp,"Altitude %f Temperature %f\n", altitude, temperature);
-	
-
-	}
+	//while (TRUE) {
+		//chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
+	//}
 	return -1;
 }
 
 
-#if 0
-static WORKING_AREA(waThread_adis_newdata, 256);
-/*! \brief ADIS Newdata Thread
- */
-static msg_t Thread_adis_newdata(void *arg) {
-	(void)arg;
-	chRegSetThreadName("adis_newdata");
-
-	static const evhandler_t evhndl_newdata[]       = {
-			adis_newdata_handler
-	};
-	struct EventListener     evl_spi_cb2;
-
-	chEvtRegister(&adis_spi_cb_newdata, &evl_spi_cb2, 0);
-
-	while (TRUE) {
-		chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
-	}
-	return -1;
-}
-
-
-static WORKING_AREA(waThread_adis_dio1, 128);
+//static WORKING_AREA(waThread_adis_dio1, 128);
 /*! \brief ADIS DIO1 thread
  *
  * For burst mode transactions t_readrate is 1uS
  *
  */
-static msg_t Thread_adis_dio1(void *arg) {
-	(void)arg;
-	static const evhandler_t evhndl_dio1[]       = {
-			adis_burst_read_handler,
-			//adis_read_id_handler,
-			adis_spi_cb_txdone_handler,
-			adis_release_bus
-	};
-	struct EventListener     evl_dio;
-	struct EventListener     evl_spi_ev;
-	struct EventListener     evl_spi_release;
-
-	chRegSetThreadName("adis_dio");
-
-	chEvtRegister(&adis_dio1_event,           &evl_dio,         0);
-	chEvtRegister(&adis_spi_cb_txdone_event,  &evl_spi_ev,      1);
-	chEvtRegister(&adis_spi_cb_releasebus,    &evl_spi_release, 2);
-
-	while (TRUE) {
-		chEvtDispatch(evhndl_dio1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), US2ST(50)));
-	}
-	return -1;
-}
-#endif
+//static msg_t Thread_adis_dio1(void *arg) {
+//	(void)arg;
+//	static const evhandler_t evhndl_dio1[]       = {
+//			adis_burst_read_handler,
+//			//adis_read_id_handler,
+//			adis_spi_cb_txdone_handler,
+//			adis_release_bus
+//	};
+//	struct EventListener     evl_dio;
+//	struct EventListener     evl_spi_ev;
+//	struct EventListener     evl_spi_release;
+//
+//	chRegSetThreadName("adis_dio");
+//
+//	chEvtRegister(&adis_dio1_event,           &evl_dio,         0);
+//	chEvtRegister(&adis_spi_cb_txdone_event,  &evl_spi_ev,      1);
+//	chEvtRegister(&adis_spi_cb_releasebus,    &evl_spi_release, 2);
+//
+//	while (TRUE) {
+//		chEvtDispatch(evhndl_dio1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), US2ST(50)));
+//	}
+//	return -1;
+//}
 
 static WORKING_AREA(waThread_indwatchdog, 64);
 /*! \brief  Watchdog thread
@@ -250,6 +218,8 @@ static msg_t Thread_indwatchdog(void *arg) {
 	}
 	return -1;
 }
+
+
 
 int main(void) {
 	static Thread            *shelltp       = NULL;
@@ -270,13 +240,11 @@ int main(void) {
 
 	extdetail_init();
 
-	palSetPad(GPIOC, GPIOC_LED);
-	palSetPad(GPIOA, GPIOA_SPI1_SCK);
-	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
 	/*
 	 * SPI1 I/O pins setup.
 	 */
+	 /*
 	palSetPadMode(adis_connections.spi_sck_port, adis_connections.spi_sck_pad,
 			PAL_MODE_ALTERNATE(5) |
 			PAL_STM32_OSPEED_HIGHEST);
@@ -292,6 +260,8 @@ int main(void) {
 
 	palSetPad(GPIOA, GPIOA_SPI1_SCK);
 	palSetPad(GPIOA, GPIOA_SPI1_NSS);
+
+	*/
 
 	/*
 	 * I2C2 I/O pins setup.
@@ -333,24 +303,20 @@ int main(void) {
 	 * Activates the serial driver 6 and SDC driver 1 using default
 	 * configuration.
 	 */
-	sdStart(&SD6, NULL);
+	//sdStart(&SD6, NULL);
 
-	spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
+	//spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
 	chThdSleepMilliseconds(300);
 
-	mpl3115a2_start(&I2CD2);
-	i2cStart(mpl3115a2_driver.i2c_instance, &mpl3115a2_config);
-
+	//i2cStart(mpl3115a2_driver.i2c_instance, &mpl3115a2_config);
+	//mpl3115a2_start(&I2CD2);
 	/*! Activates the EXT driver 1. */
-	extStart(&EXTD1, &extcfg);
+	//extStart(&EXTD1, &extcfg);
 
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
-	//chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
-	//chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
-	//chThdCreateStatic(waThread_mpl3115a2_int,  sizeof(waThread_mpl3115a2_int),  NORMALPRIO, Thread_mpl3115a2_int,  NULL);
-	chThdCreateStatic(waThread_mpl3115a2,      sizeof(waThread_mpl3115a2),      NORMALPRIO, Thread_mpl3115a2,      NULL);
+	//chThdCreateStatic(waThread_mpl3115a2,      sizeof(waThread_mpl3115a2),      NORMALPRIO, Thread_mpl3115a2,      NULL);
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
