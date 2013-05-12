@@ -36,7 +36,7 @@
 
 #include "main.h"
 #include "board.h"
-
+//BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
 		{"threads", cmd_threads},
@@ -110,8 +110,8 @@ const adis_connect adis_connections = {
 const I2CConfig mpl3115a2_config = {
     OPMODE_I2C,
     400000,                // i2c clock speed. Test at 400000 when r=4.7k
-    // FAST_DUTY_CYCLE_2,
-    STD_DUTY_CYCLE,
+    FAST_DUTY_CYCLE_2,
+    //STD_DUTY_CYCLE,
 };
 
 /*! \typedef mpl3115a2_config
@@ -164,13 +164,17 @@ static WORKING_AREA(waThread_mpl3115a2, 256);
 static msg_t Thread_mpl3115a2(void *arg) {
 	(void)arg;
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
-	//float altitude;
-	//float temperature;
+	//float altitude = 5.0;
+	float temperature;
 	chRegSetThreadName("mpl3115a2");
 	
-	//while (TRUE) {
+	while (TRUE) {
 		//chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
-	//}
+		//chprintf(chp,"This is the pressure sensor thread talking\n");
+		//altitude = mpl3115a2_get_altitude(mpl3115a2_driver.i2c_instance);
+		//temperature = mpl3115a2_get_temperature(mpl3115a2_driver.i2c_instance);
+		chThdSleepMilliseconds(1000);
+	}
 	return -1;
 }
 
@@ -307,16 +311,15 @@ int main(void) {
 
 	//spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
-	chThdSleepMilliseconds(300);
-
-	//i2cStart(mpl3115a2_driver.i2c_instance, &mpl3115a2_config);
-	//mpl3115a2_start(&I2CD2);
+	mpl3115a2_start(&I2CD2);
+	i2cStart(mpl3115a2_driver.i2c_instance, &mpl3115a2_config);
+	//mpl3115a2_init(&I2CD2);
 	/*! Activates the EXT driver 1. */
 	//extStart(&EXTD1, &extcfg);
 
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
-	//chThdCreateStatic(waThread_mpl3115a2,      sizeof(waThread_mpl3115a2),      NORMALPRIO, Thread_mpl3115a2,      NULL);
+	chThdCreateStatic(waThread_mpl3115a2,      sizeof(waThread_mpl3115a2),      NORMALPRIO, Thread_mpl3115a2,      NULL);
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
