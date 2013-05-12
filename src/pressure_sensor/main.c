@@ -165,14 +165,13 @@ static msg_t Thread_mpl3115a2(void *arg) {
 	(void)arg;
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	//float altitude = 5.0;
-	float temperature;
 	chRegSetThreadName("mpl3115a2");
 	
 	while (TRUE) {
 		//chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
 		//chprintf(chp,"This is the pressure sensor thread talking\n");
 		//altitude = mpl3115a2_get_altitude(mpl3115a2_driver.i2c_instance);
-		//temperature = mpl3115a2_get_temperature(mpl3115a2_driver.i2c_instance);
+		mpl3115a2_get_temperature(mpl3115a2_driver.i2c_instance);
 		chThdSleepMilliseconds(1000);
 	}
 	return -1;
@@ -313,7 +312,8 @@ int main(void) {
 
 	mpl3115a2_start(&I2CD2);
 	i2cStart(mpl3115a2_driver.i2c_instance, &mpl3115a2_config);
-	//mpl3115a2_init(&I2CD2);
+	chThdSleepMilliseconds(1000);
+	mpl3115a2_init(&I2CD2);
 	/*! Activates the EXT driver 1. */
 	//extStart(&EXTD1, &extcfg);
 
