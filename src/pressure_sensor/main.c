@@ -36,6 +36,10 @@
 
 #include "main.h"
 #include "board.h"
+
+#include "lwipopts.h"
+#include "lwipthread.h"
+
 //BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 
 static Mutex mtx;
