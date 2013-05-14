@@ -37,6 +37,8 @@
 #include "main.h"
 #include "board.h"
 //BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+
+static Mutex mtx;
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
 		{"threads", cmd_threads},
@@ -171,7 +173,15 @@ static msg_t Thread_mpl3115a2(void *arg) {
 		//chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
 		//chprintf(chp,"This is the pressure sensor thread talking\n");
 		//altitude = mpl3115a2_get_altitude(mpl3115a2_driver.i2c_instance);
+		chMtxLock(&mtx);
 		mpl3115a2_get_temperature(mpl3115a2_driver.i2c_instance);
+		//chprintf(chp,"High order temperature bits: %d.  Low order temperature bits %d\r\n", mpl3115a2_driver.ho_temp, mpl3115a2_driver.lo_temp);
+		chMtxUnlock();
+		chprintf(chp,"High order temperature bits: %d.  Low order temperature bits %d\r\n", mpl3115a2_driver.ho_temp, mpl3115a2_driver.lo_temp);
+		chMtxLock(&mtx);
+		mpl3115a2_get_bar(mpl3115a2_driver.i2c_instance);
+		chMtxUnlock();
+		chprintf(chp, "High order pressure bits: %d.  Center pressure bits: %d.  Low order pressure bits: %d\r\n",  mpl3115a2_driver.bar_msb,  mpl3115a2_driver.bar_csb,  mpl3115a2_driver.bar_lsb);
 		chThdSleepMilliseconds(1000);
 	}
 	return -1;
@@ -238,6 +248,7 @@ int main(void) {
 	 * - Kernel initialization, the main() function becomes a thread and the
 	 *   RTOS is active.
 	 */
+	 chMtxInit(&mtx);
 	halInit();
 	chSysInit();
 

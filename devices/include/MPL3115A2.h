@@ -183,7 +183,11 @@ typedef struct mpl3115a2_driver {
 	I2CDriver*         i2c_instance;                 /*! which stm32f407 I2C instance to use (there are 3)       */
 	mpl3115a2_i2c_data   txbuf[MPL3115A2_MAX_TX_BUFFER]; /*! Transmit buffer                                         */
 	mpl3115a2_i2c_data   rxbuf[MPL3115A2_MAX_RX_BUFFER]; /*! Receive buffer                                          */
-	float						temp;
+	mpl3115a2_i2c_data lo_temp;
+	mpl3115a2_i2c_data ho_temp;
+	mpl3115a2_i2c_data bar_msb;
+	mpl3115a2_i2c_data bar_csb;
+	mpl3115a2_i2c_data bar_lsb;
 } MPL3115A2_Driver;
 
 
@@ -230,7 +234,7 @@ void         mpl3115a2_magn_read_id(I2CDriver* i2cptr);
 void         mpl3115a2_write_pm1(I2CDriver* i2cptr, mpl3115a2_reg_data d) ;
 */
 msg_t mpl3115a2_init(I2CDriver* i2cptr);
-float mpl3115a2_get_altitude (I2CDriver* i2cptr);
+void mpl3115a2_get_bar (I2CDriver* i2cptr);
 void mpl3115a2_get_temperature (I2CDriver* i2cptr);
 
 /*!
