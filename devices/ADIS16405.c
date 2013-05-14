@@ -213,6 +213,7 @@ void adis_spi_cb(SPIDriver *spip) {
  */
 void adis_newdata_handler(eventid_t id) {
 	(void)                id;
+	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
 
 	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
 
@@ -233,20 +234,20 @@ void adis_newdata_handler(eventid_t id) {
 
 	/*! \todo Package for UDP transmission to fc here */
 
-#if ADIS_DEBUG
+	//chprintf(chp, "\r\n*** ADIS ***\r\n");
+#if 1
 	bool                  negative = false;
 	uint32_t              result_ug = 0;
 	static uint32_t       j        = 0;
 	static uint32_t       xcount   = 0;
 
-	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
 
 	++j;
 	if(j>4000) {
     	if(adis_driver.reg == ADIS_GLOB_CMD) {
     		// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
     		//negative = twos2dec(&burst_data.adis_xaccl_out);
-
+    		chprintf(chp, "\r\n*** ADIS: ***\r\n");
     		negative   = adis_accel2ug(&result_ug, &burst_data.adis_zaccl_out);
     		chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
     		negative   = adis_accel2ug(&result_ug, &burst_data.adis_xaccl_out);
@@ -277,6 +278,9 @@ void adis_read_id_handler(eventid_t id) {
 
 void adis_burst_read_handler(eventid_t id) {
 	(void) id;
+//	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
+//	chprintf(chp, "+");
+
 	adis_burst_read(&SPID1);
 }
 
