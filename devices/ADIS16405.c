@@ -239,7 +239,7 @@ void adis_newdata_handler(eventid_t id) {
 	static uint32_t       j        = 0;
 	static uint32_t       xcount   = 0;
 
-	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU1;
+	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
 
 	++j;
 	if(j>4000) {
