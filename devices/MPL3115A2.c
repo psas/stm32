@@ -86,7 +86,6 @@ msg_t mpl3115a2_init(I2CDriver* i2cptr) {
 	msg_t status = RDY_OK;
 	mpl3115a2_driver.txbuf[0] = WHO_AM_I;
 	mpl3115a2_driver.txbuf[1] = 0;
-	mpl3115a2_driver.temp = 0.0;
 	status = i2cMasterTransmitTimeout(i2cptr,mpl3115a2_i2c_slave_addr, mpl3115a2_driver.txbuf, 1, mpl3115a2_driver.rxbuf, 1 , mpl3115a2_i2c_timeout);
 	if (status == RDY_OK) {
 		chprintf(chp, "WHO_AM_I address is %d\r\n", mpl3115a2_driver.rxbuf[0]);
@@ -96,17 +95,18 @@ msg_t mpl3115a2_init(I2CDriver* i2cptr) {
 		mpl3115a2_driver.i2c_errors = i2cGetErrors(i2cptr);
 		chprintf(chp, "i2c errno: %d\r\n", mpl3115a2_driver.i2c_errors);
 	}
-	//enable altimter mode
+	//enable barometer mode
 	if (status == RDY_OK) {
 		mpl3115a2_driver.txbuf[0] = CTRL_REG1;
-		mpl3115a2_driver.txbuf[1] = 0xB9; 
+		//mpl3115a2_driver.txbuf[1] = 0xB9; 
+		mpl3115a2_driver.txbuf[1] = 0x39; 
 		i2cAcquireBus(i2cptr);
 		status = i2cMasterTransmitTimeout(i2cptr,mpl3115a2_i2c_slave_addr, mpl3115a2_driver.txbuf, 2, mpl3115a2_driver.rxbuf, 0 , mpl3115a2_i2c_timeout);
 		i2cReleaseBus(i2cptr);
 		if (status == RDY_OK) {
-			chprintf(chp, "We managed to enable altimiter mode\n\r");
+			chprintf(chp, "We managed to enable barometer mode\n\r");
 		} else {
-			chprintf(chp, "Something terrible has happened when trying to enable altimeter mode\n\r");
+			chprintf(chp, "Something terrible has happened when trying to enable barometer mode\n\r");
 			chprintf(chp, "Status: %d\r\n", status);
 			mpl3115a2_driver.i2c_errors = i2cGetErrors(i2cptr);
 			chprintf(chp, "i2c errno: %d\r\n", mpl3115a2_driver.i2c_errors);
@@ -146,6 +146,7 @@ msg_t mpl3115a2_init(I2CDriver* i2cptr) {
 			chprintf(chp, "i2c errno: %d\r\n", mpl3115a2_driver.i2c_errors);
 		}
 	}
+	/*
 	//calibrate sea level air pressure (default for now, we may want to change)
 	//this is set in units of 2 pa
 	if (status == RDY_OK) {
@@ -178,38 +179,59 @@ msg_t mpl3115a2_init(I2CDriver* i2cptr) {
 			chprintf(chp, "i2c errno: %d\r\n", mpl3115a2_driver.i2c_errors);
 		}
 	}
+	*/
 	return status;
 }
 
-float mpl3115a2_get_altitude (I2CDriver* i2cptr) {
+void mpl3115a2_get_bar (I2CDriver* i2cptr) {
 	//get the altitude
 	float altitude = 5.0;
-	uint8_t m_altitude;
+	//uint8_t m_altitude;
 	uint8_t c_altitude;
 	float l_altitude;
+	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	msg_t status = RDY_OK;
 	//get the most significant bits of the altitude (integer part)
 	mpl3115a2_driver.txbuf[0] = OUT_P_MSB;	
 	i2cAcquireBus(i2cptr);
 	status = i2cMasterTransmitTimeout(i2cptr,mpl3115a2_i2c_slave_addr, mpl3115a2_driver.txbuf, 1, mpl3115a2_driver.rxbuf, 1 , mpl3115a2_i2c_timeout);
 	i2cReleaseBus(i2cptr);
-	/*
-	m_altitude = mpl3115a2_driver.rxbuf[0];
+	if (status == RDY_OK) {
+		chprintf(chp,"Got pressure MSB %d\r\n", mpl3115a2_driver.rxbuf[0]);
+		mpl3115a2_driver.bar_msb = mpl3115a2_driver.rxbuf[0];
+	} else {
+		chprintf(chp,"Something terrible has happened while getting pressure msb\n");
+	}
+	//m_altitude = mpl3115a2_driver.rxbuf[0];
 	//get the middle significant bits of the altitude (integer part)
-	mpl3115a2_driver.txbuf[0] = OUT_P_CSB;	
-	i2cAcquireBus(i2cptr);
-	status = i2cMasterTransmitTimeout(i2cptr,mpl3115a2_i2c_slave_addr, mpl3115a2_driver.txbuf, 1, mpl3115a2_driver.rxbuf, 1 , mpl3115a2_i2c_timeout);
-	i2cReleaseBus(i2cptr);
-	c_altitude = mpl3115a2_driver.rxbuf[0];
+	if (status == RDY_OK) {
+		mpl3115a2_driver.txbuf[0] = OUT_P_CSB;	
+		i2cAcquireBus(i2cptr);
+		status = i2cMasterTransmitTimeout(i2cptr,mpl3115a2_i2c_slave_addr, mpl3115a2_driver.txbuf, 1, mpl3115a2_driver.rxbuf, 1 , mpl3115a2_i2c_timeout);
+		i2cReleaseBus(i2cptr);
+		if (status == RDY_OK) {
+			chprintf(chp,"Got pressure CSB %d\r\n", mpl3115a2_driver.rxbuf[0]);
+			mpl3115a2_driver.bar_csb = mpl3115a2_driver.rxbuf[0];
+		} else {
+			chprintf(chp,"Something terrible has happened while getting pressure csb\n");
+		}
+	}
+	//c_altitude = mpl3115a2_driver.rxbuf[0];
 	//get the least significant bits of the altitude
-	mpl3115a2_driver.txbuf[0] = OUT_P_LSB;
-	i2cAcquireBus(i2cptr);
-	status = i2cMasterTransmitTimeout(i2cptr,mpl3115a2_i2c_slave_addr, mpl3115a2_driver.txbuf, 1, mpl3115a2_driver.rxbuf, 1 , mpl3115a2_i2c_timeout);
-	i2cReleaseBus(i2cptr);
-	l_altitude = (float) (mpl3115a2_driver.rxbuf[0]>>4)/16.0;
-	altitude = (float)((m_altitude << 8)|c_altitude) + l_altitude;
-	*/
-	return altitude;
+	if (status == RDY_OK) {
+		mpl3115a2_driver.txbuf[0] = OUT_P_LSB;
+		i2cAcquireBus(i2cptr);
+		status = i2cMasterTransmitTimeout(i2cptr,mpl3115a2_i2c_slave_addr, mpl3115a2_driver.txbuf, 1, mpl3115a2_driver.rxbuf, 1 , mpl3115a2_i2c_timeout);
+		i2cReleaseBus(i2cptr);
+		if (status == RDY_OK) {
+			chprintf(chp,"Got pressure CSB %d\r\n", mpl3115a2_driver.rxbuf[0]);
+			mpl3115a2_driver.bar_lsb = mpl3115a2_driver.rxbuf[0];
+		} else {
+			chprintf(chp,"Something terrible has happened while getting pressure lsb\n");
+		}
+	}
+	//l_altitude = (float) (mpl3115a2_driver.rxbuf[0]>>4)/16.0;
+	//altitude = (float)((m_altitude << 8)|c_altitude) + l_altitude;
 }
 
 void mpl3115a2_get_temperature (I2CDriver* i2cptr) {
@@ -224,6 +246,7 @@ void mpl3115a2_get_temperature (I2CDriver* i2cptr) {
 	i2cReleaseBus(i2cptr);
 	if (status == RDY_OK) {
 		chprintf(chp, "Got temperature MSB of %d\r\n", mpl3115a2_driver.rxbuf[0]);
+		mpl3115a2_driver.ho_temp = mpl3115a2_driver.rxbuf[0];
 		m_temp = mpl3115a2_driver.rxbuf[0];
 	} else {
 		chprintf(chp, "Something terrible happened when trying to get temperature MSB\n");
@@ -238,9 +261,10 @@ void mpl3115a2_get_temperature (I2CDriver* i2cptr) {
 		i2cReleaseBus(i2cptr);
 		if (status == RDY_OK) {
 			chprintf(chp, "Temperature LSB: %d\n\r",  mpl3115a2_driver.rxbuf[0]);
-			l_temp = (float) (mpl3115a2_driver.rxbuf[0] >> 4)/16.0;
-			test = (float) (m_temp + l_temp);
+			//l_temp = (float) (mpl3115a2_driver.rxbuf[0] >> 4)/16.0;
+			//test = (float) (m_temp + l_temp);
 			//mpl3115a2_driver.temp = test;
+			mpl3115a2_driver.lo_temp = mpl3115a2_driver.rxbuf[0];
 		} else {
 			chprintf(chp, "Something terrible happened when trying to get temperature LSB\n");
 			chprintf(chp, "Status: %d\r\n", status);
