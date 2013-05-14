@@ -11,7 +11,7 @@
 
 
 /*!
- * \defgroup si-mainapp MPU Application
+ * \defgroup mpu-mainapp MPU Application
  * @{
  */
 
@@ -45,9 +45,6 @@
 #include "fc_net.h"
 
 #include "main.h"
-
-#define RUN_ADIS 1
-#define RUN_MPU 0
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -83,31 +80,31 @@ const SPIConfig adis_spicfg = {
 
 #endif
 
+
 /*! \brief ADIS SPI Pin connections
  *
  */
 const adis_connect adis_connections = {
-		GPIOA,      // spi_sck_port        // e407 D13
+		GPIOA,      // spi_sck_port
 		5,          // spi_sck_pad;
-		GPIOA,      // spi_miso_port;      // e407 D12
+		GPIOA,      // spi_miso_port;
 		6,          // spi_miso_pad;
-		GPIOB,      // spi_mosi_port;      // e407 D11
+		GPIOB,      // spi_mosi_port;
 		5,          // spi_mosi_pad;
-		GPIOA,      // spi_cs_port;        // e407 D10
+		GPIOA,      // spi_cs_port;
 		4,          // spi_cs_pad;
-		GPIOD,      // reset_port          // e407 pd11
+		GPIOD,      // reset_port
 		8,          // reset_pad;
-		GPIOD,      // dio1_port;          // e407 pd12
+		GPIOD,      // dio1_port;
 		9,          // dio1_pad;
-		GPIOD,      // dio2_port;          // e407 pd13
+		GPIOD,      // dio2_port;
 		10,         // dio2_pad;
-		GPIOD,      // dio3_port;          // e407 pd14
+		GPIOD,      // dio3_port;
 		11,         // dio3_pad;
-		GPIOD,      // dio4_port;          // e407 pd15
+		GPIOD,      // dio4_port;
 		12          // dio4_pad
 };
 
-#if RUN_MPU
 /*! configure the i2c module on stm32
  *
  */
@@ -180,8 +177,9 @@ static void mpu9150_int_event_handler(eventid_t id) {
 
 #if	DEBUG_MPU9150
 	++count;
-	if (count > 5000) {
-				chprintf(chp, "\r\nraw_temp: %d C\r\n", mpu9150_temp_to_dC(mpu9150_current_read.celsius));
+	if (count > 2000) {
+        		chprintf(chp, "\r\n*** MPU9150 ***\r\n");
+				chprintf(chp, "raw_temp: %d C\r\n", mpu9150_temp_to_dC(mpu9150_current_read.celsius));
 				chprintf(chp, "ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_current_read.accel_xyz.x, mpu9150_current_read.accel_xyz.y, mpu9150_current_read.accel_xyz.z);
 				chprintf(chp, "GRYO:  x: 0x%x\ty: 0x%x\tz: 0x%x\r\n", mpu9150_current_read.gyro_xyz.x, mpu9150_current_read.gyro_xyz.y, mpu9150_current_read.gyro_xyz.z);
 				count = 0;
@@ -189,7 +187,18 @@ static void mpu9150_int_event_handler(eventid_t id) {
 #endif
 
 }
-
+static WORKING_AREA(waThread_blinker, 64);
+/*! \brief Green LED blinker thread
+ */
+static msg_t Thread_blinker(void *arg) {
+	(void)arg;
+	chRegSetThreadName("blinker");
+	while (TRUE) {
+		palTogglePad(GPIOC, GPIOC_LED);
+		chThdSleepMilliseconds(500);
+	}
+	return -1;
+}
 
 static WORKING_AREA(waThread_mpu9150_int, 512);
 static msg_t Thread_mpu9150_int(void* arg) {
@@ -208,22 +217,9 @@ static msg_t Thread_mpu9150_int(void* arg) {
 	}
 	return -1;
 }
-#endif
 
-static WORKING_AREA(waThread_blinker, 64);
-/*! \brief Green LED blinker thread
- */
-static msg_t Thread_blinker(void *arg) {
-	(void)arg;
-	chRegSetThreadName("blinker");
-	while (TRUE) {
-		palTogglePad(GPIOC, GPIOC_LED);
-		chThdSleepMilliseconds(500);
-	}
-	return -1;
-}
 
-#if RUN_ADIS
+#if 1
 static WORKING_AREA(waThread_adis_newdata, 256);
 /*! \brief ADIS Newdata Thread
  */
@@ -243,6 +239,7 @@ static msg_t Thread_adis_newdata(void *arg) {
 	}
 	return -1;
 }
+
 
 static WORKING_AREA(waThread_adis_dio1, 128);
 /*! \brief ADIS DIO1 thread
@@ -296,6 +293,8 @@ int main(void) {
 	};
 	struct EventListener     el0;
 
+	struct lwipthread_opts   ip_opts;
+
 	/*
 	 * System initializations.
 	 * - HAL initialization, this also initializes the configured device drivers
@@ -341,11 +340,6 @@ int main(void) {
 
 	palSetPad(GPIOA, GPIOA_SPI1_SCK);
 	palSetPad(GPIOA, GPIOA_SPI1_NSS);
-	palSetPad(GPIOD, GPIOD_ADIS_DIO2);
-	palSetPad(GPIOD, GPIOD_ADIS_DIO3);
-	palSetPad(GPIOD, GPIOD_ADIS_DIO4);
-
-#if RUN_MPU
 
 	/*
 	 * I2C2 I/O pins setup
@@ -354,9 +348,9 @@ int main(void) {
 			PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST |PAL_STM32_PUDR_FLOATING );
 	palSetPadMode(mpu9150_connections.i2c_scl_port, mpu9150_connections.i2c_scl_pad,
 			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
-	palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
 
-#endif
+
+	palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
 
 	/*!
 	 * Initializes a serial-over-USB CDC driver.
@@ -387,11 +381,9 @@ int main(void) {
 	spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
 	chThdSleepMilliseconds(300);
-	/* Administrative threads */
-		chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
-		chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 
-#if RUN_MPU
+	adis_init();
+	adis_reset();
 
 	mpu9150_start(&I2CD2);
 
@@ -399,6 +391,9 @@ int main(void) {
 
 	mpu9150_init(mpu9150_driver.i2c_instance);
 
+	/* Administrative threads */
+	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
+	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 
 	/* MAC */
 	/*!
@@ -406,9 +401,6 @@ int main(void) {
 	 * Use unicast address LSbit of MSB of MAC should be 0
 	 */
 	data_udp_init();
-
-	struct lwipthread_opts   ip_opts;
-
 	static       uint8_t      IMU_A_macAddress[6]         = IMU_A_MAC_ADDRESS;
 	struct       ip_addr      ip, gateway, netmask;
 	IMU_A_IP_ADDR(&ip);
@@ -424,16 +416,17 @@ int main(void) {
 	chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
 	chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
 
-	// i2c MPU9150
+	/* i2c MPU9150 */
 	chThdCreateStatic(waThread_mpu9150_int,       sizeof(waThread_mpu9150_int)      , NORMALPRIO    , Thread_mpu9150_int,  NULL);
-#endif
 
 	/* SPI ADIS */
 	chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
 	chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 
+
 	/*! Activates the EXT driver 1. */
 	extStart(&EXTD1, &extcfg);
+
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {

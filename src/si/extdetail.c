@@ -31,7 +31,7 @@ const EXTConfig extcfg = {
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD, extdetail_adis_dio1},
+				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD, extdetail_adis_dio1},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
@@ -102,7 +102,8 @@ void extdetail_wkup_btn(EXTDriver *extp, expchannel_t channel) {
 void extdetail_adis_dio1(EXTDriver *extp, expchannel_t channel) {
 	(void)extp;
 	(void)channel;
-
+//	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
+//	chprintf(chp, "\r\n***\t ADIS dio1 ***\r\n");
 	chSysLockFromIsr();
 	chEvtBroadcastI(&adis_dio1_event);
 	chSysUnlockFromIsr();

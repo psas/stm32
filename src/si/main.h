@@ -5,7 +5,7 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
-/*! \mainpage si sensor integration experiments
+/*! \mainpage mpu MPU IMU experiments
 *
 *
 * \section intro Introduction
