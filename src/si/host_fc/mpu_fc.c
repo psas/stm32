@@ -278,6 +278,7 @@ void *datap_io_thread (void* ptr) {
 		if (getnameinfo((struct sockaddr *)&client_addr, client_addr_len, hbuf, sizeof(hbuf), sbuf,
 		            sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
 
+                    /*
 			if(ports_equal(sbuf, IMU_A_TX_PORT)) {
 				printf("IMU Packet %s:%s\n", hbuf, sbuf);
 			} else if (ports_equal(sbuf, ROLL_CTL_TX_PORT)) {
@@ -285,12 +286,15 @@ void *datap_io_thread (void* ptr) {
 			} else {
 				printf("Unrecognized Packet %s:%s\n", hbuf, sbuf);
 			}
+                        */
 		}
 
+            memcpy (&mpu9150_udp_data, recvbuf, sizeof (MPU9150_read_data));
+                /*
 		printf("fc: size of data struct: %d\n", sizeof(MPU9150_read_data));
-        memcpy (&mpu9150_udp_data, recvbuf, sizeof (MPU9150_read_data));
 
 		printf("fc: packet is %d bytes long\n", numbytes);
+                */
 		// recvbuf[numbytes] = '\0';
 		//printf("fc: packet contains \"%s\"\n\n", recvbuf);
 		fprintf(fp, "%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
@@ -303,6 +307,7 @@ void *datap_io_thread (void* ptr) {
 				mpu9150_udp_data.gyro_xyz.z,
 				mpu9150_temp_to_dC(mpu9150_udp_data.celsius) );
 
+#if DEBUG_MPU_NET
 		printf("\r\nraw_temp: %3.2f C\r\n", mpu9150_temp_to_dC(mpu9150_udp_data.celsius));
 		printf("ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_udp_data.accel_xyz.x, mpu9150_udp_data.accel_xyz.y, mpu9150_udp_data.accel_xyz.z);
 		printf("GRYO:  x: 0x%x\ty: 0x%x\tz: 0x%x\r\n", mpu9150_udp_data.gyro_xyz.x, mpu9150_udp_data.gyro_xyz.y, mpu9150_udp_data.gyro_xyz.z);
@@ -310,6 +315,10 @@ void *datap_io_thread (void* ptr) {
 				ai_client->ai_addr, ai_client->ai_addrlen)) == -1) {
 			die_nice("client sendto");
 		}
+#else
+//		printf("*", mpu9150_temp_to_dC(mpu9150_udp_data.celsius));
+ //               fflush(stdout);
+#endif
 	}
 	get_current_time(timestring) ;
 	fprintf(fp, "# mpu9150 IMU data closed at: %s\n", timestring);
