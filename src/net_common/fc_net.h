@@ -10,7 +10,7 @@
 
 #if LWIP_NETCONN
 	#include "lwip/ip_addr.h"
-	#define         IP_PSAS_FC(p)           IP4_ADDR(p, 192, 168, 0, 91)
+	#define         IP_PSAS_FC(p)           IP4_ADDR(p, 192, 168, 0, 200)
 #endif
 #define         FC_LISTEN_PORT_IMU_A     36000   // different ports for different sensors?
 #define         FC_LISTEN_PORT_ROLL_CTL  36002
