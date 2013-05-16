@@ -94,7 +94,7 @@ static void data_udp_send_mpu9150_data(eventid_t id) {
  */
 static void data_udp_send_adis16405_data(eventid_t id) {
 	(void) id;
-	//BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
 	//chprintf(chp, "adis\r\n");
 	uint8_t*                  data;
@@ -105,7 +105,7 @@ static void data_udp_send_adis16405_data(eventid_t id) {
 	data    =  netbuf_alloc(adis16405_mac_info.buf, sizeof(ADIS16405_burst_data));
 	if(data != NULL) {
 		memcpy (data, (void*) &adis16405_burst_data, sizeof(ADIS16405_burst_data));
-		//chprintf(chp, "size: %d\r\n", sizeof(adis16405_read_data));
+		//chprintf(chp, "size: %d\r\n", sizeof(adis16405_burst_data));
 
 		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netconn_send(adis16405_mac_info.conn, adis16405_mac_info.buf);
@@ -187,7 +187,7 @@ msg_t data_udp_send_thread(void *p) {
 		//if((err_mpu_conn == ERR_OK) && (err_adis_conn == ERR_OK)) {
 		if(err_mpu_conn == ERR_OK) {
 			while (TRUE) {
-				chEvtDispatch(evhndl_imu_a, chEvtWaitOneTimeout(EVENT_MASK(0), MS2ST(50)));
+				chEvtDispatch(evhndl_imu_a, chEvtWaitOneTimeout(EVENT_MASK(1) |EVENT_MASK(0), MS2ST(50)));
 			}
 		} else {
 			chprintf(chp, "conn not ok\r\n");

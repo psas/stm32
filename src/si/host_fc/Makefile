@@ -5,10 +5,10 @@ LDFLAGS+= -lpthread
 
 .PHONY: clean
 
-all: mpu_fc
+all: si_fc
 
-datap_fc: mpu_fc.c
+si_fc: si_fc.c
 
 clean:
-	$(RM) mpu_fc
+	$(RM) si_fc
 
