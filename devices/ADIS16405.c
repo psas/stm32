@@ -27,7 +27,7 @@
 ADIS_Driver        adis_driver;
 
 adis_cache         adis_cache_data;
-adis_burst_data    burst_data;
+ADIS16405_burst_data    adis16405_burst_data;
 
 EventSource        adis_dio1_event;
 EventSource        adis_spi_cb_txdone_event;
@@ -218,18 +218,18 @@ void adis_newdata_handler(eventid_t id) {
 	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
 
 	if(adis_driver.reg == ADIS_GLOB_CMD) {
-		burst_data.adis_supply_out   = (((adis_cache_data.adis_rx_cache[0]  << 8) | adis_cache_data.adis_rx_cache[1] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_xgyro_out    = (((adis_cache_data.adis_rx_cache[2]  << 8) | adis_cache_data.adis_rx_cache[3] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_ygyro_out    = (((adis_cache_data.adis_rx_cache[4]  << 8) | adis_cache_data.adis_rx_cache[5] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_zgyro_out    = (((adis_cache_data.adis_rx_cache[6]  << 8) | adis_cache_data.adis_rx_cache[7] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_xaccl_out    = (((adis_cache_data.adis_rx_cache[8]  << 8) | adis_cache_data.adis_rx_cache[9] ) & ADIS_14_BIT_MASK );
-		burst_data.adis_yaccl_out    = (((adis_cache_data.adis_rx_cache[10] << 8) | adis_cache_data.adis_rx_cache[11]) & ADIS_14_BIT_MASK );
-		burst_data.adis_zaccl_out    = (((adis_cache_data.adis_rx_cache[12] << 8) | adis_cache_data.adis_rx_cache[13]) & ADIS_14_BIT_MASK );
-		burst_data.adis_xmagn_out    = (((adis_cache_data.adis_rx_cache[14] << 8) | adis_cache_data.adis_rx_cache[15]) & ADIS_14_BIT_MASK );
-		burst_data.adis_ymagn_out    = (((adis_cache_data.adis_rx_cache[16] << 8) | adis_cache_data.adis_rx_cache[17]) & ADIS_14_BIT_MASK );
-		burst_data.adis_zmagn_out    = (((adis_cache_data.adis_rx_cache[18] << 8) | adis_cache_data.adis_rx_cache[19]) & ADIS_14_BIT_MASK );
-		burst_data.adis_temp_out     = (((adis_cache_data.adis_rx_cache[20] << 8) | adis_cache_data.adis_rx_cache[21]) & ADIS_12_BIT_MASK );
-		burst_data.adis_aux_adc      = (((adis_cache_data.adis_rx_cache[22] << 8) | adis_cache_data.adis_rx_cache[23]) & ADIS_12_BIT_MASK );
+		adis16405_burst_data.adis_supply_out   = (((adis_cache_data.adis_rx_cache[0]  << 8) | adis_cache_data.adis_rx_cache[1] ) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_xgyro_out    = (((adis_cache_data.adis_rx_cache[2]  << 8) | adis_cache_data.adis_rx_cache[3] ) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_ygyro_out    = (((adis_cache_data.adis_rx_cache[4]  << 8) | adis_cache_data.adis_rx_cache[5] ) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_zgyro_out    = (((adis_cache_data.adis_rx_cache[6]  << 8) | adis_cache_data.adis_rx_cache[7] ) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_xaccl_out    = (((adis_cache_data.adis_rx_cache[8]  << 8) | adis_cache_data.adis_rx_cache[9] ) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_yaccl_out    = (((adis_cache_data.adis_rx_cache[10] << 8) | adis_cache_data.adis_rx_cache[11]) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_zaccl_out    = (((adis_cache_data.adis_rx_cache[12] << 8) | adis_cache_data.adis_rx_cache[13]) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_xmagn_out    = (((adis_cache_data.adis_rx_cache[14] << 8) | adis_cache_data.adis_rx_cache[15]) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_ymagn_out    = (((adis_cache_data.adis_rx_cache[16] << 8) | adis_cache_data.adis_rx_cache[17]) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_zmagn_out    = (((adis_cache_data.adis_rx_cache[18] << 8) | adis_cache_data.adis_rx_cache[19]) & ADIS_14_BIT_MASK );
+		adis16405_burst_data.adis_temp_out     = (((adis_cache_data.adis_rx_cache[20] << 8) | adis_cache_data.adis_rx_cache[21]) & ADIS_12_BIT_MASK );
+		adis16405_burst_data.adis_aux_adc      = (((adis_cache_data.adis_rx_cache[22] << 8) | adis_cache_data.adis_rx_cache[23]) & ADIS_12_BIT_MASK );
 	}
 
 	/*! \todo Package for UDP transmission to fc here */
@@ -247,12 +247,12 @@ void adis_newdata_handler(eventid_t id) {
     		// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
     		//negative = twos2dec(&burst_data.adis_xaccl_out);
     		chprintf(chp, "\r\n*** ADIS: ***\r\n");
-    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_zaccl_out);
-    		chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
-    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_xaccl_out);
-    		chprintf(chp, "%d: x: 0x%x  %s%d ug\r\n", xcount, burst_data.adis_xaccl_out, (negative) ? "-" : "", result_ug);
-    		negative   = adis_accel2ug(&result_ug, &burst_data.adis_yaccl_out);
-    		chprintf(chp, "%d: y: 0x%x  %s%d ug\r\n\r\n", xcount, burst_data.adis_yaccl_out, (negative) ? "-" : "", result_ug);
+    		negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_zaccl_out);
+    		chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, adis16405_burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
+    		negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_xaccl_out);
+    		chprintf(chp, "%d: x: 0x%x  %s%d ug\r\n", xcount, adis16405_burst_data.adis_xaccl_out, (negative) ? "-" : "", result_ug);
+    		negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_yaccl_out);
+    		chprintf(chp, "%d: y: 0x%x  %s%d ug\r\n\r\n", xcount, adis16405_burst_data.adis_yaccl_out, (negative) ? "-" : "", result_ug);
 
     	} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
     		chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );

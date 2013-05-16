@@ -53,10 +53,21 @@ typedef struct mpu9150_MAC_info {
 	char                   msg[DATA_UDP_MSG_SIZE] ;
 } MPU9150_MAC_info;
 
+
+/*! \typedef adis16405 MAC Connection info
+ *
+ */
+typedef struct adis16405_MAC_info {
+	struct     netconn    *conn ;
+	struct     netbuf     *buf ;
+	char                   msg[DATA_UDP_MSG_SIZE] ;
+} ADIS16405_MAC_info;
+
 extern WORKING_AREA(wa_data_udp_send_thread,    DATA_UDP_SEND_THREAD_STACK_SIZE);
 extern WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
 
 extern EventSource                           mpu9150_data_event;
+extern EventSource                           adis16405_data_event;
 
 #ifdef __cplusplus
 extern "C" {

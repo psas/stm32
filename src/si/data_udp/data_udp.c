@@ -54,13 +54,17 @@
 #if LWIP_NETCONN
 
 EventSource                        mpu9150_data_event;
+EventSource                        adis16405_data_event;
+
 static        MPU9150_MAC_info     mpu9150_mac_info;
+static        ADIS16405_MAC_info   adis16405_mac_info;
 
 /*! \brief Initialize events for threads
  *
  */
 void data_udp_init(void) {
 		chEvtInit(&mpu9150_data_event);
+		chEvtInit(&adis16405_data_event);
 }
 
 /*! \brief event handler for mpu9150 udp data
@@ -86,16 +90,41 @@ static void data_udp_send_mpu9150_data(eventid_t id) {
 	}
 }
 
+/*! \brief event handler for adis16405 udp data
+ *  send one packet of adis16405 data on event.
+ */
+static void data_udp_send_adis16405_data(eventid_t id) {
+	(void) id;
+	uint8_t*                  data;
+	//BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+
+	adis16405_mac_info.buf     =  netbuf_new();
+	//chprintf(chp, "ACCL:  x: %d\ty: %d\tz: %d\r\n", adis16405_current_read.accel_xyz.x, adis16405_current_read.accel_xyz.y, adis16405_current_read.accel_xyz.z);
+
+	data    =  netbuf_alloc(adis16405_mac_info.buf, sizeof(ADIS16405_burst_data));
+	if(data != NULL) {
+		memcpy (data, (void*) &adis16405_burst_data, sizeof(ADIS16405_burst_data));
+		//chprintf(chp, "size: %d\r\n", sizeof(adis16405_read_data));
+
+		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+		netconn_send(adis16405_mac_info.conn, adis16405_mac_info.buf);
+		palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+		netbuf_delete(adis16405_mac_info.buf);
+	}
+}
+
 WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 msg_t data_udp_send_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
 
-	static const evhandler_t evhndl_mpu9150[]       = {
-			data_udp_send_mpu9150_data
+	static const evhandler_t evhndl_imu_a[]       = {
+			data_udp_send_mpu9150_data,
+			data_udp_send_adis16405_data
 	};
 	struct EventListener     evl_mpu9150;
 
-	err_t                  err;
+	err_t                  err_mpu_conn;
+	err_t                  err_adis_conn;
 
 	ip_addr_t              ip_addr_sensor;
 	ip_addr_t              ip_addr_fc;
@@ -103,17 +132,20 @@ msg_t data_udp_send_thread(void *p) {
 	chRegSetThreadName("data_udp_send_thread");
 
 	chEvtRegister(&mpu9150_data_event,           &evl_mpu9150,         0);
+	chEvtRegister(&adis16405_data_event,         &evl_mpu9150,         1);
 
 	IMU_A_IP_ADDR(&ip_addr_sensor);
 	IP_PSAS_FC(&ip_addr_fc);
 
 	mpu9150_mac_info.conn   = netconn_new( NETCONN_UDP );
+    adis16405_mac_info.conn = netconn_new( NETCONN_UDP );
 
 	/* Bind to the local address, or to ANY address */
 	//	netconn_bind(conn, NULL, DATA_UDP_TX_THREAD_PORT ); //local port, NULL is bind to ALL ADDRESSES! (IP_ADDR_ANY)
-	err    = netconn_bind(mpu9150_mac_info.conn, &ip_addr_sensor, IMU_A_TX_PORT ); //local port
+	err_mpu_conn   = netconn_bind(mpu9150_mac_info.conn,   &ip_addr_sensor, IMU_A_TX_PORT_MPU ); //local port
+	err_adis_conn  = netconn_bind(adis16405_mac_info.conn, &ip_addr_sensor, IMU_A_TX_PORT_ADIS ); //local port
 
-	if (err == ERR_OK) {
+	if ((err_mpu_conn == ERR_OK) && (err_adis_conn == ERR_OK)) {
 		/* Connect to specific address or a broadcast address */
 		/*
 		 * \todo Understand why a UDP needs a connect...
@@ -121,10 +153,12 @@ msg_t data_udp_send_thread(void *p) {
 		 *
 		 */
 		//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
-		err = netconn_connect(mpu9150_mac_info.conn, &ip_addr_fc, FC_LISTEN_PORT_IMU_A );
-		if(err == ERR_OK) {
+		err_mpu_conn = netconn_connect(mpu9150_mac_info.conn,   &ip_addr_fc, FC_LISTEN_PORT_IMU_A_MPU );
+		err_mpu_conn = netconn_connect(adis16405_mac_info.conn, &ip_addr_fc, FC_LISTEN_PORT_IMU_A_ADIS);
+
+		if((err_mpu_conn == ERR_OK) && (err_adis_conn == ERR_OK)) {
 			while (TRUE) {
-				chEvtDispatch(evhndl_mpu9150, chEvtWaitOneTimeout(EVENT_MASK(0), MS2ST(50)));
+				chEvtDispatch(evhndl_imu_a, chEvtWaitOneTimeout(EVENT_MASK(3), MS2ST(50)));
 			}
 		}
 		return RDY_RESET;
