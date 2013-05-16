@@ -127,7 +127,7 @@ typedef struct {
 	adis_reg_data      adis_zmagn_out;  //  Z-axis magnetometer measurement
 	adis_reg_data      adis_temp_out;   //  Temperature output
 	adis_reg_data      adis_aux_adc;    //  Auxiliary ADC measurement
-} adis_burst_data;
+} ADIS16405_burst_data;
 
 /*!
  * Another transaction may begin which would corrupt the tx and rx
@@ -197,7 +197,7 @@ extern       EventSource        adis_spi_cb_txdone_event;
 extern       EventSource        adis_spi_cb_newdata;
 extern       EventSource        adis_spi_cb_releasebus;
 
-extern       adis_burst_data    burst_data;
+extern       ADIS16405_burst_data    adis16405_burst_data;
 
 void         adis_init(void);
 void 	     adis_tstall_delay(void);
