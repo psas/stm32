@@ -71,6 +71,7 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
+include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
 
 
 # Define linker script file here
@@ -95,7 +96,7 @@ CSRC = $(PORTSRC) \
        cmddetail.c \
        extdetail.c \
        usbdetail.c \
-	main.c
+		 main.c udp/udp_pwm.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -127,7 +128,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
-         $(PSAS_COMMON) \
+         $(PSAS_COMMON) $(LWINC)\
          $(PSAS_DEV_SRC)/include \
 
 #
