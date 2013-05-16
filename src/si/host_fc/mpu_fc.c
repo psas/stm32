@@ -278,6 +278,7 @@ void *datap_io_thread (void* ptr) {
 		if (getnameinfo((struct sockaddr *)&client_addr, client_addr_len, hbuf, sizeof(hbuf), sbuf,
 		            sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
 
+		printf("%d\t%s:%s\n", i, hbuf, sbuf);
                     /*
 			if(ports_equal(sbuf, IMU_A_TX_PORT)) {
 				printf("IMU Packet %s:%s\n", hbuf, sbuf);
@@ -356,7 +357,7 @@ int main(void) {
 	// snprintf(th_data[CONTROL_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
 	// snprintf(th_data[CONTROL_LISTENER].client_port     , PORT_STRING_LEN , "%d", IMU_A_LISTEN_PORT);
 
-	snprintf(th_data[SENSOR_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
+	snprintf(th_data[SENSOR_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A_MPU);
 	snprintf(th_data[SENSOR_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
 	snprintf(th_data[SENSOR_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
 
