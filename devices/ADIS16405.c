@@ -60,6 +60,30 @@ EventSource        adis_spi_cb_releasebus;
 	}
 #endif
 
+/*! \brief Convert an ADIS 12 bit temperature value to C
+ *
+ * @param decimal
+ * @param temp reading
+ * @return   TRUE if less than zero, FALSE if greater or equal to zero
+ */
+static bool adis16405_temp_to_dC(double* temperature, uint16_t* twos_num) {
+	uint16_t ones_comp;
+	bool     isnegative = false;
+	uint32_t decimal;
+
+	//! bit 11 is 12-bit two's complement sign bit
+	isnegative   = (((uint16_t)(1<<11) & *twos_num) != 0) ? true : false;
+
+	if(isnegative) {
+		ones_comp    = ~(*twos_num & (uint16_t)0xfff) & 0xfff;
+		decimal      = (ones_comp) + 1;
+	} else {
+		decimal      = *twos_num;
+	}
+	*temperature     = decimal * 0.14;
+	return isnegative;
+}
+
 /*! \brief Create a read address
  *
  * @param s
@@ -242,6 +266,7 @@ void adis_newdata_handler(eventid_t id) {
 #if 1
 	bool                  negative = false;
 	uint32_t              result_ug = 0;
+	double                result_C = 0;
 	static uint32_t       j        = 0;
 	static uint32_t       xcount   = 0;
 
@@ -250,7 +275,9 @@ void adis_newdata_handler(eventid_t id) {
     	if(adis_driver.reg == ADIS_GLOB_CMD) {
     		// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
     		//negative = twos2dec(&burst_data.adis_xaccl_out);
-    		chprintf(chp, "\r\n*** ADIS: ***\r\n");
+    		chprintf(chp, "\r\n*** ADIS ***\r\n");
+
+    		chprintf(chp, "%d: T: 0x%x C\r\n", xcount, adis16405_burst_data.adis_temp_out);
     		negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_zaccl_out);
     		chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, adis16405_burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
     		negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_xaccl_out);
