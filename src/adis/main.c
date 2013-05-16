@@ -115,7 +115,7 @@ static msg_t Thread_adis_newdata(void *arg) {
 	};
 	struct EventListener     evl_spi_cb2;
 
-	chEvtRegister(&adis_spi_cb_newdata, &evl_spi_cb2, 0);
+	chEvtRegister(&adis_spi_cb_data_captured, &evl_spi_cb2, 0);
 
 	while (TRUE) {
 		chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));

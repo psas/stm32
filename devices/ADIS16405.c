@@ -31,7 +31,8 @@ ADIS16405_burst_data    adis16405_burst_data;
 
 EventSource        adis_dio1_event;
 EventSource        adis_spi_cb_txdone_event;
-EventSource        adis_spi_cb_newdata;
+EventSource        adis_spi_burst_data_captured;
+EventSource        adis_spi_cb_data_captured;
 EventSource        adis_spi_cb_releasebus;
 
 #if ADIS_DEBUG || defined(__DOXYGEN__)
@@ -145,7 +146,8 @@ void adis_init() {
 	}
 	chEvtInit(&adis_dio1_event);
 	chEvtInit(&adis_spi_cb_txdone_event);
-	chEvtInit(&adis_spi_cb_newdata);
+	chEvtInit(&adis_spi_burst_data_captured);
+	chEvtInit(&adis_spi_cb_data_captured);
 	chEvtInit(&adis_spi_cb_releasebus);
 }
 
@@ -203,7 +205,7 @@ void adis_spi_cb(SPIDriver *spip) {
 		adis_cache_data.reg                  = adis_driver.reg;
 		adis_cache_data.current_rx_numbytes  = adis_driver.rx_numbytes;
 		adis_cache_data.current_tx_numbytes  = adis_driver.tx_numbytes;
-		chEvtBroadcastI(&adis_spi_cb_newdata);
+		chEvtBroadcastI(&adis_spi_cb_data_captured);
 		chEvtBroadcastI(&adis_spi_cb_releasebus);
 	}
 	chSysUnlockFromIsr();
@@ -230,11 +232,13 @@ void adis_newdata_handler(eventid_t id) {
 		adis16405_burst_data.adis_zmagn_out    = (((adis_cache_data.adis_rx_cache[18] << 8) | adis_cache_data.adis_rx_cache[19]) & ADIS_14_BIT_MASK );
 		adis16405_burst_data.adis_temp_out     = (((adis_cache_data.adis_rx_cache[20] << 8) | adis_cache_data.adis_rx_cache[21]) & ADIS_12_BIT_MASK );
 		adis16405_burst_data.adis_aux_adc      = (((adis_cache_data.adis_rx_cache[22] << 8) | adis_cache_data.adis_rx_cache[23]) & ADIS_12_BIT_MASK );
+
+		chEvtBroadcast(&adis_spi_burst_data_captured);         // Event monitored in data_udp_send thread
 	}
 
 	/*! \todo Package for UDP transmission to fc here */
 
-	//chprintf(chp, "\r\n*** ADIS ***\r\n");
+
 #if 1
 	bool                  negative = false;
 	uint32_t              result_ug = 0;

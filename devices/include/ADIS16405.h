@@ -194,7 +194,8 @@ extern       ADIS_Driver        adis_driver;
 
 extern       EventSource        adis_dio1_event;
 extern       EventSource        adis_spi_cb_txdone_event;
-extern       EventSource        adis_spi_cb_newdata;
+extern       EventSource        adis_spi_burst_data_captured;
+extern       EventSource        adis_spi_cb_data_captured;
 extern       EventSource        adis_spi_cb_releasebus;
 
 extern       ADIS16405_burst_data    adis16405_burst_data;
