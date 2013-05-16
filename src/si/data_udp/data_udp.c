@@ -105,7 +105,7 @@ static void data_udp_send_adis16405_data(eventid_t id) {
 	data    =  netbuf_alloc(adis16405_mac_info.buf, sizeof(ADIS16405_burst_data));
 	if(data != NULL) {
 		memcpy (data, (void*) &adis16405_burst_data, sizeof(ADIS16405_burst_data));
-		//chprintf(chp, "size: %d\r\n", sizeof(adis16405_burst_data));
+		//chprintf(chp, "temp raw: %d\r\n", adis16405_burst_data.adis_temp_out);
 
 		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netconn_send(adis16405_mac_info.conn, adis16405_mac_info.buf);
