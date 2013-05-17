@@ -66,23 +66,23 @@ EventSource        adis_spi_cb_releasebus;
  * @param temp reading
  * @return   TRUE if less than zero, FALSE if greater or equal to zero
  */
-static bool adis16405_temp_to_dC(double* temperature, uint16_t* twos_num) {
-	uint16_t ones_comp;
-	bool     isnegative = false;
-	uint32_t decimal;
-
-	//! bit 11 is 12-bit two's complement sign bit
-	isnegative   = (((uint16_t)(1<<11) & *twos_num) != 0) ? true : false;
-
-	if(isnegative) {
-		ones_comp    = ~(*twos_num & (uint16_t)0xfff) & 0xfff;
-		decimal      = (ones_comp) + 1;
-	} else {
-		decimal      = *twos_num;
-	}
-	*temperature     = decimal * 0.14;
-	return isnegative;
-}
+//static bool adis16405_temp_to_dC(double* temperature, uint16_t* twos_num) {
+//	uint16_t ones_comp;
+//	bool     isnegative = false;
+//	uint32_t decimal;
+//
+//	//! bit 11 is 12-bit two's complement sign bit
+//	isnegative   = (((uint16_t)(1<<11) & *twos_num) != 0) ? true : false;
+//
+//	if(isnegative) {
+//		ones_comp    = ~(*twos_num & (uint16_t)0xfff) & 0xfff;
+//		decimal      = (ones_comp) + 1;
+//	} else {
+//		decimal      = *twos_num;
+//	}
+//	*temperature     = decimal * 0.14;
+//	return isnegative;
+//}
 
 /*! \brief Create a read address
  *
@@ -120,6 +120,23 @@ static void adis_read_id(SPIDriver *spip) {
 	}
 }
 
+static void adis_read_dC(SPIDriver *spip) {
+	if(adis_driver.state == ADIS_IDLE) {
+		adis_driver.spi_instance        = spip;
+		adis_driver.adis_txbuf[0]       = adis_create_read_addr(ADIS_TEMP_OUT);
+		adis_driver.adis_txbuf[1]       = (adis_reg_data) 0x0;
+		adis_driver.adis_txbuf[2]       = (adis_reg_data) 0x0;
+		adis_driver.reg                 = ADIS_TEMP_OUT;
+		adis_driver.rx_numbytes         = 2;
+		adis_driver.tx_numbytes         = 2;
+		adis_driver.debug_cb_count      = 0;
+
+		spiAcquireBus(spip);                /* Acquire ownership of the bus.    */
+		spiSelect(spip);                    /* Slave Select assertion.          */
+		spiStartSend(spip, adis_driver.tx_numbytes, adis_driver.adis_txbuf);
+		adis_driver.state             = ADIS_TX_PEND;
+	}
+}
 static void adis_burst_read(SPIDriver *spip) {
 	if(adis_driver.state == ADIS_IDLE) {
 		adis_driver.spi_instance        = spip;
@@ -266,7 +283,6 @@ void adis_newdata_handler(eventid_t id) {
 #if 1
 	bool                  negative = false;
 	uint32_t              result_ug = 0;
-	double                result_C = 0;
 	static uint32_t       j        = 0;
 	static uint32_t       xcount   = 0;
 
@@ -287,6 +303,10 @@ void adis_newdata_handler(eventid_t id) {
 
     	} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
     		chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );
+    	} else if (adis_driver.reg == ADIS_TEMP_OUT) {
+    		chprintf(chp, "Temperature: 0x%x", (((adis_cache_data.adis_rx_cache[0] << 8) | adis_cache_data.adis_rx_cache[1]) & ADIS_12_BIT_MASK) );
+    	} else {
+    		;
     	}
 
 		//		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
@@ -304,6 +324,11 @@ void adis_newdata_handler(eventid_t id) {
 void adis_read_id_handler(eventid_t id) {
 	(void) id;
 	adis_read_id(&SPID1);
+}
+
+void adis_read_dC_handler(eventid_t id) {
+	(void) id;
+	adis_read_dC(&SPID1);
 }
 
 void adis_burst_read_handler(eventid_t id) {

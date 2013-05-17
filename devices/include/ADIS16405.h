@@ -209,6 +209,7 @@ void         adis_reset(void);
 void         adis_spi_cb(SPIDriver *spip) ;
 void         adis_newdata_handler(eventid_t id) ;
 void         adis_read_id_handler(eventid_t id) ;
+void         adis_read_dC_handler(eventid_t id) ;
 void         adis_burst_read_handler(eventid_t id) ;
 void         adis_spi_cb_txdone_handler(eventid_t id) ;
 
