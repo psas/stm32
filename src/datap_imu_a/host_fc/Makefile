@@ -1,7 +1,7 @@
 
 CC=gcc
 CFLAGS += -I../../net_common -lpthread -g
-
+LDLIBS = -lpthread
 .PHONY: clean
 
 all: datap_fc
