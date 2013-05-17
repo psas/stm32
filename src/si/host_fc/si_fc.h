@@ -16,6 +16,13 @@
 #define         PORT_STRING_LEN         6
 
 
+typedef enum sensorID {
+	UNKNOWN_SENSOR,
+	ADIS,
+	MPU,
+	MPL
+} SensorID;
+
 typedef enum thd_index {
 	MPU_LISTENER,
 	ADIS_LISTENER

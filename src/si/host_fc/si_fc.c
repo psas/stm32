@@ -186,6 +186,7 @@ static void init_thread_state(Ports* p, unsigned int i) {
  */
 void *datap_io_thread (void* ptr) {
 	Ports*                    port_info;
+	SensorID                  sensor_listen_id;
 	port_info = (Ports*) ptr;
 
 	int                       i = 0;
@@ -216,20 +217,30 @@ void *datap_io_thread (void* ptr) {
 	hints.ai_flags                 = AI_PASSIVE; // use local host address.
 
 	fprintf(stderr, "%s: listen port %s\n", __func__, port_info->host_listen_port);
+	if(ports_equal(port_info->host_listen_port, FC_LISTEN_PORT_IMU_A_ADIS)) {
+		sensor_listen_id = ADIS;
+	} else if (ports_equal(port_info->host_listen_port, FC_LISTEN_PORT_IMU_A_MPU)) {
+		sensor_listen_id = MPU;
+	} else {
+		sensor_listen_id = UNKNOWN_SENSOR;
+	}
 
-	fp_mpu       = fopen("mpu9150_log.txt", "w");
-	get_current_time(timestring) ;
-	fprintf(fp_mpu, "# mpu9150 IMU data started at: %s\n", timestring);
-	fprintf(fp_mpu, "# mpu9150 IMU raw data\n");
-	fprintf(fp_mpu, "# timestamp,ax,ay,az,gx,gy,gz,C\n");
+	if(sensor_listen_id == ADIS) {
+		fp_adis       = fopen("adis16405_log.txt", "w");
+		get_current_time(timestring) ;
+		fprintf(fp_adis, "# adis16405 IMU data started at: %s\n", timestring);
+		fprintf(fp_adis, "# adis16405 IMU raw data\n");
+		fprintf(fp_adis, "# timestamp,ax,ay,az,gx,gy,gz,mx,my,mz,C\n");
 
-	fp_adis       = fopen("adis16405_log.txt", "w");
-	get_current_time(timestring) ;
-	fprintf(fp_mpu, "# adis16405 IMU data started at: %s\n", timestring);
-	fprintf(fp_mpu, "# adis16405 IMU raw data\n");
-	fprintf(fp_mpu, "# timestamp,ax,ay,az,gx,gy,gz,C\n");
-
-
+	} else if (sensor_listen_id == MPU) {
+		fp_mpu       = fopen("mpu9150_log.txt", "w");
+		get_current_time(timestring) ;
+		fprintf(fp_mpu, "# mpu9150 IMU data started at: %s\n", timestring);
+		fprintf(fp_mpu, "# mpu9150 IMU raw data\n");
+		fprintf(fp_mpu, "# timestamp,ax,ay,az,gx,gy,gz,C\n");
+	} else {
+		;
+	}
 
 	/*!
 	 * Getting address of THIS machine.
@@ -317,7 +328,7 @@ void *datap_io_thread (void* ptr) {
 
 			printf("%d\t%s:%s\t", i, hbuf, sbuf);
 
-			if(ports_equal(sbuf, IMU_A_TX_PORT_MPU)) {
+			if(ports_equal(sbuf, IMU_A_TX_PORT_MPU) && (sensor_listen_id == MPU)) {
 				printf("MPU Packet %s:%s\n", hbuf, sbuf);
 				memcpy (&mpu9150_udp_data, recvbuf, sizeof (MPU9150_read_data));
 
@@ -333,7 +344,7 @@ void *datap_io_thread (void* ptr) {
 						mpu9150_udp_data.gyro_xyz.y,
 						mpu9150_udp_data.gyro_xyz.z,
 						mpu9150_temp_to_dC(mpu9150_udp_data.celsius) );
-
+				 fflush(fp_mpu);
 #if DEBUG_MPU_NET
 				printf("\r\nraw_temp: %3.2f C\r\n", mpu9150_temp_to_dC(mpu9150_udp_data.celsius));
 				printf("ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_udp_data.accel_xyz.x, mpu9150_udp_data.accel_xyz.y, mpu9150_udp_data.accel_xyz.z);
@@ -343,7 +354,7 @@ void *datap_io_thread (void* ptr) {
 					die_nice("client sendto");
 				}
 #endif
-			} else if (ports_equal(sbuf, IMU_A_TX_PORT_ADIS)) {
+			} else if (ports_equal(sbuf, IMU_A_TX_PORT_ADIS) && (sensor_listen_id == ADIS)) {
 				double adis_temp_C = 0.0;
 				bool   adis_temp_neg = false;
 
@@ -356,7 +367,7 @@ void *datap_io_thread (void* ptr) {
 
 				adis_temp_neg = adis16405_temp_to_dC(&adis_temp_C,      &adis16405_udp_data.adis_temp_out);
 				printf("adis temp: %3.2f\n", adis_temp_C );
-				 fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
+				 fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%3.2f\n",
 				//  fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%0x%x\n",
 
 						timestamp_now(),
@@ -366,21 +377,26 @@ void *datap_io_thread (void* ptr) {
 						adis16405_udp_data.adis_xgyro_out,
 						adis16405_udp_data.adis_ygyro_out,
 						adis16405_udp_data.adis_zgyro_out,
+						adis16405_udp_data.adis_xmagn_out,
+						adis16405_udp_data.adis_ymagn_out,
+						adis16405_udp_data.adis_zmagn_out,
 						(adis_temp_neg ? (-1 * adis_temp_C) : adis_temp_C)
 						//adis16405_udp_data.adis_temp_out
-						 );
+				 );
+				 fflush(fp_adis);
 			} else {
 				printf("Unrecognized Packet %s:%s\n", hbuf, sbuf);
 			}
 		}
-
-
 	}
 	get_current_time(timestring) ;
-	fprintf(fp_mpu, "# mpu9150 IMU data closed at: %s\n", timestring);
-	fclose(fp_mpu);
-	fprintf(fp_adis, "# adis16405 IMU data closed at: %s\n", timestring);
-	fclose(fp_adis);
+	if(sensor_listen_id == MPU ) {
+		fprintf(fp_mpu, "# mpu9150 IMU data closed at: %s\n", timestring);
+		fclose(fp_mpu);
+	} else if (sensor_listen_id == ADIS) {
+		fprintf(fp_adis, "# adis16405 IMU data closed at: %s\n", timestring);
+		fclose(fp_adis);
+	}
 	close(hostsocket_fd);
 	close(clientsocket_fd);
 	freeaddrinfo(res); // free the linked list
@@ -410,9 +426,9 @@ int main(void) {
 	snprintf(msgbuf, STRINGBUFLEN, "Number of processors: %d", get_numprocs());
 	log_msg(msgbuf);
 
-	 snprintf(th_data[ADIS_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A_ADIS);
-	 snprintf(th_data[ADIS_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
-	 snprintf(th_data[ADIS_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
+	snprintf(th_data[ADIS_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A_ADIS);
+	snprintf(th_data[ADIS_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
+	snprintf(th_data[ADIS_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
 
 	snprintf(th_data[MPU_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A_MPU);
 	snprintf(th_data[MPU_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);

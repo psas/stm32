@@ -94,7 +94,7 @@ static void data_udp_send_mpu9150_data(eventid_t id) {
  */
 static void data_udp_send_adis16405_data(eventid_t id) {
 	(void) id;
-	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+	//BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
 	//chprintf(chp, "adis\r\n");
 	uint8_t*                  data;
