@@ -258,6 +258,7 @@ void adis_newdata_handler(eventid_t id) {
 	(void)                id;
 	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
 
+	//chprintf(chp, "$");
 	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
 
 	if(adis_driver.reg == ADIS_GLOB_CMD) {
@@ -288,6 +289,7 @@ void adis_newdata_handler(eventid_t id) {
 
 	++j;
 	if(j>4000) {
+		//chprintf(chp, "adis driver reg: %0x%x\n", adis_driver.reg);
     	if(adis_driver.reg == ADIS_GLOB_CMD) {
     		// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
     		//negative = twos2dec(&burst_data.adis_xaccl_out);
@@ -304,9 +306,9 @@ void adis_newdata_handler(eventid_t id) {
     	} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
     		chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );
     	} else if (adis_driver.reg == ADIS_TEMP_OUT) {
-    		chprintf(chp, "Temperature: 0x%x", (((adis_cache_data.adis_rx_cache[0] << 8) | adis_cache_data.adis_rx_cache[1]) & ADIS_12_BIT_MASK) );
+    		chprintf(chp, "%d: Temperature: 0x%x", xcount, (((adis_cache_data.adis_rx_cache[0] << 8) | adis_cache_data.adis_rx_cache[1]) & ADIS_12_BIT_MASK) );
     	} else {
-    		;
+    		chprintf(chp, "%d: not recognized %d\n", xcount, adis_driver.reg);
     	}
 
 		//		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
@@ -328,6 +330,7 @@ void adis_read_id_handler(eventid_t id) {
 
 void adis_read_dC_handler(eventid_t id) {
 	(void) id;
+
 	adis_read_dC(&SPID1);
 }
 
@@ -346,6 +349,7 @@ void adis_spi_cb_txdone_handler(eventid_t id) {
 	(void) id;
 	switch(adis_driver.reg) {
 		case ADIS_PRODUCT_ID:
+		case ADIS_TEMP_OUT:
 			spiUnselect(adis_driver.spi_instance);
 			spiReleaseBus(adis_driver.spi_instance);
 			adis_tstall_delay();

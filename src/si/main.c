@@ -250,9 +250,9 @@ static WORKING_AREA(waThread_adis_dio1, 128);
 static msg_t Thread_adis_dio1(void *arg) {
 	(void)arg;
 	static const evhandler_t evhndl_dio1[]       = {
-			//adis_burst_read_handler,
+			adis_burst_read_handler,
 			//adis_read_id_handler,
-			adis_read_dC_handler,
+			//adis_read_dC_handler,
 			adis_spi_cb_txdone_handler,
 			adis_release_bus
 	};

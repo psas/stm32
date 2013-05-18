@@ -54,6 +54,9 @@ static double mpu9150_temp_to_dC(int16_t raw_temp) {
 	return(((double)raw_temp)/340 + 35);
 }
 
+static double CtoF(double c) {
+   return (((c * 9.0)/5.0) + 32);
+}
 /*! \brief Convert an ADIS 12 bit temperature value to C
  *
  * @param decimal
@@ -72,12 +75,15 @@ static bool adis16405_temp_to_dC(double* temperature, uint16_t* twos_num) {
 
 
 	if(isnegative) {
-		ones_comp    = ~(*twos_num & (uint16_t)0xfff) & 0xfff;
-		decimal      = (ones_comp) + 1;
+		ones_comp     = ~(*twos_num & (uint16_t)0xfff) & 0xfff;
+		decimal       = (ones_comp) + 1;
+		*temperature  = -1 * (decimal * 0.14);
 	} else {
 		decimal      = *twos_num;
+		*temperature  = decimal * 0.14;
 	}
-	*temperature     = decimal * 0.14;
+    printf("0x%x\t%f C\n", *twos_num, *temperature);
+	*temperature      += 25.0;
 	return isnegative;
 }
 
@@ -326,10 +332,10 @@ void *datap_io_thread (void* ptr) {
 		if (getnameinfo((struct sockaddr *)&client_addr, client_addr_len, hbuf, sizeof(hbuf), sbuf,
 				sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
 
-			printf("%d\t%s:%s\t", i, hbuf, sbuf);
+		//	printf("%d\t%s:%s\t", i, hbuf, sbuf);
 
 			if(ports_equal(sbuf, IMU_A_TX_PORT_MPU) && (sensor_listen_id == MPU)) {
-				printf("MPU Packet %s:%s\n", hbuf, sbuf);
+			//	printf("MPU Packet %s:%s\n", hbuf, sbuf);
 				memcpy (&mpu9150_udp_data, recvbuf, sizeof (MPU9150_read_data));
 
 				//		printf("fc: size of data struct: %d\n", sizeof(MPU9150_read_data));
@@ -343,7 +349,7 @@ void *datap_io_thread (void* ptr) {
 						mpu9150_udp_data.gyro_xyz.x,
 						mpu9150_udp_data.gyro_xyz.y,
 						mpu9150_udp_data.gyro_xyz.z,
-						mpu9150_temp_to_dC(mpu9150_udp_data.celsius) );
+						CtoF(mpu9150_temp_to_dC(mpu9150_udp_data.celsius)) );
 				 fflush(fp_mpu);
 #if DEBUG_MPU_NET
 				printf("\r\nraw_temp: %3.2f C\r\n", mpu9150_temp_to_dC(mpu9150_udp_data.celsius));
@@ -358,7 +364,7 @@ void *datap_io_thread (void* ptr) {
 				double adis_temp_C = 0.0;
 				bool   adis_temp_neg = false;
 
-				printf("ADIS Packet: %s:%s\n", hbuf, sbuf);
+			//	printf("ADIS Packet: %s:%s\n", hbuf, sbuf);
 				memcpy (&adis16405_udp_data, recvbuf, sizeof (ADIS16405_burst_data));
 
 				//		printf("fc: size of data struct: %d\n", sizeof(MPU9150_read_data));
@@ -366,7 +372,7 @@ void *datap_io_thread (void* ptr) {
 
 
 				adis_temp_neg = adis16405_temp_to_dC(&adis_temp_C,      &adis16405_udp_data.adis_temp_out);
-				printf("adis temp: %3.2f\n", adis_temp_C );
+				printf("\nadis temp: %3.2f\n", adis_temp_C );
 				 fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%3.2f\n",
 				//  fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%0x%x\n",
 
@@ -380,7 +386,7 @@ void *datap_io_thread (void* ptr) {
 						adis16405_udp_data.adis_xmagn_out,
 						adis16405_udp_data.adis_ymagn_out,
 						adis16405_udp_data.adis_zmagn_out,
-						(adis_temp_neg ? (-1 * adis_temp_C) : adis_temp_C)
+						CtoF(adis_temp_C)
 						//adis16405_udp_data.adis_temp_out
 				 );
 				 fflush(fp_adis);
