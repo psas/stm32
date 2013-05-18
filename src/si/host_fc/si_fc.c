@@ -33,7 +33,7 @@
 #include "device_net.h"
 #include "si_fc.h"
 
-
+#define         MAX_RECV_BUFLEN      100
 #define         MAX_THREADS          4
 #define         NUM_THREADS          2
 #define         TIMEBUFLEN           80
@@ -82,7 +82,6 @@ static bool adis16405_temp_to_dC(double* temperature, uint16_t* twos_num) {
 		decimal      = *twos_num;
 		*temperature  = decimal * 0.14;
 	}
-    printf("0x%x\t%f C\n", *twos_num, *temperature);
 	*temperature      += 25.0;
 	return isnegative;
 }
@@ -205,7 +204,7 @@ void *datap_io_thread (void* ptr) {
 
 	char                      timestring[TIMEBUFLEN];
 	char                      ipstr[INET6_ADDRSTRLEN];
-	char                      recvbuf[MAXBUFLEN];
+	char                      recvbuf[MAX_RECV_BUFLEN];
 	char                      s[INET6_ADDRSTRLEN];
 
 	pthread_t                 my_id;
@@ -324,7 +323,7 @@ void *datap_io_thread (void* ptr) {
 		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
 
 		addr_len = sizeof client_addr;
-		if ((numbytes = recvfrom(hostsocket_fd, recvbuf, MAXBUFLEN-1 , 0,
+		if ((numbytes = recvfrom(hostsocket_fd, recvbuf, MAX_RECV_BUFLEN-1 , 0,
 				(struct sockaddr *)&client_addr, &addr_len)) == -1) {
 			die_nice("recvfrom");
 		}
@@ -372,7 +371,6 @@ void *datap_io_thread (void* ptr) {
 
 
 				adis_temp_neg = adis16405_temp_to_dC(&adis_temp_C,      &adis16405_udp_data.adis_temp_out);
-				printf("\nadis temp: %3.2f\n", adis_temp_C );
 				 fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%3.2f\n",
 				//  fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%0x%x\n",
 
