@@ -33,6 +33,8 @@
 #include "device_net.h"
 #include "si_fc.h"
 
+#define         COUNT_INTERVAL       10000
+#define         MAX_USER_STRBUF      50
 #define         MAX_RECV_BUFLEN      100
 #define         MAX_THREADS          4
 #define         NUM_THREADS          2
@@ -40,10 +42,14 @@
 #define         STRINGBUFLEN         80
 
 static          pthread_mutex_t      msg_mutex;
+static          pthread_mutex_t      exit_request_mutex;
 
 static          MPU9150_read_data    mpu9150_udp_data;
 
 static          ADIS16405_burst_data adis16405_udp_data;
+
+bool            user_exit_requested  = false;
+
 
 /*! \brief Convert register value to degrees C
  *
@@ -119,11 +125,18 @@ static void get_current_time(char* ts) {
 	strftime (ts, TIMEBUFLEN, "%T %F",timeinfo);
 }
 
+static void user_query_msg(volatile char *s) {
+	pthread_mutex_lock(&msg_mutex);
+	char   timebuf[TIMEBUFLEN];
+	get_current_time(timebuf);
+	fprintf(stderr, "M (%s):\t%s: ", timebuf, s);
+	pthread_mutex_unlock(&msg_mutex);
+}
 static void log_msg(volatile char *s) {
 	pthread_mutex_lock(&msg_mutex);
 	char   timebuf[TIMEBUFLEN];
 	get_current_time(timebuf);
-	fprintf(stderr, "M (%s):\t%s\n", timebuf, s);
+	fprintf(stderr, "\nM (%s):\t%s\n", timebuf, s);
 	pthread_mutex_unlock(&msg_mutex);
 }
 
@@ -183,6 +196,74 @@ static void *get_in_addr(struct sockaddr *sa) {
 
 static void init_thread_state(Ports* p, unsigned int i) {
 	p->thread_id = i;
+}
+
+
+void user_help() {
+	pthread_mutex_lock(&msg_mutex);
+
+    fprintf(stderr, "Help:\n\
+            Please enter one of these choices:\n\
+            g - start logging (go)\n\
+            s - stop logging (stop)\n\
+            r - reset sensors (reset)\n\
+            q - quit program (quit)\n\
+           \n");
+
+    pthread_mutex_unlock(&msg_mutex);
+}
+
+
+/*! \brief User I/O
+ *
+ * @param ptr  pointer to Usertalk type
+ */
+void *user_io_thread (void* ptr) {
+	Usertalk*                 user_info;
+
+	int                       result;
+	char                      str[MAX_USER_STRBUF];
+	char                      keypress;
+
+	sleep(3);
+	fprintf(stderr, "\n");
+
+	while(!user_exit_requested) {
+		user_query_msg("(q)uit, (r)eset, (g)o, (s)top, (h)elp: ");
+		fgets(str, sizeof(str), stdin);
+		result = sscanf(str, "%c", &keypress );
+		if(result < 1) {
+			fprintf(stderr, "ERROR: Invalid entry\n");
+			continue;
+		}
+		switch(keypress) {
+			case 'q':
+				log_msg("You typed q-quit\n");
+				pthread_mutex_lock(&exit_request_mutex);
+				user_exit_requested = true;
+				pthread_mutex_unlock(&exit_request_mutex);
+				break;
+			case 'r':
+				log_msg("You typed r-reset\n");
+				break;
+			case 'g':
+				log_msg("You typed g-go\n");
+				break;
+			case 's':
+				log_msg("You typed s-stop\n");
+				break;
+			case '\n':
+				break;
+			case 'h':
+			case '?':
+				user_help();
+				break;
+			default:
+				fprintf(stderr, "ERROR: Unrecognized entry: '%c'\n",keypress);
+				user_help();
+				break;
+		}
+	}
 }
 
 /*! \brief Thread routine I/O
@@ -316,8 +397,11 @@ void *datap_io_thread (void* ptr) {
 		die_nice("failed to bind control socket\n");
 	}
 
-	for(i=0; i<NPACK; ++i) {
+	//for(i=0; i<NPACK; ++i) {
+	uint32_t datacount       = 0;
+	while(!user_exit_requested) {
 
+		char   countmsg[MAX_USER_STRBUF];
 		struct sockaddr        *sa;
 		socklen_t              len;
 		char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
@@ -327,6 +411,7 @@ void *datap_io_thread (void* ptr) {
 				(struct sockaddr *)&client_addr, &addr_len)) == -1) {
 			die_nice("recvfrom");
 		}
+
 
 		if (getnameinfo((struct sockaddr *)&client_addr, client_addr_len, hbuf, sizeof(hbuf), sbuf,
 				sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
@@ -349,7 +434,12 @@ void *datap_io_thread (void* ptr) {
 						mpu9150_udp_data.gyro_xyz.y,
 						mpu9150_udp_data.gyro_xyz.z,
 						CtoF(mpu9150_temp_to_dC(mpu9150_udp_data.celsius)) );
-				 fflush(fp_mpu);
+				fflush(fp_mpu);
+				++datacount;
+				snprintf(countmsg, MAX_USER_STRBUF , " %d MPU entries.", datacount );
+				if(datacount %COUNT_INTERVAL == 0) {
+					log_msg(countmsg);
+				}
 #if DEBUG_MPU_NET
 				printf("\r\nraw_temp: %3.2f C\r\n", mpu9150_temp_to_dC(mpu9150_udp_data.celsius));
 				printf("ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_udp_data.accel_xyz.x, mpu9150_udp_data.accel_xyz.y, mpu9150_udp_data.accel_xyz.z);
@@ -388,6 +478,11 @@ void *datap_io_thread (void* ptr) {
 						//adis16405_udp_data.adis_temp_out
 				 );
 				 fflush(fp_adis);
+				 ++datacount;
+				 snprintf(countmsg, MAX_USER_STRBUF , " %d ADIS entries.", datacount );
+				 if(datacount %COUNT_INTERVAL == 0) {
+					 log_msg(countmsg);
+				 }
 			} else {
 				printf("Unrecognized Packet %s:%s\n", hbuf, sbuf);
 			}
@@ -420,8 +515,18 @@ int main(void) {
 
 	pthread_t        thread_id[MAX_THREADS];
 	Ports            th_data[MAX_THREADS];
+	Usertalk	     th_talk;
 
 	pthread_mutex_init(&msg_mutex, NULL);
+	pthread_mutex_init(&exit_request_mutex, NULL);
+
+	tc = pthread_create( &thread_id[i], NULL, &user_io_thread, &th_talk );
+	if (tc){
+		printf("== Error=> pthread_create() fail with code: %d\n", tc);
+		exit(EXIT_FAILURE);
+	}
+
+	th_talk.thread_id = 42;
 
 	for(i=0; i<MAX_THREADS; ++i) {
 		init_thread_state(&th_data[i], i);
@@ -438,7 +543,6 @@ int main(void) {
 	snprintf(th_data[MPU_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
 	snprintf(th_data[MPU_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
 
-	printf("start threads\n");
 
 	for(i=0; i<numthreads; ++i) {
 		tc = pthread_create( &thread_id[i], NULL, &datap_io_thread, (void*) &th_data[i] );
@@ -458,6 +562,8 @@ int main(void) {
 		}
 	}
 	pthread_mutex_destroy(&msg_mutex);
+	pthread_mutex_destroy(&exit_request_mutex);
+
 	pthread_exit(NULL);
 
 
