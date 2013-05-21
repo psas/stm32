@@ -33,7 +33,12 @@ typedef struct Ports {
 } Ports;
 
 typedef struct Usertalk {
-    unsigned int       thread_id;
+	unsigned int       thread_id;
+	char               host_listen_port[PORT_STRING_LEN];
+	char               client_a_addr[INET6_ADDRSTRLEN];
+	char               client_a_port[PORT_STRING_LEN];
+	char               client_b_addr[INET6_ADDRSTRLEN];
+	char               client_b_port[PORT_STRING_LEN];
 } Usertalk;
 /*! \typedef Structure for accelerometer data
  *
