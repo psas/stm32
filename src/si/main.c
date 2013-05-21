@@ -154,6 +154,18 @@ static void mpu9150_init(I2CDriver* i2cptr) {
 
 	rdata = MPU9150_INT_EN_DATA_RD_EN;
 	mpu9150_write_int_enable(i2cptr, rdata);
+
+}
+
+static void mpu9150_reset_req(eventid_t id) {
+	(void) id;
+	mpu9150_reg_data           rdata;
+
+	rdata = 0;
+	mpu9150_write_int_enable(mpu9150_driver.i2c_instance, rdata);
+
+	mpu9150_init(mpu9150_driver.i2c_instance);
+
 }
 
 static void mpu9150_int_event_handler(eventid_t id) {
@@ -204,13 +216,15 @@ static WORKING_AREA(waThread_mpu9150_int, 512);
 static msg_t Thread_mpu9150_int(void* arg) {
 	(void) arg;
 	static const evhandler_t evhndl_mpu9150[]       = {
-			mpu9150_int_event_handler
+			mpu9150_int_event_handler,
+			//mpu9150_reset_req
 	};
 	struct EventListener     evl_mpu9150;
 
 	chRegSetThreadName("mpu9150_int");
 
 	chEvtRegister(&mpu9150_int_event,           &evl_mpu9150,         0);
+	//chEvtRegister(&fc_req_reset_event,          &evl_mpu9150,         1);
 
 	while (TRUE) {
 		chEvtDispatch(evhndl_mpu9150, chEvtWaitOneTimeout(EVENT_MASK(0), MS2ST(50)));
@@ -218,6 +232,24 @@ static msg_t Thread_mpu9150_int(void* arg) {
 	return -1;
 }
 
+
+static WORKING_AREA(waThread_mpu9150_reset_req, 256);
+static msg_t Thread_mpu9150_reset_req(void* arg) {
+	(void) arg;
+	static const evhandler_t evhndl_mpu9150[]       = {
+			mpu9150_reset_req
+	};
+	struct EventListener     evl_mpu9150;
+
+	chRegSetThreadName("mpu9150_reset_req");
+
+	chEvtRegister(&fc_req_reset_event,          &evl_mpu9150,         0);
+
+	while (TRUE) {
+		chEvtDispatch(evhndl_mpu9150, chEvtWaitOneTimeout(EVENT_MASK(0), MS2ST(50)));
+	}
+	return -1;
+}
 
 #if 1
 static WORKING_AREA(waThread_adis_newdata, 512);
@@ -418,7 +450,8 @@ int main(void) {
 	chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
 
 	/* i2c MPU9150 */
-	chThdCreateStatic(waThread_mpu9150_int,       sizeof(waThread_mpu9150_int)      , NORMALPRIO    , Thread_mpu9150_int,  NULL);
+	chThdCreateStatic(waThread_mpu9150_int,         sizeof(waThread_mpu9150_int)        , NORMALPRIO    , Thread_mpu9150_int,        NULL);
+	chThdCreateStatic(waThread_mpu9150_reset_req,   sizeof(waThread_mpu9150_reset_req)  , NORMALPRIO    , Thread_mpu9150_reset_req,  NULL);
 
 	/* SPI ADIS */
 	chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);

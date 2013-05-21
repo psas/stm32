@@ -55,6 +55,7 @@
 #if LWIP_NETCONN
 
 EventSource                        mpu9150_data_event;
+EventSource                        fc_req_reset_event;
 
 static        MPU9150_MAC_info     mpu9150_mac_info;
 static        ADIS16405_MAC_info   adis16405_mac_info;
@@ -64,6 +65,7 @@ static        ADIS16405_MAC_info   adis16405_mac_info;
  */
 void data_udp_init(void) {
 		chEvtInit(&mpu9150_data_event);
+		chEvtInit(&fc_req_reset_event);
 }
 
 /*! \brief event handler for mpu9150 udp data
@@ -199,6 +201,16 @@ msg_t data_udp_send_thread(void *p) {
 	return RDY_RESET;
 }
 
+static void data_udp_process_rx(char* rxbuf, uint16_t rxbuflen) {
+	int    retval = -1;
+	const  char     reset_string_cmd[] = "USER_RESET";
+
+	retval   = strncmp( rxbuf, reset_string_cmd, rxbuflen-1);
+	if(retval == 0) {
+		chEvtBroadcast(&fc_req_reset_event);
+	}
+}
+
 static void data_udp_rx_serve(struct netconn *conn) {
 	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
@@ -227,6 +239,7 @@ static void data_udp_rx_serve(struct netconn *conn) {
 			chprintf(chp, "%c", buf[i]);
 		}
 		chprintf(chp, "\r\n");
+		data_udp_process_rx(buf, buflen);
 	}
 	netconn_close(conn);
 
