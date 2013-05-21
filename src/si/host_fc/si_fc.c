@@ -30,12 +30,15 @@
 #include <unistd.h>
 
 #include "fc_net.h"
+
+
 #include "device_net.h"
 #include "si_fc.h"
 
 #define         COUNT_INTERVAL       10000
 #define         MAX_USER_STRBUF      50
 #define         MAX_RECV_BUFLEN      100
+#define         MAX_SEND_BUFLEN      100
 #define         MAX_THREADS          4
 #define         NUM_THREADS          2
 #define         TIMEBUFLEN           80
@@ -43,12 +46,14 @@
 
 static          pthread_mutex_t      msg_mutex;
 static          pthread_mutex_t      exit_request_mutex;
+static          pthread_mutex_t      log_enable_mutex;
 
 static          MPU9150_read_data    mpu9150_udp_data;
 
 static          ADIS16405_burst_data adis16405_udp_data;
 
-bool            user_exit_requested  = false;
+static bool     user_exit_requested  = false;
+static bool     enable_logging       = true;
 
 
 /*! \brief Convert register value to degrees C
@@ -213,6 +218,54 @@ void user_help() {
     pthread_mutex_unlock(&msg_mutex);
 }
 
+static void send_reset_sensors_message(Usertalk* u) {
+
+	int                       retval = 0;
+	int                       clientsocket_fd;
+	int                       numbytes;
+
+	struct addrinfo           hints, *res, *ai_client;
+	struct sockaddr_storage   client_addr;
+
+	socklen_t                 client_addr_len;
+	char                      sndbuf[MAX_SEND_BUFLEN];
+
+	client_addr_len           = sizeof(struct sockaddr_storage);
+
+	log_msg("open socket\n");
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family   = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+
+	if ((retval = getaddrinfo(u->client_a_addr, u->client_a_port, &hints, &res)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(retval));
+		die_nice("client get address");
+	}
+
+	/* Create a socket for the client */
+	for(ai_client = res; ai_client != NULL; ai_client = ai_client->ai_next) {
+		if ((clientsocket_fd = socket(ai_client->ai_family, ai_client->ai_socktype,
+				ai_client->ai_protocol)) == -1) {
+			perror("clientsocket");
+			continue;
+		}
+		break;
+	}
+
+	if (ai_client == NULL) {
+		die_nice("failed to bind client socket\n");
+	}
+
+	snprintf(sndbuf, MAX_SEND_BUFLEN , "USER_RESET");
+	if ((numbytes = sendto(clientsocket_fd, sndbuf, strlen(sndbuf), 0,
+			ai_client->ai_addr, ai_client->ai_addrlen)) == -1) {
+		die_nice("client sendto");
+	}
+
+	close(clientsocket_fd);
+	freeaddrinfo(res); // free the linked list
+}
 
 /*! \brief User I/O
  *
@@ -220,12 +273,13 @@ void user_help() {
  */
 void *user_io_thread (void* ptr) {
 	Usertalk*                 user_info;
+	user_info                 = (Usertalk*) ptr;
 
 	int                       result;
 	char                      str[MAX_USER_STRBUF];
 	char                      keypress;
 
-	sleep(3);
+	sleep(2);
 	fprintf(stderr, "\n");
 
 	while(!user_exit_requested) {
@@ -245,12 +299,19 @@ void *user_io_thread (void* ptr) {
 				break;
 			case 'r':
 				log_msg("You typed r-reset\n");
+				send_reset_sensors_message(user_info);
 				break;
 			case 'g':
-				log_msg("You typed g-go\n");
+				log_msg("Log enabled by user.\n");
+				pthread_mutex_lock(&log_enable_mutex);
+				enable_logging = true;
+				pthread_mutex_unlock(&log_enable_mutex);
 				break;
 			case 's':
-				log_msg("You typed s-stop\n");
+				log_msg("Log disabled by user.\n\n");
+				pthread_mutex_lock(&log_enable_mutex);
+				enable_logging = false;
+				pthread_mutex_unlock(&log_enable_mutex);
 				break;
 			case '\n':
 				break;
@@ -394,7 +455,7 @@ void *datap_io_thread (void* ptr) {
 	}
 
 	if (ai_client == NULL) {
-		die_nice("failed to bind control socket\n");
+		die_nice("failed to bind client socket\n");
 	}
 
 	//for(i=0; i<NPACK; ++i) {
@@ -425,21 +486,24 @@ void *datap_io_thread (void* ptr) {
 				//		printf("fc: size of data struct: %d\n", sizeof(MPU9150_read_data));
 				//		printf("fc: packet is %d bytes long\n", numbytes);
 
-				fprintf(fp_mpu, "%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
-						timestamp_now(),
-						mpu9150_udp_data.accel_xyz.x,
-						mpu9150_udp_data.accel_xyz.y,
-						mpu9150_udp_data.accel_xyz.z,
-						mpu9150_udp_data.gyro_xyz.x,
-						mpu9150_udp_data.gyro_xyz.y,
-						mpu9150_udp_data.gyro_xyz.z,
-						CtoF(mpu9150_temp_to_dC(mpu9150_udp_data.celsius)) );
-				fflush(fp_mpu);
-				++datacount;
-				snprintf(countmsg, MAX_USER_STRBUF , " %d MPU entries.", datacount );
-				if(datacount %COUNT_INTERVAL == 0) {
-					log_msg(countmsg);
+				if(enable_logging) {
+					fprintf(fp_mpu, "%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
+							timestamp_now(),
+							mpu9150_udp_data.accel_xyz.x,
+							mpu9150_udp_data.accel_xyz.y,
+							mpu9150_udp_data.accel_xyz.z,
+							mpu9150_udp_data.gyro_xyz.x,
+							mpu9150_udp_data.gyro_xyz.y,
+							mpu9150_udp_data.gyro_xyz.z,
+							CtoF(mpu9150_temp_to_dC(mpu9150_udp_data.celsius)) );
+					++datacount;
+					snprintf(countmsg, MAX_USER_STRBUF , " %d MPU entries.", datacount );
+					if(datacount %COUNT_INTERVAL == 0) {
+						log_msg(countmsg);
+					}
 				}
+				fflush(fp_mpu);
+
 #if DEBUG_MPU_NET
 				printf("\r\nraw_temp: %3.2f C\r\n", mpu9150_temp_to_dC(mpu9150_udp_data.celsius));
 				printf("ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_udp_data.accel_xyz.x, mpu9150_udp_data.accel_xyz.y, mpu9150_udp_data.accel_xyz.z);
@@ -460,29 +524,31 @@ void *datap_io_thread (void* ptr) {
 				//		printf("fc: packet is %d bytes long\n", numbytes);
 
 
-				adis_temp_neg = adis16405_temp_to_dC(&adis_temp_C,      &adis16405_udp_data.adis_temp_out);
-				 fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%3.2f\n",
-				//  fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%0x%x\n",
+				if(enable_logging) {
+					adis_temp_neg = adis16405_temp_to_dC(&adis_temp_C,      &adis16405_udp_data.adis_temp_out);
+					fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%3.2f\n",
+							//  fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%0x%x\n",
 
-						timestamp_now(),
-						adis16405_udp_data.adis_xaccl_out,
-						adis16405_udp_data.adis_yaccl_out,
-						adis16405_udp_data.adis_zaccl_out,
-						adis16405_udp_data.adis_xgyro_out,
-						adis16405_udp_data.adis_ygyro_out,
-						adis16405_udp_data.adis_zgyro_out,
-						adis16405_udp_data.adis_xmagn_out,
-						adis16405_udp_data.adis_ymagn_out,
-						adis16405_udp_data.adis_zmagn_out,
-						CtoF(adis_temp_C)
-						//adis16405_udp_data.adis_temp_out
-				 );
-				 fflush(fp_adis);
-				 ++datacount;
-				 snprintf(countmsg, MAX_USER_STRBUF , " %d ADIS entries.", datacount );
-				 if(datacount %COUNT_INTERVAL == 0) {
-					 log_msg(countmsg);
-				 }
+							timestamp_now(),
+							adis16405_udp_data.adis_xaccl_out,
+							adis16405_udp_data.adis_yaccl_out,
+							adis16405_udp_data.adis_zaccl_out,
+							adis16405_udp_data.adis_xgyro_out,
+							adis16405_udp_data.adis_ygyro_out,
+							adis16405_udp_data.adis_zgyro_out,
+							adis16405_udp_data.adis_xmagn_out,
+							adis16405_udp_data.adis_ymagn_out,
+							adis16405_udp_data.adis_zmagn_out,
+							CtoF(adis_temp_C)
+							//adis16405_udp_data.adis_temp_out
+					);
+					++datacount;
+					snprintf(countmsg, MAX_USER_STRBUF , " %d ADIS entries.", datacount );
+					if(datacount %COUNT_INTERVAL == 0) {
+						log_msg(countmsg);
+					}
+				}
+				fflush(fp_adis);
 			} else {
 				printf("Unrecognized Packet %s:%s\n", hbuf, sbuf);
 			}
@@ -519,6 +585,16 @@ int main(void) {
 
 	pthread_mutex_init(&msg_mutex, NULL);
 	pthread_mutex_init(&exit_request_mutex, NULL);
+	pthread_mutex_init(&log_enable_mutex, NULL);
+
+   /* USER IO THREAD */
+
+	th_talk.thread_id = 33;
+	snprintf(th_talk.host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A_ADIS);
+	snprintf(th_talk.client_a_addr   , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
+	snprintf(th_talk.client_a_port   , PORT_STRING_LEN , "%d", IMU_A_LISTEN_PORT);
+	snprintf(th_talk.client_b_addr   , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
+	snprintf(th_talk.client_b_port   , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
 
 	tc = pthread_create( &thread_id[i], NULL, &user_io_thread, &th_talk );
 	if (tc){
@@ -526,7 +602,6 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 
-	th_talk.thread_id = 42;
 
 	for(i=0; i<MAX_THREADS; ++i) {
 		init_thread_state(&th_data[i], i);
