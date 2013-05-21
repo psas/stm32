@@ -232,8 +232,6 @@ static void send_reset_sensors_message(Usertalk* u) {
 
 	client_addr_len           = sizeof(struct sockaddr_storage);
 
-	log_msg("open socket\n");
-
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family   = AF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
