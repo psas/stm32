@@ -40,34 +40,48 @@ typedef struct Usertalk {
 	char               client_b_addr[INET6_ADDRSTRLEN];
 	char               client_b_port[PORT_STRING_LEN];
 } Usertalk;
+
+
 /*! \typedef Structure for accelerometer data
  *
  *
  */
-typedef struct mpu9150_accel_data {
-    uint16_t x;
-    uint16_t y;
-    uint16_t z;
-} MPU9150_accel_data;
+struct MPU9150_accel_data {
+	uint16_t x;
+	uint16_t y;
+	uint16_t z;
+}  __attribute__((packed)) ;
+typedef struct MPU9150_accel_data MPU9150_accel_data;
 
 /*! \typedef Structure for gyroscope data
  *
  *
  */
-typedef struct mpu9150_gyro_data {
-    uint16_t x;
-    uint16_t y;
-    uint16_t z;
-} MPU9150_gyro_data;
+struct MPU9150_gyro_data {
+	uint16_t x;
+	uint16_t y;
+	uint16_t z;
+}  __attribute__((packed)) ;
+typedef struct MPU9150_gyro_data MPU9150_gyro_data;
 
 /*! \typedef Read Data from mpu9150
  *
  */
-typedef struct mpu9150_read_data {
-    MPU9150_gyro_data     gyro_xyz;
-    MPU9150_accel_data    accel_xyz;
-    int16_t               celsius;
-} MPU9150_read_data;
+struct MPU9150_read_data {
+	MPU9150_gyro_data     gyro_xyz;
+	MPU9150_accel_data    accel_xyz;
+	int16_t               celsius;
+}  __attribute__((packed)) ;
+typedef struct MPU9150_read_data MPU9150_read_data;
+
+
+struct MPU_packet {
+    char                ID[4];
+    uint8_t             timestamp[16];
+    uint16_t            data_length;
+    MPU9150_read_data   data;
+}  __attribute__((packed)) ;
+typedef struct MPU_packet MPU_packet;
 
 typedef     uint16_t                          adis_reg_data;
 

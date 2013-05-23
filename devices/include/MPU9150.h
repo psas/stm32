@@ -241,31 +241,34 @@ typedef struct mpu9150_driver {
  *
  *
  */
-typedef struct mpu9150_accel_data {
+struct MPU9150_accel_data {
 	uint16_t x;
 	uint16_t y;
 	uint16_t z;
-} MPU9150_accel_data;
-
+}  __attribute__((packed)) ;
+typedef struct MPU9150_accel_data MPU9150_accel_data;
 
 /*! \typedef Structure for gyroscope data
  *
  *
  */
-typedef struct mpu9150_gyro_data {
+struct MPU9150_gyro_data {
 	uint16_t x;
 	uint16_t y;
 	uint16_t z;
-} MPU9150_gyro_data;
+}  __attribute__((packed)) ;
+typedef struct MPU9150_gyro_data MPU9150_gyro_data;
 
 /*! \typedef Read Data from mpu9150
  *
  */
-typedef struct mpu9150_read_data {
+struct MPU9150_read_data {
 	MPU9150_gyro_data     gyro_xyz;
 	MPU9150_accel_data    accel_xyz;
 	int16_t               celsius;
-} MPU9150_read_data;
+}  __attribute__((packed)) ;
+
+typedef struct MPU9150_read_data MPU9150_read_data;
 
 /*! \typedef mpu9150_config
  *
