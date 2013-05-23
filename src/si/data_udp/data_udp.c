@@ -50,6 +50,7 @@
 
 #include "ADIS16405.h"
 #include "MPU9150.h"
+#include "psas_packet.h"
 
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
@@ -75,13 +76,21 @@ static void data_udp_send_mpu9150_data(eventid_t id) {
 	(void) id;
 	uint8_t*                  data;
 	//BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+	MPU_packet                packet;
+	const char                myid[(sizeof("MPU3")-1)] = "MPU3";
+
+	memset (&packet.timestamp, 0, sizeof(packet.timestamp));
+
+	strncpy(packet.ID, myid, sizeof(myid));
+
+	memcpy(&packet.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
 
 	mpu9150_mac_info.buf     =  netbuf_new();
 	//chprintf(chp, "ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_current_read.accel_xyz.x, mpu9150_current_read.accel_xyz.y, mpu9150_current_read.accel_xyz.z);
 
-	data    =  netbuf_alloc(mpu9150_mac_info.buf, sizeof(MPU9150_read_data));
+	data    =  netbuf_alloc(mpu9150_mac_info.buf, sizeof(packet));
 	if(data != NULL) {
-		memcpy (data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data));
+		memcpy (data, (void*) &packet, sizeof(packet));
 		//chprintf(chp, "size: %d\r\n", sizeof(MPU9150_read_data));
 
 		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);

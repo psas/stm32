@@ -48,7 +48,8 @@ static          pthread_mutex_t      msg_mutex;
 static          pthread_mutex_t      exit_request_mutex;
 static          pthread_mutex_t      log_enable_mutex;
 
-static          MPU9150_read_data    mpu9150_udp_data;
+static          struct MPU_packet           mpu9150_udp_data;
+static          MPU9150_read_data    mpu9150_imu_data;
 
 static          ADIS16405_burst_data adis16405_udp_data;
 
@@ -479,21 +480,27 @@ void *datap_io_thread (void* ptr) {
 
 			if(ports_equal(sbuf, IMU_A_TX_PORT_MPU) && (sensor_listen_id == MPU)) {
 			//	printf("MPU Packet %s:%s\n", hbuf, sbuf);
-				memcpy (&mpu9150_udp_data, recvbuf, sizeof (MPU9150_read_data));
+				if(numbytes != sizeof(MPU_packet) ){
+					die_nice("wrong numbytes mpu");
+				}
+				memcpy (&mpu9150_udp_data, recvbuf, sizeof(MPU_packet));
+
+				mpu9150_imu_data = (MPU9150_read_data) mpu9150_udp_data.data;
 
 				//		printf("fc: size of data struct: %d\n", sizeof(MPU9150_read_data));
 				//		printf("fc: packet is %d bytes long\n", numbytes);
 
 				if(enable_logging) {
-					fprintf(fp_mpu, "%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
+					fprintf(fp_mpu, "%c%c%c%c, %f,%d,%d,%d,%d,%d,%d,%3.2f\n",
+							mpu9150_udp_data.ID[0], mpu9150_udp_data.ID[1],mpu9150_udp_data.ID[2],mpu9150_udp_data.ID[3],
 							timestamp_now(),
-							mpu9150_udp_data.accel_xyz.x,
-							mpu9150_udp_data.accel_xyz.y,
-							mpu9150_udp_data.accel_xyz.z,
-							mpu9150_udp_data.gyro_xyz.x,
-							mpu9150_udp_data.gyro_xyz.y,
-							mpu9150_udp_data.gyro_xyz.z,
-							CtoF(mpu9150_temp_to_dC(mpu9150_udp_data.celsius)) );
+							mpu9150_imu_data.accel_xyz.x,
+							mpu9150_imu_data.accel_xyz.y,
+							mpu9150_imu_data.accel_xyz.z,
+							mpu9150_imu_data.gyro_xyz.x,
+							mpu9150_imu_data.gyro_xyz.y,
+							mpu9150_imu_data.gyro_xyz.z,
+							CtoF(mpu9150_temp_to_dC(mpu9150_imu_data.celsius)) );
 					++datacount;
 					snprintf(countmsg, MAX_USER_STRBUF , " %d MPU entries.", datacount );
 					if(datacount %COUNT_INTERVAL == 0) {
