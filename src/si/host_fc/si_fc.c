@@ -48,10 +48,11 @@ static          pthread_mutex_t      msg_mutex;
 static          pthread_mutex_t      exit_request_mutex;
 static          pthread_mutex_t      log_enable_mutex;
 
-static          struct MPU_packet           mpu9150_udp_data;
+static          MPU_packet           mpu9150_udp_data;
 static          MPU9150_read_data    mpu9150_imu_data;
 
-static          ADIS16405_burst_data adis16405_udp_data;
+static          ADIS_packet          adis16405_udp_data;
+static          ADIS16405_burst_data adis16405_imu_data;
 
 static bool     user_exit_requested  = false;
 static bool     enable_logging       = true;
@@ -156,8 +157,12 @@ static void log_error(volatile char *s) {
 }
 
 static void die_nice(char *s) {
+	if(errno != 0) {
+		perror(s);
+	}
+	fprintf(stderr, "%s: %s\n", __func__, s);
 	log_error("exiting\n");
-	perror(s);
+
 	exit(1);
 }
 
@@ -253,7 +258,7 @@ static void send_reset_sensors_message(Usertalk* u) {
 	}
 
 	if (ai_client == NULL) {
-		die_nice("failed to bind client socket\n");
+		die_nice("failed to bind client socket");
 	}
 
 	snprintf(sndbuf, MAX_SEND_BUFLEN , "USER_RESET");
@@ -491,7 +496,7 @@ void *datap_io_thread (void* ptr) {
 				//		printf("fc: packet is %d bytes long\n", numbytes);
 
 				if(enable_logging) {
-					fprintf(fp_mpu, "%c%c%c%c, %f,%d,%d,%d,%d,%d,%d,%3.2f\n",
+					fprintf(fp_mpu, "%c%c%c%c,%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
 							mpu9150_udp_data.ID[0], mpu9150_udp_data.ID[1],mpu9150_udp_data.ID[2],mpu9150_udp_data.ID[3],
 							timestamp_now(),
 							mpu9150_imu_data.accel_xyz.x,
@@ -521,29 +526,32 @@ void *datap_io_thread (void* ptr) {
 			} else if (ports_equal(sbuf, IMU_A_TX_PORT_ADIS) && (sensor_listen_id == ADIS)) {
 				double adis_temp_C = 0.0;
 				bool   adis_temp_neg = false;
-
+				if(numbytes != sizeof(ADIS_packet) ){
+					die_nice("wrong numbytes adis");
+				}
 			//	printf("ADIS Packet: %s:%s\n", hbuf, sbuf);
-				memcpy (&adis16405_udp_data, recvbuf, sizeof (ADIS16405_burst_data));
+				memcpy (&adis16405_udp_data, recvbuf, sizeof(ADIS_packet));
 
+				adis16405_imu_data = adis16405_udp_data.data;
 				//		printf("fc: size of data struct: %d\n", sizeof(MPU9150_read_data));
 				//		printf("fc: packet is %d bytes long\n", numbytes);
 
 
 				if(enable_logging) {
-					adis_temp_neg = adis16405_temp_to_dC(&adis_temp_C,      &adis16405_udp_data.adis_temp_out);
-					fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%3.2f\n",
+					adis_temp_neg = adis16405_temp_to_dC(&adis_temp_C,      &adis16405_imu_data.adis_temp_out);
+					fprintf(fp_adis, "%c%c%c%c,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%3.2f\n",
 							//  fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%0x%x\n",
-
+							adis16405_udp_data.ID[0], adis16405_udp_data.ID[1],adis16405_udp_data.ID[2],adis16405_udp_data.ID[3],
 							timestamp_now(),
-							adis16405_udp_data.adis_xaccl_out,
-							adis16405_udp_data.adis_yaccl_out,
-							adis16405_udp_data.adis_zaccl_out,
-							adis16405_udp_data.adis_xgyro_out,
-							adis16405_udp_data.adis_ygyro_out,
-							adis16405_udp_data.adis_zgyro_out,
-							adis16405_udp_data.adis_xmagn_out,
-							adis16405_udp_data.adis_ymagn_out,
-							adis16405_udp_data.adis_zmagn_out,
+							adis16405_imu_data.adis_xaccl_out,
+							adis16405_imu_data.adis_yaccl_out,
+							adis16405_imu_data.adis_zaccl_out,
+							adis16405_imu_data.adis_xgyro_out,
+							adis16405_imu_data.adis_ygyro_out,
+							adis16405_imu_data.adis_zgyro_out,
+							adis16405_imu_data.adis_xmagn_out,
+							adis16405_imu_data.adis_ymagn_out,
+							adis16405_imu_data.adis_zmagn_out,
 							CtoF(adis_temp_C)
 							//adis16405_udp_data.adis_temp_out
 					);

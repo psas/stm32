@@ -105,18 +105,26 @@ static void data_udp_send_mpu9150_data(eventid_t id) {
  */
 static void data_udp_send_adis16405_data(eventid_t id) {
 	(void) id;
+	ADIS_packet               packet;
+    const char                myid[(sizeof("ADIS")-1)] = "ADIS";
+
 	//BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
 	//chprintf(chp, "adis\r\n");
 	uint8_t*                  data;
 
+	memset (&packet.timestamp, 0, sizeof(packet.timestamp));
+
+	strncpy(packet.ID, myid, sizeof(myid));
+
+	memcpy(&packet.data, (void*) &adis16405_burst_data, sizeof(ADIS16405_burst_data) );
+
 	adis16405_mac_info.buf     =  netbuf_new();
 	//chprintf(chp, "ACCL:  x: %d\ty: %d\tz: %d\r\n", adis16405_current_read.accel_xyz.x, adis16405_current_read.accel_xyz.y, adis16405_current_read.accel_xyz.z);
 
-	data    =  netbuf_alloc(adis16405_mac_info.buf, sizeof(ADIS16405_burst_data));
+	data    =  netbuf_alloc(adis16405_mac_info.buf, sizeof(ADIS_packet));
 	if(data != NULL) {
-		memcpy (data, (void*) &adis16405_burst_data, sizeof(ADIS16405_burst_data));
-		//chprintf(chp, "temp raw: %d\r\n", adis16405_burst_data.adis_temp_out);
+		memcpy (data, (void*) &packet, sizeof(ADIS_packet));
 
 		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netconn_send(adis16405_mac_info.conn, adis16405_mac_info.buf);

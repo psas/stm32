@@ -171,10 +171,6 @@ static void mpu9150_reset_req(eventid_t id) {
 static void mpu9150_int_event_handler(eventid_t id) {
 	(void) id;
 
-	static uint16_t     count = 0;
-
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-
 	mpu9150_a_read_x_y_z(mpu9150_driver.i2c_instance, &mpu9150_current_read.accel_xyz);
 
 	mpu9150_g_read_x_y_z(mpu9150_driver.i2c_instance, &mpu9150_current_read.gyro_xyz);
@@ -188,6 +184,9 @@ static void mpu9150_int_event_handler(eventid_t id) {
 	mpu9150_a_g_read_int_status(mpu9150_driver.i2c_instance);
 
 #if	DEBUG_MPU9150
+	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+	static uint16_t     count = 0;
+
 	++count;
 	if (count > 2000) {
         		chprintf(chp, "\r\n*** MPU9150 ***\r\n");
