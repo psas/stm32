@@ -20,20 +20,16 @@
 
 #include "ADIS16405.h"
 
-#if !defined(ADIS_DEBUG) || defined(__DOXYGEN__)
-#define 	ADIS_DEBUG                   0
-#endif
+ADIS_Driver             adis_driver;
 
-ADIS_Driver        adis_driver;
-
-adis_cache         adis_cache_data;
+adis_cache              adis_cache_data;
 ADIS16405_burst_data    adis16405_burst_data;
 
-EventSource        adis_dio1_event;
-EventSource        adis_spi_cb_txdone_event;
-EventSource        adis_spi_burst_data_captured;
-EventSource        adis_spi_cb_data_captured;
-EventSource        adis_spi_cb_releasebus;
+EventSource             adis_dio1_event;
+EventSource             adis_spi_cb_txdone_event;
+EventSource             adis_spi_burst_data_captured;
+EventSource             adis_spi_cb_data_captured;
+EventSource             adis_spi_cb_releasebus;
 
 #if ADIS_DEBUG || defined(__DOXYGEN__)
 	/*! \brief Convert an ADIS 14 bit accel. value to micro-g
@@ -59,30 +55,6 @@ EventSource        adis_spi_cb_releasebus;
 		return isnegative;
 	}
 #endif
-
-/*! \brief Convert an ADIS 12 bit temperature value to C
- *
- * @param decimal
- * @param temp reading
- * @return   TRUE if less than zero, FALSE if greater or equal to zero
- */
-//static bool adis16405_temp_to_dC(double* temperature, uint16_t* twos_num) {
-//	uint16_t ones_comp;
-//	bool     isnegative = false;
-//	uint32_t decimal;
-//
-//	//! bit 11 is 12-bit two's complement sign bit
-//	isnegative   = (((uint16_t)(1<<11) & *twos_num) != 0) ? true : false;
-//
-//	if(isnegative) {
-//		ones_comp    = ~(*twos_num & (uint16_t)0xfff) & 0xfff;
-//		decimal      = (ones_comp) + 1;
-//	} else {
-//		decimal      = *twos_num;
-//	}
-//	*temperature     = decimal * 0.14;
-//	return isnegative;
-//}
 
 /*! \brief Create a read address
  *
@@ -256,9 +228,7 @@ void adis_spi_cb(SPIDriver *spip) {
  */
 void adis_newdata_handler(eventid_t id) {
 	(void)                id;
-	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
 
-	//chprintf(chp, "$");
 	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
 
 	if(adis_driver.reg == ADIS_GLOB_CMD) {
@@ -278,10 +248,8 @@ void adis_newdata_handler(eventid_t id) {
 		chEvtBroadcast(&adis_spi_burst_data_captured);         // Event monitored in data_udp_send thread
 	}
 
-	/*! \todo Package for UDP transmission to fc here */
-
-
-#if 1
+#if ADIS_DEBUG
+	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
 	bool                  negative = false;
 	uint32_t              result_ug = 0;
 	static uint32_t       j        = 0;
@@ -290,31 +258,27 @@ void adis_newdata_handler(eventid_t id) {
 	++j;
 	if(j>4000) {
 		//chprintf(chp, "adis driver reg: %0x%x\n", adis_driver.reg);
-    	if(adis_driver.reg == ADIS_GLOB_CMD) {
-    		// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
-    		//negative = twos2dec(&burst_data.adis_xaccl_out);
-    		chprintf(chp, "\r\n*** ADIS ***\r\n");
+		if(adis_driver.reg == ADIS_GLOB_CMD) {
+			// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
+			//negative = twos2dec(&burst_data.adis_xaccl_out);
+			chprintf(chp, "\r\n*** ADIS ***\r\n");
 
-    		chprintf(chp, "%d: T: 0x%x C\r\n", xcount, adis16405_burst_data.adis_temp_out);
-    		negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_zaccl_out);
-    		chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, adis16405_burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
-    		negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_xaccl_out);
-    		chprintf(chp, "%d: x: 0x%x  %s%d ug\r\n", xcount, adis16405_burst_data.adis_xaccl_out, (negative) ? "-" : "", result_ug);
-    		negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_yaccl_out);
-    		chprintf(chp, "%d: y: 0x%x  %s%d ug\r\n\r\n", xcount, adis16405_burst_data.adis_yaccl_out, (negative) ? "-" : "", result_ug);
+			chprintf(chp, "%d: T: 0x%x C\r\n", xcount, adis16405_burst_data.adis_temp_out);
+			negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_zaccl_out);
+			chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, adis16405_burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
+			negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_xaccl_out);
+			chprintf(chp, "%d: x: 0x%x  %s%d ug\r\n", xcount, adis16405_burst_data.adis_xaccl_out, (negative) ? "-" : "", result_ug);
+			negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_yaccl_out);
+			chprintf(chp, "%d: y: 0x%x  %s%d ug\r\n\r\n", xcount, adis16405_burst_data.adis_yaccl_out, (negative) ? "-" : "", result_ug);
 
-    	} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
-    		chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );
-    	} else if (adis_driver.reg == ADIS_TEMP_OUT) {
-    		chprintf(chp, "%d: Temperature: 0x%x", xcount, (((adis_cache_data.adis_rx_cache[0] << 8) | adis_cache_data.adis_rx_cache[1]) & ADIS_12_BIT_MASK) );
-    	} else {
-    		chprintf(chp, "%d: not recognized %d\n", xcount, adis_driver.reg);
-    	}
+		} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
+			chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );
+		} else if (adis_driver.reg == ADIS_TEMP_OUT) {
+			chprintf(chp, "%d: Temperature: 0x%x", xcount, (((adis_cache_data.adis_rx_cache[0] << 8) | adis_cache_data.adis_rx_cache[1]) & ADIS_12_BIT_MASK) );
+		} else {
+			chprintf(chp, "%d: not recognized %d\n", xcount, adis_driver.reg);
+		}
 
-		//		for(i=0; i<adis_cache_data.current_rx_numbytes; ++i) {
-//		    chprintf(chp, "%x ", adis_cache_data.adis_rx_cache[i]);
-//		}
-//		chprintf(chp,"\r\n");
 		j=0;
 		++xcount;
 	}
@@ -336,8 +300,8 @@ void adis_read_dC_handler(eventid_t id) {
 
 void adis_burst_read_handler(eventid_t id) {
 	(void) id;
-//	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
-//	chprintf(chp, "+");
+	//	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
+	//	chprintf(chp, "+");
 
 	adis_burst_read(&SPID1);
 }
