@@ -55,11 +55,21 @@
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
-EventSource                        mpu9150_data_event;
-EventSource                        fc_req_reset_event;
+EventSource                             mpu9150_data_event;
+EventSource                             fc_req_reset_event;
 
-static        MPU9150_MAC_info     mpu9150_mac_info;
-static        ADIS16405_MAC_info   adis16405_mac_info;
+static        MPU9150_MAC_info          mpu9150_mac_info;
+static        ADIS16405_MAC_info        adis16405_mac_info;
+
+
+static void log_error(volatile char *s) {
+#if DEBUG_SENSOR_UDP
+	static        BaseSequentialStream      *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+	chprintf(chp, "E:%s\r\n", s);
+#else
+	(void) s;
+#endif
+}
 
 /*! \brief Initialize events for threads
  *
@@ -75,7 +85,6 @@ void data_udp_init(void) {
 static void data_udp_send_mpu9150_data(eventid_t id) {
 	(void) id;
 	uint8_t*                  data;
-	//BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 	MPU_packet                packet;
 	const char                myid[(sizeof("MPU3")-1)] = "MPU3";
 
@@ -86,12 +95,10 @@ static void data_udp_send_mpu9150_data(eventid_t id) {
 	memcpy(&packet.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
 
 	mpu9150_mac_info.buf     =  netbuf_new();
-	//chprintf(chp, "ACCL:  x: %d\ty: %d\tz: %d\r\n", mpu9150_current_read.accel_xyz.x, mpu9150_current_read.accel_xyz.y, mpu9150_current_read.accel_xyz.z);
 
 	data    =  netbuf_alloc(mpu9150_mac_info.buf, sizeof(packet));
 	if(data != NULL) {
 		memcpy (data, (void*) &packet, sizeof(packet));
-		//chprintf(chp, "size: %d\r\n", sizeof(MPU9150_read_data));
 
 		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netconn_send(mpu9150_mac_info.conn, mpu9150_mac_info.buf);
@@ -108,9 +115,6 @@ static void data_udp_send_adis16405_data(eventid_t id) {
 	ADIS_packet               packet;
     const char                myid[(sizeof("ADIS")-1)] = "ADIS";
 
-	//BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
-
-	//chprintf(chp, "adis\r\n");
 	uint8_t*                  data;
 
 	memset (&packet.timestamp, 0, sizeof(packet.timestamp));
@@ -120,7 +124,6 @@ static void data_udp_send_adis16405_data(eventid_t id) {
 	memcpy(&packet.data, (void*) &adis16405_burst_data, sizeof(ADIS16405_burst_data) );
 
 	adis16405_mac_info.buf     =  netbuf_new();
-	//chprintf(chp, "ACCL:  x: %d\ty: %d\tz: %d\r\n", adis16405_current_read.accel_xyz.x, adis16405_current_read.accel_xyz.y, adis16405_current_read.accel_xyz.z);
 
 	data    =  netbuf_alloc(adis16405_mac_info.buf, sizeof(ADIS_packet));
 	if(data != NULL) {
@@ -136,7 +139,7 @@ static void data_udp_send_adis16405_data(eventid_t id) {
 WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 msg_t data_udp_send_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
-	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+
 
 	static const evhandler_t evhndl_imu_a[]       = {
 			data_udp_send_mpu9150_data,
@@ -161,13 +164,13 @@ msg_t data_udp_send_thread(void *p) {
 
 	mpu9150_mac_info.conn   = netconn_new( NETCONN_UDP );
 	if(mpu9150_mac_info.conn == NULL) {
-		chprintf(chp, "mpu new conn is null\r\n");
+		log_error("mpu new conn is null");
 		while(1);
 	}
 
 	adis16405_mac_info.conn   = netconn_new( NETCONN_UDP );
 	if(adis16405_mac_info.conn == NULL) {
-		chprintf(chp, "adis new conn is null\r\n");
+		log_error("adis new conn is null");
 		while(1);
 	}
 
@@ -176,12 +179,12 @@ msg_t data_udp_send_thread(void *p) {
 	err_mpu_conn   = netconn_bind(mpu9150_mac_info.conn,   &ip_addr_sensor, IMU_A_TX_PORT_MPU ); //local port
 
 	if (err_mpu_conn != ERR_OK) {
-		chprintf(chp, "mpu bind is not OK\r\n");
+		log_error("mpu bind is not OK");
 		while(1);
 	}
 	err_adis_conn   = netconn_bind(adis16405_mac_info.conn,   &ip_addr_sensor, IMU_A_TX_PORT_ADIS ); //local port
 	if (err_adis_conn != ERR_OK) {
-		chprintf(chp, "adis bind is not OK\r\n");
+		log_error("adis bind is not OK");
 		while(1);
 	}
 	if ((err_mpu_conn == ERR_OK) && (err_adis_conn == ERR_OK)) {
@@ -192,28 +195,27 @@ msg_t data_udp_send_thread(void *p) {
 		 *
 		 */
 		//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
-		err_mpu_conn  = netconn_connect(mpu9150_mac_info.conn,   &ip_addr_fc, FC_LISTEN_PORT_IMU_A_MPU );
+		err_mpu_conn  = netconn_connect(mpu9150_mac_info.conn,   &ip_addr_fc, FC_LISTEN_PORT_IMU_A );
 		if (err_mpu_conn != ERR_OK) {
-				chprintf(chp, "mpu port connect is not OK\r\n");
+				log_error("mpu port connect is not OK");
 				while(1);
 			}
-		err_adis_conn = netconn_connect(adis16405_mac_info.conn, &ip_addr_fc, FC_LISTEN_PORT_IMU_A_ADIS);
+		err_adis_conn = netconn_connect(adis16405_mac_info.conn, &ip_addr_fc, FC_LISTEN_PORT_IMU_A);
 		if (err_adis_conn != ERR_OK) {
-				chprintf(chp, "adis port connect is not OK\r\n");
+				log_error("adis port connect is not OK");
 				while(1);
 			}
 
-		//if((err_mpu_conn == ERR_OK) && (err_adis_conn == ERR_OK)) {
 		if(err_mpu_conn == ERR_OK) {
 			while (TRUE) {
 				chEvtDispatch(evhndl_imu_a, chEvtWaitOneTimeout(EVENT_MASK(1) |EVENT_MASK(0), MS2ST(50)));
 			}
 		} else {
-			chprintf(chp, "conn not ok\r\n");
+			log_error("Conn not ok");
 		}
 		return RDY_RESET;
 	} else {
-		chprintf(chp, "2 conn not ok\r\n");
+		log_error("2 conn not ok");
 	}
 	return RDY_RESET;
 }
@@ -229,16 +231,17 @@ static void data_udp_process_rx(char* rxbuf, uint16_t rxbuflen) {
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
-	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
-
+#if DEBUG_SENSOR_UDP
 	static uint8_t       count  = 0;
+	static        BaseSequentialStream      *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+#endif
 
 	struct netbuf        *inbuf;
 
 	char                 *buf;
 
 	uint16_t             buflen = 0;
-	uint16_t             i      = 0;
+
 
 	err_t                err;
 
@@ -250,12 +253,17 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	if (err == ERR_OK) {
 		netbuf_data(inbuf, (void **)&buf, &buflen);
 		palClearPad(TIMEINPUT_PORT, TIMEINPUT_PIN);     // negative pulse for input.
+#if DEBUG_SENSOR_UDP
 		chprintf(chp, "\r\nsensor rx (from FC): %d ", count++);
+#endif
 		palSetPad(TIMEINPUT_PORT, TIMEINPUT_PIN);
+#if DEBUG_SENSOR_UDP
+		uint16_t             i      = 0;
 		for(i=0; i<buflen; ++i) {
 			chprintf(chp, "%c", buf[i]);
 		}
 		chprintf(chp, "\r\n");
+#endif
 		data_udp_process_rx(buf, buflen);
 	}
 	netconn_close(conn);

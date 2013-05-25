@@ -12,7 +12,6 @@
 	#include "lwip/ip_addr.h"
 	#define         IP_PSAS_FC(p)           IP4_ADDR(p, 192, 168, 0, 91)
 #endif
-#define         FC_LISTEN_PORT_IMU_A_MPU     36000
-#define         FC_LISTEN_PORT_IMU_A_ADIS    36020
+#define         FC_LISTEN_PORT_IMU_A    36000
 
 #endif

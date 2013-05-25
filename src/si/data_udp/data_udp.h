@@ -44,6 +44,9 @@
 
 #define DATA_UDP_MSG_SIZE                    128
 
+#if !defined(DEBUG_SENSOR_UDP) || defined(__DOXYGEN__)
+#define 	DEBUG_SENSOR_UDP                   1
+#endif
 /*! \typedef mpu9150 MAC Connection info
  *
  */

@@ -56,7 +56,7 @@ static          ADIS16405_burst_data adis16405_imu_data;
 
 static bool     user_exit_requested  = false;
 static bool     enable_logging       = true;
-
+static int      hostsocket_fd;
 
 /*! \brief Convert register value to degrees C
  *
@@ -331,6 +331,17 @@ void *user_io_thread (void* ptr) {
 	}
 }
 
+char* listentostr(SensorID s) {
+	if (s == ADIS_LISTENER) {
+		return "ADIS";
+	} else if (s == MPU_LISTENER) {
+		return "MPU";
+	} else {
+		return "Unkonwn";
+	}
+	return "Unknown";
+}
+
 /*! \brief Thread routine I/O
  *
  * @param ptr  pointer to Ports type with input and output ip address and port.
@@ -343,7 +354,7 @@ void *datap_io_thread (void* ptr) {
 	int                       i = 0;
 	int                       status;
 	int                       retval;
-	int                       hostsocket_fd;
+
 	int                       clientsocket_fd;
 	int                       numbytes;
 	socklen_t                 addr_len;
@@ -368,22 +379,22 @@ void *datap_io_thread (void* ptr) {
 	hints.ai_flags                 = AI_PASSIVE; // use local host address.
 
 	fprintf(stderr, "%s: listen port %s\n", __func__, port_info->host_listen_port);
-	if(ports_equal(port_info->host_listen_port, FC_LISTEN_PORT_IMU_A_ADIS)) {
-		sensor_listen_id = ADIS;
-	} else if (ports_equal(port_info->host_listen_port, FC_LISTEN_PORT_IMU_A_MPU)) {
-		sensor_listen_id = MPU;
+	if(ports_equal(port_info->client_port, IMU_A_TX_PORT_ADIS)) {
+		sensor_listen_id = ADIS_LISTENER;
+	} else if (ports_equal(port_info->client_port, IMU_A_TX_PORT_MPU)) {
+		sensor_listen_id = MPU_LISTENER;
 	} else {
 		sensor_listen_id = UNKNOWN_SENSOR;
 	}
 
-	if(sensor_listen_id == ADIS) {
+	if(sensor_listen_id == ADIS_LISTENER) {
 		fp_adis       = fopen("adis16405_log.txt", "w");
 		get_current_time(timestring) ;
 		fprintf(fp_adis, "# adis16405 IMU data started at: %s\n", timestring);
 		fprintf(fp_adis, "# adis16405 IMU raw data\n");
 		fprintf(fp_adis, "# timestamp,ax,ay,az,gx,gy,gz,mx,my,mz,C\n");
 
-	} else if (sensor_listen_id == MPU) {
+	} else if (sensor_listen_id == MPU_LISTENER) {
 		fp_mpu       = fopen("mpu9150_log.txt", "w");
 		get_current_time(timestring) ;
 		fprintf(fp_mpu, "# mpu9150 IMU data started at: %s\n", timestring);
@@ -393,51 +404,6 @@ void *datap_io_thread (void* ptr) {
 		;
 	}
 
-	/*!
-	 * Getting address of THIS machine.
-	 */
-	if ((status = getaddrinfo(NULL, port_info->host_listen_port, &hints, &res)) != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
-		return ;
-	}
-
-	/*!
-	 * Get address of any machine from DNS
-	 */
-	//	if ((status = getaddrinfo(argv[1], NULL, &hints, &res)) != 0) {
-	//		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
-	//		return 2;
-	//	}
-
-
-	for(p = res; p != NULL; p = p->ai_next) {
-		void *addr;
-		char *ipver;
-
-		// get the pointer to the address itself,
-		// different fields in IPv4 and IPv6:
-		if (p->ai_family == AF_INET) { // IPv4
-			struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
-			addr = &(ipv4->sin_addr);
-			ipver = "IPv4";
-		} else { // IPv6
-			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
-			addr = &(ipv6->sin6_addr);
-			ipver = "IPv6";
-		}
-
-		// convert the IP to a string and print it:
-		inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
-		printf("  %s: %s\n", ipver, ipstr);
-	}
-
-	if((hostsocket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
-		die_nice("socket");
-	}
-
-	if(bind(hostsocket_fd, res->ai_addr, res->ai_addrlen) == -1) {
-		die_nice("bind");
-	}
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family   = AF_UNSPEC;
@@ -477,13 +443,12 @@ void *datap_io_thread (void* ptr) {
 			die_nice("recvfrom");
 		}
 
-
 		if (getnameinfo((struct sockaddr *)&client_addr, client_addr_len, hbuf, sizeof(hbuf), sbuf,
 				sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
 
 		//	printf("%d\t%s:%s\t", i, hbuf, sbuf);
 
-			if(ports_equal(sbuf, IMU_A_TX_PORT_MPU) && (sensor_listen_id == MPU)) {
+			if(ports_equal(sbuf, IMU_A_TX_PORT_MPU) && (sensor_listen_id == MPU_LISTENER)) {
 			//	printf("MPU Packet %s:%s\n", hbuf, sbuf);
 				if(numbytes != sizeof(MPU_packet) ){
 					die_nice("wrong numbytes mpu");
@@ -523,7 +488,7 @@ void *datap_io_thread (void* ptr) {
 					die_nice("client sendto");
 				}
 #endif
-			} else if (ports_equal(sbuf, IMU_A_TX_PORT_ADIS) && (sensor_listen_id == ADIS)) {
+			} else if (ports_equal(sbuf, IMU_A_TX_PORT_ADIS) && (sensor_listen_id == ADIS_LISTENER)) {
 				double adis_temp_C = 0.0;
 				bool   adis_temp_neg = false;
 				if(numbytes != sizeof(ADIS_packet) ){
@@ -563,7 +528,9 @@ void *datap_io_thread (void* ptr) {
 				}
 				fflush(fp_adis);
 			} else {
-				printf("Unrecognized Packet %s:%s\n", hbuf, sbuf);
+//				printf("Unrecognized Packet %s:%s\tListen: %s\tThreadID: %d\n", hbuf, sbuf, listentostr(sensor_listen_id), port_info->thread_id);
+//				if(ports_equal(sbuf, IMU_A_TX_PORT_ADIS))  printf("ADIS port\n\n");
+//				if(ports_equal(sbuf, IMU_A_TX_PORT_MPU))  printf("MPU port\n\n");
 			}
 		}
 	}
@@ -575,12 +542,75 @@ void *datap_io_thread (void* ptr) {
 		fprintf(fp_adis, "# adis16405 IMU data closed at: %s\n", timestring);
 		fclose(fp_adis);
 	}
-	close(hostsocket_fd);
+
 	close(clientsocket_fd);
 	freeaddrinfo(res); // free the linked list
 	fprintf(stderr, "Leaving thread %d\n", port_info->thread_id);
 	return 0;
 }
+
+static bool host_ip_setup() {
+	char                      host_listen_port[PORT_STRING_LEN];
+	struct addrinfo           hints, *res, *p, *ai_client;
+	int                       status;
+	char                      ipstr[INET6_ADDRSTRLEN];
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family                = AF_UNSPEC;  // AF_INET or AF_INET6 to force version
+	hints.ai_socktype              = SOCK_DGRAM; // UDP
+	hints.ai_flags                 = AI_PASSIVE; // use local host address.
+
+	snprintf(host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
+
+	/*!
+	 * Getting address of THIS machine.
+	 */
+	if ((status = getaddrinfo(NULL, host_listen_port, &hints, &res)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+		return false;
+	}
+
+	/*!
+	 * Get address of any machine from DNS
+	 */
+	//	if ((status = getaddrinfo(argv[1], NULL, &hints, &res)) != 0) {
+	//		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+	//		return 2;
+	//	}
+
+
+	for(p = res; p != NULL; p = p->ai_next) {
+		void *addr;
+		char *ipver;
+
+		// get the pointer to the address itself,
+		// different fields in IPv4 and IPv6:
+		if (p->ai_family == AF_INET) { // IPv4
+			struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
+			addr = &(ipv4->sin_addr);
+			ipver = "IPv4";
+		} else { // IPv6
+			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
+			addr = &(ipv6->sin6_addr);
+			ipver = "IPv6";
+		}
+
+		// convert the IP to a string and print it:
+		inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
+		printf("  %s: %s\n", ipver, ipstr);
+	}
+
+	if((hostsocket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) == -1) {
+		die_nice("socket");
+	}
+
+	if(bind(hostsocket_fd, res->ai_addr, res->ai_addrlen) == -1) {
+		die_nice("bind");
+	}
+	return(true);
+}
+
+
 
 int main(void) {
 	unsigned int     i          = 0;
@@ -600,10 +630,14 @@ int main(void) {
 	pthread_mutex_init(&exit_request_mutex, NULL);
 	pthread_mutex_init(&log_enable_mutex, NULL);
 
+	if(!host_ip_setup()) {
+		die_nice("host ip setup");
+	}
+
    /* USER IO THREAD */
 
 	th_talk.thread_id = 33;
-	snprintf(th_talk.host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A_ADIS);
+	snprintf(th_talk.host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
 	snprintf(th_talk.client_a_addr   , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
 	snprintf(th_talk.client_a_port   , PORT_STRING_LEN , "%d", IMU_A_LISTEN_PORT);
 	snprintf(th_talk.client_b_addr   , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
@@ -623,13 +657,13 @@ int main(void) {
 	snprintf(msgbuf, STRINGBUFLEN, "Number of processors: %d", get_numprocs());
 	log_msg(msgbuf);
 
-	snprintf(th_data[ADIS_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A_ADIS);
-	snprintf(th_data[ADIS_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
-	snprintf(th_data[ADIS_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
+	snprintf(th_data[ADIS_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
+	snprintf(th_data[ADIS_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
+	snprintf(th_data[ADIS_LISTENER].client_port     , PORT_STRING_LEN , "%d", IMU_A_TX_PORT_ADIS);
 
-	snprintf(th_data[MPU_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A_MPU);
-	snprintf(th_data[MPU_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", ROLL_CTL_IP_ADDR_STRING);
-	snprintf(th_data[MPU_LISTENER].client_port     , PORT_STRING_LEN , "%d", ROLL_CTL_LISTEN_PORT);
+	snprintf(th_data[MPU_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
+	snprintf(th_data[MPU_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
+	snprintf(th_data[MPU_LISTENER].client_port     , PORT_STRING_LEN , "%d", IMU_A_TX_PORT_MPU);
 
 
 	for(i=0; i<numthreads; ++i) {
@@ -651,7 +685,7 @@ int main(void) {
 	}
 	pthread_mutex_destroy(&msg_mutex);
 	pthread_mutex_destroy(&exit_request_mutex);
-
+	close(hostsocket_fd);
 	pthread_exit(NULL);
 
 

@@ -223,7 +223,6 @@ static msg_t Thread_mpu9150_int(void* arg) {
 	chRegSetThreadName("mpu9150_int");
 
 	chEvtRegister(&mpu9150_int_event,           &evl_mpu9150,         0);
-	//chEvtRegister(&fc_req_reset_event,          &evl_mpu9150,         1);
 
 	while (TRUE) {
 		chEvtDispatch(evhndl_mpu9150, chEvtWaitOneTimeout(EVENT_MASK(0), MS2ST(50)));
