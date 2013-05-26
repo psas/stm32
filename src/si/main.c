@@ -47,6 +47,10 @@
 
 #include "main.h"
 
+#if !defined(DEBUG_SI) || defined(__DOXYGEN__)
+#define     DEBUG_SI                   1
+#endif
+
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
 		{"threads", cmd_threads},
@@ -57,6 +61,24 @@ static const ShellConfig shell_cfg1 = {
 		(BaseSequentialStream *)&SDU_PSAS,
 		commands
 };
+//
+//static void log_msg(volatile char *s) {
+//#if DEBUG_SI
+//    static        BaseSequentialStream      *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+//    chprintf(chp, "M: %s\r\n", s);
+//#else
+//    (void) s;
+//#endif
+//}
+//
+//static void log_error(volatile char *s) {
+//#if DEBUG_SI
+//    static        BaseSequentialStream      *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+//    chprintf(chp, "E: %s\r\n", s);
+//#else
+//    (void) s;
+//#endif
+//}
 
 /*! \brief ADIS SPI configuration
  *
@@ -251,7 +273,6 @@ static msg_t Thread_mpu9150_reset_req(void* arg) {
 	return -1;
 }
 
-#if 1
 static WORKING_AREA(waThread_adis_newdata, 512);
 /*! \brief ADIS Newdata Thread
  */
@@ -303,7 +324,27 @@ static msg_t Thread_adis_dio1(void *arg) {
 	}
 	return -1;
 }
-#endif
+
+static WORKING_AREA(waThread_mpl_int_1, 256);
+/*! \brief MPL INT1 thread
+ *
+ */
+static msg_t Thread_mpl_int_1(void *arg) {
+    (void)arg;
+    static const evhandler_t evhndl_mplint[] = {
+            mpl_read_handler
+    };
+    struct EventListener     evl_mplint1;
+
+    chRegSetThreadName("mpl_int_1");
+
+    chEvtRegister(&mpl3115a2_int_event,      &evl_mplint1,         0);
+
+    while (TRUE) {
+        chEvtDispatch(evhndl_mplint, chEvtWaitOneTimeout((EVENT_MASK(0)), US2ST(50)));
+    }
+    return -1;
+}
 
 static WORKING_AREA(waThread_indwatchdog, 64);
 /*! \brief  Watchdog thread
@@ -423,7 +464,7 @@ int main(void) {
 
 	i2cStart(mpu9150_driver.i2c_instance, &mpu9150_config);
 
-	mpu9150_init(mpu9150_driver.i2c_instance);
+	//mpu9150_init(mpu9150_driver.i2c_instance);
     mpl3115a2_init(mpl3115a2_driver.i2c_instance);
 
 	/* Administrative threads */
@@ -447,17 +488,18 @@ int main(void) {
 	ip_opts.netmask    = netmask.addr;
 	ip_opts.gateway    = gateway.addr;
 
-	chThdCreateStatic(wa_lwip_thread            , sizeof(wa_lwip_thread)            , NORMALPRIO + 2, lwip_thread            , &ip_opts);
-	chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
-	chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
+	chThdCreateStatic(wa_lwip_thread              , sizeof(wa_lwip_thread)              , NORMALPRIO + 2, lwip_thread            , &ip_opts);
+	chThdCreateStatic(wa_data_udp_send_thread     , sizeof(wa_data_udp_send_thread)     , NORMALPRIO    , data_udp_send_thread   , NULL);
+	chThdCreateStatic(wa_data_udp_receive_thread  , sizeof(wa_data_udp_receive_thread)  , NORMALPRIO    , data_udp_receive_thread, NULL);
 
 	/* i2c MPU9150 */
-	chThdCreateStatic(waThread_mpu9150_int,         sizeof(waThread_mpu9150_int)        , NORMALPRIO    , Thread_mpu9150_int,        NULL);
-	chThdCreateStatic(waThread_mpu9150_reset_req,   sizeof(waThread_mpu9150_reset_req)  , NORMALPRIO    , Thread_mpu9150_reset_req,  NULL);
+	//chThdCreateStatic(waThread_mpu9150_int,         sizeof(waThread_mpu9150_int)        , NORMALPRIO    , Thread_mpu9150_int,        NULL);
+	//chThdCreateStatic(waThread_mpu9150_reset_req,   sizeof(waThread_mpu9150_reset_req)  , NORMALPRIO    , Thread_mpu9150_reset_req,  NULL);
+    chThdCreateStatic(waThread_mpl_int_1,           sizeof(waThread_mpl_int_1)          , NORMALPRIO    , Thread_mpl_int_1,          NULL);
 
 	/* SPI ADIS */
-	chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
-	chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
+	//chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
+	//chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 
 
 	/*! Activates the EXT driver 1. */

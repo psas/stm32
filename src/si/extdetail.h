@@ -25,6 +25,7 @@ void extdetail_init(void) ;
 void extdetail_wkup_btn(EXTDriver *extp, expchannel_t channel) ;
 void extdetail_adis_dio1(EXTDriver *extp, expchannel_t channel) ;
 void extdetail_mpu9150_int(EXTDriver *extp, expchannel_t channel) ;
+void extdetail_mpl3115a2_int_1(EXTDriver *extp, expchannel_t channel) ;
 
 #ifdef __cplusplus
 }
