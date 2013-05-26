@@ -13,6 +13,7 @@
 
 #include "MPU9150.h"
 #include "ADIS16405.h"
+#include "MPL3115A2.h"
 #include "usbdetail.h"
 #include "extdetail.h"
 
@@ -22,16 +23,16 @@ EventSource     extdetail_wkup_event;
  */
 const EXTConfig extcfg = {
 		{
-				{EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOA, extdetail_wkup_btn},   // WKUP Button PA0
+				{EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOA, extdetail_wkup_btn},            // WKUP Button PA0
 				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOF, extdetail_mpu9150_int},
-				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_DISABLED, NULL},
+				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOF, extdetail_mpu9150_int},       // F2
+                {EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOF, extdetail_mpl3115a2_int_1},   // F3
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD, extdetail_adis_dio1},
+				{EXT_CH_MODE_DISABLED, NULL},
+				{EXT_CH_MODE_DISABLED, NULL},
+				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD, extdetail_adis_dio1},         // D9
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
@@ -124,5 +125,24 @@ void extdetail_mpu9150_int(EXTDriver *extp, expchannel_t channel) {
 	chEvtBroadcastI(&mpu9150_int_event);
 	chSysUnlockFromIsr();
 }
+
+
+
+/*!
+ * External interrupt from MPL3115A2 INT_1
+ *
+ * @param extp
+ * @param channel
+ */
+void extdetail_mpl3115a2_int_1(EXTDriver *extp, expchannel_t channel) {
+    (void)extp;
+    (void)channel;
+
+    chSysLockFromIsr();
+    chEvtBroadcastI(&mpl3115a2_int_event);
+    chSysUnlockFromIsr();
+}
+
+
 //! @}
 
