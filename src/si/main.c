@@ -32,6 +32,7 @@
 
 #include "MPU9150.h"
 #include "ADIS16405.h"
+#include "MPL3115A2.h"
 
 #include <lwip/ip_addr.h>
 
@@ -206,6 +207,7 @@ static msg_t Thread_blinker(void *arg) {
 	chRegSetThreadName("blinker");
 	while (TRUE) {
 		palTogglePad(GPIOC, GPIOC_LED);
+
 		chThdSleepMilliseconds(500);
 	}
 	return -1;
@@ -417,10 +419,12 @@ int main(void) {
 	adis_reset();
 
 	mpu9150_start(&I2CD2);
+    mpl3115a2_start(&I2CD2);
 
 	i2cStart(mpu9150_driver.i2c_instance, &mpu9150_config);
 
 	mpu9150_init(mpu9150_driver.i2c_instance);
+    mpl3115a2_init(mpl3115a2_driver.i2c_instance);
 
 	/* Administrative threads */
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);

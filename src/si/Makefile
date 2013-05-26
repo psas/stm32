@@ -95,6 +95,7 @@ CSRC = $(PORTSRC) \
        $(PSAS_COMMON)/iwdg_lld.c \
        $(PSAS_DEV_SRC)/ADIS16405.c \
        $(PSAS_DEV_SRC)/MPU9150.c \
+       $(PSAS_DEV_SRC)/MPL3115A2.c \
        ./data_udp/data_udp.c \
        cmddetail.c \
        extdetail.c \

@@ -30,7 +30,6 @@ extern "C" {
 
 typedef     uint8_t                               mpu9150_i2c_data;
 typedef     uint8_t                               mpu9150_reg_data;
-typedef     uint8_t                               mpu9150_reg_addr;
 
 #define     MPU9150_MAX_TX_BUFFER                 50
 #define     MPU9150_MAX_RX_BUFFER                 50
@@ -289,8 +288,8 @@ typedef struct {
 	uint16_t                 int_pad;
 } mpu9150_connect;
 
-extern const I2CConfig                 mpu9150_config;
-extern const mpu9150_connect           mpu9150_connections ;
+extern const I2CConfig                 si_i2c_config;
+extern const mpu9150_connect           si_i2c_connections ;
 
 extern       MPU9150_read_data         mpu9150_current_read;
 

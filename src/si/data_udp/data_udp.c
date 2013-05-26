@@ -100,9 +100,9 @@ static void data_udp_send_mpu9150_data(eventid_t id) {
 	if(data != NULL) {
 		memcpy (data, (void*) &packet, sizeof(packet));
 
-		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+		//palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netconn_send(mpu9150_mac_info.conn, mpu9150_mac_info.buf);
-		palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+		//palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netbuf_delete(mpu9150_mac_info.buf);
 	}
 }
@@ -129,9 +129,9 @@ static void data_udp_send_adis16405_data(eventid_t id) {
 	if(data != NULL) {
 		memcpy (data, (void*) &packet, sizeof(ADIS_packet));
 
-		palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+		//palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netconn_send(adis16405_mac_info.conn, adis16405_mac_info.buf);
-		palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+		//palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netbuf_delete(adis16405_mac_info.buf);
 	}
 }
@@ -242,7 +242,6 @@ static void data_udp_rx_serve(struct netconn *conn) {
 
 	uint16_t             buflen = 0;
 
-
 	err_t                err;
 
 	/*
@@ -252,11 +251,11 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	err = netconn_recv(conn, &inbuf);
 	if (err == ERR_OK) {
 		netbuf_data(inbuf, (void **)&buf, &buflen);
-		palClearPad(TIMEINPUT_PORT, TIMEINPUT_PIN);     // negative pulse for input.
+		//palClearPad(TIMEINPUT_PORT, TIMEINPUT_PIN);     // negative pulse for input.
 #if DEBUG_SENSOR_UDP
 		chprintf(chp, "\r\nsensor rx (from FC): %d ", count++);
 #endif
-		palSetPad(TIMEINPUT_PORT, TIMEINPUT_PIN);
+		//palSetPad(TIMEINPUT_PORT, TIMEINPUT_PIN);
 #if DEBUG_SENSOR_UDP
 		uint16_t             i      = 0;
 		for(i=0; i<buflen; ++i) {
