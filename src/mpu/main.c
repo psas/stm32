@@ -108,7 +108,7 @@ const adis_connect adis_connections = {
 /*! configure the i2c module on stm32
  *
  */
-const I2CConfig mpu9150_config = {
+const I2CConfig si_i2c_config = {
 		OPMODE_I2C,
 		400000,                // i2c clock speed. Test at 400000 when r=4.7k
 		FAST_DUTY_CYCLE_2,
@@ -119,7 +119,7 @@ const I2CConfig mpu9150_config = {
  *
  * Configuration for the MPU IMU connections
  */
-const mpu9150_connect mpu9150_connections = {
+const mpu9150_connect si_i2c_connections = {
 		GPIOF,                // i2c sda port
 		0,                    // i2c_sda_pad
 		GPIOF,                // i2c_scl_port
@@ -343,13 +343,13 @@ int main(void) {
 	/*
 	 * I2C2 I/O pins setup
 	 */
-	palSetPadMode(mpu9150_connections.i2c_sda_port , mpu9150_connections.i2c_sda_pad,
+	palSetPadMode(si_i2c_connections.i2c_sda_port , si_i2c_connections.i2c_sda_pad,
 			PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST |PAL_STM32_PUDR_FLOATING );
-	palSetPadMode(mpu9150_connections.i2c_scl_port, mpu9150_connections.i2c_scl_pad,
+	palSetPadMode(si_i2c_connections.i2c_scl_port, si_i2c_connections.i2c_scl_pad,
 			PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
 
 
-	palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
+	palSetPad(si_i2c_connections.i2c_scl_port,  si_i2c_connections.i2c_scl_pad );
 
 	/*!
 	 * Initializes a serial-over-USB CDC driver.
@@ -383,7 +383,7 @@ int main(void) {
 
 	mpu9150_start(&I2CD2);
 
-	i2cStart(mpu9150_driver.i2c_instance, &mpu9150_config);
+	i2cStart(mpu9150_driver.i2c_instance, &si_i2c_config);
 
 	mpu9150_init(mpu9150_driver.i2c_instance);
 

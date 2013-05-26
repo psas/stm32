@@ -446,19 +446,13 @@ void *datap_io_thread (void* ptr) {
 		if (getnameinfo((struct sockaddr *)&client_addr, client_addr_len, hbuf, sizeof(hbuf), sbuf,
 				sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
 
-		//	printf("%d\t%s:%s\t", i, hbuf, sbuf);
-
 			if(ports_equal(sbuf, IMU_A_TX_PORT_MPU) && (sensor_listen_id == MPU_LISTENER)) {
-			//	printf("MPU Packet %s:%s\n", hbuf, sbuf);
 				if(numbytes != sizeof(MPU_packet) ){
 					die_nice("wrong numbytes mpu");
 				}
 				memcpy (&mpu9150_udp_data, recvbuf, sizeof(MPU_packet));
 
 				mpu9150_imu_data = (MPU9150_read_data) mpu9150_udp_data.data;
-
-				//		printf("fc: size of data struct: %d\n", sizeof(MPU9150_read_data));
-				//		printf("fc: packet is %d bytes long\n", numbytes);
 
 				if(enable_logging) {
 					fprintf(fp_mpu, "%c%c%c%c,%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
@@ -494,13 +488,10 @@ void *datap_io_thread (void* ptr) {
 				if(numbytes != sizeof(ADIS_packet) ){
 					die_nice("wrong numbytes adis");
 				}
-			//	printf("ADIS Packet: %s:%s\n", hbuf, sbuf);
+
 				memcpy (&adis16405_udp_data, recvbuf, sizeof(ADIS_packet));
 
 				adis16405_imu_data = adis16405_udp_data.data;
-				//		printf("fc: size of data struct: %d\n", sizeof(MPU9150_read_data));
-				//		printf("fc: packet is %d bytes long\n", numbytes);
-
 
 				if(enable_logging) {
 					adis_temp_neg = adis16405_temp_to_dC(&adis_temp_C,      &adis16405_imu_data.adis_temp_out);
@@ -535,10 +526,10 @@ void *datap_io_thread (void* ptr) {
 		}
 	}
 	get_current_time(timestring) ;
-	if(sensor_listen_id == MPU ) {
+	if(sensor_listen_id == MPU_LISTENER ) {
 		fprintf(fp_mpu, "# mpu9150 IMU data closed at: %s\n", timestring);
 		fclose(fp_mpu);
-	} else if (sensor_listen_id == ADIS) {
+	} else if (sensor_listen_id == ADIS_LISTENER) {
 		fprintf(fp_adis, "# adis16405 IMU data closed at: %s\n", timestring);
 		fclose(fp_adis);
 	}
