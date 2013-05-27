@@ -32,7 +32,9 @@ typedef     uint32_t                                mpl3115a2_temperature_data;
 #define     MPL3115A2_MAX_RX_BUFFER                 50
 #define     MPL3115A2_CTL1_ALT_BIT                   7
 #define     MPL3115A2_CTL1_SBYB_BIT                  0
+#define     MPL3115A2_CTL1_OST_BIT                   1
 #define     MPL3115A2_CTL1_RST_BIT                   2
+#define     MPL3115A2_CTL1_OS_BITS                   3
 #define     MPL3115A2_CTRL4_DRDY_INT_BIT             7
 #define     MPL3115A2_CTRL5_INT_CFG_DRDY             7
 #if DEBUG_MPL3115A2
@@ -102,6 +104,21 @@ typedef enum  {
 	MPL_OFF_H					    = 0x2D,
 	MPL_SLAVE_ADDR				    = 0x60
 } MPL3115A2_regaddr;
+
+/*! \typedef Oversample ratio setting
+ *
+ */
+typedef enum {
+    MPL_OS_1                        = 0b000,//!< MPL_OS_1
+    MPL_OS_2                        = 0b001,//!< MPL_OS_2
+    MPL_OS_4                        = 0b010,//!< MPL_OS_4
+    MPL_OS_8                        = 0b011,//!< MPL_OS_8
+    MPL_OS_16                       = 0b100,//!< MPL_OS_16
+    MPL_OS_32                       = 0b101,//!< MPL_OS_32
+    MPL_OS_64                       = 0b110,//!< MPL_OS_64
+    MPL_OS_128                      = 0b111 //!< MPL_OS_128
+} MPL3115A2_os_ratio;
+
 
 /*! \typedef Structure for keeping track of an MPL3115A2 transaction
  */
