@@ -110,10 +110,10 @@ void mpl3115a2_start(I2CDriver* i2c) {
 
     chEvtInit(&mpl3115a2_int_event);
 }
-
-static void mpl3115a2_reset(I2CDriver* i2c) {
-    mpl3115a2_write_ctrl_1(i2c, (1<<MPL3115A2_CTL1_RST_BIT) );
-}
+//
+//static void mpl3115a2_reset(I2CDriver* i2c) {
+//    mpl3115a2_write_ctrl_1(i2c, (1<<MPL3115A2_CTL1_RST_BIT) );
+//}
 
 
 mpl3115a2_i2c_data mpl3115a2_read_id(I2CDriver* i2c) {
@@ -145,7 +145,7 @@ static mpl3115a2_i2c_data mpl3115a2_read_ctrl_1(I2CDriver* i2c ) {
     msg_t              status = RDY_OK;
 
     status = mpl3115A2_read_register(i2c, MPL_CTRL_REG1, &rdata);
-#if DEBUG_MPL3115A2
+#if 0
     if (status == RDY_OK) {
         chprintf(chp, "MPL_CTRL_REG1 (0x%x) is: %d\r\n", MPL_CTRL_REG1, mpl3115a2_driver.rxbuf[0]);
     } else {
@@ -257,28 +257,28 @@ static void mpl3115a2_read_temperature(I2CDriver* i2c, MPL3115A2_read_data* d ) 
 
     d->mpu_temperature = ((rdata_msb<<8)|rdata_lsb) & 0xFFF;
 }
-
-static mpl3115a2_i2c_data mpl3115a2_read_status(I2CDriver* i2c) {
-#if DEBUG_MPL3115A2
-    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-#endif
-
-    mpl3115a2_i2c_data rdata  = 0;
-    msg_t              status = RDY_OK;
-
-    status = mpl3115A2_read_register(i2c, MPL_STATUS, &rdata);
-#if DEBUG_MPL3115A2
-    if (status == RDY_OK) {
-        chprintf(chp, "MPL_STATUS (0x%x) is: %d\r\n", MPL_STATUS, mpl3115a2_driver.rxbuf[0]);
-    } else {
-        log_error("MPL-Status read fail.\r\n");
-        mpl3115a2_driver.i2c_errors = i2cGetErrors(i2c);
-        chprintf(chp, "i2c errno: %d\r\n", mpl3115a2_driver.i2c_errors);
-    }
-#endif
-    return rdata;
-}
-
+//
+//static mpl3115a2_i2c_data mpl3115a2_read_status(I2CDriver* i2c) {
+//#if DEBUG_MPL3115A2
+//    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+//#endif
+//
+//    mpl3115a2_i2c_data rdata  = 0;
+//    msg_t              status = RDY_OK;
+//
+//    status = mpl3115A2_read_register(i2c, MPL_STATUS, &rdata);
+//#if DEBUG_MPL3115A2
+//    if (status == RDY_OK) {
+//        chprintf(chp, "MPL_STATUS (0x%x) is: %d\r\n", MPL_STATUS, mpl3115a2_driver.rxbuf[0]);
+//    } else {
+//        log_error("MPL-Status read fail.\r\n");
+//        mpl3115a2_driver.i2c_errors = i2cGetErrors(i2c);
+//        chprintf(chp, "i2c errno: %d\r\n", mpl3115a2_driver.i2c_errors);
+//    }
+//#endif
+//    return rdata;
+//}
+//
 
 static mpl3115a2_i2c_data mpl3115a2_read_f_status(I2CDriver* i2c) {
 #if DEBUG_MPL3115A2
@@ -289,7 +289,7 @@ static mpl3115a2_i2c_data mpl3115a2_read_f_status(I2CDriver* i2c) {
     msg_t              status = RDY_OK;
 
     status = mpl3115A2_read_register(i2c, MPL_F_STATUS, &rdata);
-#if DEBUG_MPL3115A2
+#if 0
     if (status == RDY_OK) {
         chprintf(chp, "MPL_F_STATUS (0x%x) is: %d\r\n", MPL_F_STATUS, mpl3115a2_driver.rxbuf[0]);
     } else {
@@ -402,12 +402,15 @@ msg_t mpl3115a2_write_ctrl_5(I2CDriver* i2c, mpl3115a2_i2c_data rdata) {
 #endif
     return status;
 }
-void mpl3115a2_init(I2CDriver* i2c) {
 
+/*! \brief Initialize the registers on the pressure sensor
+ *
+ * @param i2c  Which I2C module on STM to use.
+ */
+void mpl3115a2_init(I2CDriver* i2c) {
+    mpl3115a2_i2c_data          reg;
 
     mpl3115a2_write_ctrl_1(i2c, 0 ) ;  // put into stdby mode in order to write registers.
-
-
 
 #if DEBUG_MPL3115A2
     /* Read id */
@@ -419,50 +422,63 @@ void mpl3115a2_init(I2CDriver* i2c) {
 
       mpl3115a2_write_ctrl_1(i2c, 0 ) ;  // put into stdby mode in order to write registers.
 
-
 #if DEBUG_MPL3115A2
     /* Read id */
     mpl3115a2_read_id(i2c);
 #endif
 
-//    /* Clear registers  */
+    /* Clear registers  */
     mpl3115a2_read_pressure(i2c,    &mpl3115a2_current_read);
-
     mpl3115a2_read_temperature(i2c, &mpl3115a2_current_read);
-
-    mpl3115a2_read_status(i2c);
     mpl3115a2_read_f_status(i2c);
-    mpl3115a2_read_int_source(i2c);
 
-//    /* enable interrupt */
-    mpl3115a2_write_pt_data_cfg(i2c, (7));
-    mpl3115a2_write_ctrl_5(i2c, (1<<MPL3115A2_CTRL5_INT_CFG_DRDY));
-    mpl3115a2_write_ctrl_4(i2c, (1<<MPL3115A2_CTRL4_DRDY_INT_BIT) );
-    mpl3115a2_write_ctrl_1(i2c, (1<<MPL3115A2_CTL1_SBYB_BIT)      );  // put into active mode to read data, barometer mode
+    /* enable events */
+    mpl3115a2_write_pt_data_cfg(i2c, 0b111);
+
+    /* enable interrupt */
+    mpl3115a2_write_ctrl_5(i2c, (1<<MPL3115A2_CTRL5_INT_CFG_DRDY));          // Use INT1 for DRDY
+    mpl3115a2_write_ctrl_4(i2c, (1<<MPL3115A2_CTRL4_DRDY_INT_BIT) );         // Enable interrupts
+
+    reg =  mpl3115a2_read_ctrl_1(mpl3115a2_driver.i2c_instance);             // read OST bit before writing.
+    reg = (MPL_OS_2<<MPL3115A2_CTL1_OS_BITS) | (1<<MPL3115A2_CTL1_OST_BIT);  // ~10ms interrupts, one shot
+    mpl3115a2_write_ctrl_1(mpl3115a2_driver.i2c_instance, reg);
+
+#if DEBUG_MPL3115A2
     mpl3115a2_read_ctrl_4(i2c);
-    mpl3115a2_read_ctrl_1(i2c);  // put into active mode to read data, barometer mode
+    mpl3115a2_read_ctrl_1(i2c);
     mpl3115a2_read_int_source(i2c);
+#endif
 
     mpl3115a2_read_pressure(i2c,    &mpl3115a2_current_read);
     mpl3115a2_read_temperature(i2c, &mpl3115a2_current_read);
-  //  mpl3115a2_read_status(i2c);
     mpl3115a2_read_f_status(i2c);
-   // mpl3115a2_read_int_source(i2c);
-
-    /* INT1 by default */
-    /* Ctrl 5 controls which int pin to use*/
 
 }
 
+/*! \brief Periodic reads (post interrupt)
+ *
+ * Event callback.
+ *
+ * @param id
+ */
 void mpl_read_handler(eventid_t id) {
     (void) id;
+    mpl3115a2_i2c_data reg;
 
-    mpl3115a2_read_id(mpl3115a2_driver.i2c_instance);
-
+    /* Get current data and read f_status to reset INT */
     mpl3115a2_read_pressure(mpl3115a2_driver.i2c_instance,    &mpl3115a2_current_read);
     mpl3115a2_read_temperature(mpl3115a2_driver.i2c_instance, &mpl3115a2_current_read);
     mpl3115a2_read_f_status(mpl3115a2_driver.i2c_instance);
 
+    /* Set up a one shot */
+    reg =  mpl3115a2_read_ctrl_1(mpl3115a2_driver.i2c_instance);
+    reg |= (1<<MPL3115A2_CTL1_OST_BIT);
+    mpl3115a2_write_ctrl_1(mpl3115a2_driver.i2c_instance, reg);
+
+#if DEBUG_MPL3115A2
+    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+    chprintf(chp, "\r\n");
+#endif
 }
 
 
