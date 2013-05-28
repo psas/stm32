@@ -21,24 +21,13 @@ MPL3115A2_read_data        mpl3115a2_current_read;
 const       systime_t      mpl3115a2_i2c_timeout        = MS2ST(400);
 
 const		uint8_t	       mpl3115a2_i2c_slave_addr  	= 0x60;
-//
-//static void log_msg(volatile char *s) {
-//#if DEBUG_MPL3115A2
-//    static        BaseSequentialStream      *chp   =  (BaseSequentialStream *)&SDU_PSAS;
-//    chprintf(chp, "M: %s\r\n", s);
-//#else
-//    (void) s;
-//#endif
-//}
 
-static void log_error(volatile char *s) {
 #if DEBUG_MPL3115A2
+static void log_error(volatile char *s) {
     static        BaseSequentialStream      *chp   =  (BaseSequentialStream *)&SDU_PSAS;
     chprintf(chp, "E: %s\r\n", s);
-#else
-    (void) s;
-#endif
 }
+#endif
 
 #if DEBUG_MPL3115A2 || defined(__DOXYGEN__)
 static i2c_error_info i2c_debug_errors[] = {
@@ -119,10 +108,11 @@ void mpl3115a2_start(I2CDriver* i2c) {
 mpl3115a2_i2c_data mpl3115a2_read_id(I2CDriver* i2c) {
 #if DEBUG_MPL3115A2
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+    msg_t              status = RDY_OK;
+#else
+    __attribute__((unused)) msg_t              status = RDY_OK;
 #endif
     mpl3115a2_i2c_data rdata  = 0;
-    msg_t              status = RDY_OK;
-
     status = mpl3115A2_read_register(i2c, MPL_WHO_AM_I, &rdata);
 #if DEBUG_MPL3115A2
     if (status == RDY_OK) {
@@ -139,13 +129,14 @@ mpl3115a2_i2c_data mpl3115a2_read_id(I2CDriver* i2c) {
 static mpl3115a2_i2c_data mpl3115a2_read_ctrl_1(I2CDriver* i2c ) {
 #if DEBUG_MPL3115A2
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-#endif
-
-    mpl3115a2_i2c_data rdata  = 0;
     msg_t              status = RDY_OK;
+ #else
+     __attribute__((unused)) msg_t              status = RDY_OK;
+#endif
+    mpl3115a2_i2c_data rdata  = 0;
 
     status = mpl3115A2_read_register(i2c, MPL_CTRL_REG1, &rdata);
-#if 0
+#if DEBUG_MPL3115A2
     if (status == RDY_OK) {
         chprintf(chp, "MPL_CTRL_REG1 (0x%x) is: %d\r\n", MPL_CTRL_REG1, mpl3115a2_driver.rxbuf[0]);
     } else {
@@ -157,13 +148,15 @@ static mpl3115a2_i2c_data mpl3115a2_read_ctrl_1(I2CDriver* i2c ) {
     return rdata;
 }
 
+#if DEBUG_MPL3115A2
 static mpl3115a2_i2c_data mpl3115a2_read_ctrl_4(I2CDriver* i2c ) {
 #if DEBUG_MPL3115A2
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-#endif
-
-    mpl3115a2_i2c_data rdata  = 0;
     msg_t              status = RDY_OK;
+ #else
+     __attribute__((unused)) msg_t              status = RDY_OK;
+#endif
+    mpl3115a2_i2c_data rdata  = 0;
 
     status = mpl3115A2_read_register(i2c, MPL_CTRL_REG4, &rdata);
 #if DEBUG_MPL3115A2
@@ -177,8 +170,49 @@ static mpl3115a2_i2c_data mpl3115a2_read_ctrl_4(I2CDriver* i2c ) {
 #endif
     return rdata;
 }
+#endif
 
+/*! \brief read the 5 contiguous bytes for pressure and temperature
+ *
+ * @param i2c
+ * @param d
+ */
+static msg_t mpl3115a2_read_P_T(I2CDriver* i2c, MPL3115A2_read_data* d ) {
+    msg_t              status;
+    const int          readbytes   = 5;
+#if DEBUG_MPL3115A2
+    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+#endif
+    mpl3115a2_driver.txbuf[0] = MPL_OUT_P_MSB;
 
+    i2cAcquireBus(i2c);
+    status = i2cMasterTransmitTimeout(i2c, mpl3115a2_i2c_slave_addr, mpl3115a2_driver.txbuf, 1, mpl3115a2_driver.rxbuf, readbytes, mpl3115a2_i2c_timeout);
+    i2cReleaseBus(i2c);
+    if (status != RDY_OK){
+        mpl3115a2_driver.i2c_errors = i2cGetErrors(i2c);
+    }
+    d->mpu_pressure    =  ((mpl3115a2_driver.rxbuf[0] << 16) | (mpl3115a2_driver.rxbuf[1] << 8) |(mpl3115a2_driver.rxbuf[2]) ) & 0xFFFFF;
+    d->mpu_temperature =  (                                    (mpl3115a2_driver.rxbuf[3] << 8) |(mpl3115a2_driver.rxbuf[4]) ) & 0xFFF  ;
+
+    #if DEBUG_MPL3115A2
+    if (status != RDY_OK) {
+        log_error("MPL-read P_T fail.\r\n");
+        mpl3115a2_driver.i2c_errors = i2cGetErrors(i2c);
+        chprintf(chp, "i2c errno: %d\r\n", mpl3115a2_driver.i2c_errors);
+    } else {
+        int i = 0;
+        chprintf(chp, "\r\n");
+        for(i = 0; i<readbytes; ++i) {
+            chprintf(chp, "%d: 0x%x\r\n", i, mpl3115a2_driver.rxbuf[i] );
+        }
+    }
+    chprintf(chp, "p: %d\tt: %d\r\n\r\n", d->mpu_pressure, d->mpu_temperature );
+#endif
+
+    return status;
+}
+
+#if 0   // Superseded by read_P_T
 static void mpl3115a2_read_pressure(I2CDriver* i2c, MPL3115A2_read_data* d ) {
 #if DEBUG_MPL3115A2
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
@@ -257,30 +291,10 @@ static void mpl3115a2_read_temperature(I2CDriver* i2c, MPL3115A2_read_data* d ) 
 
     d->mpu_temperature = ((rdata_msb<<8)|rdata_lsb) & 0xFFF;
 }
-//
-//static mpl3115a2_i2c_data mpl3115a2_read_status(I2CDriver* i2c) {
-//#if DEBUG_MPL3115A2
-//    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-//#endif
-//
-//    mpl3115a2_i2c_data rdata  = 0;
-//    msg_t              status = RDY_OK;
-//
-//    status = mpl3115A2_read_register(i2c, MPL_STATUS, &rdata);
-//#if DEBUG_MPL3115A2
-//    if (status == RDY_OK) {
-//        chprintf(chp, "MPL_STATUS (0x%x) is: %d\r\n", MPL_STATUS, mpl3115a2_driver.rxbuf[0]);
-//    } else {
-//        log_error("MPL-Status read fail.\r\n");
-//        mpl3115a2_driver.i2c_errors = i2cGetErrors(i2c);
-//        chprintf(chp, "i2c errno: %d\r\n", mpl3115a2_driver.i2c_errors);
-//    }
-//#endif
-//    return rdata;
-//}
-//
+#endif
 
-static mpl3115a2_i2c_data mpl3115a2_read_f_status(I2CDriver* i2c) {
+#if 0
+static mpl3115a2_i2c_data mpl3115a2_read_status(I2CDriver* i2c) {
 #if DEBUG_MPL3115A2
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
 #endif
@@ -288,8 +302,31 @@ static mpl3115a2_i2c_data mpl3115a2_read_f_status(I2CDriver* i2c) {
     mpl3115a2_i2c_data rdata  = 0;
     msg_t              status = RDY_OK;
 
+    status = mpl3115A2_read_register(i2c, MPL_STATUS, &rdata);
+#if DEBUG_MPL3115A2
+    if (status == RDY_OK) {
+        chprintf(chp, "MPL_STATUS (0x%x) is: %d\r\n", MPL_STATUS, mpl3115a2_driver.rxbuf[0]);
+    } else {
+        log_error("MPL-Status read fail.\r\n");
+        mpl3115a2_driver.i2c_errors = i2cGetErrors(i2c);
+        chprintf(chp, "i2c errno: %d\r\n", mpl3115a2_driver.i2c_errors);
+    }
+#endif
+    return rdata;
+}
+#endif
+
+static mpl3115a2_i2c_data mpl3115a2_read_f_status(I2CDriver* i2c) {
+#if DEBUG_MPL3115A2
+    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+    msg_t              status = RDY_OK;
+ #else
+     __attribute__((unused)) msg_t              status = RDY_OK;
+#endif
+    mpl3115a2_i2c_data rdata  = 0;
+
     status = mpl3115A2_read_register(i2c, MPL_F_STATUS, &rdata);
-#if 0
+#if DEBUG_MPL3115A2
     if (status == RDY_OK) {
         chprintf(chp, "MPL_F_STATUS (0x%x) is: %d\r\n", MPL_F_STATUS, mpl3115a2_driver.rxbuf[0]);
     } else {
@@ -301,13 +338,16 @@ static mpl3115a2_i2c_data mpl3115a2_read_f_status(I2CDriver* i2c) {
     return rdata;
 }
 
+#if DEBUG_MPL3115A2
 static mpl3115a2_i2c_data mpl3115a2_read_int_source(I2CDriver* i2c) {
 #if DEBUG_MPL3115A2
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-#endif
-
-    mpl3115a2_i2c_data rdata  = 0;
     msg_t              status = RDY_OK;
+ #else
+     __attribute__((unused)) msg_t              status = RDY_OK;
+#endif
+    mpl3115a2_i2c_data rdata  = 0;
+
 
     status = mpl3115A2_read_register(i2c, MPL_INT_SOURCE, &rdata);
 #if DEBUG_MPL3115A2
@@ -321,6 +361,7 @@ static mpl3115a2_i2c_data mpl3115a2_read_int_source(I2CDriver* i2c) {
 #endif
     return rdata;
 }
+#endif
 
 /*! \brief Registers can only be written in active mode
  *
@@ -428,8 +469,7 @@ void mpl3115a2_init(I2CDriver* i2c) {
 #endif
 
     /* Clear registers  */
-    mpl3115a2_read_pressure(i2c,    &mpl3115a2_current_read);
-    mpl3115a2_read_temperature(i2c, &mpl3115a2_current_read);
+    mpl3115a2_read_P_T(mpl3115a2_driver.i2c_instance, &mpl3115a2_current_read);
     mpl3115a2_read_f_status(i2c);
 
     /* enable events */
@@ -448,9 +488,7 @@ void mpl3115a2_init(I2CDriver* i2c) {
     mpl3115a2_read_ctrl_1(i2c);
     mpl3115a2_read_int_source(i2c);
 #endif
-
-    mpl3115a2_read_pressure(i2c,    &mpl3115a2_current_read);
-    mpl3115a2_read_temperature(i2c, &mpl3115a2_current_read);
+    mpl3115a2_read_P_T(mpl3115a2_driver.i2c_instance, &mpl3115a2_current_read);
     mpl3115a2_read_f_status(i2c);
 
 }
@@ -466,8 +504,7 @@ void mpl_read_handler(eventid_t id) {
     mpl3115a2_i2c_data reg;
 
     /* Get current data and read f_status to reset INT */
-    mpl3115a2_read_pressure(mpl3115a2_driver.i2c_instance,    &mpl3115a2_current_read);
-    mpl3115a2_read_temperature(mpl3115a2_driver.i2c_instance, &mpl3115a2_current_read);
+    mpl3115a2_read_P_T(mpl3115a2_driver.i2c_instance, &mpl3115a2_current_read);
     mpl3115a2_read_f_status(mpl3115a2_driver.i2c_instance);
 
     /* Set up a one shot */
