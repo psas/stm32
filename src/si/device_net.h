@@ -19,6 +19,7 @@
 #define         IMU_A_IP_ADDR_STRING        "192.168.0.196"
 #define         IMU_A_LISTEN_PORT           35001
 #define         IMU_A_TX_PORT_MPU           35002
+#define         IMU_A_TX_PORT_MPL           35010
 #define         IMU_A_TX_PORT_ADIS          35020
 #define         IMU_A_MAC_ADDRESS           {0xE6, 0x10, 0x20, 0x30, 0x40, 0x11}
 

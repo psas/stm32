@@ -126,7 +126,7 @@ mpl3115a2_i2c_data mpl3115a2_read_id(I2CDriver* i2c) {
     return rdata;
 }
 
-static mpl3115a2_i2c_data mpl3115a2_read_ctrl_1(I2CDriver* i2c ) {
+mpl3115a2_i2c_data mpl3115a2_read_ctrl_1(I2CDriver* i2c ) {
 #if DEBUG_MPL3115A2
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
     msg_t              status = RDY_OK;
@@ -177,7 +177,7 @@ static mpl3115a2_i2c_data mpl3115a2_read_ctrl_4(I2CDriver* i2c ) {
  * @param i2c
  * @param d
  */
-static msg_t mpl3115a2_read_P_T(I2CDriver* i2c, MPL3115A2_read_data* d ) {
+msg_t mpl3115a2_read_P_T(I2CDriver* i2c, MPL3115A2_read_data* d ) {
     msg_t              status;
     const int          readbytes   = 5;
 #if DEBUG_MPL3115A2
@@ -316,7 +316,7 @@ static mpl3115a2_i2c_data mpl3115a2_read_status(I2CDriver* i2c) {
 }
 #endif
 
-static mpl3115a2_i2c_data mpl3115a2_read_f_status(I2CDriver* i2c) {
+mpl3115a2_i2c_data mpl3115a2_read_f_status(I2CDriver* i2c) {
 #if DEBUG_MPL3115A2
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
     msg_t              status = RDY_OK;
@@ -491,31 +491,6 @@ void mpl3115a2_init(I2CDriver* i2c) {
     mpl3115a2_read_P_T(mpl3115a2_driver.i2c_instance, &mpl3115a2_current_read);
     mpl3115a2_read_f_status(i2c);
 
-}
-
-/*! \brief Periodic reads (post interrupt)
- *
- * Event callback.
- *
- * @param id
- */
-void mpl_read_handler(eventid_t id) {
-    (void) id;
-    mpl3115a2_i2c_data reg;
-
-    /* Get current data and read f_status to reset INT */
-    mpl3115a2_read_P_T(mpl3115a2_driver.i2c_instance, &mpl3115a2_current_read);
-    mpl3115a2_read_f_status(mpl3115a2_driver.i2c_instance);
-
-    /* Set up a one shot */
-    reg =  mpl3115a2_read_ctrl_1(mpl3115a2_driver.i2c_instance);
-    reg |= (1<<MPL3115A2_CTL1_OST_BIT);
-    mpl3115a2_write_ctrl_1(mpl3115a2_driver.i2c_instance, reg);
-
-#if DEBUG_MPL3115A2
-    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-    chprintf(chp, "\r\n");
-#endif
 }
 
 

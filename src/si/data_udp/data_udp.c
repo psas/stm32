@@ -55,11 +55,13 @@
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
+EventSource                             mpl3115a2_data_event;
 EventSource                             mpu9150_data_event;
 EventSource                             fc_req_reset_event;
 
 static        MPU9150_MAC_info          mpu9150_mac_info;
 static        ADIS16405_MAC_info        adis16405_mac_info;
+static        MPL3115A2_MAC_info        mpl3115a2_mac_info;
 
 
 static void log_error(volatile char *s) {
@@ -76,9 +78,35 @@ static void log_error(volatile char *s) {
  */
 void data_udp_init(void) {
 		chEvtInit(&mpu9150_data_event);
+		chEvtInit(&mpl3115a2_data_event);
 		chEvtInit(&fc_req_reset_event);
 }
 
+/*! \brief event handler for mpu9150 udp data
+ *  send one packet of mpu9150 data on event.
+ */
+static void data_udp_send_mpl3115a2_data(eventid_t id) {
+    (void) id;
+    uint8_t*                  data;
+    MPL_packet                packet;
+    const char                myid[(sizeof("MPL3")-1)] = "MPL3";
+
+    memset (&packet.timestamp, 0, sizeof(packet.timestamp));
+
+    strncpy(packet.ID, myid, sizeof(myid));
+
+    memcpy(&packet.data, (void*) &mpl3115a2_current_read, sizeof(MPL3115A2_read_data) );
+
+    packet.data_length         =  (uint16_t) sizeof(MPL3115A2_read_data);
+    mpl3115a2_mac_info.buf     =  netbuf_new();
+
+    data    =  netbuf_alloc(mpl3115a2_mac_info.buf, sizeof(packet));
+    if(data != NULL) {
+        memcpy (data, (void*) &packet, sizeof(packet));
+        netconn_send(mpl3115a2_mac_info.conn, mpl3115a2_mac_info.buf);
+        netbuf_delete(mpl3115a2_mac_info.buf);
+    }
+}
 /*! \brief event handler for mpu9150 udp data
  *  send one packet of mpu9150 data on event.
  */
@@ -86,7 +114,7 @@ static void data_udp_send_mpu9150_data(eventid_t id) {
 	(void) id;
 	uint8_t*                  data;
 	MPU_packet                packet;
-	const char                myid[(sizeof("MPU3")-1)] = "MPU3";
+	const char                myid[(sizeof("MPU9")-1)] = "MPU9";
 
 	memset (&packet.timestamp, 0, sizeof(packet.timestamp));
 
@@ -131,10 +159,7 @@ static void data_udp_send_adis16405_data(eventid_t id) {
 	data    =  netbuf_alloc(adis16405_mac_info.buf, sizeof(ADIS_packet));
 	if(data != NULL) {
 		memcpy (data, (void*) &packet, sizeof(ADIS_packet));
-
-		//palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netconn_send(adis16405_mac_info.conn, adis16405_mac_info.buf);
-		//palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 		netbuf_delete(adis16405_mac_info.buf);
 	}
 }
@@ -143,24 +168,27 @@ WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 msg_t data_udp_send_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
 
-
 	static const evhandler_t evhndl_imu_a[]       = {
 			data_udp_send_mpu9150_data,
+			data_udp_send_mpl3115a2_data,
 			data_udp_send_adis16405_data
 	};
 	struct EventListener     evl_mpu9150;
+    struct EventListener     evl_mpl3115a2;
 	struct EventListener     evl_adis16405;
 
-	err_t                  err_mpu_conn;
-	err_t                  err_adis_conn;
+	err_t                    err_mpu_conn;
+	err_t                    err_mpl_conn;
+	err_t                    err_adis_conn;
 
-	ip_addr_t              ip_addr_sensor;
-	ip_addr_t              ip_addr_fc;
+	ip_addr_t                ip_addr_sensor;
+	ip_addr_t                ip_addr_fc;
 
 	chRegSetThreadName("data_udp_send_thread");
 
 	chEvtRegister(&mpu9150_data_event,                   &evl_mpu9150,           0);
-	chEvtRegister(&adis_spi_burst_data_captured,         &evl_adis16405,         1);
+	chEvtRegister(&mpl3115a2_data_event,                 &evl_mpl3115a2,         1);
+	chEvtRegister(&adis_spi_burst_data_captured,         &evl_adis16405,         2);
 
 	IMU_A_IP_ADDR(&ip_addr_sensor);
 	IP_PSAS_FC(&ip_addr_fc);
@@ -170,6 +198,12 @@ msg_t data_udp_send_thread(void *p) {
 		log_error("mpu new conn is null");
 		while(1);
 	}
+
+    mpl3115a2_mac_info.conn   = netconn_new( NETCONN_UDP );
+    if(mpl3115a2_mac_info.conn == NULL) {
+        log_error("mpl new conn is null");
+        while(1);
+    }
 
 	adis16405_mac_info.conn   = netconn_new( NETCONN_UDP );
 	if(adis16405_mac_info.conn == NULL) {
@@ -185,11 +219,20 @@ msg_t data_udp_send_thread(void *p) {
 		log_error("mpu bind is not OK");
 		while(1);
 	}
+
+	err_mpl_conn   = netconn_bind(mpl3115a2_mac_info.conn,   &ip_addr_sensor, IMU_A_TX_PORT_MPL ); //local port
+
+	if (err_mpl_conn != ERR_OK) {
+	    log_error("mpl bind is not OK");
+	    while(1);
+	}
+
 	err_adis_conn   = netconn_bind(adis16405_mac_info.conn,   &ip_addr_sensor, IMU_A_TX_PORT_ADIS ); //local port
 	if (err_adis_conn != ERR_OK) {
 		log_error("adis bind is not OK");
 		while(1);
 	}
+
 	if ((err_mpu_conn == ERR_OK) && (err_adis_conn == ERR_OK)) {
 		/* Connect to specific address or a broadcast address */
 		/*
@@ -197,28 +240,35 @@ msg_t data_udp_send_thread(void *p) {
 		 *   This may be a LwIP thing that chooses between tcp_/udp_/raw_ connections internally.
 		 *
 		 */
-		//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
-		err_mpu_conn  = netconn_connect(mpu9150_mac_info.conn,   &ip_addr_fc, FC_LISTEN_PORT_IMU_A );
-		if (err_mpu_conn != ERR_OK) {
-				log_error("mpu port connect is not OK");
-				while(1);
-			}
-		err_adis_conn = netconn_connect(adis16405_mac_info.conn, &ip_addr_fc, FC_LISTEN_PORT_IMU_A);
-		if (err_adis_conn != ERR_OK) {
-				log_error("adis port connect is not OK");
-				while(1);
-			}
+	    //	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
+	    err_mpu_conn  = netconn_connect(mpu9150_mac_info.conn,   &ip_addr_fc, FC_LISTEN_PORT_IMU_A );
+	    if (err_mpu_conn != ERR_OK) {
+	        log_error("mpu port connect is not OK");
+	        while(1);
+	    }
 
-		if(err_mpu_conn == ERR_OK) {
-			while (TRUE) {
-				chEvtDispatch(evhndl_imu_a, chEvtWaitOneTimeout(EVENT_MASK(1) |EVENT_MASK(0), MS2ST(50)));
-			}
-		} else {
-			log_error("Conn not ok");
-		}
-		return RDY_RESET;
+	    err_mpl_conn  = netconn_connect(mpl3115a2_mac_info.conn,   &ip_addr_fc, FC_LISTEN_PORT_IMU_A );
+	    if (err_mpl_conn != ERR_OK) {
+	        log_error("mpl port connect is not OK");
+	        while(1);
+	    }
+
+	    err_adis_conn = netconn_connect(adis16405_mac_info.conn, &ip_addr_fc, FC_LISTEN_PORT_IMU_A);
+	    if (err_adis_conn != ERR_OK) {
+	        log_error("adis port connect is not OK");
+	        while(1);
+	    }
+
+	    if(err_mpu_conn == ERR_OK) {
+	        while (TRUE) {
+	            chEvtDispatch(evhndl_imu_a, chEvtWaitOneTimeout(EVENT_MASK(2)| EVENT_MASK(1)|EVENT_MASK(0), MS2ST(50)));
+	        }
+	    } else {
+	        log_error("Conn not ok");
+	    }
+	    return RDY_RESET;
 	} else {
-		log_error("2 conn not ok");
+	    log_error("2 conn not ok");
 	}
 	return RDY_RESET;
 }
@@ -276,7 +326,7 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	netbuf_delete(inbuf);
 }
 
-WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
+WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
 msg_t data_udp_receive_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
 
