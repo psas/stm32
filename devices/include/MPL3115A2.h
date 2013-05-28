@@ -25,7 +25,7 @@ typedef     uint32_t                                mpl3115a2_pressure_data;
 typedef     uint32_t                                mpl3115a2_temperature_data;
 
 #if !defined(DEBUG_MPL3115A2) || defined(__DOXYGEN__)
-	#define 	DEBUG_MPL3115A2                  1
+	#define 	DEBUG_MPL3115A2                  0
 #endif
 
 #define     MPL3115A2_MAX_TX_BUFFER                 50
@@ -37,8 +37,8 @@ typedef     uint32_t                                mpl3115a2_temperature_data;
 #define     MPL3115A2_CTL1_OS_BITS                   3
 #define     MPL3115A2_CTRL4_DRDY_INT_BIT             7
 #define     MPL3115A2_CTRL5_INT_CFG_DRDY             7
-#if DEBUG_MPL3115A2
 
+#if DEBUG_MPL3115A2
 /* see hal/include/i2c.h */
 typedef struct i2c_error_info {
     const char* err_string;
@@ -46,7 +46,6 @@ typedef struct i2c_error_info {
 } i2c_error_info;
 
 const char* i2c_errno_str(int32_t err) ;
-
 #endif
 
 /*! \typedef mpl3115a2 regaddr
@@ -165,13 +164,10 @@ extern       MPL3115A2_Driver          mpl3115a2_driver;
 extern       MPL3115A2_read_data       mpl3115a2_current_read;
 
 void         mpl3115a2_start(I2CDriver* i2c) ;
-void        mpl3115a2_init(I2CDriver* i2c);
+void         mpl3115a2_init(I2CDriver* i2c);
 void         mpl_read_handler(eventid_t id) ;
-msg_t        mpl3115a2_write_ctrl_1(I2CDriver* i2c, mpl3115a2_i2c_data rdata ) ;
 
-//void  mpl3115a2_get_bar(I2CDriver* i2cptr);
-//void  mpl3115a2_get_temperature(I2CDriver* i2cptr);
-//void         mpl3115a2_int_event_handler(eventid_t id) ;
+
 
 #ifdef __cplusplus
 }
