@@ -246,6 +246,8 @@ static msg_t Thread_mpu9150_int(void* arg) {
 
 	chRegSetThreadName("mpu9150_int");
 
+	mpu9150_init(mpu9150_driver.i2c_instance);
+
 	chEvtRegister(&mpu9150_int_event,           &evl_mpu9150,         0);
 
 	while (TRUE) {
@@ -337,6 +339,8 @@ static msg_t Thread_mpl_int_1(void *arg) {
     struct EventListener     evl_mplint1;
 
     chRegSetThreadName("mpl_int_1");
+
+    mpl3115a2_init(mpl3115a2_driver.i2c_instance);
 
     chEvtRegister(&mpl3115a2_int_event,      &evl_mplint1,         0);
 
@@ -464,8 +468,9 @@ int main(void) {
 
 	i2cStart(mpu9150_driver.i2c_instance, &mpu9150_config);
 
-	//mpu9150_init(mpu9150_driver.i2c_instance);
-    mpl3115a2_init(mpl3115a2_driver.i2c_instance);
+	//
+	//chThdSleepMilliseconds(1500);
+  //
 
 	/* Administrative threads */
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
@@ -493,18 +498,17 @@ int main(void) {
 	chThdCreateStatic(wa_data_udp_receive_thread  , sizeof(wa_data_udp_receive_thread)  , NORMALPRIO    , data_udp_receive_thread, NULL);
 
 	/* i2c MPU9150 */
-	//chThdCreateStatic(waThread_mpu9150_int,         sizeof(waThread_mpu9150_int)        , NORMALPRIO    , Thread_mpu9150_int,        NULL);
+	chThdCreateStatic(waThread_mpu9150_int,         sizeof(waThread_mpu9150_int)        , NORMALPRIO    , Thread_mpu9150_int,        NULL);
 	//chThdCreateStatic(waThread_mpu9150_reset_req,   sizeof(waThread_mpu9150_reset_req)  , NORMALPRIO    , Thread_mpu9150_reset_req,  NULL);
     chThdCreateStatic(waThread_mpl_int_1,           sizeof(waThread_mpl_int_1)          , NORMALPRIO    , Thread_mpl_int_1,          NULL);
 
 	/* SPI ADIS */
-	//chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
-	//chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
+	chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
+	chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 
 
 	/*! Activates the EXT driver 1. */
 	extStart(&EXTD1, &extcfg);
-
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {

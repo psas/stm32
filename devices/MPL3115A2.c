@@ -180,7 +180,7 @@ static mpl3115a2_i2c_data mpl3115a2_read_ctrl_4(I2CDriver* i2c ) {
 static msg_t mpl3115a2_read_P_T(I2CDriver* i2c, MPL3115A2_read_data* d ) {
     msg_t              status;
     const int          readbytes   = 5;
-#if DEBUG_MPL3115A2
+#if 1
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
 #endif
     mpl3115a2_driver.txbuf[0] = MPL_OUT_P_MSB;
@@ -194,7 +194,7 @@ static msg_t mpl3115a2_read_P_T(I2CDriver* i2c, MPL3115A2_read_data* d ) {
     d->mpu_pressure    =  ((mpl3115a2_driver.rxbuf[0] << 16) | (mpl3115a2_driver.rxbuf[1] << 8) |(mpl3115a2_driver.rxbuf[2]) ) & 0xFFFFF;
     d->mpu_temperature =  (                                    (mpl3115a2_driver.rxbuf[3] << 8) |(mpl3115a2_driver.rxbuf[4]) ) & 0xFFF  ;
 
-    #if DEBUG_MPL3115A2
+#if DEBUG_MPL3115A2
     if (status != RDY_OK) {
         log_error("MPL-read P_T fail.\r\n");
         mpl3115a2_driver.i2c_errors = i2cGetErrors(i2c);
@@ -461,7 +461,7 @@ void mpl3115a2_init(I2CDriver* i2c) {
    //    mpl3115a2_reset(i2c);
        chThdSleepMilliseconds(500);
 
-      mpl3115a2_write_ctrl_1(i2c, 0 ) ;  // put into stdby mode in order to write registers.
+    //  mpl3115a2_write_ctrl_1(i2c, 0 ) ;  // put into stdby mode in order to write registers.
 
 #if DEBUG_MPL3115A2
     /* Read id */

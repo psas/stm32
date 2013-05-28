@@ -25,7 +25,7 @@ extern "C" {
 #include "fc_net.h"
 
 #if !defined(DEBUG_MPU9150) || defined(__DOXYGEN__)
-#define 	DEBUG_MPU9150                   0
+#define 	DEBUG_MPU9150                   1
 #endif
 
 typedef     uint8_t                               mpu9150_i2c_data;
