@@ -468,10 +468,6 @@ int main(void) {
 
 	i2cStart(mpu9150_driver.i2c_instance, &mpu9150_config);
 
-	//
-	//chThdSleepMilliseconds(1500);
-  //
-
 	/* Administrative threads */
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
 	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
@@ -499,7 +495,7 @@ int main(void) {
 
 	/* i2c MPU9150 */
 	chThdCreateStatic(waThread_mpu9150_int,         sizeof(waThread_mpu9150_int)        , NORMALPRIO    , Thread_mpu9150_int,        NULL);
-	//chThdCreateStatic(waThread_mpu9150_reset_req,   sizeof(waThread_mpu9150_reset_req)  , NORMALPRIO    , Thread_mpu9150_reset_req,  NULL);
+	chThdCreateStatic(waThread_mpu9150_reset_req,   sizeof(waThread_mpu9150_reset_req)  , NORMALPRIO    , Thread_mpu9150_reset_req,  NULL);
     chThdCreateStatic(waThread_mpl_int_1,           sizeof(waThread_mpl_int_1)          , NORMALPRIO    , Thread_mpl_int_1,          NULL);
 
 	/* SPI ADIS */

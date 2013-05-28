@@ -180,7 +180,7 @@ static mpl3115a2_i2c_data mpl3115a2_read_ctrl_4(I2CDriver* i2c ) {
 static msg_t mpl3115a2_read_P_T(I2CDriver* i2c, MPL3115A2_read_data* d ) {
     msg_t              status;
     const int          readbytes   = 5;
-#if 1
+#if DEBUG_MPL3115A2
     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
 #endif
     mpl3115a2_driver.txbuf[0] = MPL_OUT_P_MSB;

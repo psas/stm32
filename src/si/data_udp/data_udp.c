@@ -94,6 +94,7 @@ static void data_udp_send_mpu9150_data(eventid_t id) {
 
 	memcpy(&packet.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
 
+	packet.data_length       =  (uint16_t) sizeof(MPU9150_read_data);
 	mpu9150_mac_info.buf     =  netbuf_new();
 
 	data    =  netbuf_alloc(mpu9150_mac_info.buf, sizeof(packet));
@@ -122,6 +123,8 @@ static void data_udp_send_adis16405_data(eventid_t id) {
 	strncpy(packet.ID, myid, sizeof(myid));
 
 	memcpy(&packet.data, (void*) &adis16405_burst_data, sizeof(ADIS16405_burst_data) );
+
+	packet.data_length       =  (uint16_t) sizeof(ADIS16405_burst_data);
 
 	adis16405_mac_info.buf     =  netbuf_new();
 
