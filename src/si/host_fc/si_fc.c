@@ -40,7 +40,7 @@
 #define         MAX_RECV_BUFLEN      100
 #define         MAX_SEND_BUFLEN      100
 #define         MAX_THREADS          4
-#define         NUM_THREADS          2
+#define         NUM_THREADS          3
 #define         TIMEBUFLEN           80
 #define         STRINGBUFLEN         80
 
@@ -50,6 +50,9 @@ static          pthread_mutex_t      log_enable_mutex;
 
 static          MPU_packet           mpu9150_udp_data;
 static          MPU9150_read_data    mpu9150_imu_data;
+
+static          MPL_packet           mpl3115a2_udp_data;
+static          MPL3115A2_read_data  mpl3115a2_pt_data;
 
 static          ADIS_packet          adis16405_udp_data;
 static          ADIS16405_burst_data adis16405_imu_data;
@@ -366,7 +369,7 @@ void *datap_io_thread (void* ptr) {
 
 	pthread_t                 my_id;
 
-	FILE                      *fp_mpu, *fp_adis;
+	FILE                      *fp_mpl, *fp_mpu, *fp_adis;
 
 	struct addrinfo           hints, *res, *p, *ai_client;
 	struct sockaddr_storage   client_addr;
@@ -383,6 +386,8 @@ void *datap_io_thread (void* ptr) {
 		sensor_listen_id = ADIS_LISTENER;
 	} else if (ports_equal(port_info->client_port, IMU_A_TX_PORT_MPU)) {
 		sensor_listen_id = MPU_LISTENER;
+	} else if (ports_equal(port_info->client_port, IMU_A_TX_PORT_MPL)) {
+	        sensor_listen_id = MPL_LISTENER;
 	} else {
 		sensor_listen_id = UNKNOWN_SENSOR;
 	}
@@ -400,7 +405,13 @@ void *datap_io_thread (void* ptr) {
 		fprintf(fp_mpu, "# mpu9150 IMU data started at: %s\n", timestring);
 		fprintf(fp_mpu, "# mpu9150 IMU raw data\n");
 		fprintf(fp_mpu, "# timestamp,ax,ay,az,gx,gy,gz,C\n");
-	} else {
+	} else if (sensor_listen_id == MPL_LISTENER) {
+        fp_mpl       = fopen("mpl3115a2_log.txt", "w");
+        get_current_time(timestring) ;
+        fprintf(fp_mpl, "# mpl3115a2 Pressure Sensor data started at: %s\n", timestring);
+        fprintf(fp_mpl, "# mpl3115a2 Pressure sensor raw data\n");
+        fprintf(fp_mpl, "# timestamp,P,T\n");
+    } else {
 		;
 	}
 
@@ -482,14 +493,37 @@ void *datap_io_thread (void* ptr) {
 					die_nice("client sendto");
 				}
 #endif
-			} else if (ports_equal(sbuf, IMU_A_TX_PORT_ADIS) && (sensor_listen_id == ADIS_LISTENER)) {
-				double adis_temp_C = 0.0;
-				bool   adis_temp_neg = false;
-				if(numbytes != sizeof(ADIS_packet) ){
-					die_nice("wrong numbytes adis");
-				}
+			} else if (ports_equal(sbuf, IMU_A_TX_PORT_MPL) && (sensor_listen_id == MPL_LISTENER)) {
+			    if(numbytes != sizeof(MPL_packet) ){
+			        die_nice("wrong numbytes mpl");
+			    }
 
-				memcpy (&adis16405_udp_data, recvbuf, sizeof(ADIS_packet));
+			    memcpy (&mpl3115a2_udp_data, recvbuf, sizeof(MPL_packet));
+
+			    mpl3115a2_pt_data = mpl3115a2_udp_data.data;
+
+			    if(enable_logging) {
+			        fprintf(fp_mpl, "%c%c%c%c,%f,%d,%d\n",
+			                mpl3115a2_udp_data.ID[0], mpl3115a2_udp_data.ID[1],mpl3115a2_udp_data.ID[2],mpl3115a2_udp_data.ID[3],
+			                timestamp_now(),
+			                mpl3115a2_pt_data.mpu_pressure,
+			                mpl3115a2_pt_data.mpu_temperature
+			        );
+			        ++datacount;
+			        snprintf(countmsg, MAX_USER_STRBUF , " %d MPL entries.", datacount );
+			        if(datacount % COUNT_INTERVAL == 0) {
+			            log_msg(countmsg);
+			        }
+			    }
+			    fflush(fp_mpl);
+			} else if (ports_equal(sbuf, IMU_A_TX_PORT_ADIS) && (sensor_listen_id == ADIS_LISTENER)) {
+			    double adis_temp_C = 0.0;
+			    bool   adis_temp_neg = false;
+			    if(numbytes != sizeof(ADIS_packet) ){
+			        die_nice("wrong numbytes adis");
+			    }
+
+			    memcpy (&adis16405_udp_data, recvbuf, sizeof(ADIS_packet));
 
 				adis16405_imu_data = adis16405_udp_data.data;
 
@@ -651,6 +685,10 @@ int main(void) {
 	snprintf(th_data[ADIS_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
 	snprintf(th_data[ADIS_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
 	snprintf(th_data[ADIS_LISTENER].client_port     , PORT_STRING_LEN , "%d", IMU_A_TX_PORT_ADIS);
+
+	snprintf(th_data[MPL_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
+	snprintf(th_data[MPL_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
+	snprintf(th_data[MPL_LISTENER].client_port     , PORT_STRING_LEN , "%d", IMU_A_TX_PORT_MPL);
 
 	snprintf(th_data[MPU_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
 	snprintf(th_data[MPU_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);

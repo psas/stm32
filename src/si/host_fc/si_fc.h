@@ -22,6 +22,7 @@ typedef enum sensorID {
 
 typedef enum thd_index {
     MPU_LISTENER,
+    MPL_LISTENER,
     ADIS_LISTENER
 } Thdindex;
 
@@ -82,6 +83,30 @@ struct MPU_packet {
     MPU9150_read_data   data;
 }  __attribute__((packed)) ;
 typedef struct MPU_packet MPU_packet;
+
+
+
+typedef     uint32_t                                mpl3115a2_pressure_data;
+typedef     uint32_t                                mpl3115a2_temperature_data;
+
+/*! \typedef  mpl3115a2 data
+ *
+ */
+struct MPL3115A2_read_data {
+    mpl3115a2_pressure_data         mpu_pressure;
+    mpl3115a2_temperature_data      mpu_temperature;
+} __attribute__((packed)) ;
+typedef struct MPL3115A2_read_data MPL3115A2_read_data;
+
+
+struct MPL_packet {
+    char                ID[4];
+    uint8_t             timestamp[16];
+    uint16_t            data_length;
+    MPL3115A2_read_data data;
+}  __attribute__((packed)) ;
+typedef struct MPL_packet MPL_packet;
+
 
 typedef     uint16_t                          adis_reg_data;
 
