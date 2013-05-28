@@ -221,6 +221,29 @@ static void mpu9150_int_event_handler(eventid_t id) {
 #endif
 
 }
+
+/*! \brief Periodic reads (post interrupt)
+ *
+ * Event callback.
+ *
+ * @param id
+ */
+static void mpl_read_handler(eventid_t id) {
+    (void) id;
+    mpl3115a2_i2c_data reg;
+
+    /* Get current data and read f_status to reset INT */
+    mpl3115a2_read_P_T(mpl3115a2_driver.i2c_instance, &mpl3115a2_current_read);
+    mpl3115a2_read_f_status(mpl3115a2_driver.i2c_instance);
+
+    chEvtBroadcast(&mpl3115a2_data_event);   //! \sa data_udp_send_thread
+
+    /* Set up a one shot which will trigger next interrupt */
+    reg =  mpl3115a2_read_ctrl_1(mpl3115a2_driver.i2c_instance);
+    reg |= (1<<MPL3115A2_CTL1_OST_BIT);
+    mpl3115a2_write_ctrl_1(mpl3115a2_driver.i2c_instance, reg);
+}
+
 static WORKING_AREA(waThread_blinker, 64);
 /*! \brief Green LED blinker thread
  */

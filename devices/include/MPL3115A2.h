@@ -163,10 +163,12 @@ extern       EventSource               mpl3115a2_int_event;
 extern       MPL3115A2_Driver          mpl3115a2_driver;
 extern       MPL3115A2_read_data       mpl3115a2_current_read;
 
-void         mpl3115a2_start(I2CDriver* i2c) ;
-void         mpl3115a2_init(I2CDriver* i2c);
-void         mpl_read_handler(eventid_t id) ;
-
+void               mpl3115a2_start(I2CDriver* i2c) ;
+void               mpl3115a2_init(I2CDriver* i2c);
+msg_t              mpl3115a2_read_P_T(I2CDriver* i2c, MPL3115A2_read_data* d ) ;
+mpl3115a2_i2c_data mpl3115a2_read_f_status(I2CDriver* i2c) ;
+mpl3115a2_i2c_data mpl3115a2_read_ctrl_1(I2CDriver* i2c ) ;
+msg_t              mpl3115a2_write_ctrl_1(I2CDriver* i2c, mpl3115a2_i2c_data rdata ) ;
 
 
 #ifdef __cplusplus
