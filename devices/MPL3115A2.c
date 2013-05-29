@@ -191,8 +191,16 @@ msg_t mpl3115a2_read_P_T(I2CDriver* i2c, MPL3115A2_read_data* d ) {
     if (status != RDY_OK){
         mpl3115a2_driver.i2c_errors = i2cGetErrors(i2c);
     }
-    d->mpu_pressure    =  ((mpl3115a2_driver.rxbuf[0] << 16) | (mpl3115a2_driver.rxbuf[1] << 8) |(mpl3115a2_driver.rxbuf[2]) ) & 0xFFFFF;
-    d->mpu_temperature =  (                                    (mpl3115a2_driver.rxbuf[3] << 8) |(mpl3115a2_driver.rxbuf[4]) ) & 0xFFF  ;
+
+    // out_p_mpb    out_p_csb  out_p_lsb
+    // xxxx xxxx    xxxx xxxx  xxxx 0000
+    //  f     f       f   f     f    0
+    d->mpu_pressure    =  ((mpl3115a2_driver.rxbuf[0] << 16) | (mpl3115a2_driver.rxbuf[1] << 8) |(mpl3115a2_driver.rxbuf[2]) ) & 0xFFFFF0;
+
+    // out_t_msb   out_t_lsb
+    // xxxx xxxx   xxxx 0000
+    //  f     f     f   0
+    d->mpu_temperature =  (                                    (mpl3115a2_driver.rxbuf[3] << 8) |(mpl3115a2_driver.rxbuf[4]) ) & 0xFFF0 ;
 
 #if DEBUG_MPL3115A2
     if (status != RDY_OK) {
