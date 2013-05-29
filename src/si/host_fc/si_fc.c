@@ -563,7 +563,11 @@ void *datap_io_thread (void* ptr) {
 	if(sensor_listen_id == MPU_LISTENER ) {
 		fprintf(fp_mpu, "# mpu9150 IMU data closed at: %s\n", timestring);
 		fclose(fp_mpu);
-	} else if (sensor_listen_id == ADIS_LISTENER) {
+	} else if (sensor_listen_id == MPL_LISTENER) {
+		fprintf(fp_mpl, "# mpu3115a2 P T data closed at: %s\n", timestring);
+		fclose(fp_mpl);
+	}
+else if (sensor_listen_id == ADIS_LISTENER) {
 		fprintf(fp_adis, "# adis16405 IMU data closed at: %s\n", timestring);
 		fclose(fp_adis);
 	}
