@@ -466,7 +466,7 @@ void *datap_io_thread (void* ptr) {
 				mpu9150_imu_data = (MPU9150_read_data) mpu9150_udp_data.data;
 
 				if(enable_logging) {
-					fprintf(fp_mpu, "%c%c%c%c,%f,%d,%d,%d,%d,%d,%d,%3.2f\n",
+					fprintf(fp_mpu, "%c%c%c%c,%f,%d,%d,%d,%d,%d,%d,%i\n",
 							mpu9150_udp_data.ID[0], mpu9150_udp_data.ID[1],mpu9150_udp_data.ID[2],mpu9150_udp_data.ID[3],
 							timestamp_now(),
 							mpu9150_imu_data.accel_xyz.x,
@@ -475,7 +475,7 @@ void *datap_io_thread (void* ptr) {
 							mpu9150_imu_data.gyro_xyz.x,
 							mpu9150_imu_data.gyro_xyz.y,
 							mpu9150_imu_data.gyro_xyz.z,
-							CtoF(mpu9150_temp_to_dC(mpu9150_imu_data.celsius)) );
+							mpu9150_imu_data.celsius);
 					++datacount;
 					snprintf(countmsg, MAX_USER_STRBUF , " %d MPU entries.", datacount );
 					if(datacount %COUNT_INTERVAL == 0) {
@@ -529,7 +529,7 @@ void *datap_io_thread (void* ptr) {
 
 				if(enable_logging) {
 					adis_temp_neg = adis16405_temp_to_dC(&adis_temp_C,      &adis16405_imu_data.adis_temp_out);
-					fprintf(fp_adis, "%c%c%c%c,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%3.2f\n",
+					fprintf(fp_adis, "%c%c%c%c,%f,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
 							//  fprintf(fp_adis, "%f,%d,%d,%d,%d,%d,%d,%0x%x\n",
 							adis16405_udp_data.ID[0], adis16405_udp_data.ID[1],adis16405_udp_data.ID[2],adis16405_udp_data.ID[3],
 							timestamp_now(),
@@ -542,8 +542,7 @@ void *datap_io_thread (void* ptr) {
 							adis16405_imu_data.adis_xmagn_out,
 							adis16405_imu_data.adis_ymagn_out,
 							adis16405_imu_data.adis_zmagn_out,
-							CtoF(adis_temp_C)
-							//adis16405_udp_data.adis_temp_out
+							adis16405_imu_data.adis_temp_out
 					);
 					++datacount;
 					snprintf(countmsg, MAX_USER_STRBUF , " %d ADIS entries.", datacount );
