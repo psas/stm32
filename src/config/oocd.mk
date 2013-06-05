@@ -1,14 +1,16 @@
 
 OPENOCD = ../../openocd
+OPENOCD_PATH = /opt/psas/openocd/bin
 HEXFILE = $(BUILDDIR)/$(PROJECT).hex
-OOCD_CFG = olimex_stm32_e407.cfg
 
-write_ocd:
-	sudo openocd -s $(OPENOCD) -f $(OOCD_CFG) -c "script oocd_prep.script" -c "flash write_image erase $(HEXFILE)" -c "reset" -c "shutdown"
+write: $(HEXFILE) write_ocd
 
-write_stl:
-	sudo openocd -s $(OPENOCD) -f stlinkv2_stm32_e407.cfg -c "script oocd_prep.script" -c "flash write_image erase $(HEXFILE)" -c "reset" -c "shutdown"
+write_base:
+	export PATH=$(OPENOCD_PATH):$(PATH); sudo openocd -s $(OPENOCD) -f $(OOCD_CFG) -c "script oocd_prep.script" -c "flash write_image erase $(HEXFILE)" -c "reset" -c "shutdown"
 
-write: $(HEXFILE)
-	sudo openocd -s $(OPENOCD) -f $(OOCD_CFG) -c "script oocd_prep.script" -c "flash write_image erase $(HEXFILE)" -c "reset" -c "shutdown"
+write_ocd: OOCD_CFG = olimex_stm32_e407.cfg
+write_ocd: write_base
+
+write_stl: OOCD_CFG = stlinkv2_stm32_e407.cfg
+write_stl: write_base
 
