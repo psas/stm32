@@ -71,10 +71,10 @@ def mpu_raw_acc_to_ug(rawval, abs_fullscale):
         
         This should mean:
         abs_fullscale                  LSB Sensitivity
-            2                               6.1ug/bit  (16384bits/g)
-            4                              12.2ug/bit
-            8                              24.4ug/bit
-            16                             48.8ug/bit
+            2                               61ug/bit  (16384bits/g)
+            4                              122ug/bit
+            8                              244ug/bit
+            16                             488ug/bit
         
     """
     rawval        = int(rawval)
@@ -82,13 +82,13 @@ def mpu_raw_acc_to_ug(rawval, abs_fullscale):
     accdata       = 0.0
     
     if(abs_fullscale==2):
-        accdata   = rawval * 6.1e-6
+        accdata   = rawval * 61e-6
     elif(abs_fullscale==4):
-        accdata   = rawval * 12.2e-6
+        accdata   = rawval * 122e-6
     elif(abs_fullscale==8):
-        accdata   = rawval * 24.4e-6
+        accdata   = rawval * 244e-6
     elif(abs_fullscale==16):
-        accdata   = rawval * 48.8e-6
+        accdata   = rawval * 488.3e-6
     else:
         raise TypeError("abs_fullscale must be 2, 4, 8 or 16")
 

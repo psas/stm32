@@ -151,6 +151,26 @@ const mpu9150_connect mpu9150_connections = {
 		2,                    // interrupt pad;
 };
 
+static void led_init(void) {
+
+    palClearPad(GPIOF, GPIOF_BLUE_LED);
+    palClearPad(GPIOF, GPIOF_RED_LED);
+    palClearPad(GPIOF, GPIOF_GREEN_LED);
+
+    int i = 0;
+    for(i=0; i<5; ++i) {
+        palSetPad(GPIOF, GPIOF_RED_LED);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOF, GPIOF_RED_LED);
+        palSetPad(GPIOF, GPIOF_BLUE_LED);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOF, GPIOF_BLUE_LED);
+        palSetPad(GPIOF, GPIOF_GREEN_LED);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOF, GPIOF_GREEN_LED);
+    }
+}
+
 /*! \brief Initialize mpu9150
  *
  */
@@ -169,10 +189,10 @@ static void mpu9150_init(I2CDriver* i2cptr) {
 	rdata = MPU9150_I2C_BYPASS | MPU9150_INT_LEVEL | MPU9150_LATCH_INT_EN;
 	mpu9150_write_pin_cfg(i2cptr, rdata);
 
-	rdata = MPU9150_A_HPF_RESET | MPU9150_A_SCALE_pm8g;
+	rdata = MPU9150_A_HPF_RESET | MPU9150_A_SCALE_pm16g;
 	mpu9150_write_accel_config(i2cptr, rdata);
 
-	rdata = MPU9150_G_SCALE_pm500;
+	rdata = MPU9150_G_SCALE_pm2000;
 	mpu9150_write_gyro_config(i2cptr, rdata);
 
 	rdata = MPU9150_INT_EN_DATA_RD_EN;
@@ -250,7 +270,7 @@ static WORKING_AREA(waThread_blinker, 64);
 static msg_t Thread_blinker(void *arg) {
 	(void)arg;
 	chRegSetThreadName("blinker");
-	chThdSleepMilliseconds(500);
+
 	palClearPad(GPIOF, GPIOF_GREEN_LED);
 	palClearPad(GPIOF, GPIOF_RED_LED);
 	palClearPad(GPIOF, GPIOF_BLUE_LED);
@@ -258,7 +278,7 @@ static msg_t Thread_blinker(void *arg) {
 		palTogglePad(GPIOC, GPIOC_LED);
         //palTogglePad(GPIOF, GPIOF_RED_LED);
         //palTogglePad(GPIOF, GPIOF_BLUE_LED);
-        //palTogglePad(GPIOF, GPIOF_GREEN_LED);
+        palTogglePad(GPIOF, GPIOF_GREEN_LED);
 		chThdSleepMilliseconds(500);
 	}
 	return -1;
@@ -448,10 +468,11 @@ int main(void) {
 	palSetPad(GPIOA, GPIOA_SPI1_SCK);
 	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
-	palSetPad(GPIOF, GPIOF_RED_LED);
-	palSetPad(GPIOF, GPIOF_BLUE_LED);
-	palSetPad(GPIOF, GPIOF_GREEN_LED);
+	palClearPad(GPIOF, GPIOF_RED_LED);
+	palClearPad(GPIOF, GPIOF_BLUE_LED);
+	palClearPad(GPIOF, GPIOF_GREEN_LED);
 
+	led_init();
 
 	/*
 	 * I2C2 I/O pins setup
@@ -551,6 +572,4 @@ int main(void) {
 		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
 	}
 }
-
-
 //! @}
