@@ -250,9 +250,15 @@ static WORKING_AREA(waThread_blinker, 64);
 static msg_t Thread_blinker(void *arg) {
 	(void)arg;
 	chRegSetThreadName("blinker");
+	chThdSleepMilliseconds(500);
+	palClearPad(GPIOF, GPIOF_GREEN_LED);
+	palClearPad(GPIOF, GPIOF_RED_LED);
+	palClearPad(GPIOF, GPIOF_BLUE_LED);
 	while (TRUE) {
 		palTogglePad(GPIOC, GPIOC_LED);
-
+        //palTogglePad(GPIOF, GPIOF_RED_LED);
+        //palTogglePad(GPIOF, GPIOF_BLUE_LED);
+        //palTogglePad(GPIOF, GPIOF_GREEN_LED);
 		chThdSleepMilliseconds(500);
 	}
 	return -1;
@@ -441,6 +447,11 @@ int main(void) {
 
 	palSetPad(GPIOA, GPIOA_SPI1_SCK);
 	palSetPad(GPIOA, GPIOA_SPI1_NSS);
+
+	palSetPad(GPIOF, GPIOF_RED_LED);
+	palSetPad(GPIOF, GPIOF_BLUE_LED);
+	palSetPad(GPIOF, GPIOF_GREEN_LED);
+
 
 	/*
 	 * I2C2 I/O pins setup
