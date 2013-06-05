@@ -466,7 +466,7 @@ void *datap_io_thread (void* ptr) {
 				mpu9150_imu_data = (MPU9150_read_data) mpu9150_udp_data.data;
 
 				if(enable_logging) {
-					fprintf(fp_mpu, "%c%c%c%c,%f,%d,%d,%d,%d,%d,%d,%i\n",
+					fprintf(fp_mpu, "%c%c%c%c,%f,%d,%d,%d,%d,%d,%d,%d\n",
 							mpu9150_udp_data.ID[0], mpu9150_udp_data.ID[1],mpu9150_udp_data.ID[2],mpu9150_udp_data.ID[3],
 							timestamp_now(),
 							mpu9150_imu_data.accel_xyz.x,

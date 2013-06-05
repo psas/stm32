@@ -11,6 +11,10 @@ from __future__ import division
 __author__  = 'K Wilson'
 __version__ = "0.0.1"
 
+def get_hex(s):
+    v = str(int(s,16))
+    return v
+
 def C_to_F(dC):
     """ convert Celcius to Fahrenheit """
     dC      = float(dC)

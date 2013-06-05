@@ -34,7 +34,7 @@ typedef     uint8_t                           adis_spi_data;
 typedef     uint16_t                          adis_reg_data;
 
 #if !defined(ADIS_DEBUG) || defined(__DOXYGEN__)
-#define 	ADIS_DEBUG                   1
+#define 	ADIS_DEBUG                   0
 #endif
 
 /*! \typedef adis_regaddr
