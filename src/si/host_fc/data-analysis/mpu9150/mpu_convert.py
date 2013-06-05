@@ -119,6 +119,16 @@ def mpu_raw_temp_to_dC(rawval):
     return tdata
 
 
+def mpu_col_t_to_values(col_t):
+
+    col_t      = col_t[:,1]
+               
+    vfunc      = np.vectorize(mpu_raw_temp_to_dC)
+    
+    col_t_dC   = vfunc(col_t)
+    
+    return col_t_dC
+
 if __name__ == "__main__":
     try:
         infile     = "testdata.csv"
@@ -131,12 +141,13 @@ if __name__ == "__main__":
         col_gyro   = csvrd.csv_mpu_get_gyro_xyz(infile)
         col_dC     = csvrd.csv_mpu_get_t_data(infile)
         
-        print(hex(int(col_gyro[0][3])), '\t', mpu_raw_gyro_to_dps(col_gyro[0][3], 500))
+        print(col_dC[0][1], '\t', mpu_raw_temp_to_dC(col_dC[0][1]))
         
         np.set_printoptions(threshold=np.nan, precision=6, linewidth=200)
         #print(list(map(mpu_raw_temp_to_dC,col_dC[:,1])))
         #print(mpu_col_acc_to_values(col_acc))
-        print(mpu_col_gyro_to_values(col_gyro))
+        print(type(mpu_col_t_to_values(col_dC)))
+        print(list(map(u.C_to_F,mpu_col_t_to_values(col_dC))) )
         #print(list(map(mpu_raw_temp_to_dC,col_dC[:,1])))
         
         print("Done")
