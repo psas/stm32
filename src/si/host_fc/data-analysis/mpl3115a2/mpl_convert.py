@@ -10,6 +10,7 @@ from __future__ import division
 __author__  = 'K Wilson'
 __version__ = "0.0.1"
 
+import time
 import numpy       as np
 import csv_readmpl as csvrd
 import kw_utils    as u
@@ -60,27 +61,26 @@ def mpl_raw_pres_to_pascals(rawval):
 
 if __name__ == "__main__":
     try:
-        infile     = "testdata.csv"
+        infile     = "mpl3115a2_log.txt-example"
         outfile    = open("testoutput.csv", 'w')
         
-        headers    =  csvrd.csv_mpl_getheaders(infile)
+        headers    = csvrd.csv_mpl_getheaders(infile)
         data_all   = csvrd.csv_mpl_getdata(infile)
         col0_time  = data_all[:,0]
         col1_pres  = csvrd.csv_mpl_get_pressure_data(infile)
         col2_dC    = csvrd.csv_mpl_get_t_data(infile)
-         # >>> time.strftime("%H:%M %Y", time.gmtime(1369870218.38))
+        now        = time.strftime("%c", time.gmtime())
          # '23:30 2013'
 
         pr_data    = list(map(mpl_raw_pres_to_pascals, col1_pres))
         t_data     = list(map(mpl_raw_temp_to_dC,      col2_dC))
-        #outfile.write('# ')
+        outfile.write('# %s\n'% now)
         for i in headers:
             outfile.write(i)
             outfile.write('\t\t')
         outfile.write('\n')
         for i in range(0,len(col0_time)):
-            print("%.6f" % col0_time[i], '\t', pr_data[i],'\t', t_data[i],'\t', file=outfile)
-            
+            print("%.6f" % col0_time[i], '\t', pr_data[i],'\t', t_data[i], '\t', file=outfile)
         
         outfile.close()
         

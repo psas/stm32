@@ -10,43 +10,46 @@ from __future__ import division
 __author__  = 'K Wilson'
 __version__ = "0.0.1"
 
+import time
 import numpy           as np
-import csv_readmpu     as csvrd
+import csv_readadis    as csvrd
 import kw_utils        as u
 
-def adis_raw_gyro_to_dps(rawval, abs_fullscale):
+def adis_raw_magn_to_ugauss(rawval):
     """
-        mpu9150 gyro rate is stored as a 16 bit twos compliment value
+        adis gyro is 14 bit twos complement
+       
+        0.5 mgauss per bit 500ugauss per bit
         
-        abs_fullscale: 
-        The full scale ranges are (+/- 250, 500, 1000, 2000 dps) in 16 bits.
-        'abs_fullscale' is one half of the total +/- range.
-        for +/- 250 g the total range is [-250,250] which is 500dps. 
+    """
+    rawval           = int(rawval)
+    rawval           = u.twos_comp(rawval&0x3fff,14)
+    magndata_ugauss  = rawval * 500
+    return magndata_ugauss
+
+def adis_col_magn_to_values(col_magn):
+    """
+        dps is degrees-per-second
+    """
+    col_xyz    = col_magn[:,1:4]
+               
+    vfunc      = np.vectorize(adis_raw_magn_to_ugauss)
+    
+    col_xyz_ugauss = vfunc(col_xyz)
+    
+    return col_xyz_ugauss
+
+def adis_raw_gyro_to_dps(rawval):
+    """
+        adis gyro is 14 bit twos complement
         
-        This should mean:
-        abs_fullscale                  LSB Sensitivity
-            250                            0.00764(degrees/bit)/s ((131 LSB/degree)/s)
-            500                            0.01527(degrees/bit)/s ((65.5 LSB/degree)/s)
-            1000                           0.03049(degrees/bit)/s ((32.8 LSB/degree)/s)
-            2000                           0.06098(degrees/bit)/s ((16.4 LSB/degree)/s)
+        0.05 dps per bit
         
     """
     rawval        = int(rawval)
-    rawval        = u.twos_comp(rawval&0xffff,16)
-    gyrodata       = 0.0
-    
-    if(abs_fullscale==250):
-        gyrodata   = rawval * 0.00764
-    elif(abs_fullscale==500):
-        gyrodata   = rawval * 0.01527
-    elif(abs_fullscale==1000):
-        gyrodata   = rawval * 0.03049
-    elif(abs_fullscale==2000):
-        gyrodata   = rawval * 0.06098
-    else:
-        raise TypeError("abs_fullscale must be 250, 500, 1000 or 2000")
-
-    return gyrodata
+    rawval        = u.twos_comp(rawval&0x3fff,14)
+    gyrodata_dps  = rawval * 0.05
+    return gyrodata_dps
 
 def adis_col_gyro_to_values(col_gyro):
     """
@@ -54,53 +57,34 @@ def adis_col_gyro_to_values(col_gyro):
     """
     col_xyz    = col_gyro[:,1:4]
                
-    vfunc      = np.vectorize(mpu_raw_gyro_to_dps)
+    vfunc      = np.vectorize(adis_raw_gyro_to_dps)
     
-    col_xyz_dps = vfunc(col_xyz, 500)
+    col_xyz_dps = vfunc(col_xyz)
     
     return col_xyz_dps
 
-def adis_raw_acc_to_ug(rawval, abs_fullscale):
+
+def adis_raw_acc_to_ug(rawval):
     """
-        mpu9150 acceleration is stored as a 16 bit signed value
+        adis accel data is 14 bit twos complement.
         
-        abs_fullscale: The RM-MPU manual is not clear on this.
-        The full scale ranges are (+/- 2, 4, 8 16g) in 16 bits.
-        'abs_fullscale' is one half of the total +/- range.
-        for +/- 2 g the total range is [-2,2] which is 4g. 
-        
-        This should mean:
-        abs_fullscale                  LSB Sensitivity
-            2                               6.1ug/bit  (16384bits/g)
-            4                              12.2ug/bit
-            8                              24.4ug/bit
-            16                             48.8ug/bit
+        3.3mg per bit or 3330ug per bit
+        return value in  ug  (micro-g)
         
     """
     rawval        = int(rawval)
-    rawval        = u.twos_comp(rawval&0xffff,16)
-    accdata       = 0.0
-    
-    if(abs_fullscale==2):
-        accdata   = rawval * 6.1e-6
-    elif(abs_fullscale==4):
-        accdata   = rawval * 12.2e-6
-    elif(abs_fullscale==8):
-        accdata   = rawval * 24.4e-6
-    elif(abs_fullscale==16):
-        accdata   = rawval * 48.8e-6
-    else:
-        raise TypeError("abs_fullscale must be 2, 4, 8 or 16")
-
-    return accdata
+    rawval        = u.twos_comp(rawval&0x3fff,14)
+    accdata_ug    = rawval * 3330
+   
+    return accdata_ug
 
 def adis_col_acc_to_values(col_acc):
 
     col_xyz    = col_acc[:,1:4]
                
-    vfunc      = np.vectorize(mpu_raw_acc_to_ug)
+    vfunc      = np.vectorize(adis_raw_acc_to_ug)
     
-    col_xyz_ug = vfunc(col_xyz, 8)
+    col_xyz_ug = vfunc(col_xyz)
     
     return col_xyz_ug
 
@@ -139,18 +123,27 @@ if __name__ == "__main__":
         col_time   = data_all[:,0]
         col_acc    = csvrd.csv_adis_get_accel_xyz(infile)
         col_gyro   = csvrd.csv_adis_get_gyro_xyz(infile)
+        col_magn   = csvrd.csv_adis_get_magn_xyz(infile)
         col_dC     = csvrd.csv_adis_get_t_data(infile)
         
-        print(col_dC[0][1], '\t', adis_raw_temp_to_dC(col_dC[0][1]))
+        acc_xyz    = adis_col_acc_to_values(col_acc)
+        gyro_xyz   = adis_col_gyro_to_values(col_gyro)
+        magn_xyz   = adis_col_magn_to_values(col_magn)
+
+        print(acc_xyz)
+        print(gyro_xyz)
+        print(magn_xyz)
         
-        np.set_printoptions(threshold=np.nan, precision=6, linewidth=200)
-        #print(list(map(mpu_raw_temp_to_dC,col_dC[:,1])))
-        #print(mpu_col_acc_to_values(col_acc))
-        print(type(adis_col_t_to_values(col_dC)))
-        print(list(map(u.C_to_F,adis_col_t_to_values(col_dC))) )
-        #print(list(map(mpu_raw_temp_to_dC,col_dC[:,1])))
-        
-        print("Done")
+#         now        = time.strftime("%c", time.gmtime())
+#         outfile.write('# %s\n'% now)
+#         for i in headers:
+#             outfile.write(i)
+#             outfile.write('\t\t')
+#         outfile.write('\n')
+#         for i in range(0,len(col_time)):
+#             print("%.6f" % col_time[i], '\t', col_acc[i][1:4],'\t', col_gyro[i][1:4], '\t', col_magn[i][1:4], col_dC[i][1] , file=outfile)
+#         
+#         print("Done")
         outfile.close()
         
     except KeyboardInterrupt:
