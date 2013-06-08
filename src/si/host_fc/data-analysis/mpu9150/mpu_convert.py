@@ -100,7 +100,7 @@ def mpu_col_acc_to_values(col_acc):
                
     vfunc      = np.vectorize(mpu_raw_acc_to_ug)
     
-    col_xyz_ug = vfunc(col_xyz, 8)
+    col_xyz_ug = vfunc(col_xyz, 16)
     
     return col_xyz_ug
 
@@ -141,16 +141,32 @@ if __name__ == "__main__":
         col_gyro   = csvrd.csv_mpu_get_gyro_xyz(infile)
         col_dC     = csvrd.csv_mpu_get_t_data(infile)
         
-        print(col_dC[0][1], '\t', mpu_raw_temp_to_dC(col_dC[0][1]))
-        
         np.set_printoptions(threshold=np.nan, precision=6, linewidth=200)
         #print(list(map(mpu_raw_temp_to_dC,col_dC[:,1])))
         #print(mpu_col_acc_to_values(col_acc))
-        print(type(mpu_col_t_to_values(col_dC)))
-        print(list(map(u.C_to_F,mpu_col_t_to_values(col_dC))) )
+        #print(type(mpu_col_t_to_values(col_dC)))
+        #print(list(map(u.C_to_F,mpu_col_t_to_values(col_dC))) )
         #print(list(map(mpu_raw_temp_to_dC,col_dC[:,1])))
         
-        print("Done")
+        print("accel(ug)")
+        print("\ttime\t\tx\t\ty\t\tz")
+        
+        a = mpu_col_acc_to_values(col_acc)
+        print(a.shape)
+        q = np.atleast_3d(col_time)
+        print(q.shape)
+        q = np.hstack((q, a))
+        
+        print(q)
+        
+        #print("gyro dps")
+        #print("\ttime\t\tx\t\ty\t\tz")
+        #print(col_gyro)
+        #
+        #print("\ttime\t\tTemp(C)")
+        #print(col_dC)
+        #
+        #print("Done")
         outfile.close()
         
     except KeyboardInterrupt:

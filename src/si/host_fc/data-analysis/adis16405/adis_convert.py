@@ -15,6 +15,7 @@ import numpy           as np
 import csv_readadis    as csvrd
 import kw_utils        as u
 
+
 def adis_raw_magn_to_ugauss(rawval):
     """
         adis gyro is 14 bit twos complement
@@ -130,9 +131,10 @@ if __name__ == "__main__":
         gyro_xyz   = adis_col_gyro_to_values(col_gyro)
         magn_xyz   = adis_col_magn_to_values(col_magn)
 
-        print(acc_xyz)
-        print(gyro_xyz)
-        print(magn_xyz)
+        u.check_reboots(col_time)
+        #print(acc_xyz)
+        #print(gyro_xyz)
+        #print(magn_xyz)
         
 #         now        = time.strftime("%c", time.gmtime())
 #         outfile.write('# %s\n'% now)
