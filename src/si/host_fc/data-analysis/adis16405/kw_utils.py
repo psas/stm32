@@ -24,5 +24,16 @@ def twos_comp(rawval, nbits):
         rawval = rawval - (1<<nbits)
     return rawval
 
+def check_reboots(col_time):
+    last_ts = 0;
+    reboots   = 0;
+    line    = 0;
 
+    last_ts = col_time[0]
 
+    for i in col_time:
+        line = line+1
+        if (i - last_ts) > 1:
+            print("error at line: ", line, '\t', i, '\t', last_ts, '\t', i - last_ts)
+            reboots = reboots+1
+        last_ts =i
