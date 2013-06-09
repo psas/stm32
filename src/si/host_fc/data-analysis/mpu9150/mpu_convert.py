@@ -149,16 +149,19 @@ if __name__ == "__main__":
         #print(list(map(mpu_raw_temp_to_dC,col_dC[:,1])))
         
         print("accel(ug)")
-        print("\ttime\t\tx\t\ty\t\tz")
+        print("\ttime\t\tax\t\tay\t\taz\tgx\t\tgy\t\t\tgz\tC")
         
         a = mpu_col_acc_to_values(col_acc)
-        print(a.shape)
-        q = np.atleast_3d(col_time)
-        print(q.shape)
-        q = np.hstack((q, a))
+        b = mpu_col_gyro_to_values(col_gyro)
+        c = mpu_col_t_to_values(col_dC)
         
-        print(q)
+        #q = np.hstack((t, ax, ay, az))
         
+        
+        q= np.column_stack((col_time, a, b,c ))
+        print (q)
+        #print(np.shape(np.atleast_2d(ax)))
+        #print(np.hstack( (np.atleast_2d(t), np.atleast_2d(ax) )))
         #print("gyro dps")
         #print("\ttime\t\tx\t\ty\t\tz")
         #print(col_gyro)
