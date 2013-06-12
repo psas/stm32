@@ -17,7 +17,7 @@
 
 struct ADIS_packet {
     char                 ID[4];
-    uint8_t              timestamp[16];
+    uint8_t              timestamp[6];
     uint16_t             data_length;
     ADIS16405_burst_data data;
 } __attribute__((packed));
@@ -25,7 +25,7 @@ typedef struct ADIS_packet ADIS_packet;
 
 struct MPU_packet {
     char                ID[4];
-    uint8_t             timestamp[16];
+    uint8_t             timestamp[6];
     uint16_t            data_length;
     MPU9150_read_data   data;
 }  __attribute__((packed)) ;
@@ -33,7 +33,7 @@ typedef struct MPU_packet MPU_packet;
 
 struct MPL_packet {
     char                ID[4];
-    uint8_t             timestamp[16];
+    uint8_t             timestamp[6];
     uint16_t            data_length;
     MPL3115A2_read_data data;
 }  __attribute__((packed)) ;
