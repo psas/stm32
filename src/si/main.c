@@ -375,11 +375,11 @@ static msg_t Thread_adis_dio1(void *arg) {
 	}
 	return -1;
 }
-
 static WORKING_AREA(waThread_mpl_int_1, 256);
 /*! \brief MPL INT1 thread
  *
  */
+
 static msg_t Thread_mpl_int_1(void *arg) {
     (void)arg;
     static const evhandler_t evhndl_mplint[] = {
@@ -398,6 +398,7 @@ static msg_t Thread_mpl_int_1(void *arg) {
     }
     return -1;
 }
+
 
 static WORKING_AREA(waThread_indwatchdog, 64);
 /*! \brief  Watchdog thread
@@ -519,7 +520,7 @@ int main(void) {
 	adis_reset();
 
 	mpu9150_start(&I2CD2);
-    mpl3115a2_start(&I2CD2);
+   mpl3115a2_start(&I2CD2);
 
 	i2cStart(mpu9150_driver.i2c_instance, &mpu9150_config);
 
@@ -551,7 +552,7 @@ int main(void) {
 	/* i2c MPU9150 */
 	chThdCreateStatic(waThread_mpu9150_int,         sizeof(waThread_mpu9150_int)        , NORMALPRIO    , Thread_mpu9150_int,        NULL);
 	chThdCreateStatic(waThread_mpu9150_reset_req,   sizeof(waThread_mpu9150_reset_req)  , NORMALPRIO    , Thread_mpu9150_reset_req,  NULL);
-    chThdCreateStatic(waThread_mpl_int_1,           sizeof(waThread_mpl_int_1)          , NORMALPRIO    , Thread_mpl_int_1,          NULL);
+   chThdCreateStatic(waThread_mpl_int_1,           sizeof(waThread_mpl_int_1)          , NORMALPRIO    , Thread_mpl_int_1,          NULL);
 
 	/* SPI ADIS */
 	chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
