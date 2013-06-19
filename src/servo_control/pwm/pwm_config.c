@@ -1,7 +1,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "pwm_lld.h"
-
+#include "pwm_config.h"
 
 /*
 JS DS8717 Servo
