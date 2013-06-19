@@ -62,6 +62,7 @@ endif
 
 # Define project name here
 PROJECT = ch
+
 # Imported source files and paths
 PSAS= ../config
 include $(PSAS)/psas.mk
@@ -72,6 +73,9 @@ include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
 include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
+
+
+
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
 #LDSCRIPT= $(PORTLD)/STM32F407xG_CCM.ld
@@ -93,7 +97,7 @@ CSRC = $(PORTSRC) \
 		 ./pwm/pwm_config.c \
        cmddetail.c \
        extdetail.c \
-       usbdetail.c \
+       $(PSAS_COMMON)/usbdetail.c \
 	main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -128,7 +132,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(CHIBIOS)/os/various  $(LWINC)\
          $(PSAS_COMMON) \
          $(PSAS_DEV_SRC)/include \
-				./data_udp ./pwm
+		 ./data_udp \
+         ./pwm
 
 #
 # Project, sources and paths

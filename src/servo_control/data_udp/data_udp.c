@@ -85,13 +85,13 @@ msg_t data_udp_send_thread(void *p) {
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
-  BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+  BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
 
   struct netbuf   *inbuf;
   /*char            *buf;*/
-  struct pbuf *buf;
+  //struct pbuf *buf;
   char cmdbuf[64];
-  uint16_t        buflen = 0;
+//  uint16_t        buflen = 0;
   uint16_t        i      = 0;
   err_t           err;
   /*fill buffer with nulls*/
