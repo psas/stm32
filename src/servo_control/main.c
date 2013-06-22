@@ -22,6 +22,9 @@
 #include "pwm.h"
 #include "pwm_config.h"
 
+#include "device_net.h"
+#include "fc_net.h"
+
 #include "main.h"
 
 
@@ -145,30 +148,28 @@ int main(void) {
     pwm_start();
 
     /*configure ethernet, ip stuff*/
-    static       uint8_t      macAddress[6]    =     {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
-    struct ip_addr ip, gateway, netmask;
-    IP4_ADDR(&ip,      10, 0, 0, 2);
-    IP4_ADDR(&gateway, 10, 0, 0, 254);
-    IP4_ADDR(&netmask, 255, 255, 255, 0);
+
+    static       uint8_t      ROLL_CTL_macAddress[6]         = ROLL_CTL_MAC_ADDRESS;
+    struct       ip_addr      ip, gateway, netmask;
+    ROLL_CTL_IP_ADDR(&ip);
+    ROLL_CTL_GATEWAY(&gateway);
+    ROLL_CTL_NETMASK(&netmask);
+
+    ip_opts.macaddress = ROLL_CTL_macAddress;
     ip_opts.address    = ip.addr;
     ip_opts.netmask    = netmask.addr;
     ip_opts.gateway    = gateway.addr;
-    ip_opts.macaddress = macAddress;
+
+    chThdCreateStatic(wa_lwip_thread              , sizeof(wa_lwip_thread)              , NORMALPRIO + 2, lwip_thread            , &ip_opts);
+    //chThdCreateStatic(wa_data_udp_send_thread     , sizeof(wa_data_udp_send_thread)     , NORMALPRIO    , data_udp_send_thread   , NULL);
+    chThdCreateStatic(wa_data_udp_receive_thread  , sizeof(wa_data_udp_receive_thread)  , NORMALPRIO    , data_udp_receive_thread, NULL);
 
     /*create watchdog thread*/
     chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 
-    /*create lwip thread*/
-    //chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2, lwip_thread, &ip_opts);
-
     /*create pwmtest thread*/
     chThdCreateStatic(waThread_pwmtest, sizeof(waThread_pwmtest), NORMALPRIO, Thread_pwmtest, NULL);
 
-        /*create udp send thread */
-    /*chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO, data_udp_send_thread, NULL);*/
-
-    /*create udp receive thread*/
-   // chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO, data_udp_receive_thread, NULL);
     chEvtRegister(&extdetail_wkup_event, &el0, 0);
 
     while (TRUE) {

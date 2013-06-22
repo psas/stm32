@@ -47,6 +47,8 @@
 #include "usbdetail.h"
 #include "data_udp.h"
 #include "pwm_config.h"
+#include "device_net.h"
+
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
@@ -87,81 +89,114 @@ msg_t data_udp_send_thread(void *p) {
 static void data_udp_rx_serve(struct netconn *conn) {
   BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
 
-  struct netbuf   *inbuf;
-  /*char            *buf;*/
-  //struct pbuf *buf;
-  char cmdbuf[64];
-//  uint16_t        buflen = 0;
-  uint16_t        i      = 0;
-  err_t           err;
+  struct netbuf        *inbuf;
+  char                 *buf;
+
+  uint16_t             buflen = 0;
+  char cmdbuf[DATA_UDP_CMDBUF_SIZE];
+
+  //uint16_t        i      = 0;
+  err_t           err    = 0;
+
   /*fill buffer with nulls*/
-  for (i = 0; i < 64; i ++) {
-    cmdbuf[i] = 0;
-  }
+  memset(cmdbuf, 0, DATA_UDP_CMDBUF_SIZE);
+
   /* Read the data from the port, blocking if nothing yet there.
    We assume the request (the part we care about) is in one netbuf */
   chprintf(chp, ".w.\r\n");
   err = netconn_recv(conn, &inbuf);
-  chprintf(chp, ".+.\r\n");
-  if (err == ERR_OK) {
-    /*netbuf_data(inbuf, (void **)&buf, &buflen);*/
-	 /*int bytesCopied = netbuf_copy(inbuf, (void **)&buf, &buflen); */
-	int bytesCopied = netbuf_copy(inbuf, cmdbuf, 64);
-   chprintf(chp, "\r\ndata_udp_rx: %s", cmdbuf);
-	chprintf(chp, "\r\n");
-	chprintf(chp, "copied %d bytes\n", bytesCopied);
-	if (strncmp("GETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
-		char respBuf[64];
-		unsigned int pulseWidth = pwm_getPulseWidth();
-		sprintf(respBuf, "PULSE WIDTH %d", pulseWidth);
-		sendResponsePacket(respBuf);
-	} else if (strncmp("SETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
-		pwm_set_pulse_width_ticks(20000);
-	} else {
-		sendResponsePacket("CMDUNDEF");
-	};
 
-  }
-  /*fill buffer with nulls*/
-  for (i = 0; i < 64; i ++) {
-    cmdbuf[i] = 0;
+  if (err == ERR_OK) {
+    netbuf_data(inbuf, (void **)&buf, &buflen);
+
+    chprintf(chp, "buffer: %s\r\n", buf);
+
+//	if (strncmp("GETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
+//		char respBuf[64];
+//		unsigned int pulseWidth = pwm_getPulseWidth();
+//		sprintf(respBuf, "PULSE WIDTH %d", pulseWidth);
+//		sendResponsePacket(respBuf);
+//	} else if (strncmp("SETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
+//		pwm_set_pulse_width_ticks(20000);
+//	} else {
+//		sendResponsePacket("CMDUNDEF");
+//	};
+
   }
   netconn_close(conn);
 
-
+  /* Delete the buffer (netconn_recv gives us ownership,
+   * so we have to make sure to deallocate the buffer)
+   */
+  netbuf_delete(inbuf);
 }
 
-/*!
- * Stack area for the data_udp_receive_thread.
- */
-WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
-
-/*!
- * data_udp_rx  thread.
- */
+WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
 msg_t data_udp_receive_thread(void *p) {
-  void * arg __attribute__ ((unused)) = p;
+    void * arg __attribute__ ((unused)) = p;
 
-  struct netconn *conn;
+    err_t             err;
 
-  chRegSetThreadName("data_udp_receive_thread");
+    struct netconn    *conn;
 
-  chThdSleepSeconds(2);
+    ip_addr_t         ip_addr_rc;
 
-//  IP4_ADDR(&ip_addr_fc, 192,168,0,91);
-  IP4_ADDR(&ip_addr_fc, 10,0,0,2);
-  /* Create a new UDP connection handle */
-  conn = netconn_new(NETCONN_UDP);
-  LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
+    chRegSetThreadName("data_rc_udp_rx_thread");
 
-  netconn_bind(conn, &ip_addr_fc, DATA_UDP_RX_THREAD_PORT);
+    ROLL_CTL_IP_ADDR(&ip_addr_rc);
 
-  while(1) {
-    //netconn_connect(conn,  &ip_addr_fc, DATA_UDP_RX_THREAD_PORT );
-    data_udp_rx_serve(conn);
-  }
-  return RDY_OK;
+    /*
+     *  Create a new UDP connection handle
+     */
+    conn = netconn_new(NETCONN_UDP);
+    LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
+
+    /*
+     * Bind sensor address to a udp port
+     */
+    err = netconn_bind(conn, &ip_addr_rc, ROLL_CTL_LISTEN_PORT);
+
+    if (err == ERR_OK) {
+        while(1) {
+            data_udp_rx_serve(conn);
+        }
+        return RDY_OK;
+    } else {
+        return RDY_RESET;
+    }
 }
+//
+///*!
+// * Stack area for the data_udp_receive_thread.
+// */
+//WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
+//
+///*!
+// * data_udp_rx  thread.
+// */
+//msg_t data_udp_receive_thread(void *p) {
+//  void * arg __attribute__ ((unused)) = p;
+//
+//  struct netconn *conn;
+//
+//  chRegSetThreadName("data_udp_receive_thread");
+//
+//  chThdSleepSeconds(2);
+//
+////  IP4_ADDR(&ip_addr_fc, 192,168,0,91);
+//  IP4_ADDR(&ip_addr_fc, 10,0,0,2);
+//  /* Create a new UDP connection handle */
+//  conn = netconn_new(NETCONN_UDP);
+//  LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
+//
+//  netconn_bind(conn, &ip_addr_fc, DATA_UDP_RX_THREAD_PORT);
+//
+//  while(1) {
+//    //netconn_connect(conn,  &ip_addr_fc, DATA_UDP_RX_THREAD_PORT );
+//    data_udp_rx_serve(conn);
+//  }
+//  return RDY_OK;
+//}
 
 void sendResponsePacket( char  payload[]) {
    struct     netconn    *conn;
