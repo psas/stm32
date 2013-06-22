@@ -37,8 +37,41 @@ static const ShellConfig shell_cfg1 = {
         commands
 };
 
+static WORKING_AREA(waThread_pwmtest, 512);
+static msg_t Thread_pwmtest(void *arg) {
+    (void)arg;
+    chRegSetThreadName("pwmtest");
+
+    //    uint32_t i = 0;
+    // BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+    //
+    chThdSleepMilliseconds(2000);
+    while(1) {
+        pwmcnt_t pulse = 0;
+
+   //     chprintf(chp, ".");
+//        pwm_set_pulse_width_ticks(pwm_us_to_ticks(333));
+//        chThdSleepMilliseconds(200);
+//
+//        pwm_set_pulse_width_ticks(pwm_us_to_ticks(1050));
+//        chThdSleepMilliseconds(200);
+//
+//        pwm_set_pulse_width_ticks(pwm_us_to_ticks(1900));
+//        chThdSleepMilliseconds(200);
+//
+//        pwmDisableChannel(&PWMD4, 3);
+        chThdSleepMilliseconds(250);
+        for (pulse = 333; pulse <= 1900; pulse += 50) {
+            pwm_set_pulse_width_ticks(pwm_us_to_ticks(pulse));
+            chThdSleepMilliseconds(50);
+        }
+    }
+    return -1;
+}
+
+
 /*blinker thread vars and functions*/
-static WORKING_AREA(waThread_blinker, 64);
+static WORKING_AREA(waThread_blinker, 128);
 static msg_t Thread_blinker(void *arg) {
     (void)arg;
     chRegSetThreadName("blinker");
@@ -50,7 +83,7 @@ static msg_t Thread_blinker(void *arg) {
 }
 
 /*watchdog timer thread vars and functions*/
-static WORKING_AREA(waThread_indwatchdog, 64);
+static WORKING_AREA(waThread_indwatchdog, 128);
 static msg_t Thread_indwatchdog(void *arg) {
     (void)arg;
 
@@ -109,7 +142,7 @@ int main(void) {
     chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
 
     /*start pwm*/
-    pwmBegin();
+    pwm_start();
 
     /*configure ethernet, ip stuff*/
     static       uint8_t      macAddress[6]    =     {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
@@ -126,14 +159,18 @@ int main(void) {
     chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 
     /*create lwip thread*/
-    chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2, lwip_thread, &ip_opts);
+    //chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2, lwip_thread, &ip_opts);
 
-    /*create udp send thread */
+    /*create pwmtest thread*/
+    chThdCreateStatic(waThread_pwmtest, sizeof(waThread_pwmtest), NORMALPRIO, Thread_pwmtest, NULL);
+
+        /*create udp send thread */
     /*chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO, data_udp_send_thread, NULL);*/
 
     /*create udp receive thread*/
-    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO, data_udp_receive_thread, NULL);
+   // chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO, data_udp_receive_thread, NULL);
     chEvtRegister(&extdetail_wkup_event, &el0, 0);
+
     while (TRUE) {
         if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
             shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
@@ -143,14 +180,5 @@ int main(void) {
         }
         /*this is needed for the usb over serial to work */
         chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
-        int pulse;
-        for (pulse = 1050; pulse <= 1900; pulse += 50) {
-            setPulseWidth(US2RTT(pulse));
-            chThdSleepMilliseconds(50);
-        }
-        for (pulse = 1900; pulse >= 1050; pulse -= 50) {
-            setPulseWidth(US2RTT(pulse));
-            chThdSleepMilliseconds(50);
-        }
     }
 }
