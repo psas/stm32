@@ -15,37 +15,16 @@
  * @{
  */
 
-struct ADIS_packet {
-    char                 ID[4];
-    uint8_t              timestamp[6];
-    uint16_t             data_length;
-    ADIS16405_burst_data data;
-} __attribute__((packed));
-typedef struct ADIS_packet ADIS_packet;
+struct RC_OUTPUT_STRUCT_TYPE {
+    // Servo ON-Time in milliseconds x 2^14
+    // Example: 1.5 msec = 1.5 x 2^14 = 24576
+    uint16_t u16ServoPulseWidthBin14;
 
-struct MPU_packet {
-    char                ID[4];
-    uint8_t             timestamp[6];
-    uint16_t            data_length;
-    MPU9150_read_data   data;
-}  __attribute__((packed)) ;
-typedef struct MPU_packet MPU_packet;
+    // Disable servo (turn off PWM) when this flag is not 0
+    uint8_t u8ServoDisableFlag;
+} __attribute__((packed)) ;
 
-struct MPL_packet {
-    char                ID[4];
-    uint8_t             timestamp[6];
-    uint16_t            data_length;
-    MPL3115A2_read_data data;
-}  __attribute__((packed)) ;
-typedef struct MPL_packet MPL_packet;
-
-struct PWM_packet_r {
-    char                ID[4];
-    uint8_t             timestamp[6];
-    uint16_t            data_length;      
-    uint16_t            duty_cycle;
-} __attribute_((packed)); 
-typedef struct PWM_packet_r;
+typedef struct RC_OUTPUT_STRUCT_TYPE RC_OUTPUT_STRUCT_TYPE;
 
 #endif
 //! @}

@@ -15,4 +15,7 @@
 #define         FC_LISTEN_PORT_IMU_A    36000
 #define         FC_TX_PORT_IMU_A        36020
 
+#define         FC_LISTEN_PORT_ROLL_CTL 36002
+#define         FC_TX_PORT_ROLL_CTL     36020
+
 #endif

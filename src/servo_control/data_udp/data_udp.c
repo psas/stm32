@@ -1,8 +1,6 @@
 /*!
  * \file data_udp.c
- */
 
-/*
     ChibiOS/RT - Copyright (C) 2006,2007,2008,2009,2010,
                  2011,2012 Giovanni Di Sirio.
 
@@ -20,21 +18,21 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ */
 
 /*
  * This file is a modified version of the lwIP web server demo. The original
  * author is unknown because the file didn't contain any license information.
  */
 
-/*!
- * \brief Experiment with sending sensor data over UDP connection.
- * \defgroup dataudp Data UDP PSAS Experiment
+/*! \brief Sensor datapath node.
+ * \defgroup dataudp Data Sensor UDP PSAS Experiment
  * @{
  */
 
 #include <stdio.h>
 #include <string.h>
+
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
@@ -45,177 +43,148 @@
 #include "lwip/ip_addr.h"
 
 #include "usbdetail.h"
-#include "data_udp.h"
-#include "pwm_config.h"
+#include "fc_net.h"
 #include "device_net.h"
+#include "data_udp.h"
 
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
-
-ip_addr_t ip_addr_fc;
 
 WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 
 msg_t data_udp_send_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
+
+	err_t                 err;
 	uint8_t               count = 0;
+
 	struct     netconn    *conn;
-	char                   msg[DATA_UDP_MSG_SIZE] ;
 	struct     netbuf     *buf;
+
 	char*                  data;
+	char                   msg[DATA_UDP_MSG_SIZE] ;
 
-	  chRegSetThreadName("data_udp_send_thread");
+	ip_addr_t              ip_addr_rc;
+	ip_addr_t              ip_addr_fc;
 
-//    netconn_connect(tftptxcon,&modsrv_addr,ip_data_out.port);    // Open connection
-//    tftptxcon->pcb.udp->local_port=69;   // Set local (source) port
-//    tftpsrvbuf=netbuf_new();        // Create netbuf
-//      .....
-//
-	conn       = netconn_new( NETCONN_UDP );
-	netconn_bind(conn, NULL, 35000 ); //local port
+	ROLL_CTL_IP_ADDR(&ip_addr_rc);
+	IP_PSAS_FC(&ip_addr_fc);
 
-	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_THREAD_PORT );
-	for( ;; ){
-		buf     =  netbuf_new();
-		data    =  netbuf_alloc(buf, sizeof(msg));
-		sprintf(msg, "PSAS Rockets! %d", count++);
-		memcpy (data, msg, sizeof (msg));
-		netconn_send(conn, buf);
-		netbuf_delete(buf); // De-allocate packet buffer
-	    chThdSleepMilliseconds(500);
+	chRegSetThreadName("data_udp_send_thread");
+
+	conn   = netconn_new( NETCONN_UDP );
+
+	/* Bind to the local address, or to ANY address */
+	//	netconn_bind(conn, NULL, DATA_UDP_TX_THREAD_PORT ); //local port, NULL is bind to ALL ADDRESSES! (IP_ADDR_ANY)
+	err    = netconn_bind(conn, &ip_addr_rc, ROLL_CTL_TX_PORT ); //local port
+
+	if (err == ERR_OK) {
+		/* Connect to specific address or a broadcast address */
+		/*
+		 * \todo Understand why a UDP needs a connect...
+		 *   This may be a LwIP thing that chooses between tcp_/udp_/raw_ connections internally.
+		 *
+		 */
+		//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
+		err = netconn_connect(conn, &ip_addr_fc, FC_LISTEN_PORT_ROLL_CTL );
+		if(err == ERR_OK) {
+			for( ;; ){
+				buf     =  netbuf_new();
+				data    =  netbuf_alloc(buf, sizeof(msg));
+				sprintf(msg, "rc tx: %d", count++);
+				memcpy (data, msg, sizeof (msg));
+				//palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+				netconn_send(conn, buf);
+				//palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+				netbuf_delete(buf); // De-allocate packet buffer
+				chThdSleepMilliseconds(500);
+			}
+			return RDY_OK;
+		} else {
+			return RDY_RESET;
+		}
+	} else {
+		return RDY_RESET;
 	}
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
-  BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
-  struct netbuf        *inbuf;
-  char                 *buf;
+	static uint8_t       count  = 0;
 
-  uint16_t             buflen = 0;
-  char cmdbuf[DATA_UDP_CMDBUF_SIZE];
+	struct netbuf        *inbuf;
 
-  //uint16_t        i      = 0;
-  err_t           err    = 0;
+	char                 *buf;
 
-  /*fill buffer with nulls*/
-  memset(cmdbuf, 0, DATA_UDP_CMDBUF_SIZE);
+	uint16_t             buflen = 0;
+	uint16_t             i      = 0;
 
-  /* Read the data from the port, blocking if nothing yet there.
-   We assume the request (the part we care about) is in one netbuf */
-  chprintf(chp, ".w.\r\n");
-  err = netconn_recv(conn, &inbuf);
+	err_t                err;
 
-  if (err == ERR_OK) {
-    netbuf_data(inbuf, (void **)&buf, &buflen);
+	/*
+	 * Read the data from the port, blocking if nothing yet there.
+	 * We assume the request (the part we care about) is in one netbuf
+	 */
+	err = netconn_recv(conn, &inbuf);
+	if (err == ERR_OK) {
+		netbuf_data(inbuf, (void **)&buf, &buflen);
+		//palClearPad(TIMEINPUT_PORT, TIMEINPUT_PIN);     // negative pulse for input.
+		chprintf(chp, "\r\nrc rx (from FC): %d ", count++);
+		//palSetPad(TIMEINPUT_PORT, TIMEINPUT_PIN);
+		for(i=0; i<buflen; ++i) {
+			chprintf(chp, "%c", buf[i]);
+		}
+		chprintf(chp, "\r\n");
+	}
+	netconn_close(conn);
 
-    chprintf(chp, "buffer: %s\r\n", buf);
-
-//	if (strncmp("GETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
-//		char respBuf[64];
-//		unsigned int pulseWidth = pwm_getPulseWidth();
-//		sprintf(respBuf, "PULSE WIDTH %d", pulseWidth);
-//		sendResponsePacket(respBuf);
-//	} else if (strncmp("SETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
-//		pwm_set_pulse_width_ticks(20000);
-//	} else {
-//		sendResponsePacket("CMDUNDEF");
-//	};
-
-  }
-  netconn_close(conn);
-
-  /* Delete the buffer (netconn_recv gives us ownership,
-   * so we have to make sure to deallocate the buffer)
-   */
-  netbuf_delete(inbuf);
+	/* Delete the buffer (netconn_recv gives us ownership,
+	 * so we have to make sure to deallocate the buffer)
+	 */
+	netbuf_delete(inbuf);
 }
 
-WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
+/*!
+ * Stack area for the data_udp_receive_thread.
+ */
+WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
+
+/*!
+ * data_udp_rx  thread.
+ */
 msg_t data_udp_receive_thread(void *p) {
-    void * arg __attribute__ ((unused)) = p;
+	void * arg __attribute__ ((unused)) = p;
 
-    err_t             err;
+	err_t             err;
 
-    struct netconn    *conn;
+	struct netconn    *conn;
 
-    ip_addr_t         ip_addr_rc;
+	ip_addr_t         ip_addr_rc;
 
-    chRegSetThreadName("data_rc_udp_rx_thread");
+	chRegSetThreadName("data_udp_receive_thread");
 
-    ROLL_CTL_IP_ADDR(&ip_addr_rc);
+	ROLL_CTL_IP_ADDR(&ip_addr_rc);
 
-    /*
-     *  Create a new UDP connection handle
-     */
-    conn = netconn_new(NETCONN_UDP);
-    LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
+	/*
+	 *  Create a new UDP connection handle
+	 */
+	conn = netconn_new(NETCONN_UDP);
+	LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
 
-    /*
-     * Bind sensor address to a udp port
-     */
-    err = netconn_bind(conn, &ip_addr_rc, ROLL_CTL_LISTEN_PORT);
+	/*
+	 * Bind sensor address to a udp port
+	 */
+	err = netconn_bind(conn, &ip_addr_rc, ROLL_CTL_LISTEN_PORT);
 
-    if (err == ERR_OK) {
-        while(1) {
-            data_udp_rx_serve(conn);
-        }
-        return RDY_OK;
-    } else {
-        return RDY_RESET;
-    }
-}
-//
-///*!
-// * Stack area for the data_udp_receive_thread.
-// */
-//WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
-//
-///*!
-// * data_udp_rx  thread.
-// */
-//msg_t data_udp_receive_thread(void *p) {
-//  void * arg __attribute__ ((unused)) = p;
-//
-//  struct netconn *conn;
-//
-//  chRegSetThreadName("data_udp_receive_thread");
-//
-//  chThdSleepSeconds(2);
-//
-////  IP4_ADDR(&ip_addr_fc, 192,168,0,91);
-//  IP4_ADDR(&ip_addr_fc, 10,0,0,2);
-//  /* Create a new UDP connection handle */
-//  conn = netconn_new(NETCONN_UDP);
-//  LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
-//
-//  netconn_bind(conn, &ip_addr_fc, DATA_UDP_RX_THREAD_PORT);
-//
-//  while(1) {
-//    //netconn_connect(conn,  &ip_addr_fc, DATA_UDP_RX_THREAD_PORT );
-//    data_udp_rx_serve(conn);
-//  }
-//  return RDY_OK;
-//}
-
-void sendResponsePacket( char  payload[]) {
-   struct     netconn    *conn;
-   char                   msg[DATA_UDP_MSG_SIZE] ;
-   struct     netbuf     *buf;
-   char*                  data;
-	struct ip_addr addr;
-	addr.addr = PSAS_UDP_TARGET;
-   conn       = netconn_new( NETCONN_UDP );
-   netconn_bind(conn, NULL, 35001 ); //local port
-
-   netconn_connect(conn, &addr , DATA_UDP_REPLY_PORT );
-   buf     =  netbuf_new();
-   data    =  netbuf_alloc(buf, sizeof(msg));
-   sprintf(msg, "%s", payload);
-   memcpy (data, msg, sizeof (msg));
-   netconn_send(conn, buf);
-   netbuf_delete(buf); // De-allocate packet buffer
-	netconn_disconnect(conn);
+	if (err == ERR_OK) {
+		while(1) {
+			data_udp_rx_serve(conn);
+		}
+		return RDY_OK;
+	} else {
+		return RDY_RESET;
+	}
 }
 
 #endif

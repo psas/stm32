@@ -33,34 +33,20 @@
 
 #include "lwip/ip_addr.h"
 
-#define DATA_UDP_SEND_THREAD_STACK_SIZE     1024
-#define DATA_UDP_RECEIVE_THREAD_STACK_SIZE  1024
 
-#define DATA_UDP_THREAD_PORT                 35000
-#define DATA_UDP_RX_THREAD_PORT              35003
-#define DATA_UDP_REPLY_PORT						40000
+#define DATA_UDP_SEND_THREAD_STACK_SIZE      512
+#define DATA_UDP_RECEIVE_THREAD_STACK_SIZE   512
 
 #define DATA_UDP_RX_THD_PRIORITY             (LOWPRIO)
 #define DATA_UDP_THREAD_PRIORITY             (LOWPRIO + 2)
 
-#define DATA_UDP_CMDBUF_SIZE                 64
-
 #define PSAS_IP_BROADCAST                    ((uint32_t)0xffffffffUL)
 
-	// htonl = Host TO Network Long, converts a long from host byte order to network byte order
-	// ntohl = Network TO Host Long, you get the idea.
-
-
-//#define PSAS_IP_HOST                         (htonl(0xC0A8011E))     // 192.168.1.30	is 0xC0A8011E
-#define PSAS_IP_HOST                        (htonl(0xC0A8005B))     //  192.168.0.91  is 0xC0A8005B
-#define PSAS_UDP_TARGET								(htonl(0xA000001))		//10.0.0.1
 #define DATA_UDP_MSG_SIZE                    50
-
-extern     ip_addr_t         ip_addr_fc;
 
 extern WORKING_AREA(wa_data_udp_send_thread,    DATA_UDP_SEND_THREAD_STACK_SIZE);
 extern WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
-void sendResponsePacket( char * payload);
+
 #ifdef __cplusplus
 extern "C" {
 #endif

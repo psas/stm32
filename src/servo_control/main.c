@@ -161,14 +161,14 @@ int main(void) {
     ip_opts.gateway    = gateway.addr;
 
     chThdCreateStatic(wa_lwip_thread              , sizeof(wa_lwip_thread)              , NORMALPRIO + 2, lwip_thread            , &ip_opts);
-    //chThdCreateStatic(wa_data_udp_send_thread     , sizeof(wa_data_udp_send_thread)     , NORMALPRIO    , data_udp_send_thread   , NULL);
+    chThdCreateStatic(wa_data_udp_send_thread     , sizeof(wa_data_udp_send_thread)     , NORMALPRIO    , data_udp_send_thread   , NULL);
     chThdCreateStatic(wa_data_udp_receive_thread  , sizeof(wa_data_udp_receive_thread)  , NORMALPRIO    , data_udp_receive_thread, NULL);
 
     /*create watchdog thread*/
     chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 
     /*create pwmtest thread*/
-    chThdCreateStatic(waThread_pwmtest, sizeof(waThread_pwmtest), NORMALPRIO, Thread_pwmtest, NULL);
+    //chThdCreateStatic(waThread_pwmtest, sizeof(waThread_pwmtest), NORMALPRIO, Thread_pwmtest, NULL);
 
     chEvtRegister(&extdetail_wkup_event, &el0, 0);
 

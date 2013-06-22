@@ -6,6 +6,10 @@
  *   One PWM clock is one 'tick'
  */
 
+/*!
+ * \defgroup pwm_config PWM Config for Roll Control Module
+ * @{
+ */
 #include <stdlib.h>
 #include <stdint.h>
 #include "ch.h"
@@ -93,3 +97,5 @@ pwmcnt_t pwm_us_to_ticks(uint32_t us) {
 
     return tickval;
 }
+
+//! @}
