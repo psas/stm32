@@ -46,6 +46,9 @@
 #include "fc_net.h"
 #include "device_net.h"
 #include "data_udp.h"
+#include "pwm_config.h"
+#include "psas_packet.h"
+#include "math.h"
 
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
@@ -110,15 +113,12 @@ msg_t data_udp_send_thread(void *p) {
 
 static void data_udp_rx_serve(struct netconn *conn) {
 	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+	RC_OUTPUT_STRUCT_TYPE  rc_packet;
 
 	static uint8_t       count  = 0;
-
-	struct netbuf        *inbuf;
-
-	char                 *buf;
-
-	uint16_t             buflen = 0;
-	uint16_t             i      = 0;
+	struct netbuf *inbuf;
+	char *buf;
+	u16_t buflen;
 
 	err_t                err;
 
@@ -129,13 +129,19 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	err = netconn_recv(conn, &inbuf);
 	if (err == ERR_OK) {
 		netbuf_data(inbuf, (void **)&buf, &buflen);
-		//palClearPad(TIMEINPUT_PORT, TIMEINPUT_PIN);     // negative pulse for input.
-		chprintf(chp, "\r\nrc rx (from FC): %d ", count++);
-		//palSetPad(TIMEINPUT_PORT, TIMEINPUT_PIN);
-		for(i=0; i<buflen; ++i) {
-			chprintf(chp, "%c", buf[i]);
+		memcpy (&rc_packet, buf, sizeof (RC_OUTPUT_STRUCT_TYPE));
+		if(rc_packet.u8ServoDisableFlag != 1) {
+		    uint16_t width = rc_packet.u16ServoPulseWidthBin14;
+		    double   ms_d  = width/pow(2,14);
+
+		    chprintf(chp, "\r\n%u\r\n", (uint32_t) (ms_d * 1000));
+		    double   us_d  = ms_d * 1000;
+            chprintf(chp, "%u\r\n\r\n", (uint32_t) (us_d * 1000));
+//	        chprintf(chp, "\r\n%d: %d %d %d ", count++, width, (uint32_t)us_d, pwm_us_to_ticks(us_d));
+
+		    pwm_set_pulse_width_ticks(pwm_us_to_ticks(us_d));
 		}
-		chprintf(chp, "\r\n");
+
 	}
 	netconn_close(conn);
 

@@ -1,4 +1,8 @@
-/* experimental control of pwm vars over udp */
+/*! \file main.c
+ *
+ *  PWM controlled from FC
+ *
+ */
 
 #include <stdio.h>
 #include <string.h>
@@ -27,8 +31,8 @@
 
 #include "main.h"
 
+#define DEBUG_PWM 0
 
-/*shell commands*/
 static const ShellCommand commands[] = {
         {"mem", cmd_mem},
         {"threads", cmd_threads},
@@ -40,6 +44,8 @@ static const ShellConfig shell_cfg1 = {
         commands
 };
 
+
+#if DEBUG_PWM
 static WORKING_AREA(waThread_pwmtest, 512);
 static msg_t Thread_pwmtest(void *arg) {
     (void)arg;
@@ -52,17 +58,17 @@ static msg_t Thread_pwmtest(void *arg) {
     while(1) {
         pwmcnt_t pulse = 0;
 
-   //     chprintf(chp, ".");
-//        pwm_set_pulse_width_ticks(pwm_us_to_ticks(333));
-//        chThdSleepMilliseconds(200);
-//
-//        pwm_set_pulse_width_ticks(pwm_us_to_ticks(1050));
-//        chThdSleepMilliseconds(200);
-//
-//        pwm_set_pulse_width_ticks(pwm_us_to_ticks(1900));
-//        chThdSleepMilliseconds(200);
-//
-//        pwmDisableChannel(&PWMD4, 3);
+        //     chprintf(chp, ".");
+        //        pwm_set_pulse_width_ticks(pwm_us_to_ticks(333));
+        //        chThdSleepMilliseconds(200);
+        //
+        //        pwm_set_pulse_width_ticks(pwm_us_to_ticks(1050));
+        //        chThdSleepMilliseconds(200);
+        //
+        //        pwm_set_pulse_width_ticks(pwm_us_to_ticks(1900));
+        //        chThdSleepMilliseconds(200);
+        //
+        //        pwmDisableChannel(&PWMD4, 3);
         chThdSleepMilliseconds(250);
         for (pulse = 333; pulse <= 1900; pulse += 50) {
             pwm_set_pulse_width_ticks(pwm_us_to_ticks(pulse));
@@ -71,7 +77,7 @@ static msg_t Thread_pwmtest(void *arg) {
     }
     return -1;
 }
-
+#endif
 
 /*blinker thread vars and functions*/
 static WORKING_AREA(waThread_blinker, 128);
@@ -100,54 +106,42 @@ static msg_t Thread_indwatchdog(void *arg) {
 
 int main(void) {
     static Thread            *shelltp       = NULL;
-    /*this is needed in order for the usb over serial to work*/
+
     static const evhandler_t evhndl_main[]       = {
             extdetail_WKUP_button_handler
     };
     struct EventListener     el0;
-    /*lwip options data structure*/
+
     struct lwipthread_opts   ip_opts;
 
-    /*initialize HAL*/
+    /* initialize HAL */
     halInit();
     chSysInit();
 
-    /*need to become familiar with this still*/
     extdetail_init();
     palSetPad(GPIOC, GPIOC_LED);
 
-    /*initialize serial over usb driver*/
     sduObjectInit(&SDU_PSAS);
     sduStart(&SDU_PSAS, &serusbcfg);
 
-    /*activate usb driver*/
     usbDisconnectBus(serusbcfg.usbp);
     chThdSleepMilliseconds(1000);
     usbStart(serusbcfg.usbp, &usbcfg);
     usbConnectBus(serusbcfg.usbp);
 
-    /*start shell*/
     shellInit();
 
-    /*start watchdog*/
     iwdg_begin();
 
-    /*start serial driver 6 and sdc driver 1 using default config*/
     sdStart(&SD6, NULL);
 
-    /*sleep 300 ms*/
     chThdSleepMilliseconds(300);
 
-    /*start ext1 driver*/
     extStart(&EXTD1, &extcfg);
 
-    /*create blinker thread*/
     chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
 
-    /*start pwm*/
     pwm_start();
-
-    /*configure ethernet, ip stuff*/
 
     static       uint8_t      ROLL_CTL_macAddress[6]         = ROLL_CTL_MAC_ADDRESS;
     struct       ip_addr      ip, gateway, netmask;
@@ -164,11 +158,11 @@ int main(void) {
     chThdCreateStatic(wa_data_udp_send_thread     , sizeof(wa_data_udp_send_thread)     , NORMALPRIO    , data_udp_send_thread   , NULL);
     chThdCreateStatic(wa_data_udp_receive_thread  , sizeof(wa_data_udp_receive_thread)  , NORMALPRIO    , data_udp_receive_thread, NULL);
 
-    /*create watchdog thread*/
-    chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
+    chThdCreateStatic(waThread_indwatchdog        , sizeof(waThread_indwatchdog)        , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
-    /*create pwmtest thread*/
-    //chThdCreateStatic(waThread_pwmtest, sizeof(waThread_pwmtest), NORMALPRIO, Thread_pwmtest, NULL);
+#if DEBUG_PWM
+    chThdCreateStatic(waThread_pwmtest, sizeof(waThread_pwmtest), NORMALPRIO, Thread_pwmtest, NULL);
+#endif
 
     chEvtRegister(&extdetail_wkup_event, &el0, 0);
 
@@ -179,7 +173,6 @@ int main(void) {
             chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
             shelltp = NULL;           /* Triggers spawning of a new shell.        */
         }
-        /*this is needed for the usb over serial to work */
         chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
     }
 }

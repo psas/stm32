@@ -5,14 +5,14 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
-/*! \mainpage adis ADIS IMU over Ethernet UDP experiments
+/*! \mainpage PWM Control PWM from FC for Roll control module
 *
 *
 * \section intro Introduction
 *
-* Further developing the experiment started with adis, this code
-* adds processing to package and deliver a UDP packet of ADIS output
-* to a host computer running a Linux based OS.h
+* The Roll Control Module is responsible for activating a PWM servo. Commands
+* sent from the FC over ethernet set the pulsewidth. An interrupt state determines
+* launch detect.
 *
 * \section filestructure File Tree
 *

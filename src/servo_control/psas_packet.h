@@ -6,14 +6,20 @@
 #ifndef _PSAS_PACKET_H
 #define _PSAS_PACKET_H
 
-#include "MPU9150.h"
-#include "ADIS16405.h"
-#include "MPL3115A2.h"
+#include <stdint.h>
+
 
 /*!
  * \addtogroup psaspacket
  * @{
  */
+
+/*! \warning The structure from the RC module on the Flight computer
+ * is not packed. Current plans are to pass a byte array from the FC
+ * to the RC board. This structure is here for use and reference locally
+ * but do not memcpy the network data into it, it may not work.
+ */
+
 
 struct RC_OUTPUT_STRUCT_TYPE {
     // Servo ON-Time in milliseconds x 2^14
@@ -22,8 +28,7 @@ struct RC_OUTPUT_STRUCT_TYPE {
 
     // Disable servo (turn off PWM) when this flag is not 0
     uint8_t u8ServoDisableFlag;
-} __attribute__((packed)) ;
-
+} __attribute__((packed));
 typedef struct RC_OUTPUT_STRUCT_TYPE RC_OUTPUT_STRUCT_TYPE;
 
 #endif
