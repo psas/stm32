@@ -8,6 +8,9 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <assert.h>
+
+#include <math.h>
+
 #define BOARD_IP "10.0.0.2"
 #define PORT 35003
 #define BUFLEN 64
@@ -30,33 +33,54 @@ struct PWM_packet {
 } __attribute__((packed)) ;
 typedef struct PWM_packet PWM_packet;
 
+/*! \brief Convert ms value to uint16 shifted by 2^14 */
+static uint16_t ms_to_pkt(double ms) {
+    double   shifted = ms * pow(2, 14);
+    uint16_t retval  = (uint16_t) shifted;
+
+    return retval;
+}
+
+
 int main(void) {
-	PWM_packet test_packet;
-	const char	myid[(sizeof("PWDC")-1)] = "PWDC";
-	const char	mytime[(sizeof("000000")-1)] = "000000";
-	strncpy(test_packet.ID, myid, sizeof(myid));
-	strncpy(test_packet.timestamp, mytime, sizeof(mytime));
-	struct sockaddr_in si_other;
-	char buf[sizeof(PWM_packet) - 1];
-	int s, i, slen=sizeof(si_other);
-	int j;
-	s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    struct timespec         sleeptime;
+
+    double                  msecs     = 0.0;
+
+    struct sockaddr_in      si_other;
+
+    char                    buf[sizeof(PWM_packet) - 1];
+    int                     s, i, j;
+    int                     slen      = sizeof(si_other);
+
+	RC_OUTPUT_STRUCT_TYPE rc_packet;
+
+	msecs                             = 1.5 * pow(2, 14);
+	rc_packet.u16ServoPulseWidthBin14 = (uint16_t) msecs;
+	rc_packet.u8ServoDisableFlag      = 0;
+
+	s                   = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	assert(s != -1);
 	memset((char *) &si_other, 0, sizeof(si_other));
 	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(PORT);
+	si_other.sin_port   = htons(PORT);
 	if (inet_aton(BOARD_IP, &si_other.sin_addr)==0) {
 		fprintf(stderr, "inet_aton() failed\n");
 		exit(1);
 	}
+	sleeptime.tv_sec   = 0;
+	sleeptime.tv_nsec  = 50000;  /* 50 uS */
 	for (;;) {
-		int duty;
-		for (duty = 16384; duty < 65535; duty += 16384) {
-			test_packet.duty_cycle = duty;
-			memcpy(&buf,&test_packet,sizeof(PWM_packet));
+		double pulsewidth;
+		for (pulsewidth = 1.000; pulsewidth < 2.000; pulsewidth += 0.050) {
+			rc_packet.u16ServoPulseWidthBin14 = ms_to_pkt(pulsewidth);
+			rc_packet.u8ServoDisableFlag      = 0;
+
+			memcpy(&buf,&rc_packet,sizeof(RC_OUTPUT_STRUCT_TYPE));
 			j = sendto(s,buf,sizeof(PWM_packet),0,(const struct sockaddr *)&si_other, slen);
 			assert(j != -1);
-			sleep(1);
+
+			nanosleep(&sleeptime, NULL);
 		}
 	}
 }
