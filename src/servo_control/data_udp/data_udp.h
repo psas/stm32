@@ -33,9 +33,8 @@
 
 #include "lwip/ip_addr.h"
 
-
-#define DATA_UDP_SEND_THREAD_STACK_SIZE     1024 
-#define DATA_UDP_RECEIVE_THREAD_STACK_SIZE  1024 
+#define DATA_UDP_SEND_THREAD_STACK_SIZE     1024
+#define DATA_UDP_RECEIVE_THREAD_STACK_SIZE  1024
 
 #define DATA_UDP_THREAD_PORT                 35000
 #define DATA_UDP_RX_THREAD_PORT              35003
@@ -43,6 +42,8 @@
 
 #define DATA_UDP_RX_THD_PRIORITY             (LOWPRIO)
 #define DATA_UDP_THREAD_PRIORITY             (LOWPRIO + 2)
+
+#define DATA_UDP_CMDBUF_SIZE                 64
 
 #define PSAS_IP_BROADCAST                    ((uint32_t)0xffffffffUL)
 
