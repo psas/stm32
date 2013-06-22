@@ -2,6 +2,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -11,12 +12,22 @@
 #define PORT 35003
 #define BUFLEN 64
 
+struct RC_OUTPUT_STRUCT_TYPE {
+    // Servo ON-Time in milliseconds x 2^14
+    // Example: 1.5 msec = 1.5 x 2^14 = 24576
+    uint16_t u16ServoPulseWidthBin14;
+
+    // Disable servo (turn off PWM) when this flag is not 0
+    uint8_t u8ServoDisableFlag;
+} __attribute__((packed)) ;
+typedef struct RC_OUTPUT_STRUCT_TYPE RC_OUTPUT_STRUCT_TYPE;
+
 struct PWM_packet {
     char                ID[4];
     uint8_t             timestamp[6];
-    uint16_t            data_length;      
+    uint16_t            data_length;
     uint16_t            duty_cycle;
-} __attribute__((packed)) ; 
+} __attribute__((packed)) ;
 typedef struct PWM_packet PWM_packet;
 
 int main(void) {
@@ -27,7 +38,7 @@ int main(void) {
 	strncpy(test_packet.timestamp, mytime, sizeof(mytime));
 	struct sockaddr_in si_other;
 	char buf[sizeof(PWM_packet) - 1];
-	int s, i, slen=sizeof(si_other);	
+	int s, i, slen=sizeof(si_other);
 	int j;
 	s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	assert(s != -1);
@@ -36,14 +47,14 @@ int main(void) {
 	si_other.sin_port = htons(PORT);
 	if (inet_aton(BOARD_IP, &si_other.sin_addr)==0) {
 		fprintf(stderr, "inet_aton() failed\n");
-		exit(1);	
+		exit(1);
 	}
 	for (;;) {
 		int duty;
 		for (duty = 16384; duty < 65535; duty += 16384) {
 			test_packet.duty_cycle = duty;
 			memcpy(&buf,&test_packet,sizeof(PWM_packet));
-			j = sendto(s,buf,sizeof(PWM_packet),0,&si_other, slen);
+			j = sendto(s,buf,sizeof(PWM_packet),0,(const struct sockaddr *)&si_other, slen);
 			assert(j != -1);
 			sleep(1);
 		}
