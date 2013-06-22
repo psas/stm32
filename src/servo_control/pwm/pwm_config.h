@@ -33,12 +33,12 @@ extern "C" {
 
 void            pwm_start(void);
 void            pwm_set_pulse_width_ticks(uint32_t width_ticks);
-void            pwm_setPeriod(uint32_t per_ticks);
+void            pwm_set_period(uint32_t per_ticks);
 
-uint32_t        pwm_getPWMFreq_hz(void);
-uint32_t        pwm_getPeriod_ms(void);
+uint32_t        pwm_get_PWM_freq_hz(void);
+uint32_t        pwm_get_period_ms(void);
 
-pwmcnt_t        pwm_getPulseWidth(void);
+pwmcnt_t        pwm_get_pulse_width(void);
 pwmcnt_t        pwm_us_to_ticks(uint32_t us) ;
 
 #ifdef __cplusplus

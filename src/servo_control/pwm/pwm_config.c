@@ -7,7 +7,7 @@
  */
 
 /*!
- * \defgroup pwm_config PWM Config for Roll Control Module
+ * \defgroup pwm_config PWM Configuration for Roll Control Module
  * @{
  */
 #include <stdlib.h>
@@ -49,11 +49,11 @@ void pwm_start() {
     pwmEnableChannel(&PWMD4, 3, INIT_PWM_PULSE_WIDTH_TICS);
 }
 
-uint32_t pwm_getPWMFreq_hz() {
+uint32_t pwm_get_PWM_freq_hz() {
     return pwm_freq_hz;
 }
 
-pwmcnt_t pwm_getPulseWidth() {
+pwmcnt_t pwm_get_pulse_width() {
     return pwm_pulse_width_ticks;
 }
 
@@ -61,7 +61,7 @@ pwmcnt_t pwm_getPulseWidth() {
  *
  * @return period in mS
  */
-uint32_t pwm_getPeriod_ms() {
+uint32_t pwm_get_period_ms() {
     uint32_t per_ms = 0;
 
     per_ms   = (uint32_t) (pwm_period_ticks/pwm_freq_hz * 1000) ;
@@ -77,7 +77,7 @@ void pwm_set_pulse_width_ticks(uint32_t width_ticks) {
     pwm_pulse_width_ticks   = width_ticks;
 }
 
-void pwm_setPeriod(uint32_t per_ticks)  {
+void pwm_set_period(uint32_t per_ticks)  {
     pwmChangePeriod(&PWMD4, per_ticks);
 
     pwm_period_ticks = per_ticks;
