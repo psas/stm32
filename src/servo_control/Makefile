@@ -93,8 +93,8 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_COMMON)/iwdg_lld.c \
-		 ./data_udp/data_udp.c \
-		 ./pwm/pwm_config.c \
+	   ./data_udp/data_udp.c \
+	   ./pwm/pwm_config.c \
        cmddetail.c \
        extdetail.c \
        $(PSAS_COMMON)/usbdetail.c \
@@ -128,8 +128,8 @@ TCPPSRC =
 ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) \
-         $(CHIBIOS)/os/various  $(LWINC)\
+         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
+         $(CHIBIOS)/os/various \
          $(PSAS_COMMON) \
          $(PSAS_DEV_SRC)/include \
 		 ./data_udp \
@@ -204,8 +204,8 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DADIS_DEBUG=1
-
+#UDEFS = -DADIS_DEBUG=1
+UDEFS = 
 
 # Define ASM defines here
 UADEFS =
@@ -239,3 +239,6 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
+
+include $(PSAS)/oocd.mk
+

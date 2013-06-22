@@ -112,11 +112,11 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	chprintf(chp, "copied %d bytes\n", bytesCopied);
 	if (strncmp("GETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
 		char respBuf[64];
-		unsigned int pulseWidth = getPulseWidth();
+		unsigned int pulseWidth = pwm_getPulseWidth();
 		sprintf(respBuf, "PULSE WIDTH %d", pulseWidth);
 		sendResponsePacket(respBuf);
 	} else if (strncmp("SETPWMWIDTH", (const char *) cmdbuf, 11) == 0) {
-		setPulseWidth(20000);
+		pwm_set_pulse_width_ticks(20000);
 	} else {
 		sendResponsePacket("CMDUNDEF");
 	};
