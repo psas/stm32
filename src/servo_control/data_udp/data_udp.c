@@ -117,7 +117,7 @@ msg_t data_udp_send_thread(void *p) {
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
-	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+	//BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 	RC_OUTPUT_STRUCT_TYPE  rc_packet;
 
 	//static uint8_t       count  = 0;
@@ -139,9 +139,9 @@ static void data_udp_rx_serve(struct netconn *conn) {
 		    uint16_t width = rc_packet.u16ServoPulseWidthBin14;
 		    double   ms_d  = width/pow(2,14);
 
-		    chprintf(chp, "\r\n%u\r\n", (uint32_t) (ms_d * 1000));
+		    //chprintf(chp, "\r\n%u\r\n", (uint32_t) (ms_d * 1000));
 		    double   us_d  = ms_d * 1000;
-            chprintf(chp, "%u\r\n\r\n", (uint32_t) (us_d * 1000));
+            //chprintf(chp, "%u\r\n\r\n", (uint32_t) (us_d * 1000));
 
 		    pwm_set_pulse_width_ticks(pwm_us_to_ticks(us_d));
 		} else {

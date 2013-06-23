@@ -45,6 +45,26 @@ static const ShellConfig shell_cfg1 = {
 };
 
 
+static void led_init(void) {
+
+    palClearPad(GPIOF, GPIOF_BLUE_LED);
+    palClearPad(GPIOF, GPIOF_RED_LED);
+    palClearPad(GPIOF, GPIOF_GREEN_LED);
+
+    int i = 0;
+    for(i=0; i<5; ++i) {
+        palSetPad(GPIOF, GPIOF_RED_LED);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOF, GPIOF_RED_LED);
+        palSetPad(GPIOF, GPIOF_BLUE_LED);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOF, GPIOF_BLUE_LED);
+        palSetPad(GPIOF, GPIOF_GREEN_LED);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOF, GPIOF_GREEN_LED);
+    }
+}
+
 static WORKING_AREA(waThread_launch_detect, 128);
 static msg_t Thread_launch_detect(void *arg) {
     (void)arg;
@@ -115,8 +135,12 @@ static WORKING_AREA(waThread_blinker, 128);
 static msg_t Thread_blinker(void *arg) {
     (void)arg;
     chRegSetThreadName("blinker");
+    palClearPad(GPIOF, GPIOF_GREEN_LED);
+    palClearPad(GPIOF, GPIOF_RED_LED);
+    palClearPad(GPIOF, GPIOF_BLUE_LED);
     while (TRUE) {
         palTogglePad(GPIOC, GPIOC_LED);
+        palTogglePad(GPIOF, GPIOF_GREEN_LED);
         chThdSleepMilliseconds(500);
     }
     return -1;
@@ -151,6 +175,12 @@ int main(void) {
 
     extdetail_init();
     palSetPad(GPIOC, GPIOC_LED);
+
+    palClearPad(GPIOF, GPIOF_RED_LED);
+    palClearPad(GPIOF, GPIOF_BLUE_LED);
+    palClearPad(GPIOF, GPIOF_GREEN_LED);
+
+    led_init();
 
     sduObjectInit(&SDU_PSAS);
     sduStart(&SDU_PSAS, &serusbcfg);
@@ -190,7 +220,6 @@ int main(void) {
     chThdCreateStatic(wa_data_udp_receive_thread  , sizeof(wa_data_udp_receive_thread)  , NORMALPRIO    , data_udp_receive_thread, NULL);
 
     chThdCreateStatic(waThread_launch_detect      , sizeof(waThread_launch_detect)      , NORMALPRIO    , Thread_launch_detect   , NULL);
-
 
     chThdCreateStatic(waThread_indwatchdog        , sizeof(waThread_indwatchdog)        , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
