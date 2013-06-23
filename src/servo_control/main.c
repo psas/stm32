@@ -45,6 +45,25 @@ static const ShellConfig shell_cfg1 = {
 };
 
 
+static WORKING_AREA(waThread_launch_detect, 128);
+static msg_t Thread_launch_detect(void *arg) {
+    (void)arg;
+    static const evhandler_t evhndl_launch_det[] = {
+            extdetail_launch_detect_handler
+    };
+    struct EventListener     evl_launch_det;
+
+    chRegSetThreadName("launch_detect");
+    launch_detect_init();
+
+    chEvtRegister(&extdetail_launch_detect_event,      &evl_launch_det,         0);
+
+    while (TRUE) {
+        chEvtDispatch(evhndl_launch_det, chEvtWaitOneTimeout((EVENT_MASK(0)), US2ST(50)));
+    }
+    return -1;
+}
+
 #if DEBUG_PWM
 static WORKING_AREA(waThread_pwmtest, 512);
 static msg_t Thread_pwmtest(void *arg) {
@@ -157,6 +176,8 @@ int main(void) {
     chThdCreateStatic(wa_lwip_thread              , sizeof(wa_lwip_thread)              , NORMALPRIO + 2, lwip_thread            , &ip_opts);
     chThdCreateStatic(wa_data_udp_send_thread     , sizeof(wa_data_udp_send_thread)     , NORMALPRIO    , data_udp_send_thread   , NULL);
     chThdCreateStatic(wa_data_udp_receive_thread  , sizeof(wa_data_udp_receive_thread)  , NORMALPRIO    , data_udp_receive_thread, NULL);
+    chThdCreateStatic(waThread_launch_detect      , sizeof(waThread_launch_detect)      , NORMALPRIO    , Thread_launch_detect   , NULL);
+
 
     chThdCreateStatic(waThread_indwatchdog        , sizeof(waThread_indwatchdog)        , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
