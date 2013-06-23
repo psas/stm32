@@ -115,7 +115,7 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 	RC_OUTPUT_STRUCT_TYPE  rc_packet;
 
-	static uint8_t       count  = 0;
+	//static uint8_t       count  = 0;
 	struct netbuf *inbuf;
 	char *buf;
 	u16_t buflen;
