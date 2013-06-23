@@ -11,6 +11,7 @@
 #include "hal.h"
 #include "chprintf.h"
 
+#include "data_udp.h"
 #include "usbdetail.h"
 #include "extdetail.h"
 
@@ -89,13 +90,24 @@ void launch_detect_init() {
 void extdetail_launch_detect_handler(eventid_t id) {
     (void)id;
     int     pinval;
+    // BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
 
     pinval = palReadPad(GPIOD, 11);
 
     if(pinval == PAL_LOW) {
-           launch_detected = true;
+        chThdSleepMilliseconds(1);
+        pinval = palReadPad(GPIOD, 11);
+        if(pinval == PAL_LOW) {
+            launch_detected = true;
+        }
+    } else {
+        launch_detected = false;
     }
-    launch_detected = true;
+
+    data_udp_tx_launch_det(&launch_detected) ;
+
+   // chprintf(chp, "\r\nLaunch Detect: %u\r\n", launch_detected);
+
 }
 
 //static void green_led_off(void *arg) {
@@ -110,10 +122,9 @@ void extdetail_launch_detect_handler(eventid_t id) {
  */
 void extdetail_WKUP_button_handler(eventid_t id) {
     (void)id;
-    ++extdetail_wkup_button_pressed;
-//	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-//	chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
-//	chprintf(chp, "\r\ndebug_spi: %d\r\n", adis_driver.debug_spi_count);
+     ++extdetail_wkup_button_pressed;
+   // BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+   // chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
 
 }
 

@@ -32,6 +32,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "ch.h"
 #include "hal.h"
@@ -60,60 +61,67 @@ enum {
 	PWM_DISABLE
 };
 
-msg_t data_udp_send_thread(void *p) {
-	void * arg __attribute__ ((unused)) = p;
+msg_t data_udp_tx_launch_det(void *p) {
+    bool*                launchdet ;
+    launchdet = (bool*) p;
 
-	err_t                 err;
-	uint8_t               count = 0;
+    err_t                 err;
 
-	struct     netconn    *conn;
-	struct     netbuf     *buf;
+    struct     netconn    *conn;
+    struct     netbuf     *buf;
 
-	char*                  data;
-	char                   msg[DATA_UDP_MSG_SIZE] ;
+    char*                  data;
 
-	ip_addr_t              ip_addr_rc;
-	ip_addr_t              ip_addr_fc;
+    RC_LAUNCH_DETECT_STRUCT_TYPE  msg;
 
-	ROLL_CTL_IP_ADDR(&ip_addr_rc);
-	IP_PSAS_FC(&ip_addr_fc);
+    ip_addr_t              ip_addr_rc;
+    ip_addr_t              ip_addr_fc;
 
-	chRegSetThreadName("data_udp_send_thread");
+    ROLL_CTL_IP_ADDR(&ip_addr_rc);
+    IP_PSAS_FC(&ip_addr_fc);
 
-	conn   = netconn_new( NETCONN_UDP );
+    conn   = netconn_new( NETCONN_UDP );
+    LWIP_ERROR("data_udp_receive_thread: invalid conn", (conn != NULL), return RDY_RESET;);
 
-	/* Bind to the local address, or to ANY address */
-	//	netconn_bind(conn, NULL, DATA_UDP_TX_THREAD_PORT ); //local port, NULL is bind to ALL ADDRESSES! (IP_ADDR_ANY)
-	err    = netconn_bind(conn, &ip_addr_rc, ROLL_CTL_TX_PORT ); //local port
 
-	if (err == ERR_OK) {
-		/* Connect to specific address or a broadcast address */
-		/*
-		 * \todo Understand why a UDP needs a connect...
-		 *   This may be a LwIP thing that chooses between tcp_/udp_/raw_ connections internally.
-		 *
-		 */
-		//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
-		err = netconn_connect(conn, &ip_addr_fc, FC_LISTEN_PORT_ROLL_CTL );
-		if(err == ERR_OK) {
-			for( ;; ){
-				buf     =  netbuf_new();
-				data    =  netbuf_alloc(buf, sizeof(msg));
-				sprintf(msg, "rc tx: %d", count++);
-				memcpy (data, msg, sizeof (msg));
-				//palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
-				netconn_send(conn, buf);
-				//palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
-				netbuf_delete(buf); // De-allocate packet buffer
-				chThdSleepMilliseconds(500);
-			}
-			return RDY_OK;
-		} else {
-			return RDY_RESET;
-		}
-	} else {
-		return RDY_RESET;
-	}
+    memset(&msg, 0, sizeof(RC_LAUNCH_DETECT_STRUCT_TYPE));
+
+    msg.launch_detect = (*launchdet ? 1 : 0);
+
+    /* Bind to the local address, or to ANY address */
+    //	netconn_bind(conn, NULL, DATA_UDP_TX_THREAD_PORT ); //local port, NULL is bind to ALL ADDRESSES! (IP_ADDR_ANY)
+    err    = netconn_bind(conn, &ip_addr_rc, ROLL_CTL_TX_PORT ); //local port
+    if (err == ERR_OK) {
+        /* Connect to specific address or a broadcast address */
+        /*
+         * \todo Understand why a UDP needs a connect...
+         *   This may be a LwIP thing that chooses between tcp_/udp_/raw_ connections internally.
+         *
+         */
+        //	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
+        err = netconn_connect(conn, &ip_addr_fc, FC_LISTEN_PORT );
+        if(err == ERR_OK) {
+            buf     =  netbuf_new();
+            data    =  netbuf_alloc(buf, sizeof(RC_LAUNCH_DETECT_STRUCT_TYPE));
+            msg.launch_detect = (*launchdet ? 1 : 0);
+            memcpy (data, &msg, sizeof(RC_LAUNCH_DETECT_STRUCT_TYPE));
+            //palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+            netconn_send(conn, buf);
+            //palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
+            netbuf_delete(buf); // De-allocate packet buffer
+            chThdSleepMilliseconds(500);
+            netconn_delete(conn);
+            return RDY_OK;
+        } else {
+            netconn_delete(conn);
+            return RDY_RESET;
+        }
+    } else {
+        netconn_delete(conn);
+        return RDY_RESET;
+    }
+    netconn_delete(conn);
+    return RDY_OK;
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
@@ -147,7 +155,6 @@ static void data_udp_rx_serve(struct netconn *conn) {
 		} else {
 			pwmDisableChannel(&PWMD4, 3);
 		}
-
 	}
 	netconn_close(conn);
 

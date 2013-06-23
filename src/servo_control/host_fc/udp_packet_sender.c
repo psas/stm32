@@ -12,6 +12,7 @@
 #include <math.h>
 
 #define BOARD_IP       "10.0.0.30"
+// #define BOARD_IP       "192.168.0.205"
 #define PORT            35003
 #define BUFLEN          64
 
