@@ -151,7 +151,9 @@
 #define GPIOF_PIN0                  0
 #define GPIOF_PIN1                  1
 #define GPIOF_PIN2                  2
+#define GPIOF_GREEN_LED             2
 #define GPIOF_PIN3                  3
+#define GPIOF_RED_LED               3
 #define GPIOF_PIN4                  4
 #define GPIOF_PIN5                  5
 #define GPIOF_PIN6                  6
@@ -163,6 +165,7 @@
 #define GPIOF_PIN12                 12
 #define GPIOF_PIN13                 13
 #define GPIOF_PIN14                 14
+#define GPIOF_BLUE_LED              14
 #define GPIOF_PIN15                 15
 
 #define GPIOG_PIN0                  0
@@ -845,8 +848,8 @@
  */
 #define VAL_GPIOF_MODER             (PIN_MODE_INPUT(GPIOF_PIN0) |           \
                                      PIN_MODE_INPUT(GPIOF_PIN1) |           \
-                                     PIN_MODE_INPUT(GPIOF_PIN2) |           \
-                                     PIN_MODE_INPUT(GPIOF_PIN3) |           \
+                                     PIN_MODE_OUTPUT(GPIOF_PIN2) |           \
+                                     PIN_MODE_OUTPUT(GPIOF_PIN3) |           \
                                      PIN_MODE_INPUT(GPIOF_PIN4) |           \
                                      PIN_MODE_INPUT(GPIOF_PIN5) |           \
                                      PIN_MODE_INPUT(GPIOF_PIN6) |           \
@@ -857,7 +860,7 @@
                                      PIN_MODE_INPUT(GPIOF_USB_FS_FAULT) |   \
                                      PIN_MODE_INPUT(GPIOF_PIN12) |          \
                                      PIN_MODE_INPUT(GPIOF_PIN13) |          \
-                                     PIN_MODE_INPUT(GPIOF_PIN14) |          \
+                                     PIN_MODE_OUTPUT(GPIOF_PIN14) |          \
                                      PIN_MODE_INPUT(GPIOF_PIN15))
 #define VAL_GPIOF_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOF_PIN0) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOF_PIN1) |       \
@@ -893,8 +896,8 @@
                                      PIN_OSPEED_100M(GPIOF_PIN15))
 #define VAL_GPIOF_PUPDR             (PIN_PUPDR_PULLUP(GPIOF_PIN0) |         \
                                      PIN_PUPDR_PULLUP(GPIOF_PIN1) |         \
-                                     PIN_PUPDR_PULLUP(GPIOF_PIN2) |         \
-                                     PIN_PUPDR_PULLUP(GPIOF_PIN3) |         \
+                                     PIN_PUPDR_FLOATING(GPIOF_PIN2) |         \
+                                     PIN_PUPDR_FLOATING(GPIOF_PIN3) |         \
                                      PIN_PUPDR_PULLUP(GPIOF_PIN4) |         \
                                      PIN_PUPDR_PULLUP(GPIOF_PIN5) |         \
                                      PIN_PUPDR_PULLUP(GPIOF_PIN6) |         \
@@ -905,7 +908,7 @@
                                      PIN_PUPDR_FLOATING(GPIOF_USB_FS_FAULT) |\
                                      PIN_PUPDR_PULLUP(GPIOF_PIN12) |        \
                                      PIN_PUPDR_PULLUP(GPIOF_PIN13) |        \
-                                     PIN_PUPDR_PULLUP(GPIOF_PIN14) |        \
+                                     PIN_PUPDR_FLOATING(GPIOF_PIN14) |        \
                                      PIN_PUPDR_PULLUP(GPIOF_PIN15))
 #define VAL_GPIOF_ODR               (PIN_ODR_HIGH(GPIOF_PIN0) |             \
                                      PIN_ODR_HIGH(GPIOF_PIN1) |             \
