@@ -31,7 +31,7 @@
 
 #include "main.h"
 
-#define DEBUG_PWM 0
+#define 		DEBUG_PWM 				0
 
 static const ShellCommand commands[] = {
         {"mem", cmd_mem},
@@ -71,11 +71,14 @@ static msg_t Thread_pwmtest(void *arg) {
     chRegSetThreadName("pwmtest");
 
     //    uint32_t i = 0;
-    // BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
     //
-    chThdSleepMilliseconds(2000);
+    chThdSleepMilliseconds(1000);
+
+    chprintf(chp, "%d %d %d\n", pwm_us_to_ticks(1050), pwm_us_to_ticks(1500), pwm_us_to_ticks(1090));
+
     while(1) {
-        pwmcnt_t pulse = 0;
+        uint32_t pulse = 0;
 
         //     chprintf(chp, ".");
         //        pwm_set_pulse_width_ticks(pwm_us_to_ticks(333));
@@ -88,11 +91,20 @@ static msg_t Thread_pwmtest(void *arg) {
         //        chThdSleepMilliseconds(200);
         //
         //        pwmDisableChannel(&PWMD4, 3);
-        chThdSleepMilliseconds(250);
-        for (pulse = 333; pulse <= 1900; pulse += 50) {
+        //chThdSleepMilliseconds(250);
+        for (pulse = 1050; pulse <= 1900; pulse += 10) {
             pwm_set_pulse_width_ticks(pwm_us_to_ticks(pulse));
             chThdSleepMilliseconds(50);
         }
+        pwmDisableChannel(&PWMD4, 3);
+        chThdSleepMilliseconds(2500);
+
+        for (pulse = pulse; pulse > 1050; pulse -= 10) {
+        	pwm_set_pulse_width_ticks(pwm_us_to_ticks(pulse));
+        	chThdSleepMilliseconds(50);
+        }
+//
+
     }
     return -1;
 }
@@ -174,8 +186,9 @@ int main(void) {
     ip_opts.gateway    = gateway.addr;
 
     chThdCreateStatic(wa_lwip_thread              , sizeof(wa_lwip_thread)              , NORMALPRIO + 2, lwip_thread            , &ip_opts);
-    chThdCreateStatic(wa_data_udp_send_thread     , sizeof(wa_data_udp_send_thread)     , NORMALPRIO    , data_udp_send_thread   , NULL);
+    //chThdCreateStatic(wa_data_udp_send_thread     , sizeof(wa_data_udp_send_thread)     , NORMALPRIO    , data_udp_send_thread   , NULL);
     chThdCreateStatic(wa_data_udp_receive_thread  , sizeof(wa_data_udp_receive_thread)  , NORMALPRIO    , data_udp_receive_thread, NULL);
+
     chThdCreateStatic(waThread_launch_detect      , sizeof(waThread_launch_detect)      , NORMALPRIO    , Thread_launch_detect   , NULL);
 
 

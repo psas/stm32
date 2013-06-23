@@ -47,6 +47,7 @@ void pwm_start() {
     palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));
     pwmStart(&PWMD4, &pwmcfg);
     pwmEnableChannel(&PWMD4, 3, INIT_PWM_PULSE_WIDTH_TICS);
+    pwmDisableChannel(&PWMD4, 3);
 }
 
 uint32_t pwm_get_PWM_freq_hz() {
