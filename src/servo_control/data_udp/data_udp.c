@@ -55,6 +55,11 @@
 
 WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 
+enum {
+	PWM_ENABLE = 0,
+	PWM_DISABLE
+};
+
 msg_t data_udp_send_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
 
@@ -130,16 +135,17 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	if (err == ERR_OK) {
 		netbuf_data(inbuf, (void **)&buf, &buflen);
 		memcpy (&rc_packet, buf, sizeof (RC_OUTPUT_STRUCT_TYPE));
-		if(rc_packet.u8ServoDisableFlag != 1) {
+		if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
 		    uint16_t width = rc_packet.u16ServoPulseWidthBin14;
 		    double   ms_d  = width/pow(2,14);
 
 		    chprintf(chp, "\r\n%u\r\n", (uint32_t) (ms_d * 1000));
 		    double   us_d  = ms_d * 1000;
             chprintf(chp, "%u\r\n\r\n", (uint32_t) (us_d * 1000));
-//	        chprintf(chp, "\r\n%d: %d %d %d ", count++, width, (uint32_t)us_d, pwm_us_to_ticks(us_d));
 
 		    pwm_set_pulse_width_ticks(pwm_us_to_ticks(us_d));
+		} else {
+			pwmDisableChannel(&PWMD4, 3);
 		}
 
 	}

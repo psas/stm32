@@ -25,7 +25,7 @@
 
 #define         INIT_PWM_FREQ                  6000000
 #define         INIT_PWM_PERIOD_TICS           ((pwmcnt_t) 20000)
-#define         INIT_PWM_PULSE_WIDTH_TICS      ((pwmcnt_t) 10000)
+#define         INIT_PWM_PULSE_WIDTH_TICS      ((pwmcnt_t) 9000)
 
 #ifdef __cplusplus
 extern "C" {

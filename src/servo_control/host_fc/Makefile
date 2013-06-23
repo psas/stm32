@@ -10,5 +10,5 @@ all: udp_packet_sender
 udp_packet_sender: udp_packet_sender.c
 
 clean:
-	$(RM) udp_packet_sender datap_fc
+	$(RM) udp_packet_sender
 
