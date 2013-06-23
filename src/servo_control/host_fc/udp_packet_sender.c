@@ -11,7 +11,7 @@
 
 #include <math.h>
 
-#define BOARD_IP       "192.168.0.197"
+#define BOARD_IP       "10.0.0.30"
 #define PORT            35003
 #define BUFLEN          64
 
@@ -69,11 +69,12 @@ int main(void) {
 		exit(1);
 	}
 	sleeptime.tv_sec   = 0;
-	sleeptime.tv_nsec  = 500000000;  /* 5 mS */
+	sleeptime.tv_nsec  = 25000000;  /* 5 mS */
 //	sleeptime.tv_nsec  = 0;
-	for (;;) {
+
+        for(;;) {
 		double pulsewidth;
-		for (pulsewidth = 1.000; pulsewidth < 2.000; pulsewidth += 0.050) {
+		for (pulsewidth = 1.050; pulsewidth < 1.950; pulsewidth += 0.010) {
 		    printf("%u\t%f\n", (uint32_t) (pulsewidth*1000), pulsewidth);
 			rc_packet.u16ServoPulseWidthBin14 = ms_to_pkt(pulsewidth);
 			rc_packet.u8ServoDisableFlag      = 0;
@@ -88,5 +89,22 @@ int main(void) {
 
 			nanosleep(&sleeptime, NULL);
 		}
-	}
+
+		for (pulsewidth = pulsewidth; pulsewidth > 1.050; pulsewidth -= 0.010) {
+		    printf("%u\t%f\n", (uint32_t) (pulsewidth*1000), pulsewidth);
+			rc_packet.u16ServoPulseWidthBin14 = ms_to_pkt(pulsewidth);
+			rc_packet.u8ServoDisableFlag      = 0;
+
+			memcpy(buf, &rc_packet, sizeof(RC_OUTPUT_STRUCT_TYPE));
+//			printf("sizeof: %x\n", sizeof(RC_OUTPUT_STRUCT_TYPE));
+//			printf("buf:   %x %x %x\n", buf[0], buf[1], buf[2]);
+//            printf("rc:    %x %x %x\n", (rc_packet.u16ServoPulseWidthBin14&0xff00)>>8, rc_packet.u16ServoPulseWidthBin14&0x00ff , rc_packet.u8ServoDisableFlag);
+//            printf("val:   %x\n\n", rc_packet.u16ServoPulseWidthBin14);
+			j = sendto(s, buf, sizeof(RC_OUTPUT_STRUCT_TYPE), 0, (const struct sockaddr *)&si_other, slen);
+			assert(j != -1);
+
+			nanosleep(&sleeptime, NULL);
+		}
+      }
+
 }
