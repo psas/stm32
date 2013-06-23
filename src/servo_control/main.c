@@ -65,7 +65,7 @@ static void led_init(void) {
     }
 }
 
-static WORKING_AREA(waThread_launch_detect, 128);
+static WORKING_AREA(waThread_launch_detect, 1024);
 static msg_t Thread_launch_detect(void *arg) {
     (void)arg;
     static const evhandler_t evhndl_launch_det[] = {
