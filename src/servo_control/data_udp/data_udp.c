@@ -54,7 +54,7 @@
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
-WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
+// WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 
 enum {
 	PWM_ENABLE = 0,
@@ -109,7 +109,7 @@ msg_t data_udp_tx_launch_det(void *p) {
             netconn_send(conn, buf);
             //palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
             netbuf_delete(buf); // De-allocate packet buffer
-            chThdSleepMilliseconds(500);
+           // chThdSleepMilliseconds(500);
             netconn_delete(conn);
             return RDY_OK;
         } else {
