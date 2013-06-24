@@ -11,10 +11,16 @@
 
 #include <math.h>
 
-#define BOARD_IP       "10.0.0.30"
+
+#include "../device_net.h"
+
+#define BOARD_IP       ROLL_CTL_IP_ADDR_STRING
+
+// #define BOARD_IP       "10.0.0.30"
 // #define BOARD_IP       "192.168.0.205"
-#define PORT            35003
+#define PORT            ROLL_CTL_LISTEN_PORT
 #define BUFLEN          64
+
 
 struct RC_OUTPUT_STRUCT_TYPE {
     // Servo ON-Time in milliseconds x 2^14
