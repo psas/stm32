@@ -95,19 +95,14 @@ void extdetail_launch_detect_handler(eventid_t id) {
     pinval = palReadPad(GPIOD, 11);
 
     if(pinval == PAL_LOW) {
-        chThdSleepMilliseconds(1);
-        pinval = palReadPad(GPIOD, 11);
-        if(pinval == PAL_LOW) {
-            launch_detected = true;
-        }
+    	launch_detected = false;
     } else {
-        launch_detected = false;
+    	launch_detected = true;
     }
 
     data_udp_tx_launch_det(&launch_detected) ;
 
    // chprintf(chp, "\r\nLaunch Detect: %u\r\n", launch_detected);
-
 }
 
 //static void green_led_off(void *arg) {
