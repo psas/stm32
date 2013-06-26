@@ -18,7 +18,6 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "usb_cdc.h"
 #include "chprintf.h"
 #include "shell.h"
 
@@ -38,7 +37,7 @@ static const ShellCommand commands[] = {
 };
 
 static const ShellConfig shell_cfg1 = {
-		(BaseSequentialStream *)&SDU1,
+		(BaseSequentialStream *)&SDU_PSAS,
 		commands
 };
 
@@ -116,7 +115,7 @@ static msg_t Thread_adis_newdata(void *arg) {
 	};
 	struct EventListener     evl_spi_cb2;
 
-	chEvtRegister(&adis_spi_cb_newdata, &evl_spi_cb2, 0);
+	chEvtRegister(&adis_spi_cb_data_captured, &evl_spi_cb2, 0);
 
 	while (TRUE) {
 		chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
@@ -214,8 +213,8 @@ int main(void) {
 	/*!
 	 * Initializes a serial-over-USB CDC driver.
 	 */
-	sduObjectInit(&SDU1);
-	sduStart(&SDU1, &serusbcfg);
+	sduObjectInit(&SDU_PSAS);
+	sduStart(&SDU_PSAS, &serusbcfg);
 
 	/*!
 	 * Activates the USB driver and then the USB bus pull-up on D+.
@@ -254,7 +253,7 @@ int main(void) {
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
-		if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
+		if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
 			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
 		else if (chThdTerminated(shelltp)) {
 			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
