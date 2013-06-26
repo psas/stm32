@@ -1,14 +1,13 @@
 
 CC=gcc
-
+CFLAGS += -I../../net_common -lpthread -g
+LDLIBS = -lpthread
 .PHONY: clean
 
-all: eth_udp_fc eth_fc_to_sensorboard
+all: datap_fc
 
-eth_udp_fc: eth_udp_fc.c
-
-eth_fc_to_sensorboard: eth_fc_to_sensorboard.c
+datap_fc: datap_fc.c
 
 clean:
-	$(RM) eth_udp_fc eth_fc_to_sensorboard
+	$(RM) datap_fc
 

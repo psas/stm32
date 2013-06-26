@@ -33,6 +33,10 @@ extern "C" {
 typedef     uint8_t                           adis_spi_data;
 typedef     uint16_t                          adis_reg_data;
 
+#if !defined(ADIS_DEBUG) || defined(__DOXYGEN__)
+#define 	ADIS_DEBUG                   0
+#endif
+
 /*! \typedef adis_regaddr
  *
  * ADIS Register addresses
@@ -112,9 +116,8 @@ typedef struct {
 
 /*! \typedef
  * Burst data collection
- *
  */
-typedef struct {
+struct ADIS16405_burst_data {
 	adis_reg_data      adis_supply_out; //  Power supply measurement
 	adis_reg_data      adis_xgyro_out;  //  X-axis gyroscope output
 	adis_reg_data      adis_ygyro_out;  //  Y-axis gyroscope output
@@ -127,7 +130,8 @@ typedef struct {
 	adis_reg_data      adis_zmagn_out;  //  Z-axis magnetometer measurement
 	adis_reg_data      adis_temp_out;   //  Temperature output
 	adis_reg_data      adis_aux_adc;    //  Auxiliary ADC measurement
-} adis_burst_data;
+} __attribute__((packed));
+typedef struct ADIS16405_burst_data ADIS16405_burst_data;
 
 /*!
  * Another transaction may begin which would corrupt the tx and rx
@@ -138,8 +142,8 @@ typedef struct {
 	uint8_t            current_rx_numbytes;
 	uint8_t            current_tx_numbytes;
 	adis_regaddr       reg;
-	adis_spi_data          adis_tx_cache[ADIS_MAX_TX_BUFFER];
-	adis_spi_data          adis_rx_cache[ADIS_MAX_RX_BUFFER];
+	adis_spi_data      adis_tx_cache[ADIS_MAX_TX_BUFFER];
+	adis_spi_data      adis_rx_cache[ADIS_MAX_RX_BUFFER];
 } adis_cache;
 
 /*! \typedef adis_config
@@ -186,18 +190,19 @@ typedef struct {
 } adis_connect;
 
 
-extern const SPIConfig          adis_spicfg ;
-extern const adis_connect       adis_connections ;
-extern       adis_cache         adis_cache_data;
+extern const SPIConfig               adis_spicfg ;
+extern const adis_connect            adis_connections ;
+extern       adis_cache              adis_cache_data;
 
-extern       ADIS_Driver        adis_driver;
+extern       ADIS_Driver             adis_driver;
 
-extern       EventSource        adis_dio1_event;
-extern       EventSource        adis_spi_cb_txdone_event;
-extern       EventSource        adis_spi_cb_newdata;
-extern       EventSource        adis_spi_cb_releasebus;
+extern       EventSource             adis_dio1_event;
+extern       EventSource             adis_spi_cb_txdone_event;
+extern       EventSource             adis_spi_burst_data_captured;
+extern       EventSource             adis_spi_cb_data_captured;
+extern       EventSource             adis_spi_cb_releasebus;
 
-extern       adis_burst_data    burst_data;
+extern       ADIS16405_burst_data    adis16405_burst_data;
 
 void         adis_init(void);
 void 	     adis_tstall_delay(void);
@@ -208,6 +213,7 @@ void         adis_reset(void);
 void         adis_spi_cb(SPIDriver *spip) ;
 void         adis_newdata_handler(eventid_t id) ;
 void         adis_read_id_handler(eventid_t id) ;
+void         adis_read_dC_handler(eventid_t id) ;
 void         adis_burst_read_handler(eventid_t id) ;
 void         adis_spi_cb_txdone_handler(eventid_t id) ;
 

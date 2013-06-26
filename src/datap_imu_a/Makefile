@@ -93,10 +93,10 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_COMMON)/iwdg_lld.c \
+       $(PSAS_COMMON)/usbdetail.c \
        ./data_udp/data_udp.c \
        cmddetail.c \
        extdetail.c \
-       usbdetail.c \
 	main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -238,3 +238,5 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
+
+include $(PSAS)/oocd.mk

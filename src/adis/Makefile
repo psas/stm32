@@ -92,7 +92,7 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEV_SRC)/ADIS16405.c \
        cmddetail.c \
        extdetail.c \
-       usbdetail.c \
+       $(PSAS_COMMON)/usbdetail.c \
 	main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -197,7 +197,7 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DADIS_DEBUG=0
+UDEFS = -DADIS_DEBUG=1
 
 
 # Define ASM defines here
@@ -232,3 +232,5 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
+
+include $(PSAS)/oocd.mk
