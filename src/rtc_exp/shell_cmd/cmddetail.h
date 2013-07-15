@@ -13,6 +13,7 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "chrtclib.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,8 +41,7 @@ extern "C" {
 
 #define MII_BMCR                0x00    /**< Basic mode control register.   */
 
-
-
+void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_phy(BaseSequentialStream *chp, int argc, char *argv[]) ;
