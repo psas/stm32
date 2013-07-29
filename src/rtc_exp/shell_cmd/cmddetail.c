@@ -31,8 +31,12 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
   struct tm timp;
 
   if (argc == 0) {
-
-	  chprintf(chp, "%x\n", RTCD1.id_rtc->CR);
+      chprintf(chp, "PRER:         0x%x\r\n", RTCD1.id_rtc->PRER);
+	  chprintf(chp, "CR:           0x%x\r\n", RTCD1.id_rtc->CR);
+	  chprintf(chp, "RCC->CSR:     0x%x\r\n", RCC->CSR);
+	  chprintf(chp, "[4:0]RCC->CFGR:    0x%x\r\n", RCC->CFGR);
+	  chprintf(chp, "[1:0]RCC->BDCR:    0x%x\r\n", RCC->BDCR);
+	  chprintf(chp, "STM32_RTCCLK: 0x%x\r\n", STM32_RTCCLK);
     goto ERROR;
   }
 
