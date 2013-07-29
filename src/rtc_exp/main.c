@@ -120,7 +120,7 @@ void psas_rtc_lld_init(void){
 
   /* If calendar not init yet. */
 //  if (!(RTC->ISR & RTC_ISR_INITS)){
-//    rtc_lld_enter_init();
+    rtc_lld_enter_init();
 
     /*
      * Prescaler register must be written in two SEPARATE writes.
@@ -129,13 +129,13 @@ void psas_rtc_lld_init(void){
      * To have 1Hz output for ck_spre set
      * preset_s = (STM32_RTCCLK / (prediv_a + 1)) - 1)
      */
-//    prediv_a = (prediv_a << 16) |
-//                (((STM32_RTCCLK / (prediv_a + 1)) - 1) & 0x7FFF);
-//    RTCD1.id_rtc->PRER = prediv_a;
-//    RTCD1.id_rtc->PRER = prediv_a;
-//
+    prediv_a = (prediv_a << 16) |
+                (((STM32_RTCCLK / (prediv_a + 1)) - 1) & 0x7FFF);
+    RTCD1.id_rtc->PRER = prediv_a;
+    RTCD1.id_rtc->PRER = prediv_a;
 
-//    rtc_lld_exit_init();
+
+    rtc_lld_exit_init();
 //  }
 }
 
