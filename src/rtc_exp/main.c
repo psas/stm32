@@ -77,6 +77,67 @@ static msg_t Thread_indwatchdog(void *arg) {
 	return -1;
 }
 
+/**
+ * @brief   Beginning of configuration procedure.
+ *
+ * @notapi
+ */
+#define rtc_lld_enter_init() {                                                \
+  RTCD1.id_rtc->ISR |= RTC_ISR_INIT;                                          \
+  while ((RTCD1.id_rtc->ISR & RTC_ISR_INITF) == 0)                            \
+    ;                                                                         \
+}
+/**
+ * @brief   Finalizing of configuration procedure.
+ *
+ * @notapi
+ */
+#define rtc_lld_exit_init() {RTCD1.id_rtc->ISR &= ~RTC_ISR_INIT;}
+
+/*!
+ * \brief   Enable access to registers.
+ *
+ * This application will use the subsecond register
+ * at full speed for sub second timestamping.
+ *
+ * This requires the prescaler registers to be set
+ * differently from the ChibiOS default values.
+ */
+void psas_rtc_lld_init(void){
+  RTCD1.id_rtc = RTC;
+
+  /*
+   * This prescaler is run from the LSIRC at 32khz
+   */
+  uint32_t prediv_a = 0x1;  // this is the asynch 7 bit register
+
+  /* Disable write protection. */
+  RTCD1.id_rtc->WPR = 0xCA;
+  RTCD1.id_rtc->WPR = 0x53;
+  RTCD1.id_rtc->CR   |= RTC_CR_COE;
+     RTCD1.id_rtc->CR   |= RTC_CR_COSEL;
+
+  /* If calendar not init yet. */
+  if (!(RTC->ISR & RTC_ISR_INITS)){
+    rtc_lld_enter_init();
+
+    /*
+     * Prescaler register must be written in two SEPARATE writes.
+     * See page 630 of reference manual
+     *
+     * To have 1Hz output for ck_spre set
+     * preset_s = (STM32_RTCCLK / (prediv_a + 1)) - 1)
+     */
+    prediv_a = (prediv_a << 16) |
+                (((STM32_RTCCLK / (prediv_a + 1)) - 1) & 0x7FFF);
+    RTCD1.id_rtc->PRER = prediv_a;
+    RTCD1.id_rtc->PRER = prediv_a;
+
+
+    rtc_lld_exit_init();
+  }
+}
+
 int main(void) {
 	static Thread            *shelltp       = NULL;
 	static const evhandler_t evhndl_main[]       = {
@@ -95,6 +156,8 @@ int main(void) {
 	 */
 	halInit();
 	chSysInit();
+
+	psas_rtc_lld_init();
 
 	extdetail_init();
 
@@ -142,7 +205,7 @@ int main(void) {
 	/*! Activates the EXT driver 1. */
 	extStart(&EXTD1, &extcfg);
 
-	chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
+	//chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
 	chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
 	static       uint8_t      IMU_macAddress[6]           = IMU_A_MAC_ADDRESS;

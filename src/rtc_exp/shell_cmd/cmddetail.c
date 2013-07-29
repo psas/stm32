@@ -31,6 +31,8 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
   struct tm timp;
 
   if (argc == 0) {
+
+	  chprintf(chp, "%x\n", RTCD1.id_rtc->CR);
     goto ERROR;
   }
 
