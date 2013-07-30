@@ -95,6 +95,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chrtclib.c \
        $(PSAS_COMMON)/iwdg_lld.c \
        $(PSAS_COMMON)/usbdetail.c \
+       $(PSAS_COMMON)/psas_rtc.c \
        ./data_udp/data_udp.c \
        ./shell_cmd/cmddetail.c \
        ./ext_pins/extdetail.c \

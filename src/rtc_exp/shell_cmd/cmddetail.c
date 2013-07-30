@@ -15,10 +15,12 @@
 
 #include "ch.h"
 #include "hal.h"
-#include "rtc.h"
+
 #include "chprintf.h"
 #include "mac.h"
-#include "stm32f4xx.h"
+
+
+#include "psas_rtc.h"
 
 #include "chrtclib.h"
 
@@ -26,92 +28,7 @@
 
 #define 		DEBUG_PHY 			0
 
-
-static time_t unix_time;
-
-/**
- * @brief   Wait for synchronization of RTC registers with APB1 bus.
- * @details This function must be invoked before trying to read RTC registers.
- *
- * @notapi
- */
-#define psas_rtc_lld_apb1_sync() {while ((RTCD1.id_rtc->ISR & RTC_ISR_RSF) == 0);}
-
-/**
- * @brief   Converts from STM32 BCD to canonicalized time format.
- *
- * @param[out] timp     pointer to a @p tm structure as defined in time.h
- * @param[in] timespec  pointer to a @p RTCTime structure
- *
- * @notapi
- */
-static void stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) {
-  uint32_t tv_time = timespec->tv_time;
-  uint32_t tv_date = timespec->tv_date;
-
-#if CH_DBG_ENABLE_CHECKS
-  timp->tm_isdst = 0;
-  timp->tm_wday  = 0;
-  timp->tm_mday  = 0;
-  timp->tm_yday  = 0;
-  timp->tm_mon   = 0;
-  timp->tm_year  = 0;
-  timp->tm_sec   = 0;
-  timp->tm_min   = 0;
-  timp->tm_hour  = 0;
-#endif
-
-  timp->tm_isdst = -1;
-
-  timp->tm_wday = (tv_date & RTC_DR_WDU) >> RTC_DR_WDU_OFFSET;
-  if (timp->tm_wday == 7)
-    timp->tm_wday = 0;
-
-  timp->tm_mday =  (tv_date & RTC_DR_DU) >> RTC_DR_DU_OFFSET;
-  timp->tm_mday += ((tv_date & RTC_DR_DT) >> RTC_DR_DT_OFFSET) * 10;
-
-  timp->tm_mon  =  (tv_date & RTC_DR_MU) >> RTC_DR_MU_OFFSET;
-  timp->tm_mon  += ((tv_date & RTC_DR_MT) >> RTC_DR_MT_OFFSET) * 10;
-  timp->tm_mon  -= 1;
-
-  timp->tm_year =  (tv_date & RTC_DR_YU) >> RTC_DR_YU_OFFSET;
-  timp->tm_year += ((tv_date & RTC_DR_YT) >> RTC_DR_YT_OFFSET) * 10;
-  timp->tm_year += 2000 - 1900;
-
-  timp->tm_sec  =  (tv_time & RTC_TR_SU) >> RTC_TR_SU_OFFSET;
-  timp->tm_sec  += ((tv_time & RTC_TR_ST) >> RTC_TR_ST_OFFSET) * 10;
-
-  timp->tm_min  =  (tv_time & RTC_TR_MNU) >> RTC_TR_MNU_OFFSET;
-  timp->tm_min  += ((tv_time & RTC_TR_MNT) >> RTC_TR_MNT_OFFSET) * 10;
-
-  timp->tm_hour =  (tv_time & RTC_TR_HU) >> RTC_TR_HU_OFFSET;
-  timp->tm_hour += ((tv_time & RTC_TR_HT) >> RTC_TR_HT_OFFSET) * 10;
-  timp->tm_hour += 12 * ((tv_time & RTC_TR_PM) >> RTC_TR_PM_OFFSET);
-}
-
-
-/**
- * @brief   Get current time.
- *
- * @param[in] rtcp      pointer to RTC driver structure
- * @param[out] timespec pointer to a @p RTCTime structure
- *
- * @api
- */
-static void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) {
-    (void)rtcp;
-
-    psas_rtc_lld_apb1_sync();
-
-#if STM32_RTC_HAS_SUBSECONDS
-    timespec->tv_msec =1000000 * ((1.0 * (RTCD1.id_rtc->PRER & 0x7FFF) - RTCD1.id_rtc->SSR) /
-            ((RTCD1.id_rtc->PRER & 0x7FFF) + 1));
-#endif /* STM32_RTC_HAS_SUBSECONDS */
-    timespec->tv_time = RTCD1.id_rtc->TR;
-    timespec->tv_date = RTCD1.id_rtc->DR;
-
-
-}
+static time_t      unix_time;
 
 void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
     (void)argv;
@@ -119,24 +36,13 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
   RTCTime   psas_time;
 
   if (argc == 0) {
-      chprintf(chp, "PRER:         0x%x\r\n", RTCD1.id_rtc->PRER);
-	  chprintf(chp, "CR:           0x%x\r\n", RTCD1.id_rtc->CR);
-	  chprintf(chp, "RCC->CSR:     0x%x\r\n", RCC->CSR);
-	  chprintf(chp, "[4:0]RCC->CFGR:    0x%x\r\n", RCC->CFGR);
-	  chprintf(chp, "[1:0]RCC->BDCR:    0x%x\r\n", RCC->BDCR);
-	  chprintf(chp, "STM32_RTCCLK: 0x%x\r\n", STM32_RTCCLK);
     goto ERROR;
   }
 
 
   if ((argc == 1) && (strcmp(argv[0], "get") == 0)){
-      //int i;
-      //unix_time = rtcGetTimeUnixSec(&RTCD1);
-      //for (i=0; i<5000; ++i) {
-      //  chThdSleepMilliseconds(1);
-
       psas_rtc_lld_get_time(&RTCD1, &psas_time);
-      stm32_rtc_bcd2tm(&timp, &psas_time);
+      psas_stm32_rtc_bcd2tm(&timp, &psas_time);
 
       unix_time = mktime(&timp);
 
