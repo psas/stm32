@@ -21,7 +21,7 @@ extern "C" {
 
 
 #define SHELL_WA_SIZE   THD_WA_SIZE(2048)
-#define TEST_WA_SIZE    THD_WA_SIZE(256)
+//#define TEST_WA_SIZE    THD_WA_SIZE(256)
 
 
 /* MII divider optimal value.*/
@@ -41,6 +41,7 @@ extern "C" {
 
 #define MII_BMCR                0x00    /**< Basic mode control register.   */
 
+void cmd_sdct(BaseSequentialStream *chp, int argc, char *argv[]) ;
 void cmd_tree(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]);

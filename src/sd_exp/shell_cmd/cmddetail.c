@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <limits.h>
 #include <time.h>
 
 #include "ch.h"
@@ -27,36 +28,175 @@
 #include "cmddetail.h"
 
 #define 		DEBUG_PHY 			0
+#define         DEBUG_SDC           1
 
 static time_t      unix_time;
 
 static uint8_t     fbuff[1024];
 
-void cmd_tree(BaseSequentialStream *chp, int argc, char *argv[]) {
-  FRESULT err;
-  uint32_t clusters;
-  FATFS *fsp;
+#if DEBUG_SDC
 
-  (void)argv;
-  if (argc > 0) {
-    chprintf(chp, "Usage: tree\r\n");
+#define SDC_TESTFILE          "TEST.txt"
+#define SDC_NEWFILE           "/NEWFILE.txt"
+#define SDC_BIGFILE           "/BIGFILE.txt"
+#define SDC_NEWPOSITION       10
+void cmd_sdct(BaseSequentialStream *chp, int argc, char *argv[]) {
+    FRESULT      rc;
+    FIL          Fil;
+    uint8_t      buff[1];
+    unsigned     i  = 0;
+    unsigned     br = 0;
+    unsigned     bw = 0;
+    unsigned     testsize ;
+
+    chprintf(chp, "%s: sizeof unsigned long: %d\r\n", __func__, sizeof(unsigned long));
+
+
+    (void)argv;
+    if (argc > 0) {
+        chprintf(chp, "Usage: tree\r\n");
+        return;
+    }
+    chprintf(chp, "\r\nOpen an existing file: %s.\r\n", SDC_TESTFILE);
+    rc = f_open(&Fil, SDC_TESTFILE, FA_READ);
+    if (rc) {
+        chprintf(chp, "\r\nOpen an existing file FAILED.\r\n");
+        chprintf(chp, "\tError %d\r\n", rc);
+        return;
+    }
+
+    chprintf(chp, "\r\nType the file content.\r\n");
+    for (;;) {
+        rc = f_read(&Fil, buff, sizeof buff, &br);      /* Read a chunk of file */
+        if (rc || !br) break;                           /* Error or end of file */
+        for (i = 0; i < br; i++)                        /* Type the data */
+            chprintf(chp, "%c", buff[i]);
+    }
+    if (rc) {
+        chprintf(chp, "\r\nContents of an existing file FAILED.\r\n");
+        chprintf(chp, "\tError %d\r\n", rc);
+        return;
+    }
+
+    chprintf(chp, "\r\nClose an existing file: %s.\r\n", SDC_TESTFILE);
+    rc = f_close (&Fil);
+    if (rc) {
+        chprintf(chp, "\r\nClose an existing file FAILED. %s.\r\n", SDC_TESTFILE);
+        chprintf(chp, "\tError %d\r\n", rc);
+    }
+
+    /* Move to end of the file to append data */
+    //   res = f_lseek(fp, f_size(fp));
+    // create a file write to it, close it open it and look at the results.
+    rc = f_open(&Fil, SDC_BIGFILE, FA_WRITE);
+    if (rc) {
+        chprintf(chp, "\r\nOpen an existing file FAILED. %s.\r\n", SDC_BIGFILE);
+        chprintf(chp, "\tError %d\r\n", rc);
+    }
+
+    chprintf(chp, "\nMove to new filesize.\r\n");
+
+    rc = f_lseek(&Fil, SDC_NEWPOSITION);
+    if (rc)  {
+           chprintf(chp, "\r\nf_lseek to %lu fail... %s.\r\n", SDC_NEWFILE, SDC_NEWPOSITION);
+           chprintf(chp, "\tError %d\r\n", rc);
+    }
+
+
+    chprintf(chp, "\nWrite a text data. (Hello world!)\n");
+    rc = f_write(&Fil, "Hello world!\r\n", 14, &bw);
+    if (rc)  {
+        chprintf(chp, "\r\nWrite an existing file FAILED. %s.\r\n", SDC_BIGFILE);
+        chprintf(chp, "\tError %d\r\n", rc);
+    }
+    chprintf(chp, "%u bytes written.\n", bw);
+    chprintf(chp, "\r\nClose an existing file: %s.\r\n", SDC_BIGFILE);
+    rc = f_close (&Fil);
+    if (rc) {
+        chprintf(chp, "\r\nClose an existing file FAILED. %s.\r\n", SDC_BIGFILE);
+        chprintf(chp, "\tError %d\r\n", rc);
+    }
+
+
     return;
+}
+
+#endif
+#define MAX_FILLER 11
+static char *long_to_string_with_divisor(BaseSequentialStream *chp,
+                                         char *p,
+                                         unsigned long long num,
+                                         unsigned radix,
+                                         long divisor) {
+  unsigned long long i;
+  char *q;
+  unsigned long long l, ll;
+  char tmpbuf[MAX_FILLER + 1];
+
+  tmpbuf[MAX_FILLER] = '\0';
+  p = tmpbuf;
+  q = tmpbuf;
+
+  l = num;
+  if (divisor == 0) {
+    ll = num;
+  } else {
+    ll = divisor;
   }
-  if (!fs_ready) {
-    chprintf(chp, "File System not mounted\r\n");
-    return;
-  }
-  err = f_getfree("/", &clusters, &fsp);
-  if (err != FR_OK) {
-    chprintf(chp, "FS: f_getfree() failed\r\n");
-    return;
-  }
-  chprintf(chp,
-           "FS: %lu free clusters, %lu sectors per cluster, %lu bytes free\r\n",
-           clusters, (uint32_t)SDC_FS.csize,
-           clusters * (uint32_t)SDC_FS.csize * (uint32_t)MMCSD_BLOCK_SIZE);
-  fbuff[0] = 0;
-  scan_files(chp, (char *)fbuff);
+
+  q = p + MAX_FILLER;
+  do {
+    i =  (unsigned long long)(l % radix);
+    i += '0';
+    if (i > '9')
+      i += 'A' - '0' - 10;
+    *--q = i;
+    l /= radix;
+  } while ((ll /= radix) != 0);
+
+  i = (unsigned long long) (p + MAX_FILLER - q);
+  do {
+    *p++ = *q++;
+  } while (--i);
+  chprintf(chp, "%s: %s\r\n", __func__, tmpbuf);
+  return p;
+}
+
+void cmd_tree(BaseSequentialStream *chp, int argc, char *argv[]) {
+    FRESULT err;
+    unsigned long clusters;
+    unsigned long long total;
+    FATFS *fsp;
+    int howbig;
+    char* p;
+    char buffern[20];
+
+    (void)argv;
+    if (argc > 0) {
+        chprintf(chp, "Usage: tree\r\n");
+        return;
+    }
+    if (!fs_ready) {
+        chprintf(chp, "File System not mounted\r\n");
+        return;
+    }
+    err = f_getfree("/", &clusters, &fsp);
+    if (err != FR_OK) {
+        chprintf(chp, "FS: f_getfree() failed. FRESULT: %d\r\n", err);
+        return;
+    }
+    chprintf(chp, "ULONG_MAX: %lu\n", ULONG_MAX);
+    total =  1936690ULL * 8ULL * 512ULL;
+    //total = clusters * (uint32_t)SDC_FS.csize * (uint32_t)MMCSD_BLOCK_SIZE;
+    p = long_to_string_with_divisor(chp, p, total, 10, 0);
+    howbig = sizeof(unsigned long);
+    chprintf(chp, "howbig: %i\r\n", howbig);
+    chprintf(chp,
+            "FS: %lu free clusters, %lu sectors per cluster, %lu bytes free.\r\n",
+            clusters, (uint32_t)SDC_FS.csize,
+            total);
+    fbuff[0] = 0;
+    sdc_scan_files(chp, (char *)fbuff);
 }
 
 

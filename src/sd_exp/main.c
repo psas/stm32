@@ -41,6 +41,7 @@
 #include "main.h"
 
 static const ShellCommand commands[] = {
+        {"sdct",    cmd_sdct},
 		{"mem",     cmd_mem},
 		{"threads", cmd_threads},
 		{"date",    cmd_date},
@@ -181,6 +182,10 @@ int main(void) {
     chEvtRegister(&extdetail_wkup_event, &el0, 0);
     chEvtRegister(&inserted_event,       &el1, 1);
     chEvtRegister(&removed_event,        &el2, 2);
+
+    InsertHandler(0);
+
+
     while (TRUE) {
 		if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
 			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
@@ -188,7 +193,7 @@ int main(void) {
 			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
 			shelltp = NULL;           /* Triggers spawning of a new shell.        */
 		}
-		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
+		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(50)));
 	}
 }
 
