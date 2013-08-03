@@ -68,6 +68,7 @@ void iwdg_begin(void) {
 		RCC->CSR = RCC->CSR | RCC_CSR_RMVF;    // clear the IWDGRSTF
 	}
 	iwdg_lld_set_prescale(IWDG_PS_DIV32);      // This should be about 2 seconds at 32kHz
+	//iwdg_lld_set_prescale(IWDG_PS_DIV128);
 	iwdg_lld_reload();
 	iwdg_lld_init();
 }

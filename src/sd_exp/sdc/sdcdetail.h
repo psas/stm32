@@ -23,14 +23,11 @@ extern          FATFS       SDC_FS;
 extern          EventSource inserted_event;
 extern          EventSource removed_event;
 
-void    InsertHandler(eventid_t id) ;
-void    RemoveHandler(eventid_t id) ;
-void    sdc_tmr_init(void *p) ;
+void            InsertHandler(eventid_t id) ;
+void            RemoveHandler(eventid_t id) ;
+void            sdc_tmr_init(void *p) ;
 
-FRESULT scan_files(BaseSequentialStream *chp, char *path) ;
-
-
-
+FRESULT         sdc_scan_files(BaseSequentialStream *chp, char *path) ;
 
 #ifdef __cplusplus
 }

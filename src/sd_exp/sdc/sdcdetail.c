@@ -1,5 +1,5 @@
 /*! \file sdcdetail.c
- *
+ *  SD Card
  */
 
 /*!
@@ -16,34 +16,18 @@
 #include "chprintf.h"
 #include "ff.h"
 
-#define POLLING_INTERVAL                10
-#define POLLING_DELAY                   10
+static const    unsigned        sdc_polling_interval           = 10;
+static const    unsigned        sdc_polling_delay              = 10;
 
-/*!
- * \brief Card events
- */
-EventSource inserted_event, removed_event;
+static          VirtualTimer    sdc_tmr;
 
-/*!
- *  FS mounted and ready.
- */
-bool fs_ready = FALSE;
+static          unsigned        sdc_debounce_count             = 0;
 
-/*!
- * \brief FS object.
- */
-FATFS SDC_FS;
+bool                            fs_ready                       = FALSE;
 
+EventSource                     inserted_event, removed_event;
 
-/*1
- * \brief   Card monitor timer.
- */
-static VirtualTimer sdc_tmr;
-
-/**
- * @brief   Debounce counter.
- */
-static unsigned cnt;
+FATFS                           SDC_FS;
 
 /*!
  * @brief   Insertion monitor timer callback function.
@@ -56,22 +40,22 @@ static void sdc_tmrfunc(void *p) {
     BaseBlockDevice *bbdp = p;
 
     chSysLockFromIsr();
-    if (cnt > 0) {
+    if (sdc_debounce_count > 0) {
         if (blkIsInserted(bbdp)) {
-            if (--cnt == 0) {
+            if (--sdc_debounce_count == 0) {
                 chEvtBroadcastI(&inserted_event);
             }
         }
         else
-            cnt = POLLING_INTERVAL;
+            sdc_debounce_count = sdc_polling_interval;
     }
     else {
         if (!blkIsInserted(bbdp)) {
-            cnt = POLLING_INTERVAL;
+            sdc_debounce_count = sdc_polling_interval;
             chEvtBroadcastI(&removed_event);
         }
     }
-    chVTSetI(&sdc_tmr, MS2ST(POLLING_DELAY), sdc_tmrfunc, bbdp);
+    chVTSetI(&sdc_tmr, MS2ST(sdc_polling_delay), sdc_tmrfunc, bbdp);
     chSysUnlockFromIsr();
 }
 
@@ -87,8 +71,8 @@ void sdc_tmr_init(void *p) {
     chEvtInit(&inserted_event);
     chEvtInit(&removed_event);
     chSysLock();
-    cnt = POLLING_INTERVAL;
-    chVTSetI(&sdc_tmr, MS2ST(POLLING_DELAY), sdc_tmrfunc, p);
+    sdc_debounce_count = sdc_polling_interval;
+    chVTSetI(&sdc_tmr, MS2ST(sdc_polling_delay), sdc_tmrfunc, p);
     chSysUnlock();
 }
 
@@ -103,8 +87,11 @@ void InsertHandler(eventid_t id) {
     /*
      * On insertion SDC initialization and FS mount.
      */
-    if (sdcConnect(&SDCD1))
-        return;
+    if (sdcConnect(&SDCD1)) {
+        if(sdcConnect(&SDCD1)) {   // why does it often fail the first time but not the second?
+            return;
+        }
+    }
 
     err = f_mount(0, &SDC_FS);
     if (err != FR_OK) {
@@ -124,7 +111,7 @@ void RemoveHandler(eventid_t id) {
 }
 
 
-FRESULT scan_files(BaseSequentialStream *chp, char *path) {
+FRESULT sdc_scan_files(BaseSequentialStream *chp, char *path) {
     FRESULT res;
     FILINFO fno;
     DIR dir;
@@ -148,7 +135,7 @@ FRESULT scan_files(BaseSequentialStream *chp, char *path) {
             if (fno.fattrib & AM_DIR) {
                 path[i++] = '/';
                 strcpy(&path[i], fn);
-                res = scan_files(chp, path);
+                res = sdc_scan_files(chp, path);
                 if (res != FR_OK)
                     break;
                 path[--i] = 0;
