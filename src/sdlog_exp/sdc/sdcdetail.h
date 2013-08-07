@@ -13,6 +13,7 @@
 #include "hal.h"
 #include "ff.h"
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,6 +24,11 @@ extern          FATFS       SDC_FS;
 
 extern          EventSource inserted_event;
 extern          EventSource removed_event;
+
+typedef struct logdata {
+   uint32_t     index;
+   RTCTime      *timespec;
+} Logdata;
 
 void            InsertHandler(eventid_t id) ;
 void            RemoveHandler(eventid_t id) ;
