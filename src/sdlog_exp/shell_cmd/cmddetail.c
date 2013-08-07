@@ -47,7 +47,7 @@ void cmd_sdct(BaseSequentialStream *chp, int argc, char *argv[]) {
     unsigned     i  = 0;
     unsigned     br = 0;
     unsigned     bw = 0;
-    unsigned     testsize ;
+  //  unsigned     testsize ;
 
     chprintf(chp, "%s: sizeof unsigned long: %d\r\n", __func__, sizeof(unsigned long));
 
@@ -169,7 +169,7 @@ void cmd_tree(BaseSequentialStream *chp, int argc, char *argv[]) {
     FATFS *fsp;
     int howbig;
     char* p;
-    char buffern[20];
+   // char buffern[20];
 
     (void)argv;
     if (argc > 0) {

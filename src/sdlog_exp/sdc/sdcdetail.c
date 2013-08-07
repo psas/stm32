@@ -16,8 +16,12 @@
 #include "chprintf.h"
 #include "ff.h"
 
+#include "psas_rtc.h"
+#include "sdcdetail.h"
 static const    unsigned        sdc_polling_interval           = 10;
 static const    unsigned        sdc_polling_delay              = 10;
+static const    char*           sdc_log_data_file              = "data_log.bin";
+
 
 static          VirtualTimer    sdc_tmr;
 
@@ -153,29 +157,75 @@ FRESULT sdc_scan_files(BaseSequentialStream *chp, char *path) {
  */
 WORKING_AREA(wa_sdlog_thread, SDLOG_THREAD_STACK_SIZE);
 
-/*!
- * sdlog  thread.
+/*! \brief sdlog  thread.
+ *
+ * \return -1: generic error
+ *         -2: unable to open file
+ */
+
+/*! \brief sdlog  thread.
+ *
+ * \param p
+ * \return -1: generic error
+ *         -2: unable to open file
  */
 msg_t sdlog_thread(void *p) {
     void * arg __attribute__ ((unused)) = p;
 
-    err_t             err;
+    FRESULT           rc;
+    FIL               DATAFil;
+    bool              sd_log_opened = false;
+    Logdata           log_data;
+    uint32_t          index         = 0;
 
-    struct netconn    *conn;
-
-    ip_addr_t         ip_addr_sensor;
+    RTCTime           psas_time;
 
     chRegSetThreadName("sdlog_thread");
 
-    set up events
-      mpu  newdata
-      mpl  newdata
-      adis newdata
+//    set up events
+//      mpu  newdata
+//      mpl  newdata
+//      adis newdata
 
-    while(1) {
-        poll events
+    // if card inserted
+    if(fs_ready) {
+
     }
+    while(1) {
+        // if card still inserted
+        if(fs_ready && (!sd_log_opened) ) {
+            // open an existing log file for writing
+            rc = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
+            if (rc) {
+                // try creating the file
+                rc = f_open(&DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
+                if (rc) {
+                    sd_log_opened = true;
+                }
+            }
 
+            log_data.index = index++;
+            psas_rtc_lld_get_time(&RTCD1, &psas_time);
+            write_log_data(&log_data) ;
+
+            // if file open
+            // get the time
+
+
+            // write it to sd
+
+
+            // wait 1mS
+        } else if (fs_ready && sd_log_opened) {
+            sd_log_opened = false;
+            // wait 1mS
+        } else {
+            sd_log_opened = false;
+            // wait 1mS
+        }
+
+    }
+    return -1;
 }
 
 //! @}
