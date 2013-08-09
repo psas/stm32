@@ -12,7 +12,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-
 #include "ch.h"
 #include "hal.h"
 
@@ -179,12 +178,13 @@ int main(void) {
     chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
     chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
 
+    chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
+
     chEvtRegister(&extdetail_wkup_event, &el0, 0);
     chEvtRegister(&inserted_event,       &el1, 1);
     chEvtRegister(&removed_event,        &el2, 2);
 
     InsertHandler(0);
-
 
     while (TRUE) {
 		if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
