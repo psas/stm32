@@ -30,7 +30,7 @@ extern          WORKING_AREA(wa_sdlog_thread, SDLOG_THREAD_STACKSIZE_BYTES);
 
 typedef struct logdata {
    uint32_t     index;
-   RTCTime      *timespec;
+   RTCTime      timespec;
 } Logdata;
 
 void            InsertHandler(eventid_t id) ;
