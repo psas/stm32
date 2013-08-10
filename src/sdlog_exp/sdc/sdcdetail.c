@@ -25,7 +25,7 @@ static const    unsigned        sdlog_thread_sleeptime_ms      = 1000;
 static const    unsigned        sdc_polling_interval           = 10;
 static const    unsigned        sdc_polling_delay              = 10;
 
-static const    char*           sdc_log_data_file              = "data_log.bin";
+static const    char*           sdc_log_data_file              = "data_log.txt";
 
 static          VirtualTimer    sdc_tmr;
 
@@ -163,18 +163,20 @@ FRESULT sdc_scan_files(BaseSequentialStream *chp, char *path) {
  *         -2: unable to open file
  */
 
-static bool write_log_data(FIL* DATAFil, Logdata* d) {
-    int             rc = 0;
-    unsigned int    bw = 0;
+static int write_log_data(FIL* DATAFil, Logdata* d, unsigned int* bw) {
+    int              rc = 0;
+    BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
     if(d==NULL) {
-        return false;
+        return -2;
     }
-    rc = f_write(DATAFil, (const void *)(d), sizeof(Logdata), &bw);
+    rc = f_write(DATAFil, "More Stuff\r\n", sizeof("More Stuff\r\n"), bw);
+   // rc = f_write(DATAFil, (const void *)(d), sizeof(Logdata), bw);
     if (rc)  {
-        return false;
+        chprintf(chp, "%s: f_write error: %d\r\n", __func__, rc);
+        return -1;
     }
-    return true;
+    return 0;
 }
 
 /*!
@@ -195,9 +197,10 @@ msg_t sdlog_thread(void *p) {
     FIL               DATAFil;
     bool              sd_log_opened    = false;
     bool              result           = false;
-    unsigned int          bw;
+    unsigned int     bw;
     uint32_t          index            = 0;
     uint32_t          write_errors     = 0;
+    uint32_t          sync_errors      = 0;
     BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
     chRegSetThreadName("sdlog_thread");
 
@@ -206,7 +209,7 @@ msg_t sdlog_thread(void *p) {
 //      mpl  newdata
 //      adis newdata
 
-
+    chprintf(chp, "Start sdlog thread\r\n");
     while(1) {
 
         if(fs_ready && (!sd_log_opened) ) {
@@ -235,6 +238,7 @@ msg_t sdlog_thread(void *p) {
         		} else {
         			chprintf(chp, "opened new\t");
         			rc = f_write(&DATAFil, "New File Started\r\n", sizeof("New File Started\r\n"), &bw);
+        			rc = f_sync(&DATAFil);
         			if (rc)  {
         				chprintf(chp, "write new file failed\r\n");
         			}
@@ -244,7 +248,13 @@ msg_t sdlog_thread(void *p) {
         			if (rc) {
         				chprintf(chp, "reopen fail\r\n");
         			} else {
-        				sd_log_opened = true;
+        				/* Move to end of the file to append data */
+        				rc = f_lseek(&DATAFil, f_size(&DATAFil));
+        				if (rc) {
+        					chprintf(chp, "reopen fail\r\n");
+        				} else {
+        					sd_log_opened = true;
+        				}
         			}
         		}
         	} else {
@@ -254,22 +264,22 @@ msg_t sdlog_thread(void *p) {
         }
 
         if (fs_ready && sd_log_opened) {
-//            log_data.index = index++;
-//            psas_rtc_lld_get_time(&RTCD1, log_data.timespec);
-//            result = write_log_data(&DATAFil, &log_data) ;
-//            if(result) { ++write_errors; }
-            chprintf(chp, "write_errors: %d\r\n", write_errors);
+            log_data.index = index++;
+            psas_rtc_lld_get_time(&RTCD1, &log_data.timespec);
+            rc = f_write(&DATAFil, "More Stuff\r\n", sizeof("More Stuff\r\n"), &bw);
+            chprintf(chp, "%s: bytes written: %d\r\n",__func__, bw);
+            if(rc) { ++write_errors; }
+            rc = f_sync(&DATAFil);
+           // result = write_log_data(&DATAFil, &log_data, &bw)
+            if(rc) { ++sync_errors; }
+            chprintf(chp, "write/sync errors: %d/%d\r\n", write_errors, sync_errors);
 
         } else {
         	if(sd_log_opened) {
         		chprintf(chp, "close file\r\n");
-        		 sd_log_opened = false;
+        		f_close(&DATAFil);       // might be redundant if card removed....
+        		sd_log_opened = false;
         	}
-//            f_close(&DATAFil);       // might be redundant if card removed....
-//            sd_log_opened = false;
-//            while(!fs_ready){
-//                chThdSleepMilliseconds(50);
-//            }
         }
         chThdSleepMilliseconds(sdlog_thread_sleeptime_ms);
     }

@@ -211,7 +211,7 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
 
 
   if ((argc == 1) && (strcmp(argv[0], "get") == 0)){
-      psas_rtc_lld_get_time(&RTCD1, &psas_time);
+	  psas_rtc_lld_get_time(&RTCD1, &psas_time);
       psas_stm32_rtc_bcd2tm(&timp, &psas_time);
 
       unix_time = mktime(&timp);
