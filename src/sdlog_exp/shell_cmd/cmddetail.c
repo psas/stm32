@@ -202,7 +202,7 @@ void cmd_tree(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
     (void)argv;
-  struct tm timp;
+  struct   tm timp;
   RTCTime   psas_time;
 
   if (argc == 0) {
