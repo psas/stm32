@@ -67,7 +67,8 @@ PROJECT = ch
 PSAS= ../config
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-include ./boards/OLIMEX_STM32_E407/board.mk
+#include ./boards/OLIMEX_STM32_E407/board.mk
+include ./boards/PSAS_ROCKETNET_HUB_1_0/board.mk
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
