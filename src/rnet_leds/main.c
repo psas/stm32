@@ -30,7 +30,7 @@
 static void green_led_off(void *arg) {
 
   (void)arg;
-  palSetPad(GPIOC, GPIOC_LED);
+//  palSetPad(GPIOC, GPIOC_LED);
 }
 
 /* Triggered when the WKUP button is pressed or released. The LED is set to ON.*/
@@ -40,7 +40,7 @@ static void extcb1(EXTDriver *extp, expchannel_t channel) {
   (void)extp;
   (void)channel;
 
-  palClearPad(GPIOC, GPIOC_LED);
+//  palClearPad(GPIOC, GPIOC_LED);
   chSysLockFromIsr();
   if (chVTIsArmedI(&vt4))
     chVTResetI(&vt4);
