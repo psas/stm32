@@ -22,61 +22,32 @@
 #include "hal.h"
 
 
-/* Olimex stm32-e407 board */
+/* PSAS Rocketnet hub board */
 
-/*! \sa HAL_USE_EXT in hal_conf.h
- */
+static void led_init(void) {
 
-static void green_led_off(void *arg) {
+    palClearPad(GPIOD, GPIO_D13_RGB_R);
 
-  (void)arg;
-//  palSetPad(GPIOC, GPIOC_LED);
+    palClearPad(GPIOD, GPIO_D11_RGB_B);
+    palClearPad(GPIOD, GPIO_D12_RGB_G);
+
+    while (1) {
+        palSetPad(GPIOD, GPIO_D13_RGB_R);
+        chThdSleepMilliseconds(100);
+//        palSetPad(GPIOD, GPIO_D11_RGB_B);
+//        chThdSleepMilliseconds(100);
+//        palSetPad(GPIOD, GPIO_D12_RGB_G);
+//        chThdSleepMilliseconds(100);
+
+        palClearPad(GPIOD, GPIO_D13_RGB_R);
+        chThdSleepMilliseconds(100);
+//        palClearPad(GPIOD, GPIO_D11_RGB_B);
+//        chThdSleepMilliseconds(100);
+//        palClearPad(GPIOD, GPIO_D12_RGB_G);
+//        chThdSleepMilliseconds(100);
+    }
 }
 
-/* Triggered when the WKUP button is pressed or released. The LED is set to ON.*/
-static void extcb1(EXTDriver *extp, expchannel_t channel) {
-  static VirtualTimer vt4;
-
-  (void)extp;
-  (void)channel;
-
-//  palClearPad(GPIOC, GPIOC_LED);
-  chSysLockFromIsr();
-  if (chVTIsArmedI(&vt4))
-    chVTResetI(&vt4);
-
-  /* LED4 set to OFF after 500mS.*/
-  chVTSetI(&vt4, MS2ST(500), green_led_off, NULL);
-  chSysUnlockFromIsr();
-}
-
-static const EXTConfig extcfg = {
-  {
-    {EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOA, extcb1},   // WKUP Button PA0
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL}
-  }
-};
 
 /*
  * Application entry point.
@@ -94,18 +65,11 @@ int main(void) {
   chSysInit();
 
   /*
-   * Activates the EXT driver 1.
-   */
-  extStart(&EXTD1, &extcfg);
-
-  /*
    * Normal main() thread activity, in this demo it enables and disables the
    * button EXT channel using 5 seconds intervals.
    */
-  while (TRUE) {
-//    chThdSleepMilliseconds(5000);
-//    extChannelDisable(&EXTD1, 0);
+    led_init();
     chThdSleepMilliseconds(5000);
-    extChannelEnable(&EXTD1, 0);
-  }
+    exit(1);
 }
+
