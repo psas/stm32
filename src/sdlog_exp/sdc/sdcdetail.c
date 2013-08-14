@@ -163,20 +163,31 @@ FRESULT sdc_scan_files(BaseSequentialStream *chp, char *path) {
  *
  * \return -1: generic error
  *         -2: unable to open file
+ *         -3: Null data structure
+ *
+ *  \todo return typedef or enum...
  */
 
 static int write_log_data(FIL* DATAFil, Logdata* d, unsigned int* bw) {
     int              rc = 0;
     BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
-    if(d==NULL) {
-        return -2;
+    if((d==NULL) || (bw == NULL)) {
+        return -3;
     }
-    rc = f_write(DATAFil, "More Stuff\r\n", sizeof("More Stuff\r\n"), bw);
-   // rc = f_write(DATAFil, (const void *)(d), sizeof(Logdata), bw);
+    chprintf(chp, "%d\r\n", d->timespec.tv_time);
+    chprintf(chp, "sizof logdata: %d\r\n", sizeof(Logdata));
+    //rc = f_write(DATAFil, "More Stuff\r\n", sizeof("More Stuff\r\n")-1, bw);
+    rc = f_write(DATAFil, (const void *)(d), sizeof(Logdata), bw);
     if (rc)  {
         chprintf(chp, "%s: f_write error: %d\r\n", __func__, rc);
         return -1;
+    }
+
+    rc = f_sync(DATAFil);
+    if (rc)  {
+    	chprintf(chp, "%s: f_sync error: %d\r\n", __func__, rc);
+    	return -2;
     }
     return 0;
 }
@@ -221,7 +232,7 @@ msg_t sdlog_thread(void *p) {
     Logdata           log_data;
     FRESULT           rc;
     FIL               DATAFil;
-
+    int result;
     unsigned int     bw;
     uint32_t          index            = 0;
     uint32_t          write_errors     = 0;
@@ -262,21 +273,21 @@ msg_t sdlog_thread(void *p) {
     			if (rc) {
     				sd_log_opened = false;
     			} else {
+    				sd_log_opened = true;
     				chprintf(chp, "opened new\t");
-    				psas_rtc_lld_get_time(&RTCD1, &log_data.timespec);
-    				rc = f_write(&DATAFil, "New File Started\n", sizeof("New File Started\n"), &bw);
-    				chprintf(chp, "write new file %d bytes\r\n", bw);
-    				rc = f_sync(&DATAFil);
-    				if (rc)  {
-    					chprintf(chp, "write new file failed\r\n");
-    				}
-    				chprintf(chp, "write new file %d bytes\r\n", bw);
-    				rc = f_close(&DATAFil);
-    				rc = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
-    				if (rc) {
-    					chprintf(chp, "reopen fail\r\n");
-    					sd_log_opened = false;
-    				}
+//    				rc = f_write(&DATAFil, "New File Started\n", sizeof("New File Started\n"), &bw);
+//    				chprintf(chp, "write new file %d bytes\r\n", bw);
+//    				rc = f_sync(&DATAFil);
+//    				if (rc)  {
+//    					chprintf(chp, "write new file failed\r\n");
+//    				}
+    				//chprintf(chp, "write new file %d bytes\r\n", bw);
+    				//rc = f_close(&DATAFil);
+    			//	rc = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
+    			//	if (rc) {
+    			//		chprintf(chp, "reopen fail\r\n");
+    			//		sd_log_opened = false;
+    			//	}
     			}
     		} else {
     			chprintf(chp, "open existing file ok\r\n");
@@ -295,14 +306,10 @@ msg_t sdlog_thread(void *p) {
         if (fs_ready && sd_log_opened) {
             log_data.index = index++;
             psas_rtc_lld_get_time(&RTCD1, &log_data.timespec);
-            rc = f_write(&DATAFil, "More Stuff\r\n", sizeof("More Stuff\r\n")-1, &bw);
-            chprintf(chp, "%s: bytes written: %d\r\n",__func__, bw);
-            if(rc) { ++write_errors; }
-            rc = f_sync(&DATAFil);
-           // result = write_log_data(&DATAFil, &log_data, &bw)
-            if(rc) { ++sync_errors; }
+            result = write_log_data(&DATAFil, &log_data, &bw);
+            if(result == -1 ) { ++write_errors; }
+            if(result == -2) { ++sync_errors; }
             chprintf(chp, "write/sync errors: %d/%d\r\n", write_errors, sync_errors);
-
         } else {
         	if(sd_log_opened) {
         		chprintf(chp, "close file\r\n");
