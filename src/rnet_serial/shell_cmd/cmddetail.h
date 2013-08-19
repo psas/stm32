@@ -23,11 +23,16 @@ extern "C" {
 #define TEST_WA_SIZE    THD_WA_SIZE(256)
 
 #define           DEBUG_PHY                0
+#define           DEBUG_KSZ                0
 
 #if DEBUG_PHY
 static uint32_t mii_read(MACDriver *macp, uint32_t reg) ;
 static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) ;
 void cmd_phy(BaseSequentialStream *chp, int argc, char *argv[]) ;
+#endif
+
+#if DEBUG_KSZ
+void cmd_ksz_pwr(BaseSequentialStream *chp, int argc, char *argv[]) ;
 #endif
 
 void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]);

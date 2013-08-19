@@ -47,7 +47,10 @@
 static uint32_t           led_wait_time         =        500;
 
 static const ShellCommand commands[] = {
-		{"mem", cmd_mem},
+#if DEBUG_KSZ
+		{"ksz_pwr", cmd_ksz_pwr},
+#endif
+		{"mem"    , cmd_mem},
 		{"threads", cmd_threads},
 		{NULL, NULL}
 };

@@ -72,6 +72,47 @@ void cmd_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 #endif
 
+#if DEBUG_KSZ
+/*! \brief Power on or off KSZ through GPIO_D14_KSZ_EN
+ *
+ * @param chp
+ * @param argc
+ * @param argv
+ */
+void cmd_ksz_pwr(BaseSequentialStream *chp, int argc, char *argv[]) {
+	bool      pad_state;
+
+	if(argc == 0) {
+		// get current state of pin
+		pad_state = palReadPad(GPIOD, GPIO_D14_KSZ_EN);
+		chprintf(chp, "GPIO_D14_KSZ_EN:\t\t%s\r\n", pad_state ? "HIGH" : "LOW");
+		return;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "h", 1)  == 0)) {
+		goto ERROR;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "on", 2)  == 0)) {
+		// set to on
+		palSetPad(GPIOD, GPIO_D14_KSZ_EN);
+		return;
+	}
+
+	if ((argc == 2) && (strncmp(argv[0], "off", 3) == 0)) {
+		// set to off
+		palClearPad(GPIOD, GPIO_D14_KSZ_EN);
+		return;
+	}
+
+	ERROR:
+	chprintf(chp, "Usage: ksz_pwr\r\n");
+	chprintf(chp, "       ksz_pwr <option>\r\n");
+	chprintf(chp, "       where option may be 'on' or 'off'\r\n");
+	chprintf(chp, "Command without option will return current setting of GPIO_D14_KSZ_EN.");
+	return;
+}
+#endif
 
 /*! \brief Show memory usage
  *
