@@ -91,7 +91,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_COMMON)/iwdg_lld.c \
-       cmddetail.c \
+       ./shell_cmd/cmddetail.c \
 	main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -205,7 +205,7 @@ UADEFS =
 
 # List all user directories here
 # UINCDIR = ./boards/OLIMEX_STM32_E407
-UINCDIR =
+UINCDIR = ./shell_cmd
 
 # List the user directory to look for the libraries here
 ULIBDIR =
