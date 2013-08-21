@@ -60,6 +60,26 @@ static const ShellConfig shell_cfg1 = {
 		commands
 };
 
+static void led_init(void) {
+
+    palClearPad(GPIOD, GPIO_D12_RGB_G);
+    palClearPad(GPIOD, GPIO_D13_RGB_R);
+    palClearPad(GPIOD, GPIO_D11_RGB_B);
+
+    int i = 0;
+    for(i=0; i<5; ++i) {
+        palSetPad(GPIOD, GPIO_D12_RGB_G);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOD, GPIO_D12_RGB_G);
+        palSetPad(GPIOD, GPIO_D13_RGB_R);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOD, GPIO_D13_RGB_R);
+        palSetPad(GPIOD, GPIO_D11_RGB_B);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOD, GPIO_D11_RGB_B);
+    }
+}
+
 static WORKING_AREA(waThread_blinker, 64);
 /*! \brief Green LED blinker thread
  */
@@ -88,6 +108,8 @@ int main(void) {
 	 */
 	halInit();
 	chSysInit();
+
+	led_init();
 
 	// start the serial port
 	sdStart(&SD1, NULL);
