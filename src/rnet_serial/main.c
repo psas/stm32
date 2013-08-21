@@ -48,6 +48,8 @@ static uint32_t           led_wait_time         =        500;
 
 static const ShellCommand commands[] = {
 #if DEBUG_KSZ
+		{"ksz_nodes_en_n", cmd_ksz_nodes_en_n},
+		{"ksz_n1en_n", cmd_ksz_n1en_n},
 		{"ksz_rst_n", cmd_ksz_rst_n},
 		{"ksz_pwr", cmd_ksz_pwr},
 #endif
@@ -94,6 +96,17 @@ static msg_t Thread_blinker(void *arg) {
 	return -1;
 }
 
+void init_rnet() {
+	palSetPad(GPIOD, GPIO_D14_KSZ_EN);
+	palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
+	palClearPad(GPIOD, GPIO_D14_KSZ_EN);
+	chThdSleepMilliseconds(3000);  // sleep 10
+	palSetPad(GPIOD, GPIO_D14_KSZ_EN);     // enable pwr
+    palClearPad(GPIOD, GPIO_D13_RGB_R);
+	chThdSleepMilliseconds(3000);  // sleep 10
+	palSetPad(GPIOD, GPIO_D4_ETH_N_RST);   // disable reset
+	palClearPad(GPIOD, GPIO_D11_RGB_B);
+}
 
 /*
  * Application entry point.
@@ -111,6 +124,7 @@ int main(void) {
 	chSysInit();
 
 	led_init();
+    init_rnet();
 
 	// start the serial port
 	sdStart(&SD1, NULL);
