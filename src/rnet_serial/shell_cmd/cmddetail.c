@@ -17,7 +17,6 @@
 
 #include "cmddetail.h"
 
-
 #if DEBUG_PHY
 /*! \brief   Read a PHY register.
  *
@@ -73,6 +72,82 @@ void cmd_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
 #endif
 
 #if DEBUG_KSZ
+/**
+ * @brief   PHY address detection.
+ *
+ * @param[in] macp      pointer to the @p MACDriver object
+ */
+//static void psas_mii_find_phy(BaseSequentialStream *chp, MACDriver *macp) {
+//  uint32_t i;
+//
+//#if STM32_MAC_PHY_TIMEOUT > 0
+//  halrtcnt_t start = halGetCounterValue();
+//  halrtcnt_t timeout  = start + MS2RTT(STM32_MAC_PHY_TIMEOUT);
+//  while (halIsCounterWithin(start, timeout)) {
+//#endif
+//    for (i = 0; i < 31; i++) {
+//      macp->phyaddr = i << 11;
+//      ETH->MACMIIDR = (i << 6) | MACMIIDR_CR;
+//      if ((mii_read(macp, MII_PHYSID1) == (BOARD_PHY_ID >> 16)) &&
+//          ((mii_read(macp, MII_PHYSID2) & 0xFFF0) == (BOARD_PHY_ID & 0xFFF0))) {
+//        return;
+//      }
+//    }
+//#if STM32_MAC_PHY_TIMEOUT > 0
+//  }
+//#endif
+//  /* Wrong or defective board.*/
+//  chSysHalt();
+//}
+
+
+
+
+/*! \brief Assert or deassert reset GPIO_D4_ETH_N_RST
+ *
+ * @param chp
+ * @param argc
+ * @param argv
+ */
+void cmd_ksz_rst_n(BaseSequentialStream *chp, int argc, char *argv[]) {
+	bool      pad_state;
+
+	if(argc == 0) {
+		// get current state of pin
+		pad_state = palReadPad(GPIOD, GPIO_D4_ETH_N_RST);
+		chprintf(chp, "GPIO_D4_ETH_N_RST:\t\t%s\r\n", pad_state ? "HIGH" : "LOW");
+		return;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "h", 1)  == 0)) {
+		goto ERROR;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "off", 3)  == 0)) {
+		// deassert
+		chprintf(chp, "deassert\r\n");
+		palSetPad(GPIOD, GPIO_D4_ETH_N_RST);
+		return;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "on", 2) == 0)) {
+		// assert
+		chprintf(chp, "assert\r\n");
+		palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
+		return;
+	}
+
+	ERROR:
+	chprintf(chp, "Usage: ksz_rst_n\r\n");
+	chprintf(chp, "       ksz_rst_n <option>\r\n");
+	chprintf(chp, "       where option may be 'on' or 'off'\r\n");
+	chprintf(chp, "Command without option will return current setting of GPIO_D4_ETH_N_RST.\r\n");
+	return;
+}
+
+
+
+
 /*! \brief Power on or off KSZ through GPIO_D14_KSZ_EN
  *
  * @param chp
@@ -99,7 +174,7 @@ void cmd_ksz_pwr(BaseSequentialStream *chp, int argc, char *argv[]) {
 		return;
 	}
 
-	if ((argc == 2) && (strncmp(argv[0], "off", 3) == 0)) {
+	if ((argc == 1) && (strncmp(argv[0], "off", 3) == 0)) {
 		// set to off
 		palClearPad(GPIOD, GPIO_D14_KSZ_EN);
 		return;
