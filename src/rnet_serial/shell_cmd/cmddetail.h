@@ -32,6 +32,8 @@ void cmd_phy(BaseSequentialStream *chp, int argc, char *argv[]) ;
 #endif
 
 #if DEBUG_KSZ
+void cmd_ksz_nodes_en_n(BaseSequentialStream *chp, int argc, char *argv[]) ;
+void cmd_ksz_n1en_n(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_ksz_rst_n(BaseSequentialStream *chp, int argc, char *argv[]) ;
 void cmd_ksz_pwr(BaseSequentialStream *chp, int argc, char *argv[]) ;
 #endif
