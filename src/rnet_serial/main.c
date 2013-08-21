@@ -48,6 +48,7 @@ static uint32_t           led_wait_time         =        500;
 
 static const ShellCommand commands[] = {
 #if DEBUG_KSZ
+		{"ksz_rst_n", cmd_ksz_rst_n},
 		{"ksz_pwr", cmd_ksz_pwr},
 #endif
 		{"mem"    , cmd_mem},
@@ -68,15 +69,15 @@ static void led_init(void) {
 
     int i = 0;
     for(i=0; i<5; ++i) {
-        palSetPad(GPIOD, GPIO_D12_RGB_G);
-        chThdSleepMilliseconds(150);
         palClearPad(GPIOD, GPIO_D12_RGB_G);
-        palSetPad(GPIOD, GPIO_D13_RGB_R);
         chThdSleepMilliseconds(150);
+        palSetPad(GPIOD, GPIO_D12_RGB_G);
         palClearPad(GPIOD, GPIO_D13_RGB_R);
-        palSetPad(GPIOD, GPIO_D11_RGB_B);
         chThdSleepMilliseconds(150);
+        palSetPad(GPIOD, GPIO_D13_RGB_R);
         palClearPad(GPIOD, GPIO_D11_RGB_B);
+        chThdSleepMilliseconds(150);
+        palSetPad(GPIOD, GPIO_D11_RGB_B);
     }
 }
 

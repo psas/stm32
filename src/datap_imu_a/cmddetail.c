@@ -19,7 +19,7 @@
 #include "cmddetail.h"
 #include "stm32f4xx.h"
 
-#define 		DEBUG_PHY 			0
+#define 		DEBUG_PHY 			1
 
 /*! \brief Show memory usage
  *
