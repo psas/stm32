@@ -4,13 +4,26 @@ Wed 14 August 2013 15:03:52 (PDT)
 CLOCKING:
 
 The PSAS Rocketnet hub chip runs on a 25Mhz crystal
-the mcuconf file needs to be changed to:
+the mcuconf.h file needs to be changed to:
 
 #define STM32_PLLM_VALUE                    25
+
+(for the olimex e407 board this value is 12 because the crystal is different)
 
 This crystal frequency is reflected in the board.h file
 as 
 #define STM32_HSECLK                25000000
+
+Another thought, maybe not a good one:
+In main.c:
+
+#ifdef BOARD_OLIMEX_STM32_E407
+    #define STM32_PLLM_VALUE                    12
+#endif
+
+#ifdef BOARD_PSAS_ROCKETNET_HUB_1_0
+    #define STM32_PLLM_VALUE                    25
+#endif
 
 
 BUILDING:
