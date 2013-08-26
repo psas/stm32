@@ -96,7 +96,24 @@ static msg_t Thread_blinker(void *arg) {
 	return -1;
 }
 
-void init_rnet() {
+static WORKING_AREA(waThread_25mhz, 64);
+/*! \brief 25 Mhz output clock hack
+ */
+static msg_t Thread_25mhz(void *arg) {
+	(void)arg;
+
+	while(TRUE) {
+		palClearPad(GPIOC, GPIO_C9_KSZ_25MHZ);
+		asm volatile("mov r0, r0");
+		asm volatile("mov r0, r0");
+		palSetPad(GPIOC, GPIO_C9_KSZ_25MHZ);
+		asm volatile("mov r0, r0");
+		asm volatile("mov r0, r0");
+	}
+	return -1;
+}
+
+void init_rnet(void) {
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);
 	palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
 	palClearPad(GPIOD, GPIO_D14_KSZ_EN);
@@ -133,7 +150,11 @@ int main(void) {
 	 * Shell manager initialization.
 	 */
 	shellInit();
-	chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
+
+	chThdCreateStatic(waThread_blinker  , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
+	chThdCreateStatic(waThread_25mhz    , sizeof(waThread_25mhz)            , NORMALPRIO    , Thread_25mhz           , NULL);
+
+
 	/*
 	 * Normal main() thread activity, in this demo it enables and disables the
 	 * button EXT channel using 5 seconds intervals.
