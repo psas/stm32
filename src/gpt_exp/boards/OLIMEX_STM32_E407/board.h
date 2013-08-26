@@ -640,7 +640,7 @@
                                      PIN_MODE_OUTPUT(GPIOD_ADIS_DIO3) |          \
                                      PIN_MODE_OUTPUT(GPIOD_ADIS_DIO4) |          \
                                      PIN_MODE_INPUT(GPIOD_PIN13) |          \
-                                     PIN_MODE_ALTERNATE(GPIOD_PIN14_GPT_T3) |          \
+                                     PIN_MODE_OUTPUT(GPIOD_PIN14_GPT_T3) |          \
                                      PIN_MODE_INPUT(GPIOD_PIN15))
 #define VAL_GPIOD_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOD_PIN0) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOD_PIN1) |       \
@@ -720,7 +720,7 @@
                                      PIN_AFIO_AF(GPIOD_PIN11, 0) |          \
                                      PIN_AFIO_AF(GPIOD_PIN12, 0) |          \
                                      PIN_AFIO_AF(GPIOD_PIN13, 0) |          \
-                                     PIN_AFIO_AF(GPIOD_PIN14_GPT_T3, 2) |          \
+                                     PIN_AFIO_AF(GPIOD_PIN14_GPT_T3, 0) |          \
                                      PIN_AFIO_AF(GPIOD_PIN15, 0))
 
 /*
