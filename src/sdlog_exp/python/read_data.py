@@ -70,12 +70,23 @@ class MissingOption(Exception):
 
 
 def read_datafile(infile):
-    f = open(infile, "rb")
-    byte = f.read(1)
-    while (len(byte) == 1):
+    f     = open(infile, "rb")
+    block = block = f.read(20)
+    while (len(block) == 20):
         # Do stuff with byte.
-        print( struct.unpack('B', byte)[0] )
-        byte = f.read(1)
+        (index,    ) = struct.unpack('I', block[0:4])
+        (tv_date,  ) = struct.unpack('I', block[4:8])
+        (tv_time,  ) = struct.unpack('I', block[8:12])
+        (hour_fmt, ) = struct.unpack('I', block[12:16])
+        (tv_msec,  ) = struct.unpack('I', block[16:20])
+        print( "index   = " + str(index))
+        print( "tv_date = " + str(tv_date))
+        print( "tv_time = " + str(tv_time))
+        print( "hour_fmt= " + str(hour_fmt))
+        print( "tv_msec = " + str(tv_msec))
+        print("--\n")
+#        print( struct.unpack('B', byte)[0] )
+        block = f.read(20)
     f.close()
 
 
@@ -126,8 +137,6 @@ if __name__ == "__main__":
         #                    #
 
         read_datafile(infile)
-
-
 
 
     except BadFileRead as e:
