@@ -77,7 +77,10 @@ def read_datafile(infile):
         (index,    ) = struct.unpack('I', block[0:4])
         (tv_date,  ) = struct.unpack('I', block[4:8])
         (tv_time,  ) = struct.unpack('I', block[8:12])
-        (hour_fmt, ) = struct.unpack('I', block[12:16])
+        hour_fmt     = struct.unpack('4?', block[12:16])[0]
+            #        hour_fmt     = block[12]
+            # Don't understand pad bytes yet...
+            #        (pad, )      = struct.unpack('x', block[13])
         (tv_msec,  ) = struct.unpack('I', block[16:20])
         print( "index   = " + str(index))
         print( "tv_date = " + str(tv_date))
