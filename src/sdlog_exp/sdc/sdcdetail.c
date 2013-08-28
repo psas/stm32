@@ -20,7 +20,7 @@
 #include "sdcdetail.h"
 
 #include "chrtclib.h"
-#define         DEBUG_SDC                                     1
+#define         DEBUG_SDC                                     0
 
 static const    unsigned        sdlog_thread_sleeptime_ms      = 1000;
 static const    unsigned        sdc_polling_interval           = 10;
@@ -175,8 +175,10 @@ static int write_log_data(FIL* DATAFil, Logdata* d, unsigned int* bw) {
     if((d==NULL) || (bw == NULL)) {
         return -3;
     }
+#if DEBUG_SDC
     chprintf(chp, "%d\r\n", d->timespec.tv_time);
-    chprintf(chp, "sizof logdata: %d\r\n", sizeof(Logdata));
+    chprintf(chp, "sizeof logdata:\t%d\r\n", sizeof(Logdata));
+#endif
     //rc = f_write(DATAFil, "More Stuff\r\n", sizeof("More Stuff\r\n")-1, bw);
     rc = f_write(DATAFil, (const void *)(d), sizeof(Logdata), bw);
     if (rc)  {
@@ -304,12 +306,16 @@ msg_t sdlog_thread(void *p) {
     	}
 
         if (fs_ready && sd_log_opened) {
-            log_data.index = index++;
+            log_data.index        = index++;
+            log_data.timespec.h12 = 1;
             psas_rtc_lld_get_time(&RTCD1, &log_data.timespec);
+
             result = write_log_data(&DATAFil, &log_data, &bw);
             if(result == -1 ) { ++write_errors; }
             if(result == -2) { ++sync_errors; }
+#if DEBUG_SDC
             chprintf(chp, "write/sync errors: %d/%d\r\n", write_errors, sync_errors);
+#endif
         } else {
         	if(sd_log_opened) {
         		chprintf(chp, "close file\r\n");
