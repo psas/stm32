@@ -102,13 +102,19 @@ static WORKING_AREA(waThread_25mhz, 64);
 static msg_t Thread_25mhz(void *arg) {
 	(void)arg;
 
+	uint32_t i = 0;
 	while(TRUE) {
 		palClearPad(GPIOC, GPIO_C9_KSZ_25MHZ);
-		asm volatile("mov r0, r0");
-		asm volatile("mov r0, r0");
+
+		for(i=0; i<20; ++i) {
+			asm volatile("mov r0, r0");
+			asm volatile("mov r0, r0");
+		}
 		palSetPad(GPIOC, GPIO_C9_KSZ_25MHZ);
-		asm volatile("mov r0, r0");
-		asm volatile("mov r0, r0");
+		for(i=0; i<20; ++i) {
+			asm volatile("mov r0, r0");
+			asm volatile("mov r0, r0");
+		}
 	}
 	return -1;
 }
