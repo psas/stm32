@@ -270,6 +270,21 @@ void cmd_ksz_pwr(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 #endif
 
+
+/*! \brief Show reg
+ *
+ * @param chp
+ * @param argc
+ * @param argv
+ */
+void cmd_show(BaseSequentialStream *chp, int argc, char *argv[]) {
+	size_t n, size;
+
+	(void)argv;
+
+	chprintf(chp, "RCC->CFGR : 0x%x\r\n", RCC->CFGR);
+}
+
 /*! \brief Show memory usage
  *
  * @param chp

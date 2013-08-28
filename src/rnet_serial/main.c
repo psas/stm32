@@ -53,6 +53,7 @@ static const ShellCommand commands[] = {
 		{"ksz_rst_n", cmd_ksz_rst_n},
 		{"ksz_pwr", cmd_ksz_pwr},
 #endif
+		{"show"    , cmd_show},
 		{"mem"    , cmd_mem},
 		{"threads", cmd_threads},
 		{NULL, NULL}
@@ -127,6 +128,10 @@ void init_rnet(void) {
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);     // enable pwr
     palClearPad(GPIOD, GPIO_D13_RGB_R);
 	chThdSleepMilliseconds(3000);  // sleep 10
+	// Turn on clock from HSE -> PC9 function MCO2 see board file
+	RCC->CFGR |=  (1<<31);
+	RCC->CFGR &= ~(1<<29);
+
 	palSetPad(GPIOD, GPIO_D4_ETH_N_RST);   // disable reset
 	palClearPad(GPIOD, GPIO_D11_RGB_B);
 }
@@ -158,7 +163,7 @@ int main(void) {
 	shellInit();
 
 	chThdCreateStatic(waThread_blinker  , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
-	chThdCreateStatic(waThread_25mhz    , sizeof(waThread_25mhz)            , NORMALPRIO    , Thread_25mhz           , NULL);
+	//chThdCreateStatic(waThread_25mhz    , sizeof(waThread_25mhz)            , NORMALPRIO    , Thread_25mhz           , NULL);
 
 
 	/*

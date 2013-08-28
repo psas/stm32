@@ -36,6 +36,8 @@ void cmd_ksz_nodes_en_n(BaseSequentialStream *chp, int argc, char *argv[]) ;
 void cmd_ksz_n1en_n(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_ksz_rst_n(BaseSequentialStream *chp, int argc, char *argv[]) ;
 void cmd_ksz_pwr(BaseSequentialStream *chp, int argc, char *argv[]) ;
+void cmd_show(BaseSequentialStream *chp, int argc, char *argv[]) ;
+
 #endif
 
 void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]);
