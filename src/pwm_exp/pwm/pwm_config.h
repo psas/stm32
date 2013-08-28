@@ -42,8 +42,8 @@
 //#define         INIT_PWM_PERIOD_TICS           ((pwmcnt_t) 1000)
 //#define         INIT_PWM_PULSE_WIDTH_TICS      ((pwmcnt_t) 500)
 
-#define         INIT_PWM_FREQ                  28000000
-#define         INIT_PWM_PERIOD_TICS           ((pwmcnt_t) 2)
+#define         INIT_PWM_FREQ                  84000000
+#define         INIT_PWM_PERIOD_TICS           ((pwmcnt_t) 3)
 #define         INIT_PWM_PULSE_WIDTH_TICS      ((pwmcnt_t) 1)
 
 

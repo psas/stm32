@@ -37,7 +37,7 @@ static PWMConfig pwmcfg = {
     NULL,                      /* No callback */
     {
             {PWM_OUTPUT_DISABLED, NULL},
-            {PWM_OUTPUT_DISABLED, NULL},
+            {PWM_OUTPUT_ACTIVE_HIGH, NULL},
             {PWM_OUTPUT_ACTIVE_HIGH, NULL},
             {PWM_OUTPUT_ACTIVE_HIGH, NULL},
     },
@@ -167,7 +167,6 @@ void my_pwm_lld_start(PWMDriver *pwmp) {
 //              ((psc + 1) * pwmp->config->frequency) == pwmp->clock,
 //              "pwm_lld_start(), #1", "invalid frequency");
 
-  palClearPad(GPIOC, GPIOC_LED);
   pwmp->tim->PSC  = (uint16_t)psc;
   pwmp->tim->ARR  = (uint16_t)(pwmp->period - 1);
   pwmp->tim->CR2  = pwmp->config->cr2;
@@ -283,13 +282,13 @@ void my_pwmStart(PWMDriver *pwmp, const PWMConfig *config) {
 }
 
 void pwm_start() {
-    palSetPadMode(GPIOD, GPIOD_PIN14, PAL_MODE_ALTERNATE(2));
-    palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));
-    my_pwmStart(&PWMD4, &pwmcfg);
-    pwmEnableChannel(&PWMD4, 2, INIT_PWM_PULSE_WIDTH_TICS);
+	//my_pwmStart(&PWMD3, &pwmcfg);
+	//pwmEnableChannel(&PWMD3, 1, INIT_PWM_PULSE_WIDTH_TICS);
 
-    pwmEnableChannel(&PWMD4, 3, INIT_PWM_PULSE_WIDTH_TICS);
-   // pwmDisableChannel(&PWMD4, 3);
+	my_pwmStart(&PWMD4, &pwmcfg);
+	pwmEnableChannel(&PWMD4, 2, INIT_PWM_PULSE_WIDTH_TICS);
+	//pwmEnableChannel(&PWMD4, 3, INIT_PWM_PULSE_WIDTH_TICS);
+	// pwmDisableChannel(&PWMD4, 3);
 }
 
 uint32_t pwm_get_PWM_freq_hz() {

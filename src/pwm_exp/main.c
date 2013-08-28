@@ -52,7 +52,27 @@ static msg_t Thread_blinker(void *arg) {
 	}
 	return -1;
 }
+static WORKING_AREA(waThread_test, 128);
+/*! \brief Test thread
+ */
+static msg_t Thread_test(void *arg) {
+	(void)arg;
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
+	chRegSetThreadName("test");
+	while (TRUE) {
+		chprintf(chp, "GPIOD_OSPEEDR:\t%d\t0x%x\r\n", GPIOD->OSPEEDR, GPIOD->OSPEEDR);
+		chprintf(chp, "GPIOD_OTYPER:\t%d\t0x%x\r\n", GPIOD->OTYPER, GPIOD->OTYPER);
+		chprintf(chp, "GPIOD_OODR:\t%d\t0x%x\r\n", GPIOD->ODR, GPIOD->ODR);
+		chprintf(chp, "GPIOD_MODER:\t%d\t0x%x\r\n", GPIOD->MODER, GPIOD->MODER);
+		chprintf(chp, "GPIOD_PUPDR:\t%d\t0x%x\r\n\r\n", GPIOD->PUPDR, GPIOD->PUPDR);
+
+		//  BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+
+	    chThdSleepMilliseconds(2500);
+	}
+	return -1;
+}
 static WORKING_AREA(waThread_indwatchdog, 64);
 /*! \brief  Watchdog thread
  */
@@ -84,8 +104,6 @@ int main(void) {
 	 */
 	halInit();
 	chSysInit();
-
-	palSetPad(GPIOC, GPIOC_LED);
 
 	/*!
 	 * GPIO Pins for generating pulses at data input detect and data output send.
@@ -128,6 +146,7 @@ int main(void) {
 	palSetPad(GPIOC, GPIOC_LED);
 //	chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
 	chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
+	chThdCreateStatic(waThread_test      , sizeof(waThread_test)      , NORMALPRIO    , Thread_test     , NULL);
 
 	pwm_start();
 

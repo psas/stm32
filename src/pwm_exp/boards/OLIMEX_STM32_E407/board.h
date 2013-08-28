@@ -88,7 +88,6 @@
 #define GPIOB_JTAG_TDO              3
 #define GPIOB_JTAG_TRST             4
 #define GPIOB_PIN5                  5
-#define GPIOB_SPI1_MOSI             5
 #define GPIOB_PIN6                  6
 #define GPIOB_PIN7                  7
 #define GPIOB_I2C1_SCL              8
@@ -396,7 +395,7 @@
                                      PIN_MODE_INPUT(GPIOB_BOOT1) |          \
                                      PIN_MODE_ALTERNATE(GPIOB_JTAG_TDO) |   \
                                      PIN_MODE_ALTERNATE(GPIOB_JTAG_TRST) |  \
-                                     PIN_MODE_ALTERNATE(GPIOB_SPI1_MOSI) |      \
+                                     PIN_MODE_ALTERNATE(GPIOB_PIN5) |      \
                                      PIN_MODE_INPUT(GPIOB_PIN6) |           \
                                      PIN_MODE_OUTPUT(GPIOB_PIN7) |           \
                                      PIN_MODE_ALTERNATE(GPIOB_I2C1_SCL) |   \
@@ -444,7 +443,7 @@
                                      PIN_PUPDR_FLOATING(GPIOB_BOOT1) |      \
                                      PIN_PUPDR_FLOATING(GPIOB_JTAG_TDO) |   \
                                      PIN_PUPDR_FLOATING(GPIOB_JTAG_TRST) |  \
-                                     PIN_PUPDR_PULLUP(GPIOB_PIN5) |         \
+                                     PIN_PUPDR_FLOATING(GPIOB_PIN5) |         \
                                      PIN_PUPDR_PULLUP(GPIOB_PIN6) |         \
                                      PIN_PUPDR_PULLUP(GPIOB_PIN7) |         \
                                      PIN_PUPDR_FLOATING(GPIOB_I2C1_SCL) |   \
@@ -476,7 +475,7 @@
                                      PIN_AFIO_AF(GPIOB_BOOT1, 0) |          \
                                      PIN_AFIO_AF(GPIOB_JTAG_TDO, 0) |       \
                                      PIN_AFIO_AF(GPIOB_JTAG_TRST, 0) |      \
-                                     PIN_AFIO_AF(GPIOB_PIN5, 0) |           \
+                                     PIN_AFIO_AF(GPIOB_PIN5, 2) |           \
                                      PIN_AFIO_AF(GPIOB_PIN6, 0) |           \
                                      PIN_AFIO_AF(GPIOB_PIN7, 0))
 #define VAL_GPIOB_AFRH              (PIN_AFIO_AF(GPIOB_I2C1_SCL, 4) |       \
@@ -639,8 +638,8 @@
                                      PIN_MODE_OUTPUT(GPIOD_ADIS_DIO3) |          \
                                      PIN_MODE_OUTPUT(GPIOD_ADIS_DIO4) |          \
                                      PIN_MODE_INPUT(GPIOD_PIN13) |          \
-                                     PIN_MODE_OUTPUT(GPIOD_PIN14) |          \
-                                     PIN_MODE_INPUT(GPIOD_PIN15))
+                                     PIN_MODE_ALTERNATE(GPIOD_PIN14) |          \
+                                     PIN_MODE_OUTPUT(GPIOD_PIN15))
 #define VAL_GPIOD_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOD_PIN0) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOD_PIN1) |       \
                                      PIN_OTYPE_PUSHPULL(GPIOD_SD_CMD) |     \
@@ -671,7 +670,7 @@
                                      PIN_OSPEED_100M(GPIOD_ADIS_DIO3) |         \
                                      PIN_OSPEED_100M(GPIOD_ADIS_DIO4) |         \
                                      PIN_OSPEED_100M(GPIOD_PIN13) |         \
-                                     PIN_OSPEED_100M(GPIOD_PIN14) |         \
+                                     PIN_OSPEED_25M(GPIOD_PIN14) |         \
                                      PIN_OSPEED_100M(GPIOD_PIN15))
 #define VAL_GPIOD_PUPDR             (PIN_PUPDR_PULLUP(GPIOD_PIN0) |         \
                                      PIN_PUPDR_PULLUP(GPIOD_PIN1) |         \
@@ -688,7 +687,7 @@
                                      PIN_PUPDR_PULLUP(GPIOD_ADIS_DIO4) |        \
                                      PIN_PUPDR_PULLUP(GPIOD_PIN13) |        \
                                      PIN_PUPDR_FLOATING(GPIOD_PIN14) |        \
-                                     PIN_PUPDR_PULLUP(GPIOD_PIN15))
+                                     PIN_PUPDR_FLOATING(GPIOD_PIN15))
 #define VAL_GPIOD_ODR               (PIN_ODR_HIGH(GPIOD_PIN0) |             \
                                      PIN_ODR_HIGH(GPIOD_PIN1) |             \
                                      PIN_ODR_HIGH(GPIOD_SD_CMD) |           \
@@ -720,7 +719,7 @@
                                      PIN_AFIO_AF(GPIOD_PIN12, 0) |          \
                                      PIN_AFIO_AF(GPIOD_PIN13, 0) |          \
                                      PIN_AFIO_AF(GPIOD_PIN14, 2) |          \
-                                     PIN_AFIO_AF(GPIOD_PIN15, 0))
+                                     PIN_AFIO_AF(GPIOD_PIN15, 2))
 
 /*
  * GPIOE setup:
