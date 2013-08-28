@@ -46,6 +46,7 @@
 static uint32_t           led_wait_time         =        500;
 
 static const ShellCommand commands[] = {
+		{"find_phy", cmd_find_phy},
 		{"mem", cmd_mem},
 		{"threads", cmd_threads},
 		{NULL, NULL}
