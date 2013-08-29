@@ -253,7 +253,7 @@
                                      PIN_MODE_INPUT(GPIO_A5_NC)               |\
                                      PIN_MODE_INPUT(GPIO_A6_NC)               |\
                                      PIN_MODE_INPUT(GPIO_A7_ETH_MRXDV)        |\
-                                     PIN_MODE_INPUT(GPIO_A8_PWR_SYNC)         |\
+                                     PIN_MODE_ALTERNATE(GPIO_A8_PWR_SYNC)         |\
                                      PIN_MODE_ALTERNATE(GPIO_A9_UART_TX )     |\
                                      PIN_MODE_ALTERNATE(GPIO_A10_UART_RX)     |\
                                      PIN_MODE_INPUT(GPIO_A11_NC)              |\
