@@ -15,6 +15,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "mac.h"
+#include "mac_lld.h"
 #include "cmddetail.h"
 #include "stm32f4xx.h"
 #include "chprintf.h"
@@ -60,22 +61,54 @@ static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) {
 void cmd_find_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
 	uint32_t i;
 	MACDriver *macp = &ETHD1;
-	uint32_t physid1, physid2;
+	uint32_t physid1 = 0;
+	uint32_t physid2 = 0;
 	(void)argc;
 	(void)argv;
+	// 0x00221610
+
+	//BOARD_PHY_ADDRESS
+	//chprintf(chp, "BOARD_PHY_ADDRESS:\t0x%x\r\n", (BOARD_PHY_ADDRESS));
+	chprintf(chp, "BOARD_PHY_ID>>16:\t0x%x\r\n", (BOARD_PHY_ID>>16));
+	chprintf(chp, "BOARD_PHY_ID&0xFFF0\t0x%x\r\n", (BOARD_PHY_ID & 0xFFF0));
+	chprintf(chp, "MACMIIDR_CR: 0x%x\tmacp->phyaddr: 0x%x\t\r\n",MACMIIDR_CR, macp->phyaddr);
+
+	chprintf(chp, "phy1_g:\t0x%x\tphy2_g:\t0x%x\r\n", phy1_g, phy2_g);
+
+//	 if ((mii_read(macp, MII_PHYSID1) == (BOARD_PHY_ID >> 16)) &&
+//	          ((mii_read(macp, MII_PHYSID2) & 0xFFF0) == (BOARD_PHY_ID & 0xFFF0))) {
+
 #if STM32_MAC_PHY_TIMEOUT > 0
+
 	halrtcnt_t start = halGetCounterValue();
 	halrtcnt_t timeout  = start + MS2RTT(STM32_MAC_PHY_TIMEOUT);
 	while (halIsCounterWithin(start, timeout)) {
+		chprintf(chp, ".\r\n");
 #endif
+
+//		  for (i = 0; i < 31; i++) {
+//		      macp->phyaddr = i << 11;
+//		      ETH->MACMIIDR = (i << 6) | MACMIIDR_CR;
+//
+//		      phy1_g = mii_read(macp, MII_PHYSID1) ;
+//		      phy2_g = mii_read(macp, MII_PHYSID2) ;
+//		      if ((phy1_g == (BOARD_PHY_ID >> 16)) &&
+//		          (phy2_g & 0xFFF0) == (BOARD_PHY_ID & 0xFFF0)) {
+//		//      if ((mii_read(macp, MII_PHYSID1) == (BOARD_PHY_ID >> 16)) &&
+//		//          ((mii_read(macp, MII_PHYSID2) & 0xFFF0) == (BOARD_PHY_ID & 0xFFF0))) {
+//		        return;
+//		      }
+//		    }
+
+
 		for (i = 0; i < 31; i++) {
-			chprintf(chp, "\r\ni:\t%d", i);
+			chprintf(chp, "\r\ni:\t%d\t", i);
 			macp->phyaddr = i << 11;
-			ETH->MACMIIDR = (i << 6) | MACMIIDR_CR;
+			ETH->MACMIIDR = (macp->phyaddr << 6) | MACMIIDR_CR;
 			physid1 = mii_read(macp, MII_PHYSID1);
 			physid2 = mii_read(macp, MII_PHYSID2);
 
-			chprintf(chp, "physid1: %d\tphysid2:\t%d\r\n", physid1, physid2);
+			chprintf(chp, "macp->phyaddr: 0x%x\tphysid1: 0x%x\tphysid2:\t0x%x\r\n",macp->phyaddr, physid1, physid2);
 
 		}
 #if STM32_MAC_PHY_TIMEOUT > 0
@@ -98,6 +131,7 @@ void cmd_phy_read(BaseSequentialStream *chp, int argc, char *argv[]) {
 	if (argc == 0) {
 		goto ERROR;
 	}
+	chprintf(chp, "argv0: %s\r\n", argv[0]);
 
 	if ((argc == 1) && (strcmp(argv[0], "read") == 0)){
 
@@ -112,7 +146,7 @@ void cmd_phy_read(BaseSequentialStream *chp, int argc, char *argv[]) {
 		//	bmcr_val = mii_read(&ETHD1, MII_BMCR);
 		//
 		//	mii_write(&ETHD1, 0x1f,( bmcr_val | 1<<13));
-
+		chprintf(chp, "here\r\n");
 		reg_to_ping = atoi(argv[0]);
 		phy_val = mii_read(&ETHD1, reg_to_ping);
 		chprintf(chp, "phy reg 0x%x value:\t0x%x\n\r", reg_to_ping, phy_val);

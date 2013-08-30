@@ -32,8 +32,8 @@
  * On the e407 the serial6 pins on portc6,7 are found on the UEXT connector.
  * See the schematic for pinout.
  *     stm		uext      ftdi
- * RX: pc6      pin3      tx
- * TX: pc7      pin4      rx
+ * TX: pc6      pin3      rx (yellow)
+ * RX: pc7      pin4      tx (orange)
  *
  * In the mcuconf.h file enable the proper serial subsystem:
  * #define STM32_SERIAL_USE_USART6             TRUE
@@ -46,6 +46,7 @@
 static uint32_t           led_wait_time         =        500;
 
 static const ShellCommand commands[] = {
+		{"phy_read", cmd_phy_read},
 		{"find_phy", cmd_find_phy},
 		{"mem", cmd_mem},
 		{"threads", cmd_threads},
