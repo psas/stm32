@@ -124,13 +124,20 @@ void init_rnet(void) {
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);
 	palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
 	palClearPad(GPIOD, GPIO_D14_KSZ_EN);
-	chThdSleepMilliseconds(3000);  // sleep 10
+	chThdSleepMilliseconds(1000);  // sleep 10
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);     // enable pwr
     palClearPad(GPIOD, GPIO_D13_RGB_R);
-	chThdSleepMilliseconds(3000);  // sleep 10
+	chThdSleepMilliseconds(1000);  // sleep 10
 	// Turn on clock from HSE -> PC9 function MCO2 see board file
-	RCC->CFGR |=  (1<<31);
+	RCC->CFGR |=  (1<<31);      // MCO0
 	RCC->CFGR &= ~(1<<29);
+
+//	RCC->CFGR &=  ~(0b11<<22);      // MCO1
+//	RCC->CFGR |=  (0b10<<21);
+//
+//	RCC->CFGR &= ~(0b111<<26); // clear MCO1 prescaler
+//	RCC->CFGR |= (0b???<<26);  // set MCO1 prescaler
+// Timer 1 channel one instead?
 
 	palSetPad(GPIOD, GPIO_D4_ETH_N_RST);   // disable reset
 	palClearPad(GPIOD, GPIO_D11_RGB_B);
