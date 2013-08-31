@@ -83,34 +83,20 @@ void cmd_find_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
 	halrtcnt_t start = halGetCounterValue();
 	halrtcnt_t timeout  = start + MS2RTT(STM32_MAC_PHY_TIMEOUT);
 	while (halIsCounterWithin(start, timeout)) {
-		chprintf(chp, ".\r\n");
+//		chprintf(chp, ".\r\n");
 #endif
 
-//		  for (i = 0; i < 31; i++) {
-//		      macp->phyaddr = i << 11;
-//		      ETH->MACMIIDR = (i << 6) | MACMIIDR_CR;
+
+//		for (i = 0; i < 31; i++) {
+//			chprintf(chp, "\r\ni:\t%d\t", i);
+//			macp->phyaddr = i << 11;
+//			ETH->MACMIIDR = (macp->phyaddr << 6) | MACMIIDR_CR;
+//			physid1 = mii_read(macp, MII_PHYSID1);
+//			physid2 = mii_read(macp, MII_PHYSID2);
 //
-//		      phy1_g = mii_read(macp, MII_PHYSID1) ;
-//		      phy2_g = mii_read(macp, MII_PHYSID2) ;
-//		      if ((phy1_g == (BOARD_PHY_ID >> 16)) &&
-//		          (phy2_g & 0xFFF0) == (BOARD_PHY_ID & 0xFFF0)) {
-//		//      if ((mii_read(macp, MII_PHYSID1) == (BOARD_PHY_ID >> 16)) &&
-//		//          ((mii_read(macp, MII_PHYSID2) & 0xFFF0) == (BOARD_PHY_ID & 0xFFF0))) {
-//		        return;
-//		      }
-//		    }
-
-
-		for (i = 0; i < 31; i++) {
-			chprintf(chp, "\r\ni:\t%d\t", i);
-			macp->phyaddr = i << 11;
-			ETH->MACMIIDR = (macp->phyaddr << 6) | MACMIIDR_CR;
-			physid1 = mii_read(macp, MII_PHYSID1);
-			physid2 = mii_read(macp, MII_PHYSID2);
-
-			chprintf(chp, "macp->phyaddr: 0x%x\tphysid1: 0x%x\tphysid2:\t0x%x\r\n",macp->phyaddr, physid1, physid2);
-
-		}
+//			chprintf(chp, "macp->phyaddr: 0x%x\tphysid1: 0x%x\tphysid2:\t0x%x\r\n",macp->phyaddr, physid1, physid2);
+//
+//		}
 #if STM32_MAC_PHY_TIMEOUT > 0
 }
 #endif

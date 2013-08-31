@@ -35,7 +35,7 @@
  * Ethernet PHY type.
  */
 #define BOARD_PHY_ID                MII_KS8721_ID
-#define BOARD_PHY_RMII
+// This board implements the entire MII interface #define BOARD_PHY_RMII
 
 /*
  * Board oscillators-related settings.

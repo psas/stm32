@@ -10,12 +10,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "ch.h"
 #include "hal.h"
-#include "chprintf.h"
-
+#include "mac.h"
+#include "mac_lld.h"
 #include "cmddetail.h"
+#include "stm32f4xx.h"
+#include "chprintf.h"
+#include "mii.h"
+#include "cmddetail.h"
+
+
 
 #if DEBUG_PHY
 /*! \brief   Read a PHY register.
@@ -278,11 +285,26 @@ void cmd_ksz_pwr(BaseSequentialStream *chp, int argc, char *argv[]) {
  * @param argv
  */
 void cmd_show(BaseSequentialStream *chp, int argc, char *argv[]) {
-	size_t n, size;
+	uint32_t i = 0;
+	MACDriver *macp = &ETHD1;
 
 	(void)argv;
+    (void)argc;
 
-	chprintf(chp, "RCC->CFGR : 0x%x\r\n", RCC->CFGR);
+	chprintf(chp, "RCC->CFGR:\t0x%x\r\n", RCC->CFGR);
+	chprintf(chp, "SYSCFG->PMC:\t0x%x\r\n", SYSCFG->PMC);
+
+	chprintf(chp, "BOARD_PHY_ID>>16:\t0x%x\r\n", (BOARD_PHY_ID>>16));
+	chprintf(chp, "BOARD_PHY_ID&0xFFF0\t0x%x\r\n", (BOARD_PHY_ID & 0xFFF0));
+	chprintf(chp, "MACMIIDR_CR: 0x%x\tmacp->phyaddr: 0x%x\t\r\n",MACMIIDR_CR, macp->phyaddr);
+
+//	for(i=0; i<32; ++i){
+//		if(phy1_g[i] != 0 || phy2_g[i] != 0) {
+//			chprintf(chp, "i: %d\tphy1_g:\t0x%x\tphy2_g:\t0x%x\r\n", i, phy1_g[i], phy2_g[i]);
+//		}
+//	}
+
+
 }
 
 /*! \brief Show memory usage

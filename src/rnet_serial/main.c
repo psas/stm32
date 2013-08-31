@@ -53,6 +53,7 @@ static const ShellCommand commands[] = {
 		{"ksz_rst_n", cmd_ksz_rst_n},
 		{"ksz_pwr", cmd_ksz_pwr},
 #endif
+		{"phy", cmd_phy},
 		{"show"    , cmd_show},
 		{"mem"    , cmd_mem},
 		{"threads", cmd_threads},
@@ -97,28 +98,28 @@ static msg_t Thread_blinker(void *arg) {
 	return -1;
 }
 
-static WORKING_AREA(waThread_25mhz, 64);
-/*! \brief 25 Mhz output clock hack
- */
-static msg_t Thread_25mhz(void *arg) {
-	(void)arg;
-
-	uint32_t i = 0;
-	while(TRUE) {
-		palClearPad(GPIOC, GPIO_C9_KSZ_25MHZ);
-
-		for(i=0; i<20; ++i) {
-			asm volatile("mov r0, r0");
-			asm volatile("mov r0, r0");
-		}
-		palSetPad(GPIOC, GPIO_C9_KSZ_25MHZ);
-		for(i=0; i<20; ++i) {
-			asm volatile("mov r0, r0");
-			asm volatile("mov r0, r0");
-		}
-	}
-	return -1;
-}
+//static WORKING_AREA(waThread_25mhz, 64);
+///*! \brief 25 Mhz output clock hack
+// */
+//static msg_t Thread_25mhz(void *arg) {
+//	(void)arg;
+//
+//	uint32_t i = 0;
+//	while(TRUE) {
+//		palClearPad(GPIOC, GPIO_C9_KSZ_25MHZ);
+//
+//		for(i=0; i<20; ++i) {
+//			asm volatile("mov r0, r0");
+//			asm volatile("mov r0, r0");
+//		}
+//		palSetPad(GPIOC, GPIO_C9_KSZ_25MHZ);
+//		for(i=0; i<20; ++i) {
+//			asm volatile("mov r0, r0");
+//			asm volatile("mov r0, r0");
+//		}
+//	}
+//	return -1;
+//}
 
 void init_rnet(void) {
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);
