@@ -31,11 +31,12 @@
 #define BOARD_PSAS_ROCKETNET_HUB_1_0
 #define BOARD_NAME                  "PSAS Rocketnet Hub 1.0"
 
+#define  MII_KS8999_ID                       0x0
 /*
  * Ethernet PHY type.
  */
-#define BOARD_PHY_ID                MII_KS8721_ID
-#define BOARD_PHY_RMII
+#define BOARD_PHY_ID                MII_KS8999_ID
+// #define BOARD_PHY_RMII
 
 /*
  * Board oscillators-related settings.
@@ -64,14 +65,14 @@
  * IO pins assignments.
  */
 //      GPIO_PORTPIN_FUNCTION
-#define GPIO_A0_ETH_MCRS              0
-#define GPIO_A1_ETH_MRXC              1
+#define GPIO_A0_ETH_MCRS              0    // AF11
+#define GPIO_A1_ETH_MRXC              1    // AF11
 #define GPIO_A2_ADC_BAT_IMON          2
-#define GPIO_A3_ETH_MCOL              3
+#define GPIO_A3_ETH_MCOL              3    // AF11
 #define GPIO_A4_NC                    4
 #define GPIO_A5_NC                    5
 #define GPIO_A6_NC                    6
-#define GPIO_A7_ETH_MRXDV             7
+#define GPIO_A7_ETH_MRXDV             7    // AF11
 #define GPIO_A8_PWR_SYNC              8
 #define GPIO_A9_UART_TX               9
 #define GPIO_A10_UART_RX              10
@@ -81,8 +82,8 @@
 #define GPIO_A14_JTAG_TCK             14
 #define GPIO_A15_JTAG_TDI             15
 
-#define GPIO_B0_ETH_MRXD2             0
-#define GPIO_B1_ETH_MRXD3             1
+#define GPIO_B0_ETH_MRXD2             0     // AF11
+#define GPIO_B1_ETH_MRXD3             1     // AF11
 #define GPIO_B2_BOOT1                 2
 #define GPIO_B3_JTAG_TDO              3
 #define GPIO_B4_JTAG_TRST             4
@@ -245,14 +246,14 @@
  * Some function are input FOR NOW Tue 13 August 2013 22:33:27 (PDT)
  *
  */
-#define VAL_GPIOA_MODER             (PIN_MODE_INPUT(GPIO_A0_ETH_MCRS)        |\
-                                     PIN_MODE_INPUT(GPIO_A1_ETH_MRXC)         |\
+#define VAL_GPIOA_MODER             (PIN_MODE_ALTERNATE(GPIO_A0_ETH_MCRS)        |\
+                                     PIN_MODE_ALTERNATE(GPIO_A1_ETH_MRXC)         |\
                                      PIN_MODE_ANALOG(GPIO_A2_ADC_BAT_IMON)    |\
                                      PIN_MODE_INPUT(GPIO_A3_ETH_MCOL)    |\
                                      PIN_MODE_INPUT(GPIO_A4_NC)               |\
                                      PIN_MODE_INPUT(GPIO_A5_NC)               |\
                                      PIN_MODE_INPUT(GPIO_A6_NC)               |\
-                                     PIN_MODE_INPUT(GPIO_A7_ETH_MRXDV)        |\
+                                     PIN_MODE_ALTERNATE(GPIO_A7_ETH_MRXDV)        |\
                                      PIN_MODE_ALTERNATE(GPIO_A8_PWR_SYNC)         |\
                                      PIN_MODE_ALTERNATE(GPIO_A9_UART_TX )     |\
                                      PIN_MODE_ALTERNATE(GPIO_A10_UART_RX)     |\
@@ -296,14 +297,14 @@
                                      PIN_OSPEED_100M(GPIO_A14_JTAG_TCK      ) |\
                                      PIN_OSPEED_100M(GPIO_A15_JTAG_TDI))
 
-#define VAL_GPIOA_PUPDR            (PIN_PUPDR_PULLDOWN(GPIO_A0_ETH_MCRS       ) |\
-                                     PIN_PUPDR_PULLDOWN(GPIO_A1_ETH_MRXC       ) |\
+#define VAL_GPIOA_PUPDR            (PIN_PUPDR_FLOATING(GPIO_A0_ETH_MCRS       ) |\
+                                     PIN_PUPDR_FLOATING(GPIO_A1_ETH_MRXC       ) |\
                                      PIN_PUPDR_FLOATING(GPIO_A2_ADC_BAT_IMON   ) |\
-                                     PIN_PUPDR_PULLDOWN(GPIO_A3_ETH_MCOL       ) |\
+                                     PIN_PUPDR_FLOATING(GPIO_A3_ETH_MCOL       ) |\
                                      PIN_PUPDR_PULLDOWN(GPIO_A4_NC             ) |\
                                      PIN_PUPDR_PULLDOWN(GPIO_A5_NC             ) |\
                                      PIN_PUPDR_PULLDOWN(GPIO_A6_NC             ) |\
-                                     PIN_PUPDR_PULLDOWN(GPIO_A7_ETH_MRXDV      ) |\
+                                     PIN_PUPDR_FLOATING(GPIO_A7_ETH_MRXDV      ) |\
                                      PIN_PUPDR_PULLDOWN(GPIO_A8_PWR_SYNC       ) |\
                                      PIN_PUPDR_FLOATING(GPIO_A9_UART_TX        ) |\
                                      PIN_PUPDR_PULLUP  (GPIO_A10_UART_RX       ) |\
@@ -330,14 +331,14 @@
                                      PIN_ODR_HIGH(GPIO_A14_JTAG_TCK            ) |\
                                      PIN_ODR_HIGH(GPIO_A15_JTAG_TDI))
 
-#define VAL_GPIOA_AFRL             (PIN_AFIO_AF( GPIO_A0_ETH_MCRS        , 0  )  |\
-                                     PIN_AFIO_AF( GPIO_A1_ETH_MRXC        , 0  )  |\
+#define VAL_GPIOA_AFRL             (PIN_AFIO_AF( GPIO_A0_ETH_MCRS        ,  11  )  |\
+                                     PIN_AFIO_AF( GPIO_A1_ETH_MRXC        , 11  )  |\
                                      PIN_AFIO_AF( GPIO_A2_ADC_BAT_IMON    , 0  )  |\
-                                     PIN_AFIO_AF( GPIO_A3_ETH_MCOL        , 0  )  |\
+                                     PIN_AFIO_AF( GPIO_A3_ETH_MCOL        , 11  )  |\
                                      PIN_AFIO_AF( GPIO_A4_NC              , 0  )  |\
                                      PIN_AFIO_AF( GPIO_A5_NC              , 0  )  |\
                                      PIN_AFIO_AF( GPIO_A6_NC              , 0  )  |\
-                                     PIN_AFIO_AF( GPIO_A7_ETH_MRXDV       , 1  ))
+                                     PIN_AFIO_AF( GPIO_A7_ETH_MRXDV       , 11  ))
 
 #define VAL_GPIOA_AFRH             (PIN_AFIO_AF( GPIO_A8_PWR_SYNC        , 0  )  |\
                                      PIN_AFIO_AF( GPIO_A9_UART_TX         , 7  )  |\
@@ -352,20 +353,20 @@
  * GPIOB setup:
  *
  */
-#define VAL_GPIOB_MODER             (PIN_MODE_INPUT    ( GPIO_B0_ETH_MRXD2  ) |\
-                                     PIN_MODE_INPUT    ( GPIO_B1_ETH_MRXD3  ) |\
+#define VAL_GPIOB_MODER             (PIN_MODE_ALTERNATE    ( GPIO_B0_ETH_MRXD2  ) |\
+                                     PIN_MODE_ALTERNATE    ( GPIO_B1_ETH_MRXD3  ) |\
                                      PIN_MODE_INPUT    ( GPIO_B2_BOOT1      ) |\
                                      PIN_MODE_ALTERNATE( GPIO_B3_JTAG_TDO   ) |\
                                      PIN_MODE_ALTERNATE( GPIO_B4_JTAG_TRST  ) |\
                                      PIN_MODE_INPUT    ( GPIO_B5_NC         ) |\
                                      PIN_MODE_ALTERNATE( GPIO_B6_I2C_SCL    ) |\
                                      PIN_MODE_ALTERNATE( GPIO_B7_I2C_SDA    ) |\
-                                     PIN_MODE_INPUT    ( GPIO_B8_ETH_MTXD3  ) |\
+                                     PIN_MODE_ALTERNATE    ( GPIO_B8_ETH_MTXD3  ) |\
                                      PIN_MODE_INPUT    ( GPIO_B9_NC         ) |\
                                      PIN_MODE_INPUT    ( GPIO_B10_NC        ) |\
-                                     PIN_MODE_INPUT    ( GPIO_B11_ETH_MTXEN ) |\
-                                     PIN_MODE_INPUT    ( GPIO_B12_ETH_MTXD0 ) |\
-                                     PIN_MODE_INPUT    ( GPIO_B13_ETH_MTXD1 ) |\
+                                     PIN_MODE_ALTERNATE    ( GPIO_B11_ETH_MTXEN ) |\
+                                     PIN_MODE_ALTERNATE    ( GPIO_B12_ETH_MTXD0 ) |\
+                                     PIN_MODE_ALTERNATE    ( GPIO_B13_ETH_MTXD1 ) |\
                                      PIN_MODE_INPUT    ( GPIO_B14_NC        ) |\
                                      PIN_MODE_INPUT    ( GPIO_B15_NC))                
 
@@ -403,20 +404,20 @@
                                      PIN_OSPEED_100M    ( GPIO_B14_NC        ) |\
                                      PIN_OSPEED_100M    ( GPIO_B15_NC))          
 
-#define VAL_GPIOB_PUPDR             (PIN_PUPDR_PULLDOWN( GPIO_B0_ETH_MRXD2  ) |\
-                                     PIN_PUPDR_PULLDOWN( GPIO_B1_ETH_MRXD3  ) |\
+#define VAL_GPIOB_PUPDR             (PIN_PUPDR_FLOATING( GPIO_B0_ETH_MRXD2  ) |\
+                                     PIN_PUPDR_FLOATING( GPIO_B1_ETH_MRXD3  ) |\
                                      PIN_PUPDR_PULLDOWN( GPIO_B2_BOOT1      ) |\
                                      PIN_PUPDR_FLOATING( GPIO_B3_JTAG_TDO   ) |\
                                      PIN_PUPDR_FLOATING( GPIO_B4_JTAG_TRST  ) |\
                                      PIN_PUPDR_PULLDOWN( GPIO_B5_NC         ) |\
                                      PIN_PUPDR_PULLUP  ( GPIO_B6_I2C_SCL    ) |\
                                      PIN_PUPDR_PULLUP  ( GPIO_B7_I2C_SDA    ) |\
-                                     PIN_PUPDR_PULLDOWN( GPIO_B8_ETH_MTXD3  ) |\
+                                     PIN_PUPDR_FLOATING( GPIO_B8_ETH_MTXD3  ) |\
                                      PIN_PUPDR_PULLDOWN( GPIO_B9_NC         ) |\
                                      PIN_PUPDR_PULLDOWN( GPIO_B10_NC        ) |\
-                                     PIN_PUPDR_PULLDOWN( GPIO_B11_ETH_MTXEN ) |\
-                                     PIN_PUPDR_PULLDOWN( GPIO_B12_ETH_MTXD0 ) |\
-                                     PIN_PUPDR_PULLDOWN( GPIO_B13_ETH_MTXD1 ) |\
+                                     PIN_PUPDR_FLOATING( GPIO_B11_ETH_MTXEN ) |\
+                                     PIN_PUPDR_FLOATING( GPIO_B12_ETH_MTXD0 ) |\
+                                     PIN_PUPDR_FLOATING( GPIO_B13_ETH_MTXD1 ) |\
                                      PIN_PUPDR_PULLDOWN( GPIO_B14_NC        ) |\
                                      PIN_PUPDR_PULLDOWN( GPIO_B15_NC))          
 
@@ -437,8 +438,8 @@
                                      PIN_ODR_HIGH      ( GPIO_B14_NC        ) |\
                                      PIN_ODR_HIGH      ( GPIO_B15_NC))          
 
-#define VAL_GPIOB_AFRL              (PIN_AFIO_AF       ( GPIO_B0_ETH_MRXD2 , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIO_B1_ETH_MRXD3 , 0  )  |\
+#define VAL_GPIOB_AFRL              (PIN_AFIO_AF       ( GPIO_B0_ETH_MRXD2 , 11  )  |\
+                                     PIN_AFIO_AF       ( GPIO_B1_ETH_MRXD3 , 11  )  |\
                                      PIN_AFIO_AF       ( GPIO_B2_BOOT1     , 0  )  |\
                                      PIN_AFIO_AF       ( GPIO_B3_JTAG_TDO  , 0  )  |\
                                      PIN_AFIO_AF       ( GPIO_B4_JTAG_TRST , 0  )  |\
@@ -446,12 +447,12 @@
                                      PIN_AFIO_AF       ( GPIO_B6_I2C_SCL   , 4  )  |\
                                      PIN_AFIO_AF       ( GPIO_B7_I2C_SDA   , 4  ))
 
-#define VAL_GPIOB_AFRH              (PIN_AFIO_AF       ( GPIO_B8_ETH_MTXD3 , 0  )  |\
+#define VAL_GPIOB_AFRH              (PIN_AFIO_AF       ( GPIO_B8_ETH_MTXD3 , 11  )  |\
                                      PIN_AFIO_AF       ( GPIO_B9_NC        , 0  )  |\
                                      PIN_AFIO_AF       ( GPIO_B10_NC       , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIO_B11_ETH_MTXEN, 0  )  |\
-                                     PIN_AFIO_AF       ( GPIO_B12_ETH_MTXD0, 0  )  |\
-                                     PIN_AFIO_AF       ( GPIO_B13_ETH_MTXD1, 0  )  |\
+                                     PIN_AFIO_AF       ( GPIO_B11_ETH_MTXEN, 11  )  |\
+                                     PIN_AFIO_AF       ( GPIO_B12_ETH_MTXD0, 11  )  |\
+                                     PIN_AFIO_AF       ( GPIO_B13_ETH_MTXD1, 11  )  |\
                                      PIN_AFIO_AF       ( GPIO_B14_NC       , 0  )  |\
                                      PIN_AFIO_AF       ( GPIO_B15_NC       , 0  )) 
 
@@ -462,10 +463,10 @@
  */
 #define VAL_GPIOC_MODER             (PIN_MODE_ANALOG(GPIO_C0_ADC_NODE_1_4_IMON  ) |\
                                      PIN_MODE_ANALOG(GPIO_C1_ADC_NODE_5_8_IMON  ) |\
-                                     PIN_MODE_INPUT (GPIO_C2_ETH_MTXD2          ) |\
-                                     PIN_MODE_INPUT (GPIO_C3_ETH_MTXC           ) |\
-                                     PIN_MODE_INPUT (GPIO_C4_ETH_MRXD0          ) |\
-                                     PIN_MODE_INPUT (GPIO_C5_ETH_MRXD1          ) |\
+                                     PIN_MODE_ALTERNATE (GPIO_C2_ETH_MTXD2          ) |\
+                                     PIN_MODE_ALTERNATE (GPIO_C3_ETH_MTXC           ) |\
+                                     PIN_MODE_ALTERNATE (GPIO_C4_ETH_MRXD0          ) |\
+                                     PIN_MODE_ALTERNATE (GPIO_C5_ETH_MRXD1          ) |\
                                      PIN_MODE_INPUT (GPIO_C6_NC                 ) |\
                                      PIN_MODE_INPUT (GPIO_C7_NC                 ) |\
                                      PIN_MODE_INPUT (GPIO_C8_NC                 ) |\
@@ -513,10 +514,10 @@
 
 #define VAL_GPIOC_PUPDR             (PIN_PUPDR_PULLDOWN  (GPIO_C0_ADC_NODE_1_4_IMON  ) |\
                                      PIN_PUPDR_PULLDOWN  (GPIO_C1_ADC_NODE_5_8_IMON  ) |\
-                                     PIN_PUPDR_PULLDOWN  (GPIO_C2_ETH_MTXD2          ) |\
-                                     PIN_PUPDR_PULLDOWN  (GPIO_C3_ETH_MTXC           ) |\
-                                     PIN_PUPDR_PULLDOWN  (GPIO_C4_ETH_MRXD0          ) |\
-                                     PIN_PUPDR_PULLDOWN  (GPIO_C5_ETH_MRXD1          ) |\
+                                     PIN_PUPDR_FLOATING  (GPIO_C2_ETH_MTXD2          ) |\
+                                     PIN_PUPDR_FLOATING  (GPIO_C3_ETH_MTXC           ) |\
+                                     PIN_PUPDR_FLOATING  (GPIO_C4_ETH_MRXD0          ) |\
+                                     PIN_PUPDR_FLOATING  (GPIO_C5_ETH_MRXD1          ) |\
                                      PIN_PUPDR_PULLDOWN  (GPIO_C6_NC                 ) |\
                                      PIN_PUPDR_PULLDOWN  (GPIO_C7_NC                 ) |\
                                      PIN_PUPDR_PULLDOWN  (GPIO_C8_NC                 ) |\
@@ -547,10 +548,10 @@
 
 #define VAL_GPIOC_AFRL              (PIN_AFIO_AF         ( GPIO_C0_ADC_NODE_1_4_IMON  , 0) |\
                                      PIN_AFIO_AF         ( GPIO_C1_ADC_NODE_5_8_IMON  , 0) |\
-                                     PIN_AFIO_AF         ( GPIO_C2_ETH_MTXD2          , 0) |\
-                                     PIN_AFIO_AF         ( GPIO_C3_ETH_MTXC           , 0) |\
-                                     PIN_AFIO_AF         ( GPIO_C4_ETH_MRXD0          , 0) |\
-                                     PIN_AFIO_AF         ( GPIO_C5_ETH_MRXD1          , 0) |\
+                                     PIN_AFIO_AF         ( GPIO_C2_ETH_MTXD2          , 11) |\
+                                     PIN_AFIO_AF         ( GPIO_C3_ETH_MTXC           , 11) |\
+                                     PIN_AFIO_AF         ( GPIO_C4_ETH_MRXD0          , 11) |\
+                                     PIN_AFIO_AF         ( GPIO_C5_ETH_MRXD1          , 11) |\
                                      PIN_AFIO_AF         ( GPIO_C6_NC                 , 0) |\
                                      PIN_AFIO_AF         ( GPIO_C7_NC                 , 0))
 
