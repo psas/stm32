@@ -33,7 +33,7 @@
 #include "datap_fc.h"
 
 #define         MAX_THREADS          4
-#define         NUM_THREADS          2
+#define         NUM_THREADS          1
 #define         TIMEBUFLEN           80
 #define         STRINGBUFLEN         80
 
@@ -213,6 +213,7 @@ void *datap_io_thread (void* ptr) {
 	}
 
 	/* Create a socket for the client */
+	printf("client addr: %s\n", port_info->client_addr);
 	for(ai_client = res; ai_client != NULL; ai_client = ai_client->ai_next) {
 		if ((clientsocket_fd = socket(ai_client->ai_family, ai_client->ai_socktype,
 				ai_client->ai_protocol)) == -1) {
@@ -286,13 +287,13 @@ int main(void) {
 	snprintf(msgbuf, STRINGBUFLEN, "Number of processors: %d", get_numprocs());
 	log_msg(msgbuf);
 
-	snprintf(th_data[CONTROL_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_ROLL_CTL);
+	snprintf(th_data[CONTROL_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
 	snprintf(th_data[CONTROL_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
 	snprintf(th_data[CONTROL_LISTENER].client_port     , PORT_STRING_LEN , "%d", IMU_A_LISTEN_PORT);
 
-	snprintf(th_data[SENSOR_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
-	snprintf(th_data[SENSOR_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
-	snprintf(th_data[SENSOR_LISTENER].client_port     , PORT_STRING_LEN , "%d", IMU_A_LISTEN_PORT);
+//	snprintf(th_data[SENSOR_LISTENER].host_listen_port, PORT_STRING_LEN , "%d", FC_LISTEN_PORT_IMU_A);
+//	snprintf(th_data[SENSOR_LISTENER].client_addr     , INET6_ADDRSTRLEN, "%s", IMU_A_IP_ADDR_STRING);
+//	snprintf(th_data[SENSOR_LISTENER].client_port     , PORT_STRING_LEN , "%d", IMU_A_LISTEN_PORT);
 
 	printf("start threads\n");
 
