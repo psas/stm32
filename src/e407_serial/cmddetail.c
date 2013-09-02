@@ -43,15 +43,15 @@ static uint32_t mii_read(MACDriver *macp, uint32_t reg) {
  * @param[in] reg       register number
  * @param[in] value     new register value
  */
-static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) {
-
-  ETH->MACMIIDR = value;
-  ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR |
-                  ETH_MACMIIAR_MW | ETH_MACMIIAR_MB;
-  while ((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
-	  ;
-}
-
+//static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) {
+//
+//  ETH->MACMIIDR = value;
+//  ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR |
+//                  ETH_MACMIIAR_MW | ETH_MACMIIAR_MB;
+//  while ((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
+//	  ;
+//}
+//
 
 /**
  * @brief   PHY address detection.
@@ -59,10 +59,9 @@ static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) {
  * @param[in] macp      pointer to the @p MACDriver object
  */
 void cmd_find_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
-	uint32_t i;
+
 	MACDriver *macp = &ETHD1;
-	uint32_t physid1 = 0;
-	uint32_t physid2 = 0;
+
 	(void)argc;
 	(void)argv;
 	// 0x00221610
@@ -73,7 +72,6 @@ void cmd_find_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
 	chprintf(chp, "BOARD_PHY_ID&0xFFF0\t0x%x\r\n", (BOARD_PHY_ID & 0xFFF0));
 	chprintf(chp, "MACMIIDR_CR: 0x%x\tmacp->phyaddr: 0x%x\t\r\n",MACMIIDR_CR, macp->phyaddr);
 
-	chprintf(chp, "phy1_g:\t0x%x\tphy2_g:\t0x%x\r\n", phy1_g, phy2_g);
 
 //	 if ((mii_read(macp, MII_PHYSID1) == (BOARD_PHY_ID >> 16)) &&
 //	          ((mii_read(macp, MII_PHYSID2) & 0xFFF0) == (BOARD_PHY_ID & 0xFFF0))) {
