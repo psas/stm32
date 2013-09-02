@@ -32,6 +32,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "ch.h"
 #include "hal.h"
@@ -51,6 +52,23 @@
 #if LWIP_NETCONN
 
 WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
+
+
+static uint8_t ip_addr_1(ip_addr_t addr) {
+	return (addr.addr & 0xff);
+}
+
+static uint8_t ip_addr_2(ip_addr_t addr) {
+	return (addr.addr & 0xff00) >> 8;
+}
+
+static uint8_t ip_addr_3(ip_addr_t addr) {
+	return (addr.addr & 0xff0000) >> 16;
+}
+
+static uint8_t ip_addr_4(ip_addr_t addr) {
+	return (addr.addr & 0xff000000) >> 24;
+}
 
 msg_t data_udp_send_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
@@ -108,6 +126,13 @@ msg_t data_udp_send_thread(void *p) {
 	}
 }
 
+static void print_ip(ip_addr_t addr, uint16_t port) {
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+
+	chprintf(chp, "my_ip: %u.%u.%u.%u: %u\r\n", ip_addr_1(addr), ip_addr_2(addr), ip_addr_3(addr), ip_addr_4(addr), port);
+
+}
+
 static void data_udp_rx_serve(struct netconn *conn) {
 	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 
@@ -120,17 +145,26 @@ static void data_udp_rx_serve(struct netconn *conn) {
 	uint16_t             buflen = 0;
 	uint16_t             i      = 0;
 
+	ip_addr_t            from_ip;
+	uint16_t             from_port;
+	ip_addr_t            my_ip;
+	uint16_t             my_port;
 	err_t                err;
+
+	enum { remote_ip, local_ip };
 
 	/*
 	 * Read the data from the port, blocking if nothing yet there.
 	 * We assume the request (the part we care about) is in one netbuf
 	 */
 	err = netconn_recv(conn, &inbuf);
+	netconn_getaddr(conn, &my_ip, &my_port,  local_ip);
+	print_ip(my_ip, my_port);
+
 	if (err == ERR_OK) {
 		netbuf_data(inbuf, (void **)&buf, &buflen);
 		palClearPad(TIMEINPUT_PORT, TIMEINPUT_PIN);     // negative pulse for input.
-		chprintf(chp, "\r\nsensor rx (from FC): %d ", count++);
+		chprintf(chp, "\r\nsensor rx:%d:->", count++);
 		palSetPad(TIMEINPUT_PORT, TIMEINPUT_PIN);
 		for(i=0; i<buflen; ++i) {
 			chprintf(chp, "%c", buf[i]);
