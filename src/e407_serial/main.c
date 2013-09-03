@@ -59,16 +59,17 @@
 static uint32_t           led_wait_time         =        500;
 
 static const ShellCommand commands[] = {
-    {"phy_read", cmd_phy_read},
-    {"find_phy", cmd_find_phy},
-    {"mem", cmd_mem},
-    {"threads", cmd_threads},
-    {NULL, NULL}
+		{"show", cmd_show},
+		{"phy_read", cmd_phy_read},
+		{"find_phy", cmd_find_phy},
+		{"mem", cmd_mem},
+		{"threads", cmd_threads},
+		{NULL, NULL}
 };
 
 static const ShellConfig shell_cfg1 = {
-    (BaseSequentialStream *)&SD6,
-    commands
+		(BaseSequentialStream *)&SD6,
+		commands
 };
 
 static WORKING_AREA(waThread_blinker, 64);

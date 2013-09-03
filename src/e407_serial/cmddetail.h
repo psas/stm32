@@ -44,6 +44,7 @@ extern "C" {
 //
 //static uint32_t mii_read(MACDriver *macp, uint32_t reg) ;
 //static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) ;
+void cmd_show(BaseSequentialStream *chp, int argc, char *argv[]) ;
 void cmd_phy(BaseSequentialStream *chp, int argc, char *argv[]) ;
 void cmd_find_phy(BaseSequentialStream *chp, int argc, char *argv[]) ;
 void cmd_phy_read(BaseSequentialStream *chp, int argc, char *argv[]) ;
