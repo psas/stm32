@@ -238,7 +238,10 @@ void cmd_show(BaseSequentialStream *chp, int argc, char *argv[]) {
 
     chprintf(chp, "I am the Rocketnet Hub board.\r\n");
 
-	chprintf(chp, "RCC->CFGR : 0x%x\r\n", RCC->CFGR);
+	chprintf(chp, "RCC->CFGR:\t0x%x\r\n",   RCC->CFGR);
+	chprintf(chp, "SYSCFG->PMC:\t0x%x\r\n", SYSCFG->PMC);
+
+
 //	chprintf(chp, "BOARD_PHY_ID>>16:\t0x%x\r\n", (BOARD_PHY_ID>>16));
 //	chprintf(chp, "BOARD_PHY_ID&0xFFF0\t0x%x\r\n", (BOARD_PHY_ID & 0xFFF0));
 //	chprintf(chp, "MACMIIDR_CR: 0x%x\tmacp->phyaddr: 0x%x\t\r\n",MACMIIDR_CR, macp->phyaddr);
