@@ -101,6 +101,20 @@ void cmd_find_phy(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 }
 
+/*! \brief for debugging
+ *
+ * @param chp
+ * @param argc
+ * @param argv
+ */
+void cmd_show(BaseSequentialStream *chp, int argc, char *argv[]) {
+	(void) argc;
+	(void) argv;
+
+	chprintf(chp, "I am the E407 Board.\r\n");
+
+}
+
 //void cmd_phy_write(BaseSequentialStream *chp, int argc, char *argv[]) {
 //
 //	//	mii_write(&ETHD1, MII_BMCR, (bmcr_val & ~(1<<12)) );

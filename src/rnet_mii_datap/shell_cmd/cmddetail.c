@@ -236,6 +236,8 @@ void cmd_show(BaseSequentialStream *chp, int argc, char *argv[]) {
 	(void)argv;
     (void)argc;
 
+    chprintf(chp, "I am the Rocketnet Hub board.\r\n");
+
 	chprintf(chp, "RCC->CFGR : 0x%x\r\n", RCC->CFGR);
 //	chprintf(chp, "BOARD_PHY_ID>>16:\t0x%x\r\n", (BOARD_PHY_ID>>16));
 //	chprintf(chp, "BOARD_PHY_ID&0xFFF0\t0x%x\r\n", (BOARD_PHY_ID & 0xFFF0));
