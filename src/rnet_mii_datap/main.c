@@ -95,6 +95,7 @@ static void led_init(void) {
         palClearPad(GPIOD, GPIO_D11_RGB_B);
         chThdSleepMilliseconds(150);
         palSetPad(GPIOD, GPIO_D11_RGB_B);
+        chThdSleepMilliseconds(150);
     }
 }
 
@@ -138,10 +139,10 @@ void init_rnet(void) {
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);
 	palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
 	palClearPad(GPIOD, GPIO_D14_KSZ_EN);
-	chThdSleepMilliseconds(1000);  // sleep 10
+	chThdSleepMilliseconds(200);
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);     // enable pwr
     palClearPad(GPIOD, GPIO_D13_RGB_R);
-	chThdSleepMilliseconds(1000);  // sleep 10
+	chThdSleepMilliseconds(200);
 	// Turn on clock from HSE -> PC9 function MCO2 see board file
 	RCC->CFGR |=  (1<<31);      // MCO0
 	RCC->CFGR &= ~(1<<29);
@@ -155,6 +156,7 @@ void init_rnet(void) {
 
 	palSetPad(GPIOD, GPIO_D4_ETH_N_RST);   // disable reset
 	palClearPad(GPIOD, GPIO_D11_RGB_B);
+	chThdSleepMilliseconds(5000);
 }
 
 /*
@@ -198,13 +200,14 @@ int main(void) {
 
 	chThdCreateStatic(waThread_blinker  , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
 	//chThdCreateStatic(waThread_25mhz    , sizeof(waThread_25mhz)            , NORMALPRIO    , Thread_25mhz           , NULL);
-	static       uint8_t      IMU_macAddress[6]           = IMU_A_MAC_ADDRESS;
-	struct       ip_addr      ip, gateway, netmask;
-	IMU_A_IP_ADDR(&ip);
-	IMU_A_GATEWAY(&gateway);
-	IMU_A_NETMASK(&netmask);
 
-	ip_opts.macaddress = IMU_macAddress;
+	static       uint8_t      RNET_macAddress[6]           = RNET_A_MAC_ADDRESS;
+	struct       ip_addr      ip, gateway, netmask;
+	RNET_A_IP_ADDR(&ip);
+	RNET_A_GATEWAY(&gateway);
+	RNET_A_NETMASK(&netmask);
+
+	ip_opts.macaddress = RNET_macAddress;
 	ip_opts.address    = ip.addr;
 	ip_opts.netmask    = netmask.addr;
 	ip_opts.gateway    = gateway.addr;
