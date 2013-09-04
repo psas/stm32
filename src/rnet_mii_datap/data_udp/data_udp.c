@@ -47,6 +47,8 @@
 #include "device_net.h"
 #include "data_udp.h"
 
+	enum { remote_ip, local_ip };
+
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
@@ -69,8 +71,16 @@ static uint8_t ip_addr_4(ip_addr_t addr) {
 	return (addr.addr & 0xff000000) >> 24;
 }
 
+static void print_ip(ip_addr_t addr, uint16_t port) {
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
+
+	chprintf(chp, "my_ip: %u.%u.%u.%u: %u\r\n", ip_addr_1(addr), ip_addr_2(addr), ip_addr_3(addr), ip_addr_4(addr), port);
+
+}
+
 msg_t data_udp_send_thread(void *p) {
 	void * arg __attribute__ ((unused)) = p;
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
 
 	err_t                 err;
 	uint8_t               count = 0;
@@ -81,19 +91,26 @@ msg_t data_udp_send_thread(void *p) {
 	char*                  data;
 	char                   msg[DATA_UDP_MSG_SIZE] ;
 
-	ip_addr_t              ip_addr_sensor;
+	ip_addr_t              ip_addr_rnet;
 	ip_addr_t              ip_addr_fc;
+	ip_addr_t            my_ip;
 
-	IMU_A_IP_ADDR(&ip_addr_sensor);
+		uint16_t             my_port;
+	RNET_A_IP_ADDR(&ip_addr_rnet);
 	IP_PSAS_FC(&ip_addr_fc);
 
 	chRegSetThreadName("data_udp_send_thread");
 
 	conn   = netconn_new( NETCONN_UDP );
 
+	chThdSleepMilliseconds(1000);
+	chprintf(chp, "Start udp send thread\n\r");
+
 	/* Bind to the local address, or to ANY address */
 	//	netconn_bind(conn, NULL, DATA_UDP_TX_THREAD_PORT ); //local port, NULL is bind to ALL ADDRESSES! (IP_ADDR_ANY)
-	err    = netconn_bind(conn, &ip_addr_sensor, IMU_A_TX_PORT ); //local port
+	err    = netconn_bind(conn, &ip_addr_rnet, RNET_A_TX_PORT ); //local port
+	netconn_getaddr(conn, &my_ip, &my_port,  local_ip);
+		print_ip(my_ip, my_port);
 
 	if (err == ERR_OK) {
 		/* Connect to specific address or a broadcast address */
@@ -103,14 +120,16 @@ msg_t data_udp_send_thread(void *p) {
 		 *
 		 */
 		//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
-		err = netconn_connect(conn, &ip_addr_fc, FC_LISTEN_PORT_IMU_A );
+		err = netconn_connect(conn, &ip_addr_fc, FC_LISTEN_PORT_RNET_A );
 		if(err == ERR_OK) {
 			for( ;; ){
 				buf     =  netbuf_new();
 				data    =  netbuf_alloc(buf, sizeof(msg));
-				sprintf(msg, "sensor tx: %d", count++);
+				sprintf(msg, "rnet tx: %d", count++);
 				memcpy (data, msg, sizeof (msg));
-				netconn_send(conn, buf);
+				err = netconn_send(conn, buf);
+				chprintf(chp, "rnet sent: index: %d. Error: %d\r\n", count, err);
+
 				netbuf_delete(buf); // De-allocate packet buffer
 				chThdSleepMilliseconds(500);
 			}
@@ -121,13 +140,6 @@ msg_t data_udp_send_thread(void *p) {
 	} else {
 		return RDY_RESET;
 	}
-}
-
-static void print_ip(ip_addr_t addr, uint16_t port) {
-	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
-
-	chprintf(chp, "my_ip: %u.%u.%u.%u: %u\r\n", ip_addr_1(addr), ip_addr_2(addr), ip_addr_3(addr), ip_addr_4(addr), port);
-
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
@@ -146,8 +158,6 @@ static void data_udp_rx_serve(struct netconn *conn) {
 
 	uint16_t             my_port;
 	err_t                err;
-
-	enum { remote_ip, local_ip };
 
 	/*
 	 * Read the data from the port, blocking if nothing yet there.
@@ -188,11 +198,11 @@ msg_t data_udp_receive_thread(void *p) {
 
 	struct netconn    *conn;
 
-	ip_addr_t         ip_addr_sensor;
+	ip_addr_t        ip_addr_rnet;
 
 	chRegSetThreadName("data_udp_receive_thread");
 
-	IMU_A_IP_ADDR(&ip_addr_sensor);
+	RNET_A_IP_ADDR(&ip_addr_rnet);
 
 	/*
 	 *  Create a new UDP connection handle
@@ -203,7 +213,7 @@ msg_t data_udp_receive_thread(void *p) {
 	/*
 	 * Bind sensor address to a udp port
 	 */
-	err = netconn_bind(conn, &ip_addr_sensor, IMU_A_LISTEN_PORT);
+	err = netconn_bind(conn, &ip_addr_rnet, RNET_A_LISTEN_PORT);
 
 	if (err == ERR_OK) {
 		while(1) {

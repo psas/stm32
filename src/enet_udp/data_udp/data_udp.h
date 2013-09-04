@@ -50,8 +50,8 @@
 
 //#define PSAS_IP_HOST                         (htonl(0xC0A8011E))     // 192.168.1.30	is 0xC0A8011E
 //     (htonl(0xC0A8005B))                 //  192.168.0.91  is 0xC0A8005B
-#define IP_PSAS_FC(p)                        IP4_ADDR(p, 192, 168, 0, 91)
-#define IP_PSAS_SENSOR(p)                    IP4_ADDR(p, 192, 168, 0, 196);
+//#define IP_PSAS_FC(p)                        IP4_ADDR(p, 192, 168, 0, 91)
+//#define IP_PSAS_SENSOR(p)                    IP4_ADDR(p, 192, 168, 0, 196);
 
 #define DATA_UDP_MSG_SIZE                    50
 
