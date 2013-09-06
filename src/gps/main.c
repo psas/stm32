@@ -26,19 +26,9 @@
 
 #include "chprintf.h"
 
-// bit rate and baud rate
-// look for button pressed example
-// set it up as an interrupt instead (see extintr) extdetail.c
-// edge-sensitive
-
-// defined in os/hal/platforms/STM32/USARTv1/serial_lld.h
-
-extern SerialDriver SD1;  // to laptop
-extern SerialDriver SD2;  // to MAX2769
+extern SerialDriver SD1; // defined in os/hal/platforms/STM32/USARTv1/serial_lld.h
 
 #define SERIAL_BITRATE 9600
-
-// MAX2769 configuration register commands
 
 #define CONF1_DEFAULT     0xA0951A30  // address 0x0
 #define CONF2_INDEPENDENT 0x05502881  // address 0x1
@@ -54,6 +44,51 @@ extern SerialDriver SD2;  // to MAX2769
 #define CONF_TESTMODE1    0x1E0F4018  // address 0x8
 #define CONF_TESTMODE2    0x14C04029  // address 0x9
 
+// Minimums from the data sheet
+#define TCSS  10  // ns     falling edge of CS to rising edge of first SCLK time
+#define TDS   10  // ns     data to serial-clock setup time
+#define TDH   10  // ns     data to clock hold time
+#define TCH   25  // ns     serial lock pulse-width high
+#define TCL   25  // ns     clock pulse-width low
+#define TCSH  10  // ns     last sclk rising edge to rising edge of CS 
+#define TCSW  1   // clock  CS high pulse width
+
+// Write a word to the 3-wire serial configuration interface 
+// Pads: D11 - CSn   D12 - SCLK   D13 - SDATA
+// 25ns = 40MHz   10ns = 100 MHz  12MHz = 84ns
+// MAX2769 serial clock: Minimum of 40MHz = period of 25 ns
+// STM32F4 GPIO clock: 168MHz default = period of 5.95 ns
+//
+// 168MHz / 8 is 21 MHz = period of 47.6ns 
+// 168MHz / 4 is 42 MHz = period of 23.8ns
+// 168MHz / 2 is 84 MHz = period of 11.9ns
+// 
+// wait function takes the number of periods to wait
+int max2769_write_word(uint32_t wrd) {
+
+  uint32_t bout;
+
+  palClearPad(GPIOD,11);            // bring CS low
+  wait()                            // wait TCSS (10ns min) before sending any data
+
+  for (int i; i < 32; i++) {
+    bout = wrd & 0x8000000;         // shift word and set pad D13 to the output bit 
+    if (bout) palSetPad(GPIOD,13);  // bit = 1, pad high
+    else palClearPad(GPIOD,13);     // bit = 0, pad low
+    wait()                          // wait TDS (10ns min)
+    palSetPad(GPIOD,12);            // bring clock pad D12 high for TCH 
+    wait()                          // wait TDH-TCH (10ns min)
+    wrd = wrd << 1;                 // shift the word so MSB is next bit
+  }
+
+  wait()                            // wait TCSH (10ns min)
+  palSetPad(GPIOD,11);              // bring CS high to end transmission
+  wait()                            // wait TCSW before beginning new word write (1 clock)
+
+  return 0;
+
+}
+
 static const SerialConfig serial_config =
 {
 		SERIAL_BITRATE,
@@ -62,11 +97,12 @@ static const SerialConfig serial_config =
 		0
 };
 
-#if 0
 /* Simple Serial example
- * Write some chars out the tx port on the FTDI output of the GPS RF board.
+ * Sets up the GPIO ports for MAX2769
+ * Writes some chars out the tx port on the FTDI output of the GPS RF board.
  *
- * GPIO Port A pin 9 is our TX
+ * GPIO Port A pin 9 is our TX to RS232 FTDI output header
+ *
  */
 int main(void) {
     uint32_t i = 0;
@@ -76,90 +112,25 @@ int main(void) {
 
     uint8_t my_string[10] = "Hello";
 
-    /* Alternate pad mode is 7 for this port / pin.
-     *
-     * See the datasheet-NOT the reference manual
-     */
-      palSetPadMode(GPIOA, 10, PAL_MODE_ALTERNATE(7));  // RX
-      palSetPadMode(GPIOA, 9, PAL_MODE_ALTERNATE(7));   // TX
+    // set up the pads for the serial communication
+    palSetPadMode(GPIOD, 10, PAL_MODE_INPUT_PULLDOWN);  // ANTFLAG
+    palSetPadMode(GPIOC, 6,  PAL_MODE_INPUT_PULLDOWN);  // LD
+    palSetPadMode(GPIOD, 15, PAL_MODE_INPUT_PULLUP);    // SHDNn
+    palSetPadMode(GPIOD, 9,  PAL_MODE_INPUT_PULLDOWN);  // CLKOUT
+    palSetPadMode(GPIOD, 8,  PAL_MODE_INPUT_PULLDOWN);  // Q1
+    palSetPadMode(GPIOB, 15, PAL_MODE_INPUT_PULLDOWN);  // Q0
+    palSetPadMode(GPIOA, 4,  PAL_MODE_INPUT_PULLUP);    // IDLEn
+    palSetPadMode(GPIOD, 10, PAL_MODE_INPUT_PULLDOWN);  // PGM
 
-    /* activate serial driver 1
-     * default configuration ('NULL' means use default.)
-     */
-    sdStart(&SD1, &serial_config); // default setup is 38400 8N1 for Chibios
+    // 3-wire configuration interface
+    // set up the pads for the 3-wire serial configuration interface
+    palSetPadMode(GPIOD, 11, PAL_MODE_OUTPUT_PUSHPULL); // CSn
+    palSetPadMode(GPIOD, 12, PAL_MODE_OUTPUT_PUSHPULL); // SCLK
+    palSetPadMode(GPIOD, 13, PAL_MODE_OUTPUT_PUSHPULL); // SDATA
 
-    while (TRUE) {
-      sdWrite(&SD1,my_string,strlen(my_string));
-      sdWrite(&SD1,"\n\r",2);
-      sdWrite(&SD1,"Hello, world!\n\r",15);
-      chThdSleepMilliseconds(1000);
-    }
-}
-#endif
-
-#if 0
-/* Simple GPIO read example
- * Read in data from the MAX2769 pin I0 (PB3 on STM32F4)
- * Possibly by way of I/O queue, write that data out the TX (PA9) 
- * on the FTDI output of the GPS RF board.
- * The MAX2769 is set to the default configuration of '000'
- *
- * 16.368 MHz reference frequency
- * 16 reference division ratio
- * 1536 main division ratio
- * I only
- * 1 I Q bit
- * differential I and Q logic level
- * IF center frequency (MHz)
- * 5th order IF filter
- * SCLK = 0
- * SDATA = 0
- * CS = 0
- * 
- * NOTE: going to want the PAL Driver
-
-int main(void) {
-    uint32_t i = 0;
-
-    halInit();
-    chSysInit();
-
-    uint8_t my_string[10] = "Hello";
-
-}
-#endif
-
-#if 0
-/* Simple SPI read example
- * SCLK is PB3, MISO is PB4, master is STM32F4 and slave is MAX2769
- * Possibly by way of I/O queue, write that data out the TX (PA9) 
- * on the FTDI output of the GPS RF board.
- * Remember STM32F4 is way faster than MAX2769
- * The MAX2769 is set to the default configuration of '000'
- *
- * Need to set up the SPI in 2769 configuration
- * 
- * 16.368 MHz reference frequency
- * 16 reference division ratio
- * 1536 main division ratio
- * I only
- * 1 I Q bit
- * differential I and Q logic level
- * IF center frequency (MHz)
- * 5th order IF filter
- * SCLK = 0
- * SDATA = 0
- * CS = 0
- * 
- * NOTE: going to want the PAL Driver
-
-int main(void) {
-    uint32_t i = 0;
-
-    halInit();
-    chSysInit();
-
-    uint8_t my_string[10] = "Hello";
+    palSetPad(GPIOD, 11);   // chip select is pulled high
+    palClearPad(GPIOD, 12); // SClk is pulled low
+    palClearPad(GPIOD, 13); // SData is pulled low
 
     /* Alternate pad mode is 7 for this port / pin.
      *
@@ -180,7 +151,4 @@ int main(void) {
       chThdSleepMilliseconds(1000);
     }
 }
-#endif
-
-
 
