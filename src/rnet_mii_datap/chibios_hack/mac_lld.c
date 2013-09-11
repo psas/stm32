@@ -412,10 +412,8 @@ void mac_lld_stop(MACDriver *macp) {
 msg_t mac_lld_get_transmit_descriptor(MACDriver *macp,
                                       MACTransmitDescriptor *tdp) {
   stm32_eth_tx_descriptor_t *tdes;
-  BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
 
   if (!macp->link_up) {
-    chprintf(chp, "no link up\r\n");
     return RDY_TIMEOUT;
   }
 
@@ -428,7 +426,6 @@ msg_t mac_lld_get_transmit_descriptor(MACDriver *macp,
      another thread.*/
   if (tdes->tdes0 & (STM32_TDES0_OWN | STM32_TDES0_LOCKED)) {
     chSysUnlock();
-    chprintf(chp, "descriptor issues\r\n");
     return RDY_TIMEOUT;
   }
 
@@ -571,15 +568,14 @@ void mac_lld_release_receive_descriptor(MACReceiveDescriptor *rdp) {
 bool_t mac_lld_poll_link_status(MACDriver *macp) {
   uint32_t maccr, bmsr, bmcr;
 
-  BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
   maccr = ETH->MACCR;
 
   /* PHY CR and SR registers read.*/
   (void)mii_read(macp, MII_BMSR);
-  /*bmsr = mii_read(macp, MII_BMSR);*/
-  bmsr = 0b0111100001101101;
-  /*bmcr = mii_read(macp, MII_BMCR);*/
-  bmcr = 0b0011000100000001;                
+  bmsr = mii_read(macp, MII_BMSR);
+  /*bmsr = 0b0111100001101101;*/
+  bmcr = mii_read(macp, MII_BMCR);
+  /*bmcr = 0b0011000100000001;                */
 
   /* Check on auto-negotiation mode.*/
   if (bmcr & BMCR_ANENABLE) {
@@ -588,7 +584,6 @@ bool_t mac_lld_poll_link_status(MACDriver *macp) {
     /* Auto-negotiation must be finished without faults and link established.*/
     if ((bmsr & (BMSR_LSTATUS | BMSR_RFAULT | BMSR_ANEGCOMPLETE)) !=
         (BMSR_LSTATUS | BMSR_ANEGCOMPLETE)) {
-        chprintf(chp, "\t***auto nego fail\r\n");
       return macp->link_up = FALSE;
     }
 
@@ -610,7 +605,6 @@ bool_t mac_lld_poll_link_status(MACDriver *macp) {
   else {
     /* Link must be established.*/
       if (!(bmsr & BMSR_LSTATUS)) {
-        chprintf(chp, "\t***link est fail \r\n");
           return macp->link_up = FALSE;
       }
 
@@ -631,7 +625,6 @@ bool_t mac_lld_poll_link_status(MACDriver *macp) {
   ETH->MACCR = maccr;
 
   /* Returns the link status.*/
-  chprintf(chp, "exit with link up\r\n");
   return macp->link_up = TRUE;
 }
 
