@@ -120,7 +120,8 @@ msg_t data_udp_send_thread(void *p) {
 		 *
 		 */
 		//	netconn_connect(conn, IP_ADDR_BROADCAST, DATA_UDP_TX_THREAD_PORT );
-		err = netconn_connect(conn, &ip_addr_fc, FC_LISTEN_PORT_RNET_A );
+		// err = netconn_connect(conn, &ip_addr_fc, FC_LISTEN_PORT_RNET_A );
+		err = netconn_connect(conn, IP_ADDR_BROADCAST,  FC_LISTEN_PORT_RNET_A );
 		if(err == ERR_OK) {
 			for( ;; ){
 				buf     =  netbuf_new();
@@ -128,7 +129,7 @@ msg_t data_udp_send_thread(void *p) {
 				sprintf(msg, "rnet tx: %d", count++);
 				memcpy (data, msg, sizeof (msg));
 				err = netconn_send(conn, buf);
-				chprintf(chp, "rnet sent: index: %d. Error: %d\r\n", count, err);
+				// chprintf(chp, "rnet sent: index: %d. Error: %d\r\n", count, err);
 
 				netbuf_delete(buf); // De-allocate packet buffer
 				chThdSleepMilliseconds(500);

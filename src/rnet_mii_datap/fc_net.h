@@ -10,7 +10,7 @@
 
 #if LWIP_NETCONN
 	#include "lwip/ip_addr.h"
-	#define         IP_PSAS_FC(p)           IP4_ADDR(p, 10, 0, 0, 2)
+	#define         IP_PSAS_FC(p)           IP4_ADDR(p, 10, 0, 0, 6)
 #endif
 #define         FC_LISTEN_PORT_IMU_A     36000
 #define         FC_LISTEN_PORT_RNET_A    36002
