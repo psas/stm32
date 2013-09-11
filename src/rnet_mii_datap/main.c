@@ -153,10 +153,10 @@ void debug_msg_lwip(char* msg) {
 void init_rnet(void) {
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);
 	palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
-	palClearPad(GPIOD, GPIO_D14_KSZ_EN);
+        palClearPad(GPIOD, GPIO_D14_KSZ_EN);
 	chThdSleepMilliseconds(200);
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);     // enable pwr
-    palClearPad(GPIOD, GPIO_D13_RGB_R);
+// palClearPad(GPIOD, GPIO_D13_RGB_R);
 	chThdSleepMilliseconds(200);
 	// Turn on clock from HSE -> PC9 function MCO2 see board file
 	RCC->CFGR |=  (1<<31);      // MCO0
@@ -170,8 +170,8 @@ void init_rnet(void) {
 // Timer 1 channel one instead?
 
 	palSetPad(GPIOD, GPIO_D4_ETH_N_RST);   // disable reset
-	palClearPad(GPIOD, GPIO_D11_RGB_B);
-	chThdSleepMilliseconds(5000);
+// palClearPad(GPIOD, GPIO_D11_RGB_B);
+	chThdSleepMilliseconds(500);
 }
 
 /*
