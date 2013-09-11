@@ -22,22 +22,24 @@
 #include "ch.h"
 #include "hal.h"
 
-
-
 #include <lwip/ip_addr.h>
 
-#include "data_udp.h"
 #include "lwipopts.h"
 #include "lwipthread.h"
 
-#include "board.h"
-
-#include "device_net.h"
-#include "fc_net.h"
-
 #include "chprintf.h"
 #include "shell.h"
+
+// Modified configuration files
+#include "board.h"
+
+// Local header files
+#include "data_udp.h"
+#include "device_net.h"
+#include "fc_net.h"
 #include "cmddetail.h"
+
+#include "main.h"
 
 /*! The goal of this code is to run the shell through the serial terminal
  * and not the usb subsystem. Connect an FTDI serial/usb connector to the
@@ -105,7 +107,9 @@ static WORKING_AREA(waThread_blinker, 64);
 static msg_t Thread_blinker(void *arg) {
 	(void)arg;
 	chRegSetThreadName("blinker");
-	while (TRUE) {
+        chThdSleepMilliseconds(4000);
+        debug_msg_lwip("blinky\r\n");
+        while (TRUE) {
 		palTogglePad(GPIOD, GPIO_D12_RGB_G);
 		chThdSleepMilliseconds(led_wait_time);
 	}
@@ -134,6 +138,17 @@ static msg_t Thread_blinker(void *arg) {
 //	}
 //	return -1;
 //}
+
+
+void debug_msg_lwip(char* msg) {
+    BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
+
+    chprintf(chp, "%s\r\n", msg);
+    chprintf(chp, "%d\r\n",  LWIP_SEND_TIMEOUT  );
+
+}
+
+
 
 void init_rnet(void) {
 	palSetPad(GPIOD, GPIO_D14_KSZ_EN);
@@ -188,7 +203,7 @@ int main(void) {
 //		palSetPadMode(TIMEINPUT_PORT, TIMEINPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL );
 
 	led_init();
-    init_rnet();
+        init_rnet();
 
 	// start the serial port
 	sdStart(&SD1, NULL);
