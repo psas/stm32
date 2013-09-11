@@ -103,7 +103,8 @@ static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) {
  */
 static uint32_t mii_read(MACDriver *macp, uint32_t reg) {
     
-    
+#ifdef BOARD_PSAS_ROCKETNET_HUB_1_0    
+    (void)macp;
     switch (reg)  {
         case 0: 
             return  0b0011000100000001;                //bmcr
@@ -118,10 +119,12 @@ static uint32_t mii_read(MACDriver *macp, uint32_t reg) {
             return  0b0;
             break;
     }
+#else
   ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR | ETH_MACMIIAR_MB;
   while ((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
     ;
   return ETH->MACMIIDR;
+#endif
 }
 
 #if !defined(BOARD_PHY_ADDRESS)
@@ -413,9 +416,8 @@ msg_t mac_lld_get_transmit_descriptor(MACDriver *macp,
                                       MACTransmitDescriptor *tdp) {
   stm32_eth_tx_descriptor_t *tdes;
 
-  if (!macp->link_up) {
+  if (!macp->link_up)
     return RDY_TIMEOUT;
-  }
 
   chSysLock();
 
@@ -573,9 +575,7 @@ bool_t mac_lld_poll_link_status(MACDriver *macp) {
   /* PHY CR and SR registers read.*/
   (void)mii_read(macp, MII_BMSR);
   bmsr = mii_read(macp, MII_BMSR);
-  /*bmsr = 0b0111100001101101;*/
   bmcr = mii_read(macp, MII_BMCR);
-  /*bmcr = 0b0011000100000001;                */
 
   /* Check on auto-negotiation mode.*/
   if (bmcr & BMCR_ANENABLE) {
@@ -583,9 +583,8 @@ bool_t mac_lld_poll_link_status(MACDriver *macp) {
 
     /* Auto-negotiation must be finished without faults and link established.*/
     if ((bmsr & (BMSR_LSTATUS | BMSR_RFAULT | BMSR_ANEGCOMPLETE)) !=
-        (BMSR_LSTATUS | BMSR_ANEGCOMPLETE)) {
+        (BMSR_LSTATUS | BMSR_ANEGCOMPLETE))
       return macp->link_up = FALSE;
-    }
 
     /* Auto-negotiation enabled, checks the LPA register.*/
     lpa = mii_read(macp, MII_LPA);
@@ -604,9 +603,8 @@ bool_t mac_lld_poll_link_status(MACDriver *macp) {
   }
   else {
     /* Link must be established.*/
-      if (!(bmsr & BMSR_LSTATUS)) {
-          return macp->link_up = FALSE;
-      }
+    if (!(bmsr & BMSR_LSTATUS))
+      return macp->link_up = FALSE;
 
     /* Check on link speed.*/
     if (bmcr & BMCR_SPEED100)
