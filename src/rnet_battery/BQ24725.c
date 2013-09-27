@@ -65,24 +65,12 @@ static void BQ24725_init(void){
 static int BQ24725_Get(uint8_t register_id, uint16_t* data){
     if(initialized == false)
         BQ24725_init();
-//    uint32_t moder = GPIOB->MODER;
-//    GPIOB->MODER = (moder & ~GPIO_MODER_MODER6) | GPIO_MODER_MODER6_0;
-
-//    palClearPad(GPIOB, GPIO_B6_I2C_SCL);
-//    GPIOB->MODER = moder;
-//    BQ24725_init();
-//    gptPolledDelay(&GPTD1, 40);
-//    return 0;
-
-//    PIN_MODE_ALTERNATE(GPIO_B6_I2C_SCL);
 
     uint8_t tx[1] = {register_id};
     uint8_t rx[2];
     i2cflags_t errors;
 	i2cAcquireBus(I2CD);
 	msg_t status = i2cMasterTransmitTimeout(I2CD, BQ24725_ADDR, tx, sizeof(tx), rx, sizeof(rx), 10);
-//	moder = GPIOB->MODER;
-//    return moder;
 	switch(status){
 	case RDY_OK:
 		i2cReleaseBus(I2CD);
