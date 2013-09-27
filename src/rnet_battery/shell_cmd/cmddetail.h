@@ -27,6 +27,7 @@ void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_bq_did(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_bq_mid(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_acok(BaseSequentialStream *chp, int argc, char *argv[]);
+void cmd_bq_charge(BaseSequentialStream *chp, int argc, char *argv[]);
 
 #ifdef __cplusplus
 }

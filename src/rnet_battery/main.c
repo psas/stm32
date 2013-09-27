@@ -53,6 +53,7 @@ static const ShellCommand commands[] = {
 		{"bq_did", cmd_bq_did},
 		{"bq_mid", cmd_bq_mid},
 		{"acok", cmd_acok},
+		{"charge", cmd_bq_charge},
 		{NULL, NULL}
 };
 

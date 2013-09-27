@@ -20,6 +20,29 @@
 #include "BQ24725.h"
 
 
+void cmd_bq_charge(BaseSequentialStream *chp, int argc, char *argv[]){
+    BQ24725_charge_options BQ24725_rocket_init = {
+                .ACOK_deglitch_time = t150ms,
+                .WATCHDOG_timer = disabled,
+                .BAT_depletion_threshold = FT70_97pct,
+                .EMI_sw_freq_adj = dec18pct,
+                .EMI_sw_freq_adj_en = sw_freq_adj_disable,
+                .IFAULT_HI_threshold = l700mV,
+                .LEARN_en = LEARN_disable,
+                .IOUT = adapter_current,
+                .ACOC_threshold = l1_66X,
+                .charge_inhibit = charge_enable
+            };
+            BQ24725_SetChargeCurrent(0x400);
+            chprintf(chp, "Charge current set\n");
+            BQ24725_SetChargeVoltage(0x41A0);
+            chprintf(chp, "Charge voltage set\n");
+            BQ24725_SetInputCurrent(0x0A00);
+            chprintf(chp, "Input Current set\n");
+            BQ24725_SetChargeOption(&BQ24725_rocket_init);
+            chprintf(chp, "Charge options set\n");
+}
+
 void cmd_bq_did(BaseSequentialStream *chp, int argc, char *argv[]){
 	(void)argv;
 	if (argc > 0) {
