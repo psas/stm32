@@ -7,12 +7,29 @@
 
 #include "eventlogger.h"
 
+
+
 /*
- * Globals
+ * Event Generator Thread
  */
 
+static WORKING_AREA(wa_thread_event_generator, 64);
+
+msg_t event_generator(void *_) {
+  char i;
+  for (i = 'a'; i <= 'z'; i++) {
+    post_event((event_t) i);
+    chThdSleepMilliseconds(333);
+  }
+
+  return 0;
+}
 
 
+
+/*
+ * Main
+ */
 
 int main(void) {
 
@@ -47,13 +64,21 @@ int main(void) {
    * configuration.
    */
   sdStart(&SD6, NULL);
-
   chThdSleepMilliseconds(1300);
 
+  /*!
+   * Start the eventlogger thread and our own event generator thread.
+   */
   eventlogger_init();
+  chThdCreateStatic( wa_thread_event_generator
+                   , sizeof(wa_thread_event_generator)
+                   , NORMALPRIO
+                   , event_generator
+                   , NULL
+                   );
 
   /*
-   * Normal main() thread activity,
+   * Sleep all day
    */
   while (1) {
     chThdSleep(MS2ST(1000));
