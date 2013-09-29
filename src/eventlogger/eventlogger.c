@@ -12,6 +12,7 @@
  **************/
 
 #define EVENTBUFF_LENGTH 64
+#define EVENTLOG_DEBUG FALSE
 
 
 
@@ -98,7 +99,9 @@ static msg_t log_event(void *_) {
     // to sleep until something gets posted to the mailbox.
     chMBFetch(&event_mail, (msg_t *) &posted, TIME_INFINITE);
 
+#if EVENTLOG_DEBUG
     chprintf((BaseSequentialStream *) &SDU_PSAS, "\"logging\" event %d\r\n", posted);
+#endif
   }
 
   return -1;
