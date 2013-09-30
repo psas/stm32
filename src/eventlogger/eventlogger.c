@@ -93,7 +93,7 @@ void eventlogger_init(void) {
  */
 static msg_t log_event(void *_) {
   event_t posted;
-  chRegSetThreadName("eventlogger")
+  chRegSetThreadName("eventlogger");
 
   while (true) {
     // TODO: figure out if chMBFetch does the sensible thing and puts the thread
