@@ -3,6 +3,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
+#include "sdcdetail.h"
 #include "usbdetail.h"
 
 #include "eventlogger.h"
@@ -26,12 +27,33 @@ msg_t event_generator(void *_) {
 }
 
 
+/*
+ * LED Blinker Thread
+ *
+ * Blink slowly when the SD card is not inserted, and quickly when it is.
+ */
+
+static WORKING_AREA(wa_thread_blinker, 64);
+
+static msg_t blinker(void *_) {
+  chRegSetThreadName("blinker");
+
+  while (TRUE) {
+    palTogglePad(GPIOC, GPIOC_LED);
+    chThdSleepMilliseconds(fs_ready ? 125 : 500);
+  }
+
+  return -1;
+}
+
 
 /*
  * Main
  */
 
 int main(void) {
+  static const evhandler_t sdc_handlers[] = { InsertHandler, RemoveHandler };
+  struct EventListener insertion_listener, removal_listener;
 
   /*
    * System initializations.
@@ -43,11 +65,31 @@ int main(void) {
   halInit();
   chSysInit();
 
+  palSetPad(GPIOC, GPIOC_LED);
+
   /*
    * Initializes serial-over-USB CDC driver.
    */
   sduObjectInit(&SDU_PSAS);
   sduStart(&SDU_PSAS, &serusbcfg);
+
+  /*!
+   * Activates the serial driver 6 and SDC driver 1 using default
+   * configuration.
+   */
+  sdStart(&SD6, NULL);
+	sdcStart(&SDCD1, NULL);
+
+  /*
+   * Activates SD card insertion monitor.
+   */
+  sdc_init(&SDCD1);
+
+  /*
+   * Registers SD card events
+   */
+  chEvtRegister(&sdc_inserted_event, &insertion_listener, 0);
+  chEvtRegister(&sdc_removed_event,  &removal_listener,   1);
 
   /*!
    * Activates the USB driver and then the USB bus pull-up on D+.
@@ -60,14 +102,17 @@ int main(void) {
   usbConnectBus(serusbcfg.usbp);
 
   /*!
-   * Activates the serial driver 6 and SDC driver 1 using default
-   * configuration.
+   * Starts the LED blinker thread
    */
-  sdStart(&SD6, NULL);
-  chThdSleepMilliseconds(1300);
+  chThdCreateStatic( wa_thread_blinker
+                   , sizeof(wa_thread_blinker)
+                   , NORMALPRIO
+                   , blinker
+                   , NULL
+                   );
 
   /*!
-   * Start the eventlogger thread and our own event generator thread.
+   * Starts the eventlogger thread and our own event generator thread.
    */
   eventlogger_init();
   chThdCreateStatic( wa_thread_event_generator
@@ -78,10 +123,10 @@ int main(void) {
                    );
 
   /*
-   * Sleep all day
+   * Wait for events to fire
    */
-  while (1) {
-    chThdSleep(MS2ST(1000));
+  while (true) {
+    chEvtDispatch(sdc_handlers, chEvtWaitOne(ALL_EVENTS));
   }
   exit(0);
 }
