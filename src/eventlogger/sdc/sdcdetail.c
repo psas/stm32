@@ -25,7 +25,7 @@
  **************/
 
 #define   DEBUG_SDC                 FALSE
-#define   SDC_CONNECT_MAX_TRIES     3
+#define   SDC_CONNECT_MAX_TRIES     2
 
 // The following two definitions are in units of ms.
 #define   SDC_POLLING_INTERVAL      10
@@ -90,13 +90,13 @@ void InsertHandler(eventid_t _) {
 
   /*
    * First initialize the SD Card.
-   * We try this a few times because it sometimes fails the first time only
-   * to succeed after that.
+   * We try this a few times because otherwise connecting to the card fails
+   * every other time the card is inserted, but succeeds otherwise.
    * TODO: figure out what's up with that.
    */
   char i = 0;
   while (sdcConnect(&SDCD1)) {
-    if (++i == SDC_CONNECT_MAX_TRIES) return;
+    if (++i >= SDC_CONNECT_MAX_TRIES) return;
   }
 
   /*
