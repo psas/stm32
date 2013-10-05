@@ -1,6 +1,5 @@
-
 CC=gcc
-CFLAGS += -I../net_common -lpthread -g
+CFLAGS += -I../../common/net -lpthread -g
 
 .PHONY: clean
 

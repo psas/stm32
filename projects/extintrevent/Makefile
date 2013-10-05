@@ -64,7 +64,7 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-PSAS= ../config
+PSAS= ../../common
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
 include ./boards/OLIMEX_STM32_E407/board.mk
