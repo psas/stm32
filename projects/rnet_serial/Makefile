@@ -64,7 +64,7 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-PSAS= ../config
+PSAS= ../../common
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
 # include ./boards/OLIMEX_STM32_E407/board.mk
@@ -90,7 +90,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
-       $(PSAS_COMMON)/iwdg_lld.c \
+       $(PSAS_DEVICES)/iwdg_lld.c \
        ./shell_cmd/cmddetail.c \
 	main.c
 
@@ -124,8 +124,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
-         $(PSAS_COMMON) \
-         $(PSAS_DEV_SRC)/include
+         $(PSAS_DEVICES)/include
          
 
 #

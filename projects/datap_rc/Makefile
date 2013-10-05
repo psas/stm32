@@ -64,7 +64,7 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-PSAS= ../config
+PSAS= ../../common
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
 include ./boards/OLIMEX_STM32_E407/board.mk
@@ -92,11 +92,11 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
-       $(PSAS_COMMON)/iwdg_lld.c \
+       $(PSAS_DEVICES)/iwdg_lld.c \
        ./data_udp/data_udp.c \
        cmddetail.c \
        extdetail.c \
-       $(PSAS_COMMON)/usbdetail.c \
+       $(PSAS_DEVICES)/usbdetail.c \
 	main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -129,9 +129,8 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-	     $(PSAS_COMMON) \
-	     $(PSAS_NET_COMMON) \
-         $(PSAS_DEV_SRC)/include \
+	 $(PSAS_NET) \
+         $(PSAS_DEVICES)/include \
           ./data_udp
 
 #

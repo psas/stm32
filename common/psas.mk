@@ -1,13 +1,14 @@
 # Directories for PSAS configuration
-PSAS_CFG           = ../config
-PSAS_OPENOCD       = ../../openocd
-PSAS_COMMON        = ../common
-PSAS_DEV_SRC       = ../../devices
-PSAS_NET_COMMON    = ../net_common
-%:
+PSAS_COMMON        = ../../common
+PSAS_OPENOCD       = ../../toolchain/openocd
+PSAS_DEVICES       = $(PSAS_COMMON)/devices
+PSAS_NET           = $(PSAS_COMMON)/net
+
+%: $(OBJDIR) $(LSTDIR)
+
+$(OBJDIR):
 	mkdir -p $(OBJDIR)
+
+$(LSTDIR):
 	mkdir -p $(LSTDIR)
-	cp $(PSAS_OPENOCD)/olimex_stm32_e407.cfg $(BUILDDIR)
-	cp $(PSAS_OPENOCD)/stlinkv2_stm32_e407.cfg $(BUILDDIR)
-	cp $(PSAS_OPENOCD)/oocd_flash_stm32f407.script $(BUILDDIR)
-	
+

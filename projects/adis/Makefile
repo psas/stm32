@@ -63,7 +63,7 @@ endif
 # Define project name here
 PROJECT = ch
 # Imported source files and paths
-PSAS= ../config
+PSAS= ../../common
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
 include ./boards/OLIMEX_STM32_E407/board.mk
@@ -88,11 +88,11 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
-       $(PSAS_COMMON)/iwdg_lld.c \
-       $(PSAS_DEV_SRC)/ADIS16405.c \
+       $(PSAS_DEVICES)/iwdg_lld.c \
+       $(PSAS_DEVICES)/ADIS16405.c \
        cmddetail.c \
        extdetail.c \
-       $(PSAS_COMMON)/usbdetail.c \
+       $(PSAS_DEVICES)/usbdetail.c \
 	main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -126,7 +126,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
          $(PSAS_COMMON) \
-         $(PSAS_DEV_SRC)/include
+         $(PSAS_DEVICES)/include
 
 #
 # Project, sources and paths
@@ -232,5 +232,4 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
-
-include $(PSAS)/oocd.mk
+include $(PSAS_COMMON)/oocd.mk
