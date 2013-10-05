@@ -36,7 +36,7 @@ static uint8_t     fbuff[1024];
 
 #if DEBUG_SDC
 
-#define SDC_TESTFILE          "TEST.txt"
+#define SDC_TESTFILE          "cmd_test.txt"
 #define SDC_NEWFILE           "/NEWFILE.txt"
 #define SDC_BIGFILE           "/BIGFILE.txt"
 #define SDC_NEWPOSITION       10

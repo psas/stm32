@@ -26,7 +26,9 @@ static const    unsigned        sdlog_thread_sleeptime_ms      = 1000;
 static const    unsigned        sdc_polling_interval           = 10;
 static const    unsigned        sdc_polling_delay              = 10;
 
-static const    char*           sdc_log_data_file               = "data_log.txt";
+// static const    char*           sdc_log_data_file               = "data_log.txt";
+// static const    char*           sdc_log_data_file               = "LOGFILEFOURGB.bin";
+static const    char*           sdc_log_data_file               = "LOGSMALL.bin";
 
 static          bool             sd_log_opened                   = false;
 static          VirtualTimer     sdc_tmr;
@@ -243,6 +245,7 @@ msg_t sdlog_thread(void *p) {
     BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
     chRegSetThreadName("sdlog_thread");
 
+    // write First Line with EVENT 'opened logfile' 'version'
 //    set up events
 //      mpu  newdata
 //      mpl  newdata
@@ -309,7 +312,6 @@ msg_t sdlog_thread(void *p) {
             log_data.index        = index++;
             log_data.timespec.h12 = 1;
             psas_rtc_lld_get_time(&RTCD1, &log_data.timespec);
-
             result = write_log_data(&DATAFil, &log_data, &bw);
             if(result == -1 ) { ++write_errors; }
             if(result == -2) { ++sync_errors; }
