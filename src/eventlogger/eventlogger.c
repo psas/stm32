@@ -1,6 +1,10 @@
+#include <time.h>
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
+#include "chrtclib.h"
+
+#include "psas_rtc.h"
 #include "usbdetail.h"
 
 #include "eventlogger.h"
@@ -12,7 +16,7 @@
  **************/
 
 #define EVENTBUFF_LENGTH 64
-#define EVENTLOG_DEBUG FALSE
+#define EVENTLOG_DEBUG true
 
 
 
@@ -57,6 +61,14 @@ static WORKING_AREA(wa_thread_log_event, 512);
  */
 bool post_event(event_t e) {
   msg_t status;
+  RTCTime posted_at_rtc;
+  struct tm posted_at_tm;
+  time_t posted_at_unix;
+
+  psas_rtc_lld_get_time(&RTCD1, &posted_at_rtc);
+  psas_stm32_rtc_bcd2tm(&posted_at_tm, &posted_at_rtc);
+  posted_at_unix = mktime(&posted_at_tm);
+
   status = chMBPost(&event_mail, e, TIME_IMMEDIATE);
   return status == RDY_OK;
 }
@@ -93,6 +105,10 @@ void eventlogger_init(void) {
  */
 static msg_t log_event(void *_) {
   event_t posted;
+  RTCTime received_at_rtc;
+  struct tm received_at_tm;
+  time_t received_at_unix;
+
   chRegSetThreadName("eventlogger");
 
   while (true) {
@@ -100,8 +116,16 @@ static msg_t log_event(void *_) {
     // to sleep until something gets posted to the mailbox.
     chMBFetch(&event_mail, (msg_t *) &posted, TIME_INFINITE);
 
+    psas_rtc_lld_get_time(&RTCD1, &received_at_rtc);
+    psas_stm32_rtc_bcd2tm(&received_at_tm, &received_at_rtc);
+    received_at_unix = mktime(&received_at_tm);
+
 #if EVENTLOG_DEBUG
-    chprintf((BaseSequentialStream *) &SDU_PSAS, "\"logging\" event %d\r\n", posted);
+    chprintf( (BaseSequentialStream *) &SDU_PSAS
+            , "\"logging\" event from %D.%06D\r\n"
+            , received_at_unix
+            , received_at_rtc.tv_msec
+            );
 #endif
   }
 

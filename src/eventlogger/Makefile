@@ -89,6 +89,7 @@ CSRC = $(PORTSRC) \
        $(BOARDSRC) \
        $(FATFSSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
+       $(PSAS_COMMON)/psas_rtc.c \
        $(PSAS_COMMON)/usbdetail.c \
        ./sdc/sdcdetail.c \
        ./eventlogger.c \

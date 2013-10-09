@@ -3,6 +3,9 @@
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
+#include "rtc.h"
+
+#include "psas_rtc.h"
 #include "sdcdetail.h"
 #include "usbdetail.h"
 
@@ -20,7 +23,7 @@ msg_t event_generator(void *_) {
   char i;
   for (i = 'a'; i <= 'z'; i++) {
     post_event((event_t) i);
-    chThdSleepMilliseconds(333);
+    chThdSleepMilliseconds(100);
   }
 
   return 0;
@@ -65,6 +68,8 @@ int main(void) {
   halInit();
   chSysInit();
 
+  psas_rtc_lld_init();
+
   palSetPad(GPIOC, GPIOC_LED);
 
   /*
@@ -81,13 +86,9 @@ int main(void) {
 	sdcStart(&SDCD1, NULL);
 
   /*
-   * Activates SD card insertion monitor.
+   * Activates SD card insertion monitor & registers SD card events.
    */
   sdc_init(&SDCD1);
-
-  /*
-   * Registers SD card events
-   */
   chEvtRegister(&sdc_inserted_event, &insertion_listener, 0);
   chEvtRegister(&sdc_removed_event,  &removal_listener,   1);
 
