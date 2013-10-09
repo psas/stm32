@@ -65,85 +65,77 @@ void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
-    // TODO: pwr <port ...> [on|off], port alias?
-    if(argc < 1 || argc > 2){
-        chprintf(chp, "Usage: pwr [on|off] <port>\r\n");
-        return;
-    }
-    //Index 0 is left at a safe value instead of something like NULL
-    uint32_t power[] = {GPIO_E4_NC, GPIO_E0_NODE1_N_EN, GPIO_E1_NODE2_N_EN,
-                        GPIO_E2_NODE3_N_EN, GPIO_E3_NODE4_N_EN, GPIO_E4_NC,
-                        GPIO_E5_NODE6_N_EN, GPIO_E6_NODE7_N_EN};
-    uint32_t fault[] = {GPIO_E12_NC, GPIO_E8_NODE1_N_FLT, GPIO_E9_NODE2_N_FLT,
-                        GPIO_E10_NODE3_N_FLT, GPIO_E11_NODE4_N_FLT, GPIO_E12_NC,
-                        GPIO_E13_NODE6_N_FLT, GPIO_E14_NODE7_N_FLT};
-    int port = 0;
-    int port_i = argc - 1;
-    if(!strcmp(argv[port_i], "1")){
-        port = 1;
-    }else if(!strcmp(argv[port_i], "2")){
-        port = 2;
-    }else if(!strcmp(argv[port_i], "3")){
-        port = 3;
-    }else if(!strcmp(argv[port_i], "4")){
-        port = 4;
-    }else if(!strcmp(argv[port_i], "6")){
-        port = 6;
-    }else if(!strcmp(argv[port_i], "7")){
-        port = 7;
-    }else if(!strcmp(argv[port_i], "all")){
-        port = -1;
-    }else {
-        chprintf(chp, "Invalid port: %s. Valid ports are 1, 2, 3, 4, 6, 7, all\r\n", argv[port_i]);
+    // TODO: port aliases?
+    if(argc < 1){
+        chprintf(chp, "Usage: pwr <port ...> [on|off]\r\n");
         return;
     }
 
+#define NUM_PORT 8
+    int port[NUM_PORT] = {0, 0, 0, 0, 0, 0, 0, 0};
+    //power and fault 0 are left at a safe value instead of NULL or similar
+    uint32_t power[NUM_PORT] =
+        {GPIO_E4_NC, GPIO_E0_NODE1_N_EN, GPIO_E1_NODE2_N_EN,
+         GPIO_E2_NODE3_N_EN, GPIO_E3_NODE4_N_EN, GPIO_E4_NC,
+         GPIO_E5_NODE6_N_EN, GPIO_E6_NODE7_N_EN};
+
+    uint32_t fault[NUM_PORT] =
+        {GPIO_E12_NC, GPIO_E8_NODE1_N_FLT, GPIO_E9_NODE2_N_FLT,
+         GPIO_E10_NODE3_N_FLT, GPIO_E11_NODE4_N_FLT, GPIO_E12_NC,
+         GPIO_E13_NODE6_N_FLT, GPIO_E14_NODE7_N_FLT};
+
+    typedef enum {info, on, off} action;
+    action act = info;
+
+    //process arguments
     int i;
-    if(argc == 2){
-        if(!strcmp(argv[0], "on")){
-            if(port != -1){
-                palClearPad(GPIOE, power[port]);
+    for(i = 0; i < argc; ++i){
+        if(!strcmp(argv[i], "1")){
+            port[1] = TRUE;
+        }else if(!strcmp(argv[i], "2")){
+            port[2] = TRUE;
+        }else if(!strcmp(argv[i], "3")){
+            port[3] = TRUE;
+        }else if(!strcmp(argv[i], "4")){
+            port[4] = TRUE;
+        }else if(!strcmp(argv[i], "6")){
+            port[6] = TRUE;
+        }else if(!strcmp(argv[i], "7")){
+            port[7] = TRUE;
+        }else if(!strcmp(argv[i], "all")){
+            port[1] = TRUE;
+            port[2] = TRUE;
+            port[3] = TRUE;
+            port[4] = TRUE;
+            port[6] = TRUE;
+            port[7] = TRUE;
+        }else if(i == argc - 1) {
+            if(!strcmp(argv[i], "on")){
+                act = on;
+            }else if(!strcmp(argv[i], "off")){
+                act = off;
             }else{
-                for(i = 1; i <= 7; ++i){
-                    if(i == 5){
-                        continue;
-                    }
-                    palClearPad(GPIOE, power[i]);
-                }
-            }
-        }else if(!strcmp(argv[0], "off")){
-            if(port != -1){
-                palSetPad(GPIOE, power[port]);
-            }else{
-                for(i = 1; i <= 7; ++i){
-                    if(i == 5){
-                        continue;
-                    }
-                    palSetPad(GPIOE, power[i]);
-                }
+                chprintf(chp, "Invalid action: %s. Action must be on|off\r\n", argv[i]);
+                return;
             }
         }else{
-            chprintf(chp, "First argument must be on|off\r\n", argv[0]);
+            chprintf(chp, "Invalid port: %s. Valid ports are 1, 2, 3, 4, 6, 7, all\r\n", argv[i]);
             return;
         }
-    }else{
-        if(port != -1){
-            chprintf(chp, "%d: ", port);
-            if(palReadPad(GPIOE, power[port])){
-                chprintf(chp, "off, ");
-            }else{
-                chprintf(chp, "on, ");
-            }
-            if(palReadPad(GPIOE, fault[port])){
-                chprintf(chp, "nominal\r\n");
-            }else{
-                chprintf(chp, "fault\r\n");
-            }
-        }else{
-            for(i = 1; i <= 7; ++i){
-                if(i == 5){
-                    continue;
-                }
+    }
+
+    //do action
+    for(i = 1; i < NUM_PORT; ++i){
+        if(port[i]){
+            switch(act){
+            case on:
+                palClearPad(GPIOE, power[i]);
+                break;
+            case off:
+                palSetPad(GPIOE, power[i]);
+                break;
+            case info:
+            default:
                 chprintf(chp, "%d: ", i);
                 if(palReadPad(GPIOE, power[i])){
                     chprintf(chp, "off, ");
