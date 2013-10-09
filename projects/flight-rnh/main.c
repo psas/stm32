@@ -65,6 +65,7 @@ void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
+    // TODO: pwr <port ...> [on|off], port alias?
     if(argc < 1 || argc > 2){
         chprintf(chp, "Usage: pwr [on|off] <port>\r\n");
         return;
@@ -161,14 +162,6 @@ void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 #define SHELL_WA_SIZE THD_WA_SIZE(2048)
 static const ShellCommand commands[] = {
-#if DEBUG_KSZ
-		{"ksz_nodes_en_n", cmd_ksz_nodes_en_n},
-		{"ksz_n1en_n", cmd_ksz_n1en_n},
-		{"ksz_rst_n", cmd_ksz_rst_n},
-		{"ksz_pwr", cmd_ksz_pwr},
-#endif
-//		{"show"    , cmd_show},
-//		{"mem"    , cmd_mem},
 		{"threads", cmd_threads},
 		{"pwr", cmd_power},
 		{NULL, NULL}
@@ -211,55 +204,6 @@ static msg_t led(void *arg __attribute__ ((unused))) {
     }
     return -1;
 }
-//
-//void debug_msg_lwip(char* msg) {
-//    BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
-//
-//    chprintf(chp, "%s\r\n", msg);
-//    chprintf(chp, "%d\r\n",  LWIP_SEND_TIMEOUT  );
-//
-//}
-//
-//
-//
-//void init_rnet(void) {
-//	palSetPad(GPIOD, GPIO_D14_KSZ_EN);
-//	palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
-//        palClearPad(GPIOD, GPIO_D14_KSZ_EN);
-//	chThdSleepMilliseconds(200);
-//	palSetPad(GPIOD, GPIO_D14_KSZ_EN);     // enable pwr
-//// palClearPad(GPIOD, GPIO_D13_RGB_R);
-//	chThdSleepMilliseconds(200);
-//	// Turn on clock from HSE -> PC9 function MCO2 see board file
-//	RCC->CFGR |=  (1<<31);      // MCO0
-//	RCC->CFGR &= ~(1<<29);
-//
-////	RCC->CFGR &=  ~(0b11<<22);      // MCO1
-////	RCC->CFGR |=  (0b10<<21);
-////
-////	RCC->CFGR &= ~(0b111<<26); // clear MCO1 prescaler
-////	RCC->CFGR |= (0b???<<26);  // set MCO1 prescaler
-//// Timer 1 channel one instead?
-//
-//	palSetPad(GPIOD, GPIO_D4_ETH_N_RST);   // disable reset
-//// palClearPad(GPIOD, GPIO_D11_RGB_B);
-//	chThdSleepMilliseconds(500);
-//}
-
-/*
- * Application entry point.
- */
-
-/*
- * Parts that we need:
- * BQ
- * KSZ
- * Serial/eth terminals
- * logic (turn on/off port, etc)
- * Logger
- * LED
- *
- */
 
 void init_rnet(void) {
     palSetPad(GPIOD, GPIO_D14_KSZ_EN);
@@ -284,6 +228,18 @@ void init_rnet(void) {
 // palClearPad(GPIOD, GPIO_D11_RGB_B);
     chThdSleepMilliseconds(500);
 }
+
+
+/*
+ * Parts that we need:
+ * BQ
+ * KSZ
+ * Serial/eth terminals
+ * logic (turn on/off port, etc)
+ * Logger
+ * LED
+ *
+ */
 
 
 int main(void) {
