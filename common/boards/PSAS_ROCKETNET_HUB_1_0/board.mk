@@ -1,6 +1,6 @@
-# List of all the board related files.
-BOARDSRC = ./boards/PSAS_ROCKETNET_HUB_1_0/board.c
-
 # Required include directories
-BOARDINC = ./boards/PSAS_ROCKETNET_HUB_1_0
+BOARDINC = $(PSAS_BOARDS)/PSAS_ROCKETNET_HUB_1_0
+
+# List of all the board related files.
+BOARDSRC = $(BOARDINC)/board.c
 
