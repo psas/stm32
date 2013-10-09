@@ -3,9 +3,13 @@
 # NOTE: Can be overridden externally.
 #
 
+#TODO: -ffreestanding. ChibiOS doesn't use it but it probably should?
+#      main() should be void either way (and shouldn't return either) so
+#      if we don't go with -ffreestanding we need -Wno-main to stop the 
+#      compiler from complaining (-ffreestanding implies -Wno-main) 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
 endif
 
 # C specific options here (added to USE_OPT).
@@ -67,8 +71,7 @@ PROJECT = ch
 PSAS= ../../common
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-include ./boards/OLIMEX_STM32_E407/board.mk
-#include ./boards/PSAS_ROCKETNET_HUB_1_0/board.mk
+include $(CHIBIOS)/boards/OLIMEX_STM32_E407/board.mk
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
