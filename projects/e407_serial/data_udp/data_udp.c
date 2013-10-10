@@ -50,6 +50,15 @@
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
+/*
+ * Pin alias names for testing
+ */
+#define TIMEOUTPUT_PORT             GPIOD
+#define TIMEINPUT_PORT              GPIOD
+#define TIMEOUTPUT_PIN              GPIOD_PIN5
+#define TIMEINPUT_PIN               GPIOD_PIN3
+
+
 WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 
 
@@ -110,6 +119,7 @@ msg_t data_udp_send_thread(void *p) {
 				data    =  netbuf_alloc(buf, sizeof(msg));
 				sprintf(msg, "sensor tx: %d", count++);
 				memcpy (data, msg, sizeof (msg));
+				palSetPadMode(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
 				palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
 				netconn_send(conn, buf);
 				palClearPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
@@ -161,6 +171,7 @@ static void data_udp_rx_serve(struct netconn *conn) {
 
 	if (err == ERR_OK) {
 		netbuf_data(inbuf, (void **)&buf, &buflen);
+        palSetPadMode(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
 		palClearPad(TIMEINPUT_PORT, TIMEINPUT_PIN);     // negative pulse for input.
 		chprintf(chp, "\r\nsensor rx:%d:->", count++);
 		palSetPad(TIMEINPUT_PORT, TIMEINPUT_PIN);
