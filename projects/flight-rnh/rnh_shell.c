@@ -7,39 +7,6 @@
 #include "shell.h"
 #include "rnh_shell.h"
 
-static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]);
-static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]);
-
-const ShellCommand commands[] = {
-        {"threads", cmd_threads},
-        {"pwr", cmd_power},
-        {NULL, NULL}
-};
-
-const ShellConfig shell_cfg1 = {
-        (BaseSequentialStream *)&SD1,
-        commands
-};
-#define SHELL_WA_SIZE THD_WA_SIZE(2048)
-
-static int shell_init = FALSE;
-void rnh_shell_start(void){
-    // XXX: Is there a better way to check if the hardware is initialized?
-    if(!shell_init){
-        sdStart(&SD1, NULL);
-        shellInit();
-        shell_init = TRUE;
-    }
-
-    static Thread *shelltp = NULL;
-    if (!shelltp)
-        shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-    else if (chThdTerminated(shelltp)) {
-        chThdRelease(shelltp);    /* Recovers memory of the previous shell.  */
-        shelltp = NULL;           /* Triggers spawning of a new shell.       */
-    }
-}
-
 static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
     static const char *states[] = {THD_STATE_NAMES};
     Thread *tp;
@@ -83,7 +50,7 @@ static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
     typedef enum {info, on, off} action;
     action act = info;
 
-    //process arguments
+    //parse arguments
     int i;
     for(i = 0; i < argc; ++i){
         if(!strcmp(argv[i], "1")){
@@ -105,7 +72,7 @@ static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
             port[4] = TRUE;
             port[6] = TRUE;
             port[7] = TRUE;
-        }else if(i == argc - 1) {
+        }else if(i == argc - 1 && i != 1) {
             if(!strcmp(argv[i], "on")){
                 act = on;
             }else if(!strcmp(argv[i], "off")){
@@ -120,7 +87,7 @@ static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
         }
     }
 
-    //do action
+    //do actions
     for(i = 1; i < NUM_PORT; ++i){
         if(port[i]){
             switch(act){
@@ -145,5 +112,116 @@ static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
                 }
             }
         }
+    }
+}
+
+static void cmd_KS8999(BaseSequentialStream *chp, int argc, char *argv[]){
+    if(argc < 1 || argc > 3){
+        chprintf(chp, "Usage: ksz [rst] [pwr] [on|off]\r\n");
+        return;
+    }
+
+    int rst = FALSE;
+    int pwr = FALSE;
+    typedef enum{info, on, off} action;
+    action act = info;
+
+    //parse arguments
+    int i;
+    for(i = 0; i < argc; ++i){
+        if(!strcmp(argv[i], "rst")){
+            rst = TRUE;
+        }else if(!strcmp(argv[i], "pwr")){
+            pwr = TRUE;
+        }else if(i == argc - 1){
+            if(!strcmp(argv[i], "on")){
+                act = on;
+            }else if(!strcmp(argv[i], "off")){
+                act = off;
+            }else{
+                chprintf(chp, "Unrecognized action: %s. Valid acts are [on|off]\r\n", argv[i]);
+                return;
+            }
+        } else {
+            chprintf(chp, "Unrecognized pin: %s. Valid pins are rst or pwr\r\n", argv[i]);
+            return;
+        }
+    }
+    // ksz on|off == ksz rst pwr on|off
+    if(rst == FALSE && pwr == FALSE){
+        rst = TRUE;
+        pwr = TRUE;
+    }
+
+    //do actions
+    if(pwr){
+        switch(act){
+        case on:
+            palSetPad(GPIOD, GPIO_D14_KSZ_EN);
+            break;
+        case off:
+            palClearPad(GPIOD, GPIO_D14_KSZ_EN);
+            break;
+        case info:
+        default:
+            chprintf(chp, "pwr: ");
+            if(palReadPad(GPIOD, GPIO_D14_KSZ_EN)){
+                chprintf(chp, "off\r\n");
+            }else{
+                chprintf(chp, "on\r\n");
+            }
+        }
+    }
+
+    if(rst){
+        switch(act){
+        case on:
+            palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
+            break;
+        case off:
+            palSetPad(GPIOD, GPIO_D4_ETH_N_RST);
+            break;
+        case info:
+        default:
+            chprintf(chp, "rst: ");
+            if(palReadPad(GPIOD, GPIO_D4_ETH_N_RST)){
+                chprintf(chp, "on\r\n");
+            }else{
+                chprintf(chp, "off\r\n");
+            }
+        }
+    }
+
+}
+
+
+#define SHELL_WA_SIZE THD_WA_SIZE(2048)
+static int shell_init = FALSE;
+static Thread *shelltp = NULL;
+void rnh_shell_start(void){
+    // XXX: Is there a better way to check if the hardware is initialized?
+    if(!shell_init){
+        sdStart(&SD1, NULL);
+        shellInit();
+        shell_init = TRUE;
+    }
+
+    static const ShellCommand commands[] = {
+            {"threads", cmd_threads},
+            {"pwr", cmd_power},
+            {"ksz", cmd_KS8999},
+            {NULL, NULL}
+    };
+
+    static const ShellConfig shell_cfg1 = {
+            (BaseSequentialStream *)&SD1,
+            commands
+    };
+
+    if (!shelltp)
+        shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
+    else if (chThdTerminated(shelltp)) {
+        chThdRelease(shelltp);    /* Recovers memory of the previous shell.  */
+        shelltp = NULL;           /* Triggers spawning of a new shell.       */
     }
 }

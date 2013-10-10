@@ -56,8 +56,8 @@
 #define STM32_RTCPRE_VALUE                  8
 #define STM32_MCO1SEL                       STM32_MCO1SEL_HSI
 #define STM32_MCO1PRE                       STM32_MCO1PRE_DIV1
-#define STM32_MCO2SEL                       STM32_MCO2SEL_SYSCLK
-#define STM32_MCO2PRE                       STM32_MCO2PRE_DIV5
+#define STM32_MCO2SEL                       STM32_MCO2SEL_HSE   // For eth
+#define STM32_MCO2PRE                       STM32_MCO2PRE_DIV1  // switch chip
 #define STM32_I2SSRC                        STM32_I2SSRC_CKIN
 #define STM32_PLLI2SN_VALUE                 192
 #define STM32_PLLI2SR_VALUE                 5
