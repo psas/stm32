@@ -470,7 +470,7 @@
                                      PIN_MODE_INPUT (GPIO_C6_NC                 ) |\
                                      PIN_MODE_INPUT (GPIO_C7_NC                 ) |\
                                      PIN_MODE_INPUT (GPIO_C8_NC                 ) |\
-                                     PIN_MODE_ALTERNATE(GPIO_C9_KSZ_25MHZ          ) |\
+                                     PIN_MODE_INPUT (GPIO_C9_KSZ_25MHZ          ) |\
                                      PIN_MODE_INPUT (GPIO_C10_KSZ_SCK           ) |\
                                      PIN_MODE_INPUT (GPIO_C11_NC                ) |\
                                      PIN_MODE_INPUT (GPIO_C12_KSZ_MOSI          ) |\
