@@ -22,18 +22,12 @@
 
 #include "iwdg_lld.h"
 #include "usbdetail.h"
-#include "extdetail.h"
 #include "cmddetail.h"
 
 #include <lwip/ip_addr.h>
 
 #include "data_udp.h"
-#include "lwipopts.h"
 #include "lwipthread.h"
-
-#include "main.h"
-
-static       uint8_t      macAddress[6]    =     {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -59,27 +53,8 @@ static msg_t Thread_blinker(void *arg) {
 	return -1;
 }
 
-static WORKING_AREA(waThread_indwatchdog, 64);
-/*! \brief  Watchdog thread
- */
-static msg_t Thread_indwatchdog(void *arg) {
-	(void)arg;
-
-	chRegSetThreadName("iwatchdog");
-	while (TRUE) {
-		iwdg_lld_reload();
-		chThdSleepMilliseconds(250);
-	}
-	return -1;
-}
-
-int main(void) {
+void main(void) {
 	static Thread            *shelltp       = NULL;
-	static const evhandler_t evhndl_main[]       = {
-			extdetail_WKUP_button_handler
-	};
-	struct EventListener     el0;
-
 	struct lwipthread_opts   ip_opts;
 
 	/*
@@ -91,8 +66,6 @@ int main(void) {
 	 */
 	halInit();
 	chSysInit();
-
-	extdetail_init();
 
 	palSetPad(GPIOC, GPIOC_LED);
 
@@ -114,26 +87,13 @@ int main(void) {
 
 	shellInit();
 
-	iwdg_begin();
-
-	/*!
-	 * Activates the serial driver 6 and SDC driver 1 using default
-	 * configuration.
-	 */
-	sdStart(&SD6, NULL);
-
-	chThdSleepMilliseconds(300);
-
-	/*! Activates the EXT driver 1. */
-	extStart(&EXTD1, &extcfg);
-
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
-	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 
 	struct ip_addr ip, gateway, netmask;
 	IP4_ADDR(&ip,      192, 168, 0,   196);
 	IP4_ADDR(&gateway, 192, 168, 1,   1  );
 	IP4_ADDR(&netmask, 255, 255, 255, 0  );
+	uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
 
 	ip_opts.macaddress = macAddress;
 	ip_opts.address    = ip.addr;
@@ -149,7 +109,6 @@ int main(void) {
     chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO,
       		data_udp_receive_thread, NULL);
 
-	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
 		if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
 			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
@@ -157,7 +116,6 @@ int main(void) {
 			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
 			shelltp = NULL;           /* Triggers spawning of a new shell.        */
 		}
-		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
 	}
 }
 
