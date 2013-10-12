@@ -5,6 +5,7 @@
 #include "hal.h"
 #include "chprintf.h"
 #include "shell.h"
+#include "KS8999.h"
 #include "rnh_shell.h"
 
 static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -49,7 +50,6 @@ static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
 
     typedef enum {info, on, off} action;
     action act = info;
-
     //parse arguments
     int i;
     for(i = 0; i < argc; ++i){
@@ -72,7 +72,7 @@ static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
             port[4] = TRUE;
             port[6] = TRUE;
             port[7] = TRUE;
-        }else if(i == argc - 1 && i != 1) {
+        }else if(i != 0 && i == argc - 1) {
             if(!strcmp(argv[i], "on")){
                 act = on;
             }else if(!strcmp(argv[i], "off")){
@@ -157,18 +157,18 @@ static void cmd_KS8999(BaseSequentialStream *chp, int argc, char *argv[]){
     if(pwr){
         switch(act){
         case on:
-            palSetPad(GPIOD, GPIO_D14_KSZ_EN);
+            KS8999_power(TRUE);
             break;
         case off:
-            palClearPad(GPIOD, GPIO_D14_KSZ_EN);
+            KS8999_power(FALSE);
             break;
         case info:
         default:
             chprintf(chp, "pwr: ");
             if(palReadPad(GPIOD, GPIO_D14_KSZ_EN)){
-                chprintf(chp, "off\r\n");
-            }else{
                 chprintf(chp, "on\r\n");
+            }else{
+                chprintf(chp, "off\r\n");
             }
         }
     }
@@ -176,18 +176,18 @@ static void cmd_KS8999(BaseSequentialStream *chp, int argc, char *argv[]){
     if(rst){
         switch(act){
         case on:
-            palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
+            palSetPad(GPIOD, GPIO_D4_ETH_N_RST);
             break;
         case off:
-            palSetPad(GPIOD, GPIO_D4_ETH_N_RST);
+            palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
             break;
         case info:
         default:
             chprintf(chp, "rst: ");
             if(palReadPad(GPIOD, GPIO_D4_ETH_N_RST)){
-                chprintf(chp, "on\r\n");
-            }else{
                 chprintf(chp, "off\r\n");
+            }else{
+                chprintf(chp, "on\r\n");
             }
         }
     }
