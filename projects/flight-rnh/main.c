@@ -47,11 +47,6 @@ static void led(void *arg __attribute__ ((unused))) {
     }
 }
 
-void KS8999_init(void) {
-    palSetPad(GPIOD, GPIO_D14_KSZ_EN);     // enable power
-    palSetPad(GPIOD, GPIO_D4_ETH_N_RST);   // disable reset
-}
-
 
 /*
  * Parts that we need:
@@ -77,7 +72,6 @@ void main(void) {
 	 */
     halInit();
     chSysInit();
-    KS8999_init();
 
     chThdCreateStatic(led_area, sizeof(led_area), NORMALPRIO, (tfunc_t)led, NULL);
 
