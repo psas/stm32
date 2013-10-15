@@ -18,6 +18,16 @@ extern "C" {
 #include "ch.h"
 #include "hal.h"
 
+#define GPIOA_SPI1_NSS   4
+#define GPIOA_SPI1_SCK   5
+#define GPIOA_SPI1_MISO  6
+#define GPIOB_SPI1_MOSI             5
+#define GPIOD_ADIS_RESET            8
+#define GPIOD_ADIS_DIO1             9
+#define GPIOD_ADIS_DIO2             10
+#define GPIOD_ADIS_DIO3             11
+#define GPIOD_ADIS_DIO4             12
+
 #define     ADIS_14_BIT_MASK                  0x3fff
 #define     ADIS_12_BIT_MASK                  0x0fff
 
@@ -191,7 +201,6 @@ typedef struct {
 
 
 extern const SPIConfig               adis_spicfg ;
-extern const adis_connect            adis_connections ;
 extern       adis_cache              adis_cache_data;
 
 extern       ADIS_Driver             adis_driver;

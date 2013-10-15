@@ -65,29 +65,6 @@ const SPIConfig adis_spicfg = {
 #endif
 
 
-/*! \brief ADIS SPI Pin connections
- *
- */
-const adis_connect adis_connections = {
-		GPIOA,      // spi_sck_port
-		5,          // spi_sck_pad;
-		GPIOA,      // spi_miso_port;
-		6,          // spi_miso_pad;
-		GPIOB,      // spi_mosi_port;
-		5,          // spi_mosi_pad;
-		GPIOA,      // spi_cs_port;
-		4,          // spi_cs_pad;
-		GPIOD,      // reset_port
-		8,          // reset_pad;
-		GPIOD,      // dio1_port;
-		9,          // dio1_pad;
-		GPIOD,      // dio2_port;
-		10,         // dio2_pad;
-		GPIOD,      // dio3_port;
-		11,         // dio3_pad;
-		GPIOD,      // dio4_port;
-		12          // dio4_pad
-};
 
 
 static WORKING_AREA(waThread_blinker, 64);
@@ -188,27 +165,6 @@ int main(void) {
 	extdetail_init();
 
 	palSetPad(GPIOC, GPIOC_LED);
-	palSetPad(GPIOA, GPIOA_SPI1_SCK);
-	palSetPad(GPIOA, GPIOA_SPI1_NSS);
-
-	/*
-	 * SPI1 I/O pins setup.
-	 */
-	palSetPadMode(adis_connections.spi_sck_port, adis_connections.spi_sck_pad,
-			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(adis_connections.spi_miso_port, adis_connections.spi_miso_pad,
-			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_FLOATING);
-	palSetPadMode(adis_connections.spi_mosi_port, adis_connections.spi_mosi_pad,
-			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST );
-	palSetPadMode(adis_connections.spi_cs_port, adis_connections.spi_cs_pad,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-
-	palSetPad(GPIOA, GPIOA_SPI1_SCK);
-	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
 	/*!
 	 * Initializes a serial-over-USB CDC driver.
