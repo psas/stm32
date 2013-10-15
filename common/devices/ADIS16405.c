@@ -31,6 +31,32 @@ EventSource             adis_spi_burst_data_captured;
 EventSource             adis_spi_cb_data_captured;
 EventSource             adis_spi_cb_releasebus;
 
+
+/*! \brief ADIS SPI Pin connections
+ *
+ */
+static const adis_connect adis_connections = {
+        GPIOA,      // spi_sck_port
+        5,          // spi_sck_pad;
+        GPIOA,      // spi_miso_port;
+        6,          // spi_miso_pad;
+        GPIOB,      // spi_mosi_port;
+        5,          // spi_mosi_pad;
+        GPIOA,      // spi_cs_port;
+        4,          // spi_cs_pad;
+        GPIOD,      // reset_port
+        8,          // reset_pad;
+        GPIOD,      // dio1_port;
+        9,          // dio1_pad;
+        GPIOD,      // dio2_port;
+        10,         // dio2_pad;
+        GPIOD,      // dio3_port;
+        11,         // dio3_pad;
+        GPIOD,      // dio4_port;
+        12          // dio4_pad
+};
+
+
 #if ADIS_DEBUG || defined(__DOXYGEN__)
 	/*! \brief Convert an ADIS 14 bit accel. value to micro-g
 	 *
@@ -137,11 +163,54 @@ void adis_reset() {
 /*! \brief Initialize ADIS driver
  *
  */
+void adis_e407_init(void){
+    //todo: make this a real low level driver? Integrate with adis connect
+    //      struct more
+
+    /*
+     * SPI1 I/O pins setup.
+     */
+    palSetPad(GPIOA, GPIOA_SPI1_SCK);
+    palSetPad(GPIOA, GPIOA_SPI1_NSS);
+
+    palSetPadMode(adis_connections.spi_sck_port, adis_connections.spi_sck_pad,
+            PAL_MODE_ALTERNATE(5) |
+            PAL_STM32_OSPEED_HIGHEST | PAL_STM32_PUDR_FLOATING);
+    palSetPadMode(adis_connections.spi_miso_port, adis_connections.spi_miso_pad,
+            PAL_MODE_ALTERNATE(5) |
+            PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_FLOATING);
+    palSetPadMode(adis_connections.spi_mosi_port, adis_connections.spi_mosi_pad,
+            PAL_MODE_ALTERNATE(5) |
+            PAL_STM32_OSPEED_HIGHEST );
+    palSetPadMode(adis_connections.spi_cs_port, adis_connections.spi_cs_pad,
+            PAL_MODE_OUTPUT_PUSHPULL |
+            PAL_STM32_OSPEED_HIGHEST);
+
+    palSetPad(GPIOA, GPIOA_SPI1_SCK);
+    palSetPad(GPIOA, GPIOA_SPI1_NSS);
+
+    /*
+     * GPIO pins setup
+     */
+    //TODO: what are these top two for?
+    palSetPadMode(GPIOB, GPIOB_PIN7, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(GPIOE, GPIOE_PIN2, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(GPIOD, GPIOD_ADIS_RESET, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(GPIOD, GPIOD_ADIS_DIO2, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(GPIOD, GPIOD_ADIS_DIO3, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(GPIOD, GPIOD_ADIS_DIO4, PAL_MODE_OUTPUT_PUSHPULL);
+
+
+}
+
 void adis_init() {
 	uint8_t     i              = 0;
 
 	//chMtxInit(&adis_driver.adis_mtx);
 	//chCondInit(&adis_driver.adis_cv1);
+
+	//fixme: e407 init should be lld init - not board specific
+	adis_e407_init();
 
 	adis_driver.spi_instance    = &SPID1;
 	adis_driver.state           = ADIS_IDLE;
@@ -163,6 +232,7 @@ void adis_init() {
 	chEvtInit(&adis_spi_cb_data_captured);
 	chEvtInit(&adis_spi_cb_releasebus);
 }
+
 
 /*!
  * t_stall is 9uS according to ADIS datasheet.
