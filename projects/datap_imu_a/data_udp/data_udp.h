@@ -33,6 +33,13 @@
 
 #include "lwip/ip_addr.h"
 
+/*
+ * Pin alias names for testing
+ */
+#define TIMEOUTPUT_PORT             GPIOD
+#define TIMEINPUT_PORT              GPIOD
+#define TIMEOUTPUT_PIN              GPIOD_PIN5
+#define TIMEINPUT_PIN               GPIOD_PIN3
 
 #define DATA_UDP_SEND_THREAD_STACK_SIZE      512
 #define DATA_UDP_RECEIVE_THREAD_STACK_SIZE   512
