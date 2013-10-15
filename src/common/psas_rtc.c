@@ -159,7 +159,37 @@ void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) {
     timp->tm_hour += ((tv_time & RTC_TR_HT) >> RTC_TR_HT_OFFSET) * 10;
     timp->tm_hour += 12 * ((tv_time & RTC_TR_PM) >> RTC_TR_PM_OFFSET);
 }
+/* Mon 14 October 2013 18:17:57 (PDT) untested functions */
+/* Next step: Test these */
 
+void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
+    uint64_t  total_ns         = 0;
+    uint32_t  total_ns_lower   = 0;
+    uint32_t  total_ns_upper   = 0;
+    
+    total_ns              = rtc->tv_date    * 1e9u;
+    total_ns              += (rtc->tv_msec) * 1e6u;
+
+    total_ns_lower        = total_ns   & 0xFFFFFFFF;
+    total_ns_upper        = ((total_ns & (0xFFFF << 32)) >> 32);
+
+    // memcpy(dst, src, length)
+    memcpy(ts->PSAS_ns[0], &total_ns_lower, sizeof(uint32_t));
+    memcpy(ts->PSAS_ns[4], &total_ns_upper, sizeof(uint32_t));
+}
+
+void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) {
+    uint64_t   total_ns       = 0;
+    uint64_t   total_ns_upper = 0;
+    uint32_t   total_ns_lower = 0;
+
+    total_ns_lower = (ts->PSAS_ns[3] << 24) | (ts->PSAS_ns[2] << 16) |(ts->PSAS_ns[1] << 8) | (ts->PSAS_ns[0] )
+    total_ns_upper = (ts->PSAS_ns[5] << 8)  | ts->PSAS_ns[4];
+    total_ns       = total_ns_upper  << 32;
+    total_ns       = total_ns + total_ns_lower;
+    rtc->tv_date   = (uint32_t) (floor(total_ns / 1e9u));
+    rtc->tv_msec   = (uint32_t) ((total_ns - (rtc->tv_date * 1e9u))/1e6u);
+}
 
 /*!
  * \brief   Get current time.

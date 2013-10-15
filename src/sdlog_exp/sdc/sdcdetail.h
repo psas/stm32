@@ -17,72 +17,90 @@
 extern "C" {
 #endif
 
-#define         SDLOG_THREAD_STACKSIZE_BYTES                  1024
+#define         DEBUG_SDC
 
-extern          bool        fs_ready;
-extern          FATFS       SDC_FS;
+#ifdef DEBUG_SDC
+    BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+#endif
 
-extern          EventSource inserted_event;
-extern          EventSource removed_event;
-extern          WORKING_AREA(wa_sdlog_thread, SDLOG_THREAD_STACKSIZE_BYTES);
+#ifdef DEBUG_SDC
+    #define SDCDEBUG(format, ...) chprintf( chp, format, ##__VA_ARGS__ )
+#else
+    #define SDCDEBUG(...) do{ } while ( false )
+#endif
 
-/*! Start of a list of codes for events
- */
-typedef enum EVNTCode {
-        OK_EVENT  = 0,
-	PWR_RESET, 
-	WDG_RESET, 
-	ADIS_DATA, 
-	OTH_RESET, 
-	ADIS_INT, 
-	MPL_INT, 
-	MPU_INT, 
-	FCF_MSG 
-} EVNTCode;
+#define         SDC_THREAD_STACKSIZE_BYTES                  1024
 
-struct Message_head {
-    char                 ID[4];
-    uint8_t              timestamp[6];
-    uint16_t             data_length;
-} __attribute__((packed));
-typedef struct Message_head Message_head;
+/* A 162 byte message written at 1000hz will use 4GB in about 6.5 Hours */
+#define         SDC_MAX_PAYLOAD_BYTES                       150
 
-struct ADIS_message {
-        Message_head         message_head;
-        ADIS16405_burst_data data;
-} __attribute__((packed));
-typedef struct ADIS_message ADIS_message;
+    extern          bool        fs_ready;
+    extern          FATFS       SDC_FS;
 
-typedef struct Event_message {
-        Message_head         message_head;
-        int                  event;
-        uint8_t[10]          event_str;   // human readable note
-} __attribute__((packed));
-typedef struct EVNT_message EVNT_message;
+    extern          EventSource inserted_event;
+    extern          EventSource removed_event;
+    extern          WORKING_AREA(wa_sdlog_thread, SDC_THREAD_STACKSIZE_BYTES);
 
-typedef struct MPU_message {
-        Message_head         message_head;
-        mpudata              dataevent;
-}__attribute__((packed));
-typedef struct MPU_message MPU_message;
+    typedef         uint8_t     Payload;
 
-typedef struct MPL_message {
-        Message_head         message_head;
-        mpldata              data;
-}__attribute__((packed));
-typedef struct MPL_message MPL_message;
+    typedef enum SDC_ERRORCode {
+        SDC_OK                   = 0,
+        SDC_NULL_PARAMETER_ERROR = -1,
+        SDC_FSYNC_ERROR          = -2,
+        SDC_FWRITE_ERROR         = -3,
+        SDC_UNKNOWN_ERROR        = -99
+    } SDC_ERRORCode;
 
-typedef struct logdata {
-   uint32_t     index;
-   RTCTime      timespec;
-} Logdata;
+    /*! Start of a list of codes for events
+    */
+    typedef enum EVENTCode {
+        OK_EVENT = 0,
+        PWR_RESET,
+        WDG_RESET,
+        OTH_RESET,
+        ADIS_INT,
+        MPL_INT,
+        MPU_INT,
+        FCF_MSG,
+        FCF_CMD
+    } EVENTCode;
 
-void            InsertHandler(eventid_t id) ;
-void            RemoveHandler(eventid_t id) ;
-void            sdc_tmr_init(void *p) ;
+    /*! Start of a list of codes for messages
+    */
+    typedef enum EVENTCode {
+        GENERIC_MESSAGE = 0,
+        EVENT_MESSAGE,
+        ADIS_MESSAGE,
+        MPL_MESSAGE,
+        MPU_MESSAGE,
+        OTHER_MESSAGE
+    } EVENTCode;
 
-FRESULT         sdc_scan_files(BaseSequentialStream *chp, char *path) ;
-msg_t           sdlog_thread(void *p) ;
+    struct Message_head {
+        char                 ID[4];
+        uint8_t              psas_time_ns[6];
+        uint16_t             data_length;
+    } __attribute__((packed));
+    typedef struct Message_head Message_head;
+
+    struct GENERIC_message {
+        Message_head         mh;
+        Payload              data[SDC_MAX_PAYLOAD_BYTES];
+    } __attribute__((packed));
+    typedef struct GENERIC_message GENERIC_message;
+
+    void            InsertHandler(eventid_t id) ;
+    void            RemoveHandler(eventid_t id) ;
+    void            sdc_tmr_init(void *p) ;
+
+    void            sdc_read_fp_index();
+    void            sdc_write_fp_index();
+    void            sdc_set_fp_index();
+    void            sdc_reset_fp_index();
+
+    SDC_ERRORCode   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, unsigned int* bw) ;
+    FRESULT         sdc_scan_files(BaseSequentialStream *chp, char *path) ;
+    msg_t           sdlog_thread(void *p) ;
 
 #ifdef __cplusplus
 }

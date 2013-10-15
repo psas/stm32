@@ -14,13 +14,13 @@
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
+#include "chrtclib.h"
+
 #include "ff.h"
 #include "usbdetail.h"
 #include "psas_rtc.h"
-#include "sdcdetail.h"
 
-#include "chrtclib.h"
-#define         DEBUG_SDC                                     0
+#include "sdcdetail.h"
 
 static const    unsigned        sdlog_thread_sleeptime_ms      = 1000;
 static const    unsigned        sdc_polling_interval           = 10;
@@ -96,6 +96,14 @@ void InsertHandler(eventid_t id) {
 
     (void)id;
 
+    /* generate a mailbox event here
+    */
+
+    /*
+       test event message system
+       */
+
+
     /*
      * On insertion SDC initialization and FS mount.
      */
@@ -153,47 +161,49 @@ FRESULT sdc_scan_files(BaseSequentialStream *chp, char *path) {
                 path[--i] = 0;
             }
             else {
-                chprintf(chp, "%s/%s\r\n", path, fn);
+                SDCDEBUG("%s/%s\r\n", path, fn);
             }
         }
     }
     return res;
 }
 
+/* Manipulate the file pointer index */
+void sdc_read_fp_index() {
+    /* not implemented */
+}
 
-/*! \brief sdlog  thread.
- *
- * \return -1: generic error
- *         -2: unable to open file
- *         -3: Null data structure
- *
- *  \todo return typedef or enum...
- */
+void sdc_write_fp_index() {
+    /* not implemented */
+}
 
-static int write_log_data(FIL* DATAFil, Logdata* d, unsigned int* bw) {
-    int              rc = 0;
-    BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+void sdc_set_fp_index() {
+    /* not implemented */
+}
+
+void sdc_reset_fp_index() {
+    /* not implemented */
+}
+
+static int sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, unsigned int* bw) {
 
     if((d==NULL) || (bw == NULL)) {
-        return -3;
+        return SDC_NULL_PARAMETER_ERROR;
     }
-#if DEBUG_SDC
-    chprintf(chp, "%d\r\n", d->timespec.tv_time);
-    chprintf(chp, "sizeof logdata:\t%d\r\n", sizeof(Logdata));
-#endif
-    //rc = f_write(DATAFil, "More Stuff\r\n", sizeof("More Stuff\r\n")-1, bw);
-    rc = f_write(DATAFil, (const void *)(d), sizeof(Logdata), bw);
+    SDCDEBUG("%d\r\n", d->message_head.psas_time_ns);
+
+    rc = f_write(DATAFil, (const void *)(d), sizeof(GENERIC_message), bw);
     if (rc)  {
-        chprintf(chp, "%s: f_write error: %d\r\n", __func__, rc);
-        return -1;
+        SDCDEBUG(chp, "%s: f_write error: %d\r\n", __func__, rc);
+        return SDC_FWRITE_ERROR1;
     }
 
     rc = f_sync(DATAFil);
     if (rc)  {
-    	chprintf(chp, "%s: f_sync error: %d\r\n", __func__, rc);
-    	return -2;
+        SDCDEBUG(chp, "%s: f_sync error: %d\r\n", __func__, rc);
+        return SDC_FSYNC_ERROR;
     }
-    return 0;
+    return SDC_OK;
 }
 
 /*!
@@ -223,8 +233,6 @@ WORKING_AREA(wa_sdlog_thread, SDLOG_THREAD_STACKSIZE_BYTES);
 //};
 
 
-
-
 /*! \brief sdlog  thread.
  *
  * \param p
@@ -233,97 +241,98 @@ WORKING_AREA(wa_sdlog_thread, SDLOG_THREAD_STACKSIZE_BYTES);
  */
 msg_t sdlog_thread(void *p) {
     void * arg __attribute__ ((unused)) = p;
-    Logdata           log_data;
-    FRESULT           rc;
+    GENERIC_message   log_data;
+    FRESULT           ret;
+    RTCTime           psas_time_ns;
     FIL               DATAFil;
-    int result;
-    unsigned int     bw;
+    SDC_ERRORCode     sdc_ret;
+
+    unsigned int      bw;
     uint32_t          index            = 0;
     uint32_t          write_errors     = 0;
     uint32_t          sync_errors      = 0;
 
-    BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
     chRegSetThreadName("sdlog_thread");
 
     // write First Line with EVENT 'opened logfile' 'version'
-//    set up events
-//      mpu  newdata
-//      mpl  newdata
-//      adis newdata
+    //    set up events
+    //      mpu  newdata
+    //      mpl  newdata
+    //      adis newdata
 
-    chprintf(chp, "Start sdlog thread\r\n");
+    SDCDEBUG(chp, "Start sdlog thread\r\n");
     while(1) {
 
-    	if(fs_ready && (!sd_log_opened) ) {
-    		// open an existing log file for writing
-    		/*!
-    		 *  There is a proposal to pre-allocate a large file
-    		 *  and open it, instead of creating a file. The theory
-    		 *  is that in the case of a system failure, the file
-    		 *  will be able to be re-opened even if garbage was written
-    		 *  to it. Should the system fail during a block allocation
-    		 *  or similar function, the file (or card) may be left in an
-    		 *  unreadable state. In the preallocated file proposal, only
-    		 *  f_open and f_close functions are applied.
-    		 *
-    		 *  \todo There is need for some experimenting here.
-    		 *
-    		 */
+        if(fs_ready && (!sd_log_opened) ) {
+            // open an existing log file for writing
+            /*!
+             *  There is a proposal to pre-allocate a large file
+             *  and open it, instead of creating a file. The theory
+             *  is that in the case of a system failure, the file
+             *  will be able to be re-opened even if garbage was written
+             *  to it. Should the system fail during a block allocation
+             *  or similar function, the file (or card) may be left in an
+             *  unreadable state. In the preallocated file proposal, only
+             *  f_open and f_close functions are applied.
+             *
+             *  \todo There is need for some experimenting here.
+             *
+             */
 
-    		rc = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
-    		if (rc) {
-    			// ok...try creating the file
-    			chprintf(chp, "open new\t");
-    			rc = f_open(&DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
-    			if (rc) {
-    				sd_log_opened = false;
-    			} else {
-    				sd_log_opened = true;
-    				chprintf(chp, "opened new\t");
-//    				rc = f_write(&DATAFil, "New File Started\n", sizeof("New File Started\n"), &bw);
-//    				chprintf(chp, "write new file %d bytes\r\n", bw);
-//    				rc = f_sync(&DATAFil);
-//    				if (rc)  {
-//    					chprintf(chp, "write new file failed\r\n");
-//    				}
-    				//chprintf(chp, "write new file %d bytes\r\n", bw);
-    				//rc = f_close(&DATAFil);
-    			//	rc = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
-    			//	if (rc) {
-    			//		chprintf(chp, "reopen fail\r\n");
-    			//		sd_log_opened = false;
-    			//	}
-    			}
-    		} else {
-    			chprintf(chp, "open existing file ok\r\n");
-    			sd_log_opened = true;
-    		}
-//    		if(sd_log_opened) {
-//    			/* Move to end of the file to append data */
-//    			rc = f_lseek(&DATAFil, f_size(&DATAFil));
-//    			if (rc) {
-//    				chprintf(chp, "seek fail\r\n");
-//    				sd_log_opened = false;
-//    			}
-//    		}
-    	}
+            rc = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
+            if (rc) {
+                // ok...try creating the file
+                SDCDEBUG(chp, "open new\t");
+                rc = f_open(&DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
+                if (rc) {
+                    sd_log_opened = false;
+                } else {
+                    sd_log_opened = true;
+                    SDCDEBUG(chp, "opened new\t");
+                    //    				rc = f_write(&DATAFil, "New File Started\n", sizeof("New File Started\n"), &bw);
+                    //    				SDCDEBUG(chp, "write new file %d bytes\r\n", bw);
+                    //    				rc = f_sync(&DATAFil);
+                    //    				if (rc)  {
+                    //    					SDCDEBUG(chp, "write new file failed\r\n");
+                    //    				}
+                    //SDCDEBUG(chp, "write new file %d bytes\r\n", bw);
+                    //rc = f_close(&DATAFil);
+                    //	rc = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
+                    //	if (rc) {
+                    //		SDCDEBUG(chp, "reopen fail\r\n");
+                    //		sd_log_opened = false;
+                    //	}
+                }
+            } else {
+                SDCDEBUG(chp, "open existing file ok\r\n");
+                sd_log_opened = true;
+            }
+            //    		if(sd_log_opened) {
+            //    			/* Move to end of the file to append data */
+            //    			rc = f_lseek(&DATAFil, f_size(&DATAFil));
+            //    			if (rc) {
+            //    				SDCDEBUG(chp, "seek fail\r\n");
+            //    				sd_log_opened = false;
+            //    			}
+            //    		}
+        }
 
         if (fs_ready && sd_log_opened) {
-            log_data.index        = index++;
-            log_data.timespec.h12 = 1;
-            psas_rtc_lld_get_time(&RTCD1, &log_data.timespec);
-            result = write_log_data(&DATAFil, &log_data, &bw);
-            if(result == -1 ) { ++write_errors; }
-            if(result == -2) { ++sync_errors; }
-#if DEBUG_SDC
-            chprintf(chp, "write/sync errors: %d/%d\r\n", write_errors, sync_errors);
-#endif
+            RTCTime        timenow;
+            log_data.mh.ID       = {'A','D','I','S'};
+            timenow.h12          = 1;
+            psas_rtc_lld_get_time(&RTCD1, &timenow);
+            psas_rtc_to_psas_ns(&log_data.mh.psas_time_ns, &timenow);
+            sdc_ret = sdc_write_log_message(&DATAFil, &log_data, &bw) ;
+            if(sdc_ret == -1 ) { ++write_errors; }
+            if(sdc_ret == -2 ) { ++sync_errors;  }
+            SDCDEBUG(chp, "write/sync errors: %d/%d\r\n", write_errors, sync_errors);
         } else {
-        	if(sd_log_opened) {
-        		chprintf(chp, "close file\r\n");
-        		f_close(&DATAFil);       // might be redundant if card removed....
-        		sd_log_opened = false;
-        	}
+            if(sd_log_opened) {
+                SDCDEBUG(chp, "close file\r\n");
+                f_close(&DATAFil);       // might be redundant if card removed....
+                sd_log_opened = false;
+            }
         }
         chThdSleepMilliseconds(sdlog_thread_sleeptime_ms);
     }

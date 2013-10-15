@@ -29,6 +29,10 @@ typedef struct psas_rtc_state {
   bool                  initialized;
 } psas_rtc_state;
 
+typedef struct psas_timespec {
+    uint8_t PSAS_ns[6];
+} psas_timespec;
+
 
 extern psas_rtc_state     psas_rtc_s;
 
