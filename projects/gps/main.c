@@ -30,6 +30,7 @@ extern SerialDriver SD1; // defined in os/hal/platforms/STM32/USARTv1/serial_lld
 
 #define SERIAL_BITRATE 9600
 
+#define GPIOA_PIN11 GPIOA_OTG_FS_DM
 
 static const SerialConfig serial_config =
 {
@@ -95,6 +96,7 @@ int main(void) {
      */
     palSetPadMode(GPIOB, GPIOB_PIN6, PAL_MODE_ALTERNATE(7));
     palSetPadMode(GPIOB, GPIOB_PIN7, PAL_MODE_ALTERNATE(7));
+    palSetPadMode(GPIOA, GPIOA_PIN11, PAL_MODE_OUTPUT_PUSHPULL);
 
     /* activate serial driver 1
      * default configuration ('NULL' means use default.)
