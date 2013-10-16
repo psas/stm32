@@ -1,0 +1,19 @@
+
+
+* Notes on the serial terminal 
+connect an FTDI serial/usb connector to the
+appropriate (in rocketnet hub land this is pa9 and pa10)
+These are configured as alternate functions in the board.h file.
+
+See the rocketnet-hub schematic for pinout.
+
+    stm		rnethub      ftdi
+RX: pa10     ?            tx
+TX: pa9      ?            rx
+
+In the mcuconf.h file enable the proper serial subsystem:
+#define STM32_SERIAL_USE_USART1             TRUE
+
+In the halconf.h enable the serial system
+#define HAL_USE_SERIAL                      TRUE
+
