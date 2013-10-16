@@ -87,8 +87,6 @@ void main(void) {
 
 	shellInit();
 
-	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
-
 	struct ip_addr ip, gateway, netmask;
 	IP4_ADDR(&ip,      192, 168, 0,   196);
 	IP4_ADDR(&gateway, 192, 168, 1,   1  );
@@ -99,16 +97,17 @@ void main(void) {
 	ip_opts.address    = ip.addr;
 	ip_opts.netmask    = netmask.addr;
 	ip_opts.gateway    = gateway.addr;
-
+	chprintf((struct BaseSequentialStream *)&SDU_PSAS, "LWIP ");
 	chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2,
 	                    lwip_thread, &ip_opts);
-
+	chprintf((struct BaseSequentialStream *)&SDU_PSAS, "tx ");
     chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO,
     		data_udp_send_thread, NULL);
-
+    chprintf((struct BaseSequentialStream *)&SDU_PSAS, "rx ");
     chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO,
       		data_udp_receive_thread, NULL);
-
+    chprintf((struct BaseSequentialStream *)&SDU_PSAS, "shell ");
+    chThdCreateStatic(waThread_blinker, sizeof(waThread_blinker), NORMALPRIO, Thread_blinker, NULL);
 	while (TRUE) {
 		if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
 			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
