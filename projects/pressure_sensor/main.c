@@ -32,7 +32,6 @@
 #include "cmddetail.h"
 
 #include "MPL3115A2.h"
-#include "ADIS16405.h"
 
 #include "main.h"
 #include "board.h"
@@ -54,61 +53,7 @@ static const ShellConfig shell_cfg1 = {
 		commands
 };
 
-/*! \brief ADIS SPI configuration
- *
- * 656250Hz, CPHA=1, CPOL=1, MSb first.
- *
- * For burst mode ADIS SPI is limited to 1Mhz.
- */
-#if 1
 
-/*
-const SPIConfig adis_spicfg = {
-		adis_spi_cb,
-		GPIOA,
-		4,
-		SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
-};
-
-*/
-#else
-const SPIConfig adis_spicfg = {
-		NULL,
-		GPIOA,
-		4,
-		SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
-};
-
-#endif
-
-
-/*! \brief ADIS SPI Pin connections
- *
- */
-
- /*
-const adis_connect adis_connections = {
-		GPIOA,      // spi_sck_port
-		5,          // spi_sck_pad;
-		GPIOA,      // spi_miso_port;
-		6,          // spi_miso_pad;
-		GPIOB,      // spi_mosi_port;
-		5,          // spi_mosi_pad;
-		GPIOA,      // spi_cs_port;
-		4,          // spi_cs_pad;
-		GPIOD,      // reset_port
-		8,          // reset_pad;
-		GPIOD,      // dio1_port;
-		9,          // dio1_pad;
-		GPIOD,      // dio2_port;
-		10,         // dio2_pad;
-		GPIOD,      // dio3_port;
-		11,         // dio3_pad;
-		GPIOD,      // dio4_port;
-		12          // dio4_pad
-};
-
-*/
 
 /*! configure the i2c module on stm32
  *
@@ -191,37 +136,6 @@ static msg_t Thread_mpl3115a2(void *arg) {
 	return -1;
 }
 
-
-//static WORKING_AREA(waThread_adis_dio1, 128);
-/*! \brief ADIS DIO1 thread
- *
- * For burst mode transactions t_readrate is 1uS
- *
- */
-//static msg_t Thread_adis_dio1(void *arg) {
-//	(void)arg;
-//	static const evhandler_t evhndl_dio1[]       = {
-//			adis_burst_read_handler,
-//			//adis_read_id_handler,
-//			adis_spi_cb_txdone_handler,
-//			adis_release_bus
-//	};
-//	struct EventListener     evl_dio;
-//	struct EventListener     evl_spi_ev;
-//	struct EventListener     evl_spi_release;
-//
-//	chRegSetThreadName("adis_dio");
-//
-//	chEvtRegister(&adis_dio1_event,           &evl_dio,         0);
-//	chEvtRegister(&adis_spi_cb_txdone_event,  &evl_spi_ev,      1);
-//	chEvtRegister(&adis_spi_cb_releasebus,    &evl_spi_release, 2);
-//
-//	while (TRUE) {
-//		chEvtDispatch(evhndl_dio1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), US2ST(50)));
-//	}
-//	return -1;
-//}
-
 static WORKING_AREA(waThread_indwatchdog, 64);
 /*! \brief  Watchdog thread
  */
@@ -257,29 +171,6 @@ int main(void) {
 	chSysInit();
 
 	extdetail_init();
-
-
-	/*
-	 * SPI1 I/O pins setup.
-	 */
-	 /*
-	palSetPadMode(adis_connections.spi_sck_port, adis_connections.spi_sck_pad,
-			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(adis_connections.spi_miso_port, adis_connections.spi_miso_pad,
-			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_FLOATING);
-	palSetPadMode(adis_connections.spi_mosi_port, adis_connections.spi_mosi_pad,
-			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST );
-	palSetPadMode(adis_connections.spi_cs_port, adis_connections.spi_cs_pad,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-
-	palSetPad(GPIOA, GPIOA_SPI1_SCK);
-	palSetPad(GPIOA, GPIOA_SPI1_NSS);
-
-	*/
 
 	/*
 	 * I2C2 I/O pins setup.
