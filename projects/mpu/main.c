@@ -31,7 +31,6 @@
 #include "cmddetail.h"
 
 #include "MPU9150.h"
-#include "ADIS16405.h"
 
 #include <lwip/ip_addr.h>
 
@@ -55,54 +54,6 @@ static const ShellCommand commands[] = {
 static const ShellConfig shell_cfg1 = {
 		(BaseSequentialStream *)&SDU_PSAS,
 		commands
-};
-
-/*! \brief ADIS SPI configuration
- *
- * 656250Hz, CPHA=1, CPOL=1, MSb first.
- *
- * For burst mode ADIS SPI is limited to 1Mhz.
- */
-#if 1
-const SPIConfig adis_spicfg = {
-		adis_spi_cb,
-		GPIOA,
-		4,
-		SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
-};
-#else
-const SPIConfig adis_spicfg = {
-		NULL,
-		GPIOA,
-		4,
-		SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
-};
-
-#endif
-
-
-/*! \brief ADIS SPI Pin connections
- *
- */
-const adis_connect adis_connections = {
-		GPIOA,      // spi_sck_port
-		5,          // spi_sck_pad;
-		GPIOA,      // spi_miso_port;
-		6,          // spi_miso_pad;
-		GPIOB,      // spi_mosi_port;
-		5,          // spi_mosi_pad;
-		GPIOA,      // spi_cs_port;
-		4,          // spi_cs_pad;
-		GPIOD,      // reset_port
-		8,          // reset_pad;
-		GPIOD,      // dio1_port;
-		9,          // dio1_pad;
-		GPIOD,      // dio2_port;
-		10,         // dio2_pad;
-		GPIOD,      // dio3_port;
-		11,         // dio3_pad;
-		GPIOD,      // dio4_port;
-		12          // dio4_pad
 };
 
 /*! configure the i2c module on stm32
@@ -156,12 +107,7 @@ static void mpu9150_init(I2CDriver* i2cptr) {
 	mpu9150_write_int_enable(i2cptr, rdata);
 }
 
-static void mpu9150_int_event_handler(eventid_t id) {
-	(void) id;
-
-	static uint16_t     count = 0;
-
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+static void mpu9150_int_event_handler(eventid_t id __attribute__ ((unused))) {
 
 	mpu9150_a_read_x_y_z(mpu9150_driver.i2c_instance, &mpu9150_current_read.accel_xyz);
 
@@ -176,6 +122,11 @@ static void mpu9150_int_event_handler(eventid_t id) {
 	mpu9150_a_g_read_int_status(mpu9150_driver.i2c_instance);
 
 #if	DEBUG_MPU9150
+
+    static uint16_t     count = 0;
+
+    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+
 	++count;
 	if (count > 5000) {
 				chprintf(chp, "\r\nraw_temp: %d C\r\n", mpu9150_temp_to_dC(mpu9150_current_read.celsius));
@@ -217,60 +168,6 @@ static msg_t Thread_mpu9150_int(void* arg) {
 	return -1;
 }
 
-
-#if 0
-static WORKING_AREA(waThread_adis_newdata, 256);
-/*! \brief ADIS Newdata Thread
- */
-static msg_t Thread_adis_newdata(void *arg) {
-	(void)arg;
-	chRegSetThreadName("adis_newdata");
-
-	static const evhandler_t evhndl_newdata[]       = {
-			adis_newdata_handler
-	};
-	struct EventListener     evl_spi_cb2;
-
-	chEvtRegister(&adis_spi_cb_newdata, &evl_spi_cb2, 0);
-
-	while (TRUE) {
-		chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
-	}
-	return -1;
-}
-
-
-static WORKING_AREA(waThread_adis_dio1, 128);
-/*! \brief ADIS DIO1 thread
- *
- * For burst mode transactions t_readrate is 1uS
- *
- */
-static msg_t Thread_adis_dio1(void *arg) {
-	(void)arg;
-	static const evhandler_t evhndl_dio1[]       = {
-			adis_burst_read_handler,
-			//adis_read_id_handler,
-			adis_spi_cb_txdone_handler,
-			adis_release_bus
-	};
-	struct EventListener     evl_dio;
-	struct EventListener     evl_spi_ev;
-	struct EventListener     evl_spi_release;
-
-	chRegSetThreadName("adis_dio");
-
-	chEvtRegister(&adis_dio1_event,           &evl_dio,         0);
-	chEvtRegister(&adis_spi_cb_txdone_event,  &evl_spi_ev,      1);
-	chEvtRegister(&adis_spi_cb_releasebus,    &evl_spi_release, 2);
-
-	while (TRUE) {
-		chEvtDispatch(evhndl_dio1, chEvtWaitOneTimeout((EVENT_MASK(2)|EVENT_MASK(1)|EVENT_MASK(0)), US2ST(50)));
-	}
-	return -1;
-}
-#endif
-
 static WORKING_AREA(waThread_indwatchdog, 64);
 /*! \brief  Watchdog thread
  */
@@ -307,8 +204,6 @@ int main(void) {
 	extdetail_init();
 
 	palSetPad(GPIOC, GPIOC_LED);
-	palSetPad(GPIOA, GPIOA_SPI1_SCK);
-	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
 	/*!
 	 * GPIO Pins for generating pulses at data input detect and data output send.
@@ -320,25 +215,6 @@ int main(void) {
 	palSetPadMode(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
 	palSetPad(    TIMEINPUT_PORT, TIMEINPUT_PIN);
 	palSetPadMode(TIMEINPUT_PORT, TIMEINPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL );
-
-	/*
-	 * SPI1 I/O pins setup.
-	 */
-	palSetPadMode(adis_connections.spi_sck_port, adis_connections.spi_sck_pad,
-			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST);
-	palSetPadMode(adis_connections.spi_miso_port, adis_connections.spi_miso_pad,
-			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST| PAL_STM32_PUDR_FLOATING);
-	palSetPadMode(adis_connections.spi_mosi_port, adis_connections.spi_mosi_pad,
-			PAL_MODE_ALTERNATE(5) |
-			PAL_STM32_OSPEED_HIGHEST );
-	palSetPadMode(adis_connections.spi_cs_port, adis_connections.spi_cs_pad,
-			PAL_MODE_OUTPUT_PUSHPULL |
-			PAL_STM32_OSPEED_HIGHEST);
-
-	palSetPad(GPIOA, GPIOA_SPI1_SCK);
-	palSetPad(GPIOA, GPIOA_SPI1_NSS);
 
 	/*
 	 * I2C2 I/O pins setup
@@ -376,8 +252,6 @@ int main(void) {
 	 * configuration.
 	 */
 	sdStart(&SD6, NULL);
-
-	spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
 	chThdSleepMilliseconds(300);
 
