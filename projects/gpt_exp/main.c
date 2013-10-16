@@ -23,7 +23,7 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "gpt.h"
+#define GPIOD_PIN14_GPT_T3 GPIOD_PIN14
 
 // See output on: PIN_AFIO_AF(GPIOD_PIN14_GPT_T3, 2) |
 
@@ -89,6 +89,7 @@ int main(void) {
 	halInit();
 	chSysInit();
 
+	palSetPadMode(GPIOD, GPIOD_PIN14_GPT_T3, PAL_MODE_OUTPUT_PUSHPULL);
 
 	chThdCreateStatic(waThread_25mhz    , sizeof(waThread_25mhz)            , NORMALPRIO    , Thread_25mhz           , NULL);
 
