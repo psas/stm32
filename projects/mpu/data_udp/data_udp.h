@@ -44,6 +44,15 @@
 
 #define DATA_UDP_MSG_SIZE                    128
 
+/*
+ * Pin alias names for testing
+ */
+#define TIMEOUTPUT_PORT             GPIOD
+#define TIMEINPUT_PORT              GPIOD
+#define TIMEOUTPUT_PIN              GPIOD_PIN5
+#define TIMEINPUT_PIN               GPIOD_PIN3
+
+
 /*! \typedef mpu9150 MAC Connection info
  *
  */
