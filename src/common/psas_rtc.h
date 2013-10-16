@@ -36,6 +36,7 @@ void psas_rtc_lld_init(void) ;
 
 void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) ;
 void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
+void psas_rtc_lld_get_s_and_us(RTCDriver* rtcp, time_t* s, uint32_t* us) ;
 
 
 #ifdef __cplusplus

@@ -18,6 +18,11 @@
 #define EVENTBUFF_LENGTH 64
 #define EVENTLOG_DEBUG true
 
+typedef struct {
+  uint32_t seconds;
+  uint32_t packed_us_event;
+} Event;
+
 
 
 /**
@@ -27,7 +32,23 @@
 /*
  * This is the logger thread that writes the posted events to the SD card.
  */
-static msg_t log_event(void *_);
+static msg_t log_event(void* _);
+
+/*
+ * This creates an Event struct, gets the current time from the RTC, and packs
+ * the fields together.
+ */
+Event* make_event(event_t et);
+
+
+
+/**
+ ** Private Macro Definitions
+ ****************************/
+
+#define pack_event_and_us(et, us) ((uint32_t) ((us & ((1 << 20) - 1)) << 8 | (et & 0xff)))
+#define unpack_event(et_us)       ((uint8_t)  et_us & 0xff)
+#define unpack_us(et_us)          ((uint32_t) et_us >> 8)
 
 
 
@@ -41,6 +62,16 @@ static msg_t log_event(void *_);
  */
 static msg_t event_buffer[EVENTBUFF_LENGTH];
 static MAILBOX_DECL(event_mail, event_buffer, EVENTBUFF_LENGTH);
+
+static MemoryPool event_pool;
+/*
+ * This is the static storage that backs the events' memory pool.
+ * The size of this array defines the maximum number of Event objects that can
+ * be allocated at any one time.
+ * Since each message posted to the above mailbox will refer to one Event, this
+ * array should have the same size as the mailbox.
+ */
+static Event event_data[EVENTBUFF_LENGTH] __attribute__((aligned(sizeof(stkalign_t))));
 
 static WORKING_AREA(wa_thread_log_event, 512);
 
@@ -59,17 +90,14 @@ static WORKING_AREA(wa_thread_log_event, 512);
  * The returned boolean indicates whether the event was succesfully posted
  * (true) or failed because the buffer of events to be logged was full (false).
  */
-bool post_event(event_t e) {
+bool post_event(event_t et) {
   msg_t status;
-  RTCTime posted_at_rtc;
-  struct tm posted_at_tm;
-  time_t posted_at_unix;
 
-  psas_rtc_lld_get_time(&RTCD1, &posted_at_rtc);
-  psas_stm32_rtc_bcd2tm(&posted_at_tm, &posted_at_rtc);
-  posted_at_unix = mktime(&posted_at_tm);
+  Event* e = make_event(et);
+  if (e == NULL) return false;
 
-  status = chMBPost(&event_mail, e, TIME_IMMEDIATE);
+  status = chMBPost(&event_mail, (msg_t) e, TIME_IMMEDIATE);
+
   return status == RDY_OK;
 }
 
@@ -78,11 +106,14 @@ bool post_event(event_t e) {
  * eventlogger_init
  *
  * This must be called before post_event can be used.
- * It sets up the logger thread.
- * It assumes that Chibi's RTOS kernel has already been activated by calling
+ * It sets up the logger thread and Event memory pool.
+ * It assumes that ChibiOs's RTOS kernel has already been activated by calling
  * chSysInit().
  */
 void eventlogger_init(void) {
+  chPoolInit(&event_pool, sizeof(Event), NULL);
+  chPoolLoadArray(&event_pool, event_data, EVENTBUFF_LENGTH);
+
   chThdCreateStatic( wa_thread_log_event
                    , sizeof(wa_thread_log_event)
                    , NORMALPRIO
@@ -104,10 +135,11 @@ void eventlogger_init(void) {
  * TODO: actually log things to the SD card.
  */
 static msg_t log_event(void *_) {
-  event_t posted;
-  RTCTime received_at_rtc;
-  struct tm received_at_tm;
-  time_t received_at_unix;
+  Event* posted;
+  time_t curr_s;
+  uint32_t e_us, curr_us;
+  int32_t us_diff;
+  uint8_t et;
 
   chRegSetThreadName("eventlogger");
 
@@ -116,18 +148,42 @@ static msg_t log_event(void *_) {
     // to sleep until something gets posted to the mailbox.
     chMBFetch(&event_mail, (msg_t *) &posted, TIME_INFINITE);
 
-    psas_rtc_lld_get_time(&RTCD1, &received_at_rtc);
-    psas_stm32_rtc_bcd2tm(&received_at_tm, &received_at_rtc);
-    received_at_unix = mktime(&received_at_tm);
+    e_us = unpack_us(posted->packed_us_event);
+    et = unpack_event(posted->packed_us_event);
+
+    psas_rtc_lld_get_s_and_us(&RTCD1, &curr_s, &curr_us);
+    us_diff = curr_us - e_us;
+    us_diff = (us_diff < 0) ? 1000000 - us_diff : us_diff;
 
 #if EVENTLOG_DEBUG
     chprintf( (BaseSequentialStream *) &SDU_PSAS
-            , "\"logging\" event from %D.%06D\r\n"
-            , received_at_unix
-            , received_at_rtc.tv_msec
+            , "\"logging\" event %03d from %D.%06D delay %D.%06D s\r\n"
+            , et
+            , posted->seconds
+            , e_us
+            , curr_s - posted->seconds
+            , us_diff
             );
 #endif
+
+    chPoolFree(&event_pool, posted);
   }
 
   return -1;
+}
+
+Event* make_event(event_t et) {
+  Event* e = (Event *) chPoolAlloc(&event_pool);
+
+  // bail if the pool is empty
+  if (e == NULL) return NULL;
+
+  time_t s;
+  uint32_t us;
+  psas_rtc_lld_get_s_and_us(&RTCD1, &s, &us);
+
+  e->seconds = s;
+  e->packed_us_event = pack_event_and_us(et, us);
+
+  return e;
 }
