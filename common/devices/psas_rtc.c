@@ -185,5 +185,24 @@ void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) {
 
 }
 
+/*!
+ * \brief   Get current unix time and microseconds (us).
+ * \param[in] rtcp  pointer to RTC driver structure
+ * \param[out] s    pointer to a time_t
+ * \param[out] us   pointer to a uint32_t
+ */
+void psas_rtc_lld_get_s_and_us(RTCDriver* rtcp, time_t* s, uint32_t* us) {
+  RTCTime received_at_rtc;
+  struct tm received_at_tm;
+  time_t received_at_unix;
+
+  psas_rtc_lld_get_time(rtcp, &received_at_rtc);
+  psas_stm32_rtc_bcd2tm(&received_at_tm, &received_at_rtc);
+  received_at_unix = mktime(&received_at_tm);
+
+  *s = received_at_unix;
+  *us = received_at_rtc.tv_msec;
+}
+
 
 //! @}

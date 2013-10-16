@@ -21,9 +21,11 @@ static WORKING_AREA(wa_thread_event_generator, 64);
 
 msg_t event_generator(void *_) {
   char i;
-  for (i = 'a'; i <= 'z'; i++) {
+
+  chThdSleepMilliseconds(2000);
+  for (i = 0; i < 255; i++) {
     post_event((event_t) i);
-    chThdSleepMilliseconds(100);
+    if (i % 10 == 0) chThdSleepMilliseconds(500);
   }
 
   return 0;
