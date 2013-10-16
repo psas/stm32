@@ -51,32 +51,8 @@ extern "C" {
         SDC_UNKNOWN_ERROR        = -99
     } SDC_ERRORCode;
 
-    /*! Start of a list of codes for events
-    */
-    typedef enum EVENTCode {
-        OK_EVENT = 0,
-        PWR_RESET,
-        WDG_RESET,
-        OTH_RESET,
-        ADIS_INT,
-        MPL_INT,
-        MPU_INT,
-        FCF_MSG,
-        FCF_CMD
-    } EVENTCode;
-
-    /*! Start of a list of codes for messages
-    */
-    typedef enum EVENTCode {
-        GENERIC_MESSAGE = 0,
-        EVENT_MESSAGE,
-        ADIS_MESSAGE,
-        MPL_MESSAGE,
-        MPU_MESSAGE,
-        OTHER_MESSAGE
-    } EVENTCode;
-
     struct Message_head {
+        uint32_t             index;
         char                 ID[4];
         uint8_t              psas_time_ns[6];
         uint16_t             data_length;

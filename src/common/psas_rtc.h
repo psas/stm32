@@ -22,24 +22,27 @@ extern "C" {
 #endif
 
 #ifndef PSAS_RTC_COE_DEBUG
-    #define     PSAS_RTC_COE_DEBUG      0          // Enable the calibration output on PC13
+#define     PSAS_RTC_COE_DEBUG      0          // Enable the calibration output on PC13
 #endif
 
-typedef struct psas_rtc_state {
-  bool                  initialized;
-} psas_rtc_state;
+    typedef struct psas_rtc_state {
+        bool                  initialized;
+    } psas_rtc_state;
 
-typedef struct psas_timespec {
-    uint8_t PSAS_ns[6];
-} psas_timespec;
+    typedef struct psas_timespec {
+        uint8_t PSAS_ns[6];
+    } psas_timespec;
 
 
-extern psas_rtc_state     psas_rtc_s;
+    extern psas_rtc_state     psas_rtc_s;
 
-void psas_rtc_lld_init(void) ;
+    void psas_rtc_lld_init(void) ;
 
-void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) ;
-void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
+    void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) ;
+    void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
+    void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) ;
+    void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
+    void psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) ;
 
 
 #ifdef __cplusplus

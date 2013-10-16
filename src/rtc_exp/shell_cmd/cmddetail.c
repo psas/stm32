@@ -38,9 +38,11 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
   if (argc == 0) {
     goto ERROR;
   }
-
-
   if ((argc == 1) && (strcmp(argv[0], "get") == 0)){
+      psas_time.tv_time  = 10;
+      psas_time.tv_msec = 100;
+      psas_rtc_lld_set_time(&RTCD1, &psas_time);
+ 
       psas_rtc_lld_get_time(&RTCD1, &psas_time);
       psas_stm32_rtc_bcd2tm(&timp, &psas_time);
 
@@ -54,7 +56,7 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
           rtcGetTimeTm(&RTCD1, &timp);
           chprintf(chp, "%s%s",asctime(&timp)," - formatted time string\r\n");
       }
-      // }
+     // }
       return;
   }
 
