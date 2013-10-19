@@ -32,55 +32,71 @@ static time_t      unix_time;
 
 void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
     (void)argv;
-  struct tm timp;
-  RTCTime   psas_time;
+    struct tm timp;
+    RTCTime   psas_time;
 
-  if (argc == 0) {
-    goto ERROR;
-  }
-  if ((argc == 1) && (strcmp(argv[0], "get") == 0)){
-      psas_time.tv_time  = 10;
-      psas_time.tv_msec = 100;
-      psas_rtc_lld_set_time(&RTCD1, &psas_time);
- 
-      psas_rtc_lld_get_time(&RTCD1, &psas_time);
-      psas_stm32_rtc_bcd2tm(&timp, &psas_time);
-
-      unix_time = mktime(&timp);
-
-      if (unix_time == -1){
-          chprintf(chp, "incorrect time in RTC cell\r\n");
-      }
-      else{
-          chprintf(chp, "%Ds %Dus %s",unix_time, psas_time.tv_msec, " - unix time\r\n");
-          rtcGetTimeTm(&RTCD1, &timp);
-          chprintf(chp, "%s%s",asctime(&timp)," - formatted time string\r\n");
-      }
-     // }
-      return;
-  }
-
-  if ((argc == 2) && (strcmp(argv[0], "set") == 0)){
-    unix_time = atol(argv[1]);
-    if (unix_time > 0){
-      rtcSetTimeUnixSec(&RTCD1, unix_time);
-      return;
+    if (argc == 0) {
+        goto ERROR;
     }
-    else{
-      goto ERROR;
+    if ((argc == 1) && (strcmp(argv[0], "get") == 0)) {
+        psas_rtc_lld_get_time(&RTCD1, &psas_time);
+        psas_stm32_rtc_bcd2tm(&timp, &psas_time);
+
+        unix_time = mktime(&timp);
+
+        if (unix_time == -1){
+            chprintf(chp, "incorrect time in RTC cell\r\n");
+        } else {
+            chprintf(chp, "%Ds %Dus %s",unix_time, psas_time.tv_msec, " - unix time\r\n");
+            rtcGetTimeTm(&RTCD1, &timp);
+            chprintf(chp, "%s%s",asctime(&timp)," - formatted time string\r\n");
+        }
+        return;
+    } else if ((argc == 1) && (strcmp(argv[0], "test") == 0)) {
+        psas_time.tv_time  = 1382142229;
+        psas_time.tv_msec  = 100;
+
+        rtcSetTimeUnixSec(&RTCD1, psas_time.tv_time);
+
+        chThdSleepMilliseconds(20);
+
+        psas_rtc_lld_get_time(&RTCD1, &psas_time);
+        psas_stm32_rtc_bcd2tm(&timp, &psas_time);
+        unix_time = mktime(&timp);
+
+        if (unix_time == -1){
+            chprintf(chp, "incorrect time in RTC cell\r\n");
+        } else {
+            chprintf(chp, "Test: %Ds %Dus %s",unix_time, psas_time.tv_msec, " - unix time\r\n");
+        }
+        return;
+    } else if (argc==1) {
+        goto ERROR;
+    } else {
+        ;
     }
-  }
-  else{
-    goto ERROR;
-  }
+
+    if ((argc == 2) && (strcmp(argv[0], "set") == 0)) {
+        unix_time = atol(argv[1]);
+        if (unix_time > 0) {
+            rtcSetTimeUnixSec(&RTCD1, unix_time);
+            return;
+        }
+        else {
+            goto ERROR;
+        }
+    } else {
+        goto ERROR;
+    }
 
 ERROR:
-  chprintf(chp, "Usage: date get\r\n");
-  chprintf(chp, "       date set N\r\n");
-  chprintf(chp, "where N is time in seconds sins Unix epoch\r\n");
-  chprintf(chp, "you can get current N value from unix console by the command\r\n");
-  chprintf(chp, "%s", "date +\%s\r\n");
-  return;
+    chprintf(chp, "Usage: date get\r\n");
+    chprintf(chp, "       date test\r\n");
+    chprintf(chp, "       date set N\r\n");
+    chprintf(chp, "where N is time in seconds sins Unix epoch\r\n");
+    chprintf(chp, "you can get current N value from unix console by the command\r\n");
+    chprintf(chp, "%s", "date +\%s\r\n");
+    return;
 }
 
 /*! \brief Show memory usage
