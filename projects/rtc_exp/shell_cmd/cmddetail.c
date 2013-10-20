@@ -56,9 +56,7 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
         psas_time.tv_time  = 1382142229;
         psas_time.tv_msec  = 100;
 
-        rtcSetTimeUnixSec(&RTCD1, psas_time.tv_time);
-
-        chThdSleepMilliseconds(20);
+        psas_rtc_lld_set_time(&RTCD1, &psas_time);
 
         psas_rtc_lld_get_time(&RTCD1, &psas_time);
         psas_stm32_rtc_bcd2tm(&timp, &psas_time);
