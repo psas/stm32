@@ -38,8 +38,9 @@ extern "C" {
 
     void psas_rtc_lld_init(void) ;
 
+    void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) ;
     void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) ;
-    void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
+
     void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) ;
     void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
     void psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) ;
