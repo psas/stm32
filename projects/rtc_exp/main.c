@@ -132,7 +132,7 @@ int main(void) {
     chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
     chThdSleepMilliseconds(2000);
-    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+    /*BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;*/
     /* COE etc enabled 880040 is CR. Why? Thu 17 October 2013 13:12:17 (PDT) */
     /* TODO: Check cal on oscilloscope. */
     psas_rtc_lld_init();

@@ -100,24 +100,24 @@ void psas_rtc_lld_init(void) {
     RTCD1.id_rtc->WPR = 0x53;
 
 
-/*
-   From Ref manual p 634
- * If COSEL is set and “PREDIV_S+1” is a non-zero multiple of 256 (i.e:
- *        PREDIV_S[7:0] = 0xFF), the RTC_CALIB frequency is fRTCCLK/(256 *
- *            (PREDIV_A+1)). This corresponds to a calibration output at 1 Hz for
- *        prescaler default values (PREDIV_A = Ox7F, PREDIV_S = 0xFF), with an
- *        RTCCLK frequency at 32.768 kHz.prediv_a
- *
- * Since prediv_a = 1, The output on pc13 RTC_AF1 is 64hz.
- */
+    /*
+       From Ref manual p 634
+     * If COSEL is set and “PREDIV_S+1” is a non-zero multiple of 256 (i.e:
+     *        PREDIV_S[7:0] = 0xFF), the RTC_CALIB frequency is fRTCCLK/(256 *
+     *            (PREDIV_A+1)). This corresponds to a calibration output at 1 Hz for
+     *        prescaler default values (PREDIV_A = Ox7F, PREDIV_S = 0xFF), with an
+     *        RTCCLK frequency at 32.768 kHz.prediv_a
+     *
+     * Since prediv_a = 1, The output on pc13 RTC_AF1 is 64hz.
+     */
 
     RTCD1.id_rtc->CR   = 0; 
-/* //  Output to PC13?
- *#if PSAS_RTC_COE_DEBUG
- *    RTCD1.id_rtc->CR   |= RTC_CR_COE;
- *    RTCD1.id_rtc->CR   |= RTC_CR_COSEL;
- *#endif
- */
+    /* //  Output to PC13?
+     *#if PSAS_RTC_COE_DEBUG
+     *    RTCD1.id_rtc->CR   |= RTC_CR_COE;
+     *    RTCD1.id_rtc->CR   |= RTC_CR_COSEL;
+     *#endif
+     */
 
     psas_rtc_lld_enter_init();
     /*
@@ -189,12 +189,12 @@ void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
 /*! \brief Convert from a psas_timespec to an RTCTime struct */
 void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) {
     uint64_t   total_ns_in    = 0;
-    uint64_t   total_ns       = 0;
 
     memcpy(&total_ns_in, &ts->PSAS_ns[0], 6);
     rtc->tv_time   = (uint32_t) (total_ns_in / 1e9);
-    rtc->tv_msec   = (uint32_t) ((total_ns - total_ns_in)/1e6);
+    rtc->tv_msec   = (uint32_t) (total_ns_in/1e6)-(rtc->tv_time*1000);
 }
+
 
 /*!
  * \brief   Get current time.
@@ -224,19 +224,23 @@ void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) {
  * \brief set current time
  */
 void psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) {
-   double ssr_ticks_d;
+    double ssr_ticks_d;
+
+    if(!psas_rtc_s.initialized) {
+        return;
+    }
 
     rtcSetTimeUnixSec(rtcp, timespec->tv_time) ;
 
     /* set milliseconds
      * 32768 crystal scaled at pre_a=1 is ~60uS per tick. 
-     *  ... this is 16.384mS per tick 
+     *  ... this is 16.384mS per ssr tick 
      */
     ssr_ticks_d       = 16.384 * timespec->tv_msec;
 
+    /* Open question, does init function need to be entered for SSR? */
     psas_rtc_lld_enter_init();                                                                           
     RTCD1.id_rtc->SSR = (uint16_t) (ssr_ticks_d);
-
     psas_rtc_lld_exit_init();
 }
 
