@@ -74,7 +74,7 @@ psas_rtc_state     psas_rtc_s = {false};
 /*!
  * \brief   Enable access to registers.
  *
- * This application will use the subsecond register
+ * This API will use the subsecond register
  * at full speed for sub second timestamping.
  *
  * This requires the prescaler registers to be set
@@ -102,7 +102,7 @@ void psas_rtc_lld_init(void) {
 
 /*
    From Ref manual p 634
- *If COSEL is set and “PREDIV_S+1” is a non-zero multiple of 256 (i.e:
+ * If COSEL is set and “PREDIV_S+1” is a non-zero multiple of 256 (i.e:
  *        PREDIV_S[7:0] = 0xFF), the RTC_CALIB frequency is fRTCCLK/(256 *
  *            (PREDIV_A+1)). This corresponds to a calibration output at 1 Hz for
  *        prescaler default values (PREDIV_A = Ox7F, PREDIV_S = 0xFF), with an
@@ -111,17 +111,13 @@ void psas_rtc_lld_init(void) {
  * Since prediv_a = 1, The output on pc13 RTC_AF1 is 64hz.
  */
 
-/*
+    RTCD1.id_rtc->CR   = 0; 
+/* //  Output to PC13?
  *#if PSAS_RTC_COE_DEBUG
  *    RTCD1.id_rtc->CR   |= RTC_CR_COE;
  *    RTCD1.id_rtc->CR   |= RTC_CR_COSEL;
- *#else
- *    RTCD1.id_rtc->CR   &= (~RTC_CR_COE);
- *    RTCD1.id_rtc->CR   &= (~RTC_CR_COSEL);
  *#endif
  */
-
-     RTCD1.id_rtc->CR   = 0; 
 
     psas_rtc_lld_enter_init();
     /*
@@ -228,11 +224,9 @@ void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) {
  * \brief set current time
  */
 void psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) {
-    (void) rtcp;
-    double ssr_ticks_d;
+   double ssr_ticks_d;
 
-    /* set seconds */
-    // rtc_lld_set_time(rtcp, (const RTCTime *) timespec) ;
+    rtcSetTimeUnixSec(rtcp, timespec->tv_time) ;
 
     /* set milliseconds
      * 32768 crystal scaled at pre_a=1 is ~60uS per tick. 
@@ -241,12 +235,6 @@ void psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) {
     ssr_ticks_d       = 16.384 * timespec->tv_msec;
 
     psas_rtc_lld_enter_init();                                                                           
-    if (timespec->h12)
-        RTCD1.id_rtc->CR |= RTC_CR_FMT;
-    else
-        RTCD1.id_rtc->CR &= ~RTC_CR_FMT;
-    RTCD1.id_rtc->TR = timespec->tv_time;
-    RTCD1.id_rtc->DR = timespec->tv_date;
     RTCD1.id_rtc->SSR = (uint16_t) (ssr_ticks_d);
 
     psas_rtc_lld_exit_init();
