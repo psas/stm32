@@ -133,8 +133,8 @@ int main(void) {
 
     chThdSleepMilliseconds(2000);
     /*BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;*/
-    /* COE etc enabled 880040 is CR. Why? Thu 17 October 2013 13:12:17 (PDT) */
-    /* TODO: Check cal on oscilloscope. */
+
+    /* DONE: Check cal on oscilloscope on RTC_AF1. 64hz */
     psas_rtc_lld_init();
 /*
  *    static       uint8_t      IMU_macAddress[6]           = IMU_A_MAC_ADDRESS;
