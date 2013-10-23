@@ -38,6 +38,7 @@
 
 #include "main.h"
 
+/* see cmddetail.c for testing. Use 'date' in shell */
 
 static const ShellCommand commands[] = {
     {"mem", cmd_mem},
