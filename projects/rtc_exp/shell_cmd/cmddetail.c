@@ -19,11 +19,9 @@
 #include "chprintf.h"
 #include "mac.h"
 
-
-#include "psas_rtc.h"
-
 #include "chrtclib.h"
 
+#include "psas_rtc.h"
 #include "cmddetail.h"
 
 #define 		DEBUG_PHY 			0
@@ -40,9 +38,10 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
     }
     if ((argc == 1) && (strcmp(argv[0], "get") == 0)) {
         psas_rtc_lld_get_time(&RTCD1, &psas_time);
-        psas_stm32_rtc_bcd2tm(&timp, &psas_time);
+        unix_time = psas_rtc_dr_tr_to_unixtime(&psas_time);
 
-        unix_time = mktime(&timp);
+        // psas_stm32_rtc_bcd2tm(&timp, &psas_time);
+        // unix_time = mktime(&timp);
 
         if (unix_time == -1){
             chprintf(chp, "incorrect time in RTC cell\r\n");
@@ -53,6 +52,8 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
         }
         return;
     } else if ((argc == 1) && (strcmp(argv[0], "test") == 0)) {
+        time_t unix_time2;
+
         psas_time.tv_time  = 1382142229;
         psas_time.tv_msec  = 100;
 
@@ -60,7 +61,12 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
 
         psas_rtc_lld_get_time(&RTCD1, &psas_time);
         psas_stm32_rtc_bcd2tm(&timp, &psas_time);
-        unix_time = mktime(&timp);
+
+        unix_time = psas_rtc_dr_tr_to_unixtime(&psas_time);
+        unix_time2 = mktime(&timp);
+        if(unix_time != unix_time2) {
+            chprintf(chp, "***ERROR:\tBad conversion to unix_time\r\n");
+        }
 
         if (unix_time == -1){
             chprintf(chp, "incorrect time in RTC cell\r\n");

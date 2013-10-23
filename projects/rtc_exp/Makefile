@@ -206,7 +206,7 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DPSAS_RTC_COE_DEBUG=1
+#UDEFS = -DPSAS_RTC_COE_DEBUG=1
 
 
 # Define ASM defines here

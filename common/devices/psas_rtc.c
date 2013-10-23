@@ -18,7 +18,7 @@ limitations under the License.
 */
 
 /*!
- * \defgroup psas_rtc Non standard PSAS RTC
+ * \defgroup psas_rtc Non standard RTC
  * @{
  */
 
@@ -70,7 +70,6 @@ limitations under the License.
 
 psas_rtc_state     psas_rtc_s = {false};
 
-
 /*!
  * \brief   Enable access to registers.
  *
@@ -99,7 +98,6 @@ void psas_rtc_lld_init(void) {
     RTCD1.id_rtc->WPR = 0xCA;
     RTCD1.id_rtc->WPR = 0x53;
 
-
     /*
        From Ref manual p 634
      * If COSEL is set and “PREDIV_S+1” is a non-zero multiple of 256 (i.e:
@@ -111,13 +109,13 @@ void psas_rtc_lld_init(void) {
      * Since prediv_a = 1, The output on pc13 RTC_AF1 is 64hz.
      */
 
+#if PSAS_RTC_COE_DEBUG
+    #warning "COE DEBUG Output enabled on RTC_AF1 pin"
+    RTCD1.id_rtc->CR   |= RTC_CR_COE;
+    RTCD1.id_rtc->CR   |= RTC_CR_COSEL;
+#else
     RTCD1.id_rtc->CR   = 0; 
-    /* //  Output to PC13?
-     *#if PSAS_RTC_COE_DEBUG
-     *    RTCD1.id_rtc->CR   |= RTC_CR_COE;
-     *    RTCD1.id_rtc->CR   |= RTC_CR_COSEL;
-     *#endif
-     */
+#endif
 
     psas_rtc_lld_enter_init();
     /*
@@ -176,7 +174,13 @@ void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) {
     timp->tm_hour += 12 * ((tv_time & RTC_TR_PM) >> RTC_TR_PM_OFFSET);
 }
 
-/*! \brief Convert from an RTCTime struct to a psas_timespec */
+/*! \brief Convert from an RTCTime struct to a psas_timespec 
+ *
+ *  \warning rtc is assumed to be in seconds, not the raw register
+ *   (BCD-ish) form.
+ *
+ *  \sa psas_rtc_lld_get_time()
+ */
 void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
     uint64_t  total_ns         = 0;
 
@@ -186,7 +190,13 @@ void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
     memcpy(&ts->PSAS_ns[0], &total_ns, 6);
 }
 
-/*! \brief Convert from a psas_timespec to an RTCTime struct */
+/*! \brief Convert from a psas_timespec to an RTCTime struct 
+ *
+ *  \warning rtc is returned in seconds, not the raw register
+ *   (BCD-ish) form.
+ *
+ *  \sa psas_rtc_lld_get_time()
+ */
 void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) {
     uint64_t   total_ns_in    = 0;
 
@@ -195,17 +205,52 @@ void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) {
     rtc->tv_msec   = (uint32_t) (total_ns_in/1e6)-(rtc->tv_time*1000);
 }
 
+/*! \brief Utility function to convert from RTC TR register
+ * 
+ * Return the simple calendar time representation from a 
+ * RTC DR and TR register read.
+ */
+time_t psas_rtc_dr_tr_to_unixtime(RTCTime* timespec) {
+    time_t        unix_time;
+    struct   tm   timp;
+
+    psas_stm32_rtc_bcd2tm(&timp, timespec);
+    unix_time = mktime(&timp);
+
+    return unix_time;
+}
 
 /*!
  * \brief   Get current time.
+ * Returns time in format from RTC{TR,DR} registers
+ * timespec->tv_msec is in milliseconds. 
  *
- * \param[in] rtcp      pointer to RTC driver structure
- * \param[out] timespec pointer to a @p RTCTime structure
+ * \param[in]  rtcp      pointer to RTC driver structure
+ * \param[out] timespec  pointer to a @p RTCTime structure
+ * 
+ * Returns raw data from TR and DR. Consider using
+ *
+ *       time_t        unix_time;
+ *       struct   tm   timp;
+ *       RTCTime       psas_time;
+ *      (...)
+ *        psas_rtc_lld_get_time(&RTCD1, &psas_time);
+ *        psas_stm32_rtc_bcd2tm(&timp, &psas_time);
+ *        unix_time = mktime(&timp);
+ *      (...)
+ *
+ * This is how the ChibiOS function rtc_lld_get_time() works. 
+ * This function attempts to parallel that behavior.
+ *
+ * \sa psas_tr_to_unixtime
+ *
  */
 void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) {
     (void)rtcp;
 
     if(!psas_rtc_s.initialized) {
+        timespec->tv_time = 0;
+        timespec->tv_date = 0;
         return;
     }
 
@@ -215,13 +260,16 @@ void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) {
     timespec->tv_msec =1000000 * ((1.0 * (RTCD1.id_rtc->PRER & 0x7FFF) - RTCD1.id_rtc->SSR) /
             ((RTCD1.id_rtc->PRER & 0x7FFF) + 1));
 #endif /* STM32_RTC_HAS_SUBSECONDS */
-    timespec->tv_time = RTCD1.id_rtc->TR;
-    timespec->tv_date = RTCD1.id_rtc->DR;
-
+    timespec->tv_time = RTCD1.id_rtc->TR;   // \warning RAW register format
+    timespec->tv_date = RTCD1.id_rtc->DR;   // See Ref Manual: p637
 }
+
 
 /*!
  * \brief set current time
+ *
+ * \param[in]  rtcp      pointer to RTC driver structure
+ * \param[in]  timespec pointer to a \p RTCTime structure
  */
 void psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) {
     double ssr_ticks_d;
@@ -240,7 +288,7 @@ void psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) {
 
     /* Open question, does init function need to be entered for SSR? */
     psas_rtc_lld_enter_init();                                                                           
-    RTCD1.id_rtc->SSR = (uint16_t) (ssr_ticks_d);
+    RTCD1.id_rtc->SSR = (uint16_t) (ssr_ticks_d);  // C truncation here. Calling floor will require -lm
     psas_rtc_lld_exit_init();
 }
 

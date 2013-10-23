@@ -33,17 +33,17 @@ extern "C" {
         uint8_t PSAS_ns[6];
     } psas_timespec;
 
+    extern  psas_rtc_state     psas_rtc_s;
 
-    extern psas_rtc_state     psas_rtc_s;
+    void   psas_rtc_lld_init(void) ;
 
-    void psas_rtc_lld_init(void) ;
+    void   psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) ;
+    void   psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) ;
 
-    void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) ;
-    void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) ;
-
-    void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) ;
-    void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
-    void psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) ;
+    void   psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) ;
+    time_t psas_rtc_dr_tr_to_unixtime(RTCTime* timespec) ;
+    void   psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
+    void   psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) ;
 
 
 #ifdef __cplusplus
