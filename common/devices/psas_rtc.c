@@ -63,6 +63,10 @@ limitations under the License.
     ;                                                                         \
 }
 
+
+#define PSAS_RTC_INCORRECT_TIME_ERROR            -1
+#define PSAS_RTC_ERROR                           -2
+
 /*!
  * \brief   Finalizing of configuration procedure.
  */
@@ -265,6 +269,29 @@ void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) {
 }
 
 
+/*! \brief utility function to convert the TR and DR register
+ *   data to simple time
+ *
+ * time returned to the RTCTime tv_time member.
+ * function returns 0 on success
+ */
+int psas_rtc_get_unix_time( RTCDriver *rtcp, RTCTime *timespec) {
+    time_t    unix_time;
+    RTCTime   psas_time;
+
+    psas_rtc_lld_get_time(rtcp, &psas_time);
+
+    unix_time = psas_rtc_dr_tr_to_unixtime(&psas_time);
+
+    if(unix_time  == -1) { 
+        return PSAS_RTC_INCORRECT_TIME_ERROR; 
+    }
+
+    timespec->tv_time = unix_time;
+
+    return 0;
+}
+
 /*!
  * \brief set current time
  *
@@ -272,24 +299,13 @@ void psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) {
  * \param[in]  timespec pointer to a \p RTCTime structure
  */
 void psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) {
-    double ssr_ticks_d;
 
     if(!psas_rtc_s.initialized) {
         return;
     }
 
+    // will convert to proper BCD register format for STM32
     rtcSetTimeUnixSec(rtcp, timespec->tv_time) ;
-
-    /* set milliseconds
-     * 32768 crystal scaled at pre_a=1 is ~60uS per tick. 
-     *  ... this is 16.384mS per ssr tick 
-     */
-    ssr_ticks_d       = 16.384 * timespec->tv_msec;
-
-    /* Open question, does init function need to be entered for SSR? */
-    psas_rtc_lld_enter_init();                                                                           
-    RTCD1.id_rtc->SSR = (uint16_t) (ssr_ticks_d);  // C truncation here. Calling floor will require -lm
-    psas_rtc_lld_exit_init();
 }
 
 //! @}

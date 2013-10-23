@@ -43,6 +43,7 @@ extern "C" {
     void   psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) ;
     time_t psas_rtc_dr_tr_to_unixtime(RTCTime* timespec) ;
     void   psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
+    int    psas_rtc_get_unix_time( RTCDriver *rtcp, RTCTime *timespec) ;
     void   psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) ;
 
 
