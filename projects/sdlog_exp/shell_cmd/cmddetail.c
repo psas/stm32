@@ -28,13 +28,12 @@
 #include "cmddetail.h"
 
 #define 		DEBUG_PHY 			0
-#define         DEBUG_SDC           1
+// #define         DEBUG_SDC           1
 
 static time_t      unix_time;
 
 static uint8_t     fbuff[1024];
 
-#if DEBUG_SDC
 
 #define SDC_TESTFILE          "cmd_test.txt"
 #define SDC_NEWFILE           "/NEWFILE.txt"
@@ -121,7 +120,6 @@ void cmd_sdct(BaseSequentialStream *chp, int argc, char *argv[]) {
     return;
 }
 
-#endif
 #define MAX_FILLER 11
 static char *long_to_string_with_divisor(BaseSequentialStream *chp,
                                          char *p,
