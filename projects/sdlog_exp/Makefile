@@ -66,8 +66,9 @@ PROJECT = ch
 # Imported source files and paths
 PSAS= ../../common
 include $(PSAS)/psas.mk
-CHIBIOS = ../../ChibiOS
-include ./boards/OLIMEX_STM32_E407/board.mk
+BOARDINC = $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407
+BOARDSRC = $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407/board.c
+CHIBIOS  = ../../ChibiOS
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
@@ -93,12 +94,10 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/various/chrtclib.c \
        $(CHIBIOS)/os/various/syscalls.c \
-       $(PSAS_COMMON)/iwdg_lld.c \
-       $(PSAS_COMMON)/usbdetail.c \
-       $(PSAS_COMMON)/psas_rtc.c \
        $(PSAS_DEVICES)/iwdg_lld.c \
        $(PSAS_DEVICES)/usbdetail.c \
        $(PSAS_DEVICES)/psas_rtc.c \
+       $(PSAS_DEVICES)/MPU9150.c \
        ./data_udp/data_udp.c \
        ./shell_cmd/cmddetail.c \
        ./ext_pins/extdetail.c \
@@ -137,7 +136,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(FATFSINC) \
          $(CHIBIOS)/os/various \
 	 $(PSAS_NET) \
-         $(PSAS_DEVICES)/include
+         $(PSAS_DEVICES)/include \
+
 
 #
 # Project, sources and paths
@@ -150,8 +150,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
 MCU  = cortex-m4
 
 #TRGT = arm-elf-
-TRGT = arm-psas-eabi-
-#TRGT = arm-none-eabi-
+#TRGT = arm-psas-eabi-
+TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.
@@ -220,7 +220,7 @@ UADEFS =
 UINCDIR = ./data_udp \
           ./sdc \
           ./shell_cmd \
-	      ./ext_pins
+          ./ext_pins
 
 # List the user directory to look for the libraries here
 ULIBDIR =
