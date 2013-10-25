@@ -21,17 +21,21 @@
 
 #include "MPU9150.h"
 
+#include "crc_16_reflect.h"
 #include "sdcdetail.h"
 
 #define         DEBUG_SDC
 
 #ifdef DEBUG_SDC
-    #include "usbdetail.h"
-    BaseSequentialStream    *sdcchp   =  (BaseSequentialStream *)&SDU_PSAS;
-    #define SDCDEBUG(format, ...) chprintf( sdcchp, format, ##__VA_ARGS__ )
+#include "usbdetail.h"
+BaseSequentialStream    *sdcchp   =  (BaseSequentialStream *)&SDU_PSAS;
+#define SDCDEBUG(format, ...) chprintf( sdcchp, format, ##__VA_ARGS__ )
 #else
-    #define SDCDEBUG(...) do{ } while ( false )
+#define SDCDEBUG(...) do{ } while ( false )
 #endif
+
+// end of data marker
+static          sdc_eod_marker  sdc_eod;
 
 static const    unsigned        sdlog_thread_sleeptime_ms        = 1000;
 static const    unsigned        sdc_polling_interval             = 10;
@@ -44,11 +48,17 @@ static          VirtualTimer    sdc_tmr;
 
 static          unsigned        sdc_debounce_count               = 0;
 
+DWORD           sdc_fp_index                                     = 0;
+
 bool                            fs_ready                         = FALSE;
 
 EventSource                     inserted_event, removed_event;
 
 FATFS                           SDC_FS;
+
+static inline void            sdc_reset_fp_index(void) {
+    sdc_fp_index = 0;
+}
 
 /*!
  * @brief   Insertion monitor timer callback function.
@@ -177,21 +187,39 @@ FRESULT sdc_scan_files(BaseSequentialStream *chp, char *path) {
     return res;
 }
 
-/* Manipulate the file pointer index */
-void sdc_read_fp_index() {
-    /* not implemented */
+
+void sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
+    f_lseek(DATAFil, ofs);
+    sdc_fp_index      = ofs;
 }
 
-void sdc_write_fp_index() {
-    /* not implemented */
-}
+FRESULT   sdc_write_checksum(FIL* DATAFil, const crc_t* crcd, unsigned int* bw) {
+    FRESULT rc;
 
-void sdc_set_fp_index() {
-    /* not implemented */
-}
+    if((crcd==NULL) || (bw == NULL)) {
+        return SDC_NULL_PARAMETER_ERROR;
+    }
+    rc = f_write(DATAFil, (const void *)(crcd), sizeof(crc_t), bw);
+    if (rc)  {
+        SDCDEBUG("f_write error:\r\n") ;
+        return rc;
+    }
+    sdc_fp_index += *bw;
 
-void sdc_reset_fp_index() {
-    /* not implemented */
+    rc = f_write(DATAFil, (const void *)(&sdc_eod), sizeof(sdc_eod_marker), bw);
+    if (rc)  {
+        SDCDEBUG("f_write error:\r\n") ;
+        return rc;
+    }
+    sdc_fp_index += *bw;
+
+    rc = f_sync(DATAFil);
+    if (rc)  {
+        SDCDEBUG("%s: f_sync error: %d\r\n", __func__, rc);
+        return rc;
+    }
+
+    return FR_OK;
 }
 
 FRESULT   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, unsigned int* bw) {
@@ -206,6 +234,7 @@ FRESULT   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, unsigned int* 
         SDCDEBUG("f_write error:\r\n") ;
         return rc;
     }
+    sdc_fp_index += *bw;
 
     rc = f_sync(DATAFil);
     if (rc)  {
@@ -255,12 +284,13 @@ msg_t sdlog_thread(void *p) {
     GENERIC_message   log_data;
     int               log_index = 0;
     int               rc;
+    unsigned int       i;
 
     FRESULT           ret;
     FIL               DATAFil;
 
-//     const char adisid[(sizeof("ADIS")-1)] = "ADIS";
-//     const char mplid[(sizeof("MPL3")-1)]  = "MPL3";
+    //     const char adisid[(sizeof("ADIS")-1)] = "ADIS";
+    //     const char mplid[(sizeof("MPL3")-1)]  = "MPL3";
 
     unsigned int      bw;
     uint32_t          write_errors     = 0;
@@ -268,13 +298,28 @@ msg_t sdlog_thread(void *p) {
 
     chRegSetThreadName("sdlog_thread");
 
-    // write First Line with EVENT 'opened logfile' 'version'
-    //    set up events
-    //      mpu  newdata
-    //      mpl  newdata
-    //      adis newdata
-
     SDCDEBUG("Start sdlog thread\r\n");
+
+    // init index
+    sdc_reset_fp_index();
+
+    // init fiducial markers.
+    for(i=0; i<sizeof(sdc_eod_marker) ; ++i) {
+        sdc_eod.sdc_eodmarks[i] = 0xa5; 
+    }
+
+    // Assert we will end up on 16bit boundary
+    if((sizeof(GENERIC_message) % 16) != 0) {
+        SDCDEBUG("%s: GENERIC message is not halfword divisible\r\n");
+        return (SDC_ASSERT_ERROR);
+    }
+
+    // Assert we will not overflow Payload
+    if(sizeof(MPU9150_read_data) > (sizeof(log_data.data)-1)) {
+        SDCDEBUG("%s: DATA size is too large\r\n");
+        return (SDC_ASSERT_ERROR);
+    }
+
     while(1) {
         if(fs_ready && (!sd_log_opened) ) {
             // open an existing log file for writing
@@ -331,13 +376,17 @@ msg_t sdlog_thread(void *p) {
         }
 
         if (fs_ready && sd_log_opened) {
+            crc_t          crc16;
             RTCTime        timenow;
 
-            log_data.mh.index    = log_index++;
+            // ID of this message
             strncpy(log_data.mh.ID, mpuid, sizeof(log_data.mh.ID));   // pretend to use mpu sensor for testing
 
-            timenow.h12          = 1;
+            // index
+            log_data.mh.index       = log_index++;
 
+            // timestamp
+            timenow.h12             = 1;
             rc = psas_rtc_get_unix_time( &RTCD1, &timenow) ;
             if (rc == -1) {
                 SDCDEBUG( "%s: psas_rtc time read errors: %d\r\n",__func__, rc);
@@ -345,18 +394,27 @@ msg_t sdlog_thread(void *p) {
             }
             psas_rtc_to_psas_ts(&log_data.mh.ts, &timenow);
 
-            if(sizeof(MPU9150_read_data) > (sizeof(log_data.data)-1)) {
-                return (SDC_ASSERT_ERROR);
-            }
+            // payload
+            memcpy(&log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
 
-	    memcpy(&log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
+            // length of message
+            log_data.mh.data_length = sizeof(MPU9150_read_data);
 
-            log_data.mh.data_length = sizeof(GENERIC_message);
-
+            // write log message
             rc = sdc_write_log_message(&DATAFil, &log_data, &bw) ;
             if(rc == -1 ) { ++write_errors; }
             if(rc == -2 ) { ++sync_errors;  }
             SDCDEBUG( "write/sync errors: %d/%d\r\n", write_errors, sync_errors);
+
+            // calc checksum
+            crc16                   = crc_init();
+            crc16                   = crc_update(crc16, (const unsigned char*) &log_data, sizeof(GENERIC_message));
+            crc16                   = crc_finalize(crc16);
+
+            // write checksum and fiducials.
+            rc = sdc_write_checksum(&DATAFil, &crc16, &bw) ;
+            if(rc == -1 ) { ++write_errors; }
+            if(rc == -2 ) { ++sync_errors;  }
         } else {
             if(sd_log_opened) {
                 SDCDEBUG( "close file\r\n");
