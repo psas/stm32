@@ -98,6 +98,7 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/usbdetail.c \
        $(PSAS_DEVICES)/psas_rtc.c \
        $(PSAS_DEVICES)/MPU9150.c \
+       $(PSAS_UTIL)/crc_16_reflect.c \
        ./data_udp/data_udp.c \
        ./shell_cmd/cmddetail.c \
        ./ext_pins/extdetail.c \
@@ -137,6 +138,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(CHIBIOS)/os/various \
 	 $(PSAS_NET) \
          $(PSAS_DEVICES)/include \
+         $(PSAS_UTIL)/include
 
 
 #
