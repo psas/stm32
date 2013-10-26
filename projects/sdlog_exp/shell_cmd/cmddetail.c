@@ -53,7 +53,7 @@ void cmd_sdct(BaseSequentialStream *chp, int argc, char *argv[]) {
 
     (void)argv;
     if (argc > 0) {
-        chprintf(chp, "Usage: tree\r\n");
+        chprintf(chp, "Usage: sdct\r\n");
         return;
     }
     chprintf(chp, "\r\nOpen an existing file: %s.\r\n", SDC_TESTFILE);
@@ -171,17 +171,20 @@ void cmd_tree(BaseSequentialStream *chp, int argc, char *argv[]) {
 
     (void)argv;
     if (argc > 0) {
-        chprintf(chp, "Usage: tree\r\n");
-        return;
+            chprintf(chp, "Usage: tree\r\n");
+            return;
     }
     if (!fs_ready) {
-        chprintf(chp, "File System not mounted\r\n");
-        return;
+            chprintf(chp, "File System not mounted\r\n");
+            return;
     }
     err = f_getfree("/", &clusters, &fsp);
     if (err != FR_OK) {
-        chprintf(chp, "FS: f_getfree() failed. FRESULT: %d\r\n", err);
-        return;
+            err = f_getfree("/", &clusters, &fsp);
+            if (err != FR_OK) {
+                    chprintf(chp, "FS: f_getfree() failed. FRESULT: %d\r\n", err);
+                    return;
+            }
     }
     chprintf(chp, "ULONG_MAX: %lu\n", ULONG_MAX);
     total =  1936690ULL * 8ULL * 512ULL;

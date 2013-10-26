@@ -81,10 +81,6 @@ static msg_t Thread_indwatchdog(void *arg) {
     return -1;
 }
 
-/*===========================================================================*/
-/* Main and generic code.                                                    */
-/*===========================================================================*/
-
 int main(void) {
     static Thread            *shelltp       = NULL;
     static const evhandler_t evhndl_main[]       = {
@@ -94,7 +90,7 @@ int main(void) {
     };
     struct EventListener     el0, el1, el2;
 
-    struct lwipthread_opts   ip_opts;
+    //struct lwipthread_opts   ip_opts;
 
     /*
      * System initializations.
@@ -163,20 +159,22 @@ int main(void) {
     chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
     chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
-    static       uint8_t      IMU_macAddress[6]           = IMU_A_MAC_ADDRESS;
-    struct       ip_addr      ip, gateway, netmask;
-    IMU_A_IP_ADDR(&ip);
-    IMU_A_GATEWAY(&gateway);
-    IMU_A_NETMASK(&netmask);
-
-    ip_opts.macaddress = IMU_macAddress;
-    ip_opts.address    = ip.addr;
-    ip_opts.netmask    = netmask.addr;
-    ip_opts.gateway    = gateway.addr;
-
-    chThdCreateStatic(wa_lwip_thread            , sizeof(wa_lwip_thread)            , NORMALPRIO + 2, lwip_thread            , &ip_opts);
-    chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
-    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
+    /*
+     *    static       uint8_t      IMU_macAddress[6]           = IMU_A_MAC_ADDRESS;
+     *    struct       ip_addr      ip, gateway, netmask;
+     *    IMU_A_IP_ADDR(&ip);
+     *    IMU_A_GATEWAY(&gateway);
+     *    IMU_A_NETMASK(&netmask);
+     *
+     *    ip_opts.macaddress = IMU_macAddress;
+     *    ip_opts.address    = ip.addr;
+     *    ip_opts.netmask    = netmask.addr;
+     *    ip_opts.gateway    = gateway.addr;
+     *
+     *    chThdCreateStatic(wa_lwip_thread            , sizeof(wa_lwip_thread)            , NORMALPRIO + 2, lwip_thread            , &ip_opts);
+     *    chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
+     *    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
+     */
 
     chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
 

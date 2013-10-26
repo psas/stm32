@@ -134,8 +134,11 @@ void InsertHandler(eventid_t id) {
 
     err = f_mount(0, &SDC_FS);
     if (err != FR_OK) {
-        sdcDisconnect(&SDCD1);
-        return;
+        err = f_mount(0, &SDC_FS);
+        if (err != FR_OK) {
+            sdcDisconnect(&SDCD1);
+            return;
+        }
     }
     fs_ready = TRUE;
 }
@@ -145,7 +148,15 @@ void InsertHandler(eventid_t id) {
  */
 void RemoveHandler(eventid_t id) {
     (void)id;
-    sdcDisconnect(&SDCD1);
+    bool_t ret;
+    ret = sdcDisconnect(&SDCD1);
+    if(ret) {
+        SDCDEBUG("sdcDiscon fail\r\n");   // this happens a lot!
+        ret = sdcDisconnect(&SDCD1);
+        if(ret) {
+            SDCDEBUG("sdcDiscon fail2\r\n");
+        }
+    }
     fs_ready = FALSE;
 }
 
@@ -229,6 +240,7 @@ FRESULT   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, unsigned int* 
         return SDC_NULL_PARAMETER_ERROR;
     }
 
+    /*SDCDEBUG("sdc_fp_index: %d\r\n", sdc_fp_index) ;*/
     rc = f_write(DATAFil, (const void *)(d), sizeof(GENERIC_message), bw);
     if (rc)  {
         SDCDEBUG("f_write error:\r\n") ;
@@ -265,6 +277,45 @@ FRESULT   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, unsigned int* 
 //#endif
 //};
 
+static uint8_t     fbuff[1024];
+void sdc_tree(BaseSequentialStream *chp, int argc, char *argv[]) {
+    FRESULT err;
+    unsigned long clusters;
+    unsigned long long total;
+    FATFS *fsp;
+   // char buffern[20];
+
+    (void)argv;
+    if (argc > 0) {
+            chprintf(chp, "Usage: tree\r\n");
+            return;
+    }
+    if (!fs_ready) {
+            chprintf(chp, "File System not mounted\r\n");
+            return;
+    }
+    err = f_getfree("/", &clusters, &fsp);
+    if (err != FR_OK) {
+            err = f_getfree("/", &clusters, &fsp);
+            if (err != FR_OK) {
+                    chprintf(chp, "FS: f_getfree() failed. FRESULT: %d\r\n", err);
+                    return;
+            }
+    }
+    total =  1936690ULL * 8ULL * 512ULL;
+    //total = clusters * (uint32_t)SDC_FS.csize * (uint32_t)MMCSD_BLOCK_SIZE;
+    // p = long_to_string_with_divisor(chp, p, total, 10, 0);
+    //howbig = sizeof(unsigned long);
+ 
+    chprintf(chp,
+            "FS: %lu free clusters, %lu sectors per cluster, %lu bytes free.\r\n",
+            clusters, (uint32_t)SDC_FS.csize,
+            total);
+    fbuff[0] = 0;
+    sdc_scan_files(chp, (char *)fbuff);
+}
+
+
 
 /*!
  * Stack area for the sdlog_thread.
@@ -292,9 +343,11 @@ msg_t sdlog_thread(void *p) {
     //     const char adisid[(sizeof("ADIS")-1)] = "ADIS";
     //     const char mplid[(sizeof("MPL3")-1)]  = "MPL3";
 
-    unsigned int      bw;
+    unsigned int      bw = 0;
     uint32_t          write_errors     = 0;
     uint32_t          sync_errors      = 0;
+
+    chThdSleepMilliseconds(1000);
 
     chRegSetThreadName("sdlog_thread");
 
@@ -305,12 +358,12 @@ msg_t sdlog_thread(void *p) {
 
     // init fiducial markers.
     for(i=0; i<sizeof(sdc_eod_marker) ; ++i) {
-        sdc_eod.sdc_eodmarks[i] = 0xa5; 
+        sdc_eod.sdc_eodmarks[i] = 0xa5;
     }
 
     // Assert we will end up on 16bit boundary
     if((sizeof(GENERIC_message) % 16) != 0) {
-        SDCDEBUG("%s: GENERIC message is not halfword divisible\r\n");
+        SDCDEBUG("%s: GENERIC message is not halfword aligned.\r\n", __func__);
         return (SDC_ASSERT_ERROR);
     }
 
@@ -322,7 +375,9 @@ msg_t sdlog_thread(void *p) {
 
     while(1) {
         if(fs_ready && (!sd_log_opened) ) {
-            // open an existing log file for writing
+
+            sdc_tree(sdcchp, 0, NULL);
+            //// open an existing log file for writing
             /*!
              *  There is a proposal to pre-allocate a large file
              *  and open it, instead of creating a file. The theory
@@ -337,67 +392,64 @@ msg_t sdlog_thread(void *p) {
              *
              */
 
+
             ret = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
+            SDCDEBUG("ret: %d\r\n", ret);
             if (ret) {
-                // ok...try creating the file
-                SDCDEBUG("open new\t");
-                ret = f_open(&DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
-                if (ret) {
-                    sd_log_opened = false;
-                } else {
-                    sd_log_opened = true;
-                    /*SDCDEBUG("opened new\t");*/
-                    //    				rc = f_write(&DATAFil, "New File Started\n", sizeof("New File Started\n"), &bw);
-                    //    				SDCDEBUG("write new file %d bytes\r\n", bw);
-                    //    				rc = f_sync(&DATAFil);
-                    //    				if (rc)  {
-                    //    					SDCDEBUG("write new file failed\r\n");
-                    //    				}
-                    //SDCDEBUG("write new file %d bytes\r\n", bw);
-                    //rc = f_close(&DATAFil);
-                    //	rc = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
-                    //	if (rc) {
-                    //		SDCDEBUG( "reopen fail\r\n");
-                    //		sd_log_opened = false;
-                    //	}
-                }
+                SDCDEBUG("failed to open existing %s\r\n",sdc_log_data_file);
+                //// ok...try creating the file
+                //SDCDEBUG("open new\t");
+                //ret = f_open(&DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
+                //if (ret) {
+                    //SDCDEBUG("0\t");
+                    //sd_log_opened = false;
+                //} else {
+                    //SDCDEBUG("+\t");
+                    //sd_log_opened = true;
+                    //[>SDCDEBUG("opened new\t");<]
+                    ////    				rc = f_write(&DATAFil, "New File Started\n", sizeof("New File Started\n"), &bw);
+                    ////    				SDCDEBUG("write new file %d bytes\r\n", bw);
+                    ////    				rc = f_sync(&DATAFil);
+                    ////    				if (rc)  {
+                    ////    					SDCDEBUG("write new file failed\r\n");
+                    ////    				}
+                    ////SDCDEBUG("write new file %d bytes\r\n", bw);
+                    ////rc = f_close(&DATAFil);
+                    ////	rc = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
+                    ////	if (rc) {
+                    ////		SDCDEBUG( "reopen fail\r\n");
+                    ////		sd_log_opened = false;
+                    ////	}
+                //}
             } else {
                 SDCDEBUG( "open existing file ok\r\n");
                 sd_log_opened = true;
             }
-            //    		if(sd_log_opened) {
-            //    			/* Move to end of the file to append data */
-            //    			rc = f_lseek(&DATAFil, f_size(&DATAFil));
-            //    			if (rc) {
-            //    				SDCDEBUG( "seek fail\r\n");
-            //    				sd_log_opened = false;
-            //    			}
-            //    		}
         }
 
         if (fs_ready && sd_log_opened) {
             crc_t          crc16;
-            RTCTime        timenow;
+            ////RTCTime        timenow;
 
             // ID of this message
-            strncpy(log_data.mh.ID, mpuid, sizeof(log_data.mh.ID));   // pretend to use mpu sensor for testing
+            //strncpy(log_data.mh.ID, mpuid, sizeof(log_data.mh.ID));   // pretend to use mpu sensor for testing
 
             // index
             log_data.mh.index       = log_index++;
 
-            // timestamp
-            timenow.h12             = 1;
-            rc = psas_rtc_get_unix_time( &RTCD1, &timenow) ;
-            if (rc == -1) {
-                SDCDEBUG( "%s: psas_rtc time read errors: %d\r\n",__func__, rc);
-                continue;
-            }
-            psas_rtc_to_psas_ts(&log_data.mh.ts, &timenow);
+            //// timestamp
+            //timenow.h12             = 1;
+            //rc = psas_rtc_get_unix_time( &RTCD1, &timenow) ;
+            //if (rc == -1) {
+                //SDCDEBUG( "%s: psas_rtc time read errors: %d\r\n",__func__, rc);
+                //continue;
+            //}
+            //psas_rtc_to_psas_ts(&log_data.mh.ts, &timenow);
 
             // payload
             memcpy(&log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
 
-            // length of message
+            // length of payload
             log_data.mh.data_length = sizeof(MPU9150_read_data);
 
             // write log message
@@ -411,14 +463,15 @@ msg_t sdlog_thread(void *p) {
             crc16                   = crc_update(crc16, (const unsigned char*) &log_data, sizeof(GENERIC_message));
             crc16                   = crc_finalize(crc16);
 
+            SDCDEBUG( "checksum:\t%d\r\n", crc16);
             // write checksum and fiducials.
-            rc = sdc_write_checksum(&DATAFil, &crc16, &bw) ;
-            if(rc == -1 ) { ++write_errors; }
-            if(rc == -2 ) { ++sync_errors;  }
+            //rc = sdc_write_checksum(&DATAFil, &crc16, &bw) ;
+            //if(rc == -1 ) { ++write_errors; }
+            //if(rc == -2 ) { ++sync_errors;  }
         } else {
             if(sd_log_opened) {
-                SDCDEBUG( "close file\r\n");
-                f_close(&DATAFil);       // might be redundant if card removed....
+                ret = f_close(&DATAFil);       // might be redundant if card removed....
+                //SDCDEBUG( "close file ret: %d\r\n", ret);
                 sd_log_opened = false;
             }
         }

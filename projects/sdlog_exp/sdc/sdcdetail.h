@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-#define         SDC_THREAD_STACKSIZE_BYTES                  1024
+#define         SDC_THREAD_STACKSIZE_BYTES                  2048
 
 /* A 162 byte message written at 1000hz will use 4GB in about 6.5 Hours */
 #define         SDC_MAX_PAYLOAD_BYTES                       150
@@ -63,6 +63,7 @@ extern "C" {
     struct GENERIC_message {
         Message_head         mh;
         Payload              data[SDC_MAX_PAYLOAD_BYTES];
+        uint8_t              align[10];//align to halfword boundary
     } __attribute__((packed));
     typedef struct GENERIC_message GENERIC_message;
 
