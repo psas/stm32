@@ -28,19 +28,21 @@ extern "C" {
 #define         SDC_MAX_PAYLOAD_BYTES                       150
 #define         SDC_NUM_ID_CHARS                            4
 
-    extern          bool        fs_ready;
-    extern          FATFS       SDC_FS;
+    extern          bool            fs_ready;
+    extern          FATFS           SDC_FS;
+    extern          DWORD           sdc_fp_index;
+    extern          DWORD           sdc_fp_index_old;
 
-    extern          EventSource inserted_event;
-    extern          EventSource removed_event;
+
+    extern          EventSource     inserted_event;
+    extern          EventSource     removed_event;
+
     extern          WORKING_AREA(wa_sdlog_thread, SDC_THREAD_STACKSIZE_BYTES);
-
-    typedef         uint8_t     Payload;
 
     // create end of data fiducials...slightly larger than log entry
     typedef struct sdc_eod_marker {
-        // GENERIC_message + checksum + eod_marker
-        uint8_t sdc_eodmarks[SDC_MAX_PAYLOAD_BYTES+13+2+2];
+        // GENERIC_message + checksum + eod_marker + eod_marker
+        uint8_t sdc_eodmarks[166+2+2+2];
     } sdc_eod_marker;
 
     typedef enum SDC_ERRORCode {
@@ -53,7 +55,7 @@ extern "C" {
     } SDC_ERRORCode;
 
     struct Message_head {
-        char                 ID[SDC_NUM_ID_CHARS]; // This must be first part of data. Reserved value: 0xa5a5
+        char                 ID[SDC_NUM_ID_CHARS];         // This must be first part of data. Reserved value: 0xa5a5
         uint32_t             index;
         psas_timespec        ts;
         uint16_t             data_length;
@@ -61,9 +63,8 @@ extern "C" {
     typedef struct Message_head Message_head;
 
     struct GENERIC_message {
-        Message_head         mh;
-        Payload              data[SDC_MAX_PAYLOAD_BYTES];
-        uint8_t              align[10];//align to halfword boundary
+        Message_head         mh;                           // 16 bytes
+        uint8_t              data[SDC_MAX_PAYLOAD_BYTES];  // 150 bytes
     } __attribute__((packed));
     typedef struct GENERIC_message GENERIC_message;
 
@@ -71,9 +72,10 @@ extern "C" {
     void            RemoveHandler(eventid_t id) ;
     void            sdc_tmr_init(void *p) ;
     void            sdc_set_fp_index(FIL* DATAFil, DWORD ofs) ;
+    void            sdc_init_eod(void);
 
-    FRESULT         sdc_write_checksum(FIL* DATAFil, const crc_t* d, unsigned int* bw) ;
-    FRESULT         sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, unsigned int* bw) ;
+    FRESULT         sdc_write_checksum(FIL* DATAFil, const crc_t* d, uint32_t* bw) ;
+    FRESULT         sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t * bw) ;
     FRESULT         sdc_scan_files(BaseSequentialStream *chp, char *path) ;
 
     msg_t           sdlog_thread(void *p) ;
