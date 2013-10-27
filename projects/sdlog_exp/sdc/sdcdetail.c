@@ -24,14 +24,14 @@
 #include "crc_16_reflect.h"
 #include "sdcdetail.h"
 
-#define         DEBUG_SDC
+// #define         DEBUG_SDC
 
 #ifdef DEBUG_SDC
 #include "usbdetail.h"
 BaseSequentialStream    *sdcchp   =  (BaseSequentialStream *)&SDU_PSAS;
 #define SDCDEBUG(format, ...) chprintf( sdcchp, format, ##__VA_ARGS__ )
-DWORD           sdc_fp_index_old                                 = 0;
 #else
+BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 #define SDCDEBUG(...) do{ } while ( false )
 #endif
 
@@ -41,6 +41,7 @@ static          sdc_eod_marker  sdc_eod;
 static const    unsigned        sdlog_thread_sleeptime_ms        = 10;
 static const    unsigned        sdc_polling_interval             = 10;
 static const    unsigned        sdc_polling_delay                = 10;
+static const    uint8_t         sdc_eod_byte                     = 0xa5;
 
 static const    char*           sdc_log_data_file                = "LOGSMALL.bin";
 
@@ -49,7 +50,8 @@ static          VirtualTimer    sdc_tmr;
 
 static          unsigned        sdc_debounce_count               = 0;
 
-DWORD           sdc_fp_index                                     = 0;
+DWORD                           sdc_fp_index                     = 0;
+DWORD                           sdc_fp_index_old                 = 0;
 
 bool                            fs_ready                         = FALSE;
 
@@ -116,15 +118,11 @@ void InsertHandler(eventid_t id) {
 
     (void)id;
 
-    /* generate a mailbox event here
-    */
+    /*! \todo generate a mailbox event here */
 
-    /*
-       test event message system
-       */
+    /*! \todo test event message system */
 
-
-    /*
+    /*!
      * On insertion SDC initialization and FS mount.
      */
     if (sdcConnect(&SDCD1)) {
@@ -207,25 +205,37 @@ void sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
     sdc_fp_index      = ofs;
 }
 
-FRESULT   sdc_write_checksum(FIL* DATAFil, const crc_t* crcd, unsigned int* bw) {
+/*! \brief Store a checksum and end of data fiducial marks
+ */
+FRESULT   sdc_write_checksum(FIL* DATAFil, const crc_t* crcd, uint32_t* bw) {
     FRESULT rc;
 
     if((crcd==NULL) || (bw == NULL)) {
         return SDC_NULL_PARAMETER_ERROR;
     }
-    rc = f_write(DATAFil, (const void *)(crcd), sizeof(crc_t), bw);
+    rc = f_write(DATAFil, (const void *)(crcd), sizeof(crc_t), (unsigned int*) bw);
     if (rc)  {
         SDCDEBUG("f_write ckdata error: %d\r\n", rc) ;
         return rc;
     }
     sdc_fp_index += *bw;
 
-    rc = f_write(DATAFil, (const void *)(&sdc_eod), sizeof(sdc_eod_marker), bw);
+    /*!
+     * write fiducial marks past the size of the next data. This is in case
+     * a write fails (power or other failure) part way through the write we
+     * still detect the eod (not eof--that's different). A partial write will
+     * fail checksum.
+     */
+    rc = f_write(DATAFil, (const void *)(&sdc_eod), sizeof(sdc_eod_marker), (unsigned int*) bw);
     if (rc)  {
         SDCDEBUG("f_write eod error: %d\r\n", rc) ;
         return rc;
     }
-    sdc_fp_index += *bw;
+
+    rc = f_sync(DATAFil);
+
+    // rewind to end of checksum 
+    sdc_set_fp_index(DATAFil, sdc_fp_index) ;
 
     rc = f_sync(DATAFil);
     if (rc)  {
@@ -236,14 +246,16 @@ FRESULT   sdc_write_checksum(FIL* DATAFil, const crc_t* crcd, unsigned int* bw) 
     return FR_OK;
 }
 
-FRESULT   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, unsigned int* bw) {
+/*! \brief store Generic message to the SD card
+ */
+FRESULT   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t* bw) {
     FRESULT rc;
 
     if((d==NULL) || (bw == NULL)) {
         return SDC_NULL_PARAMETER_ERROR;
     }
 
-    rc = f_write(DATAFil, (const void *)(d), sizeof(GENERIC_message), bw);
+    rc = f_write(DATAFil, (const void *)(d), sizeof(GENERIC_message), (unsigned int*) bw);
     if (rc)  {
         SDCDEBUG("f_write log error:\r\n") ;
         return rc;
@@ -258,12 +270,23 @@ FRESULT   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, unsigned int* 
     return FR_OK;
 }
 
+void sdc_init_eod () {
+    unsigned int i;
+    // init end of data fiducial markers.
+    for(i=0; i<sizeof(sdc_eod_marker) ; ++i) {
+        sdc_eod.sdc_eodmarks[i] = sdc_eod_byte;
+    }
+}
+
 /*!
  * Stack area for the sdlog_thread.
  */
 WORKING_AREA(wa_sdlog_thread, SDC_THREAD_STACKSIZE_BYTES);
 
 /*! \brief sdlog  thread.
+ *
+ * \todo separate into function + thread
+ * \todo separate into sdc interface and thread interface
  *
  * \param p
  * \return -1: generic error
@@ -272,36 +295,18 @@ WORKING_AREA(wa_sdlog_thread, SDC_THREAD_STACKSIZE_BYTES);
 msg_t sdlog_thread(void *p) {
     void * arg __attribute__ ((unused)) = p;
 
-    GENERIC_message   log_data;
-    int               log_index = 0;
-    int               rc;
-    unsigned int       i;
-
-    FRESULT           ret;
-    FIL               DATAFil;
-
-    //     const char adisid[(sizeof("ADIS")-1)] = "ADIS";
-    //     const char mplid[(sizeof("MPL3")-1)]  = "MPL3";
-
-    unsigned int      bw = 0;
-    uint32_t          write_errors     = 0;
-
-    chThdSleepMilliseconds(1000);
+    GENERIC_message     log_data;
 
     chRegSetThreadName("sdlog_thread");
 
     SDCDEBUG("Start sdlog thread\r\n");
 
-    // init index
     sdc_reset_fp_index();
 
-    // init fiducial markers.
-    for(i=0; i<sizeof(sdc_eod_marker) ; ++i) {
-        sdc_eod.sdc_eodmarks[i] = 0xa5;
-    }
+    sdc_init_eod();
 
-    // Assert we will end up on 16bit boundary
-    if((sizeof(GENERIC_message) % 16) != 0) {
+    // Assert data is halfword aligned
+    if(((sizeof(GENERIC_message)*8) % 16) != 0) {
         SDCDEBUG("%s: GENERIC message is not halfword aligned.\r\n", __func__);
         return (SDC_ASSERT_ERROR);
     }
@@ -312,27 +317,38 @@ msg_t sdlog_thread(void *p) {
         return (SDC_ASSERT_ERROR);
     }
 
+    uint32_t          log_index    = 0;
+    uint32_t          write_errors = 0;
+    FIL               DATAFil;
     while(1) {
-        if(fs_ready && (!sd_log_opened) ) {
+        uint32_t            bw;
+        int                 rc;
+        FRESULT             ret;
+
+        if(fs_ready && !sd_log_opened ) {
             // open an existing log file for writing
             ret = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
             if(ret) { // try again....
-                SDCDEBUG("open ret: %d\r\n", ret);
+                SDCDEBUG("open existing ret: %d\r\n", ret);
                 ret = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
             }
 
             if (ret) {
                 SDCDEBUG("failed to open existing %s\r\n",sdc_log_data_file);
                 // ok...try creating the file
-                SDCDEBUG("open new\t");
                 ret = f_open(&DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
+                if(ret) {
+                    // try again 
+                    SDCDEBUG("open new file ret: %d\r\n", ret);
+                    ret = f_open(&DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
+                }
                 if (ret) {
                     sd_log_opened = false;
                 } else {
                     sd_log_opened = true;
                 }
             } else {
-                SDCDEBUG( "Opened existing file OK.\r\n");
+                SDCDEBUG("Opened existing file OK.\r\n");
                 sd_log_opened = true;
             }
         }
@@ -352,43 +368,42 @@ msg_t sdlog_thread(void *p) {
             rc = psas_rtc_get_unix_time( &RTCD1, &timenow) ;
             if (rc == -1) {
                 SDCDEBUG( "%s: psas_rtc time read errors: %d\r\n",__func__, rc);
-                continue;
+                /*continue;*/
             }
             psas_rtc_to_psas_ts(&log_data.mh.ts, &timenow);
 
-            // payload
             memcpy(&log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
 
-            // length of payload
             log_data.mh.data_length = sizeof(MPU9150_read_data);
 
-            // write log message
             rc = sdc_write_log_message(&DATAFil, &log_data, &bw) ;
-            if(rc != FR_OK ) { 
-                ++write_errors; 
-                SDCDEBUG("+"); 
-                }
+            if(rc != FR_OK ) { ++write_errors; SDCDEBUG("*"); }
 
             // calc checksum
             crc16                   = crc_init();
             crc16                   = crc_update(crc16, (const unsigned char*) &log_data, sizeof(GENERIC_message));
             crc16                   = crc_finalize(crc16);
 
-            // write checksum and fiducials.
             rc = sdc_write_checksum(&DATAFil, &crc16, &bw) ;
+
+// #ifdef DEBUG_SDC
             if(rc != FR_OK ) { ++write_errors; SDCDEBUG("+"); }
 
-#ifdef DEBUG_SDC
-            if((sdc_fp_index - sdc_fp_index_old) > 100000){ 
-                SDCDEBUG("x"); 
+            if((sdc_fp_index - sdc_fp_index_old) > 100000) { 
+                if(write_errors !=0) {
+                    // SDCDEBUG("x"); 
+                    chprintf(chp, "%d",write_errors); 
+                } else {
+                    chprintf(chp, "x");
+                }
                 sdc_fp_index_old = sdc_fp_index;
             }
-#endif
+// #endif
 
         } else {
             if(sd_log_opened) {
-                ret = f_close(&DATAFil);       // might be redundant if card removed....
-                //SDCDEBUG( "close file ret: %d\r\n", ret);
+                ret = f_close(&DATAFil);       // might be redundant if card removed....\sa f_sync
+                SDCDEBUG( "close file ret: %d\r\n", ret);
                 sd_log_opened = false;
             }
         }
