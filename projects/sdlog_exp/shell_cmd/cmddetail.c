@@ -21,19 +21,19 @@
 #include "mac.h"
 #include "ff.h"
 #include "sdcdetail.h"
-#include "psas_rtc.h"
 
 #include "chrtclib.h"
 
 #include "cmddetail.h"
 
+#include "psas_sdclog.h"
+#include "psas_rtc.h"
+
 #define 		DEBUG_PHY 			0
-// #define         DEBUG_SDC           1
 
 static time_t      unix_time;
 
 static uint8_t     fbuff[1024];
-
 
 #define SDC_TESTFILE          "cmd_test.txt"
 #define SDC_NEWFILE           "/NEWFILE.txt"
@@ -46,10 +46,8 @@ void cmd_sdct(BaseSequentialStream *chp, int argc, char *argv[]) {
     unsigned     i  = 0;
     unsigned     br = 0;
     unsigned     bw = 0;
-  //  unsigned     testsize ;
 
     chprintf(chp, "%s: sizeof unsigned long: %d\r\n", __func__, sizeof(unsigned long));
-
 
     (void)argv;
     if (argc > 0) {

@@ -35,8 +35,10 @@
 #include "device_net.h"
 #include "fc_net.h"
 
+#include "psas_sdclog.h"
 #include "sdcdetail.h"
 #include "ff.h"
+
 #include "main.h"
 
 static const ShellCommand commands[] = {
@@ -83,10 +85,10 @@ static msg_t Thread_indwatchdog(void *arg) {
 
 int main(void) {
     static Thread            *shelltp       = NULL;
-    static const evhandler_t evhndl_main[]       = {
+    static const evhandler_t evhndl_main[]  = {
         extdetail_WKUP_button_handler,
-        InsertHandler,
-        RemoveHandler
+        sdc_insert_handler,
+        sdc_remove_handler
     };
     struct EventListener     el0, el1, el2;
 
@@ -179,10 +181,11 @@ int main(void) {
     chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
 
     chEvtRegister(&extdetail_wkup_event, &el0, 0);
-    chEvtRegister(&inserted_event,       &el1, 1);
-    chEvtRegister(&removed_event,        &el2, 2);
+    chEvtRegister(&sdc_inserted_event,   &el1, 1);
+    chEvtRegister(&sdc_removed_event,    &el2, 2);
 
-    InsertHandler(0);
+    // It is possible the card is already inserted. Check now by calling insert handler directly.
+    sdc_insert_handler(0);
 
     while (TRUE) {
         if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
