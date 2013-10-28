@@ -16,7 +16,7 @@
  **************/
 
 #define EVENTBUFF_LENGTH 64
-#define EVENTLOG_DEBUG true
+#define EVENTLOG_DEBUG false
 
 typedef struct {
   uint32_t seconds;
