@@ -68,7 +68,6 @@ PSAS= ../config
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
 include ./boards/OLIMEX_STM32_E407/board.mk
-#include ./boards/PSAS_ROCKETNET_HUB_1_0/board.mk
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
@@ -91,8 +90,10 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(PSAS_COMMON)/psas_rtc.c \
        $(PSAS_COMMON)/usbdetail.c \
+       $(PSAS_DEV_SRC)/MPU9150.c \
        ./sdc/sdcdetail.c \
        ./eventlogger.c \
+       ./mpu9150.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -126,7 +127,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC) \
          $(FATFSINC) \
          $(CHIBIOS)/os/various \
-         $(PSAS_COMMON)
+         $(PSAS_COMMON) \
+         $(PSAS_DEV_SRC)/include
 
 #
 # Project, sources and paths
