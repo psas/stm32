@@ -1,6 +1,8 @@
 /*! \file main.c
  *
- * This implementation is specific to the Olimex stm32-e407 board.
+ * This is specific to the Olimex stm32-e407 board.
+ *
+ * Test writing data to the sd card and develop the psas_sdlog interface
  */
 
 /*!
