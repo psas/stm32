@@ -27,15 +27,15 @@
 
 #include "psas_sdclog.h"
 
-#define         DEBUG_SDLOG
+#define         DEBUG_SDLOGEXP
 
-#ifdef DEBUG_SDLOG
+#ifdef DEBUG_SDLOGEXP
 #include "usbdetail.h"
 BaseSequentialStream    *sdclog   =  (BaseSequentialStream *)&SDU_PSAS;
-#define SDLOGDEBUG(format, ...) chprintf( sdclog, format, ##__VA_ARGS__ )
+#define SDLOGEXPDBG(format, ...) chprintf( sdclog, format, ##__VA_ARGS__ )
 #else
 BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
-#define SDLOGDEBUG(...) do{ } while ( false )
+#define SDLOGEXPDBG(...) do{ } while ( false )
 #endif
 
 static const    char*           sdc_log_data_file                = "LOGSMALL.bin";
@@ -63,7 +63,7 @@ msg_t sdlog_thread(void *p) {
 
     chRegSetThreadName("sdlog_thread");
 
-    SDLOGDEBUG("Start sdlog thread\r\n");
+    SDLOGEXPDBG("Start sdlog thread\r\n");
 
     sdc_reset_fp_index();
 
@@ -71,13 +71,13 @@ msg_t sdlog_thread(void *p) {
 
     // Assert data is halfword aligned
     if(((sizeof(GENERIC_message)*8) % 16) != 0) {
-        SDLOGDEBUG("%s: GENERIC message is not halfword aligned.\r\n", __func__);
+        SDLOGEXPDBG("%s: GENERIC message is not halfword aligned.\r\n", __func__);
         return (SDC_ASSERT_ERROR);
     }
 
     // Assert we will not overflow Payload
     if(sizeof(MPU9150_read_data) > (sizeof(log_data.data)-1)) {
-        SDLOGDEBUG("%s: DATA size is too large\r\n");
+        SDLOGEXPDBG("%s: DATA size is too large\r\n");
         return (SDC_ASSERT_ERROR);
     }
     while(1) {
@@ -89,17 +89,17 @@ msg_t sdlog_thread(void *p) {
             // open an existing log file for writing
             ret = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
             if(ret) { // try again....
-                SDLOGDEBUG("open existing ret: %d\r\n", ret);
+                SDLOGEXPDBG("open existing ret: %d\r\n", ret);
                 ret = f_open(&DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
             }
 
             if (ret) {
-                SDLOGDEBUG("failed to open existing %s\r\n",sdc_log_data_file);
+                SDLOGEXPDBG("failed to open existing %s\r\n",sdc_log_data_file);
                 // ok...try creating the file
                 ret = f_open(&DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
                 if(ret) {
                     // try again 
-                    SDLOGDEBUG("open new file ret: %d\r\n", ret);
+                    SDLOGEXPDBG("open new file ret: %d\r\n", ret);
                     ret = f_open(&DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
                 }
                 if (ret) {
@@ -108,7 +108,7 @@ msg_t sdlog_thread(void *p) {
                     sd_log_opened = true;
                 }
             } else {
-                SDLOGDEBUG("Opened existing file OK.\r\n");
+                SDLOGEXPDBG("Opened existing file OK.\r\n");
                 sd_log_opened = true;
             }
         }
@@ -127,7 +127,7 @@ msg_t sdlog_thread(void *p) {
             timenow.h12             = 1;
             rc = psas_rtc_get_unix_time( &RTCD1, &timenow) ;
             if (rc == -1) {
-                SDLOGDEBUG( "%s: psas_rtc time read errors: %d\r\n",__func__, rc);
+                SDLOGEXPDBG( "%s: psas_rtc time read errors: %d\r\n",__func__, rc);
                 /*continue;*/
             }
             psas_rtc_to_psas_ts(&log_data.mh.ts, &timenow);
@@ -137,7 +137,7 @@ msg_t sdlog_thread(void *p) {
             log_data.mh.data_length = sizeof(MPU9150_read_data);
 
             rc = sdc_write_log_message(&DATAFil, &log_data, &bw) ;
-            if(rc != FR_OK ) { ++write_errors; SDLOGDEBUG("*"); }
+            if(rc != FR_OK ) { ++write_errors; SDLOGEXPDBG("*"); }
 
             // calc checksum
             crc16                   = crc_init();
@@ -146,14 +146,14 @@ msg_t sdlog_thread(void *p) {
 
             rc = sdc_write_checksum(&DATAFil, &crc16, &bw) ;
 
-            if(rc != FR_OK ) { ++write_errors; SDLOGDEBUG("+"); }
+            if(rc != FR_OK ) { ++write_errors; SDLOGEXPDBG("+"); }
 
-#ifdef DEBUG_SDLOG
+#ifdef DEBUG_SDLOGEXP
             if((sdc_fp_index - sdc_fp_index_old) > 100000) { 
                 if(write_errors !=0) {
-                    SDLOGDEBUG("%d", write_errors); 
+                    SDLOGEXPDBG("%d", write_errors); 
                 } else {
-                    SDLOGDEBUG("x");
+                    SDLOGEXPDBG("x");
                 }
                 sdc_fp_index_old = sdc_fp_index;
             }
@@ -162,7 +162,7 @@ msg_t sdlog_thread(void *p) {
         } else {
             if(sd_log_opened) {
                 ret = f_close(&DATAFil);       // might be redundant if card removed....\sa f_sync
-                SDLOGDEBUG( "close file ret: %d\r\n", ret);
+                SDLOGEXPDBG( "close file ret: %d\r\n", ret);
                 sd_log_opened = false;
             }
         }
