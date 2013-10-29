@@ -18,7 +18,7 @@ limitations under the License.
 */
 
 /*!
- * \defgroup psas_rtc Non standard RTC
+ * \defgroup psas_rtc PSAS Non-standard RTC
  * @{
  */
 

@@ -1,9 +1,9 @@
-/* @file psas_rtc.h
+/* \file psas_rtc.h
  *
  */
 
-#ifndef _PSAS_RTC_H
-#define _PSAS_RTC_H
+#ifndef PSAS_RTC_H_
+#define PSAS_RTC_H_
 
 /*!
  * \addtogroup psas_rtc

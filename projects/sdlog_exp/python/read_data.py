@@ -12,14 +12,13 @@
 
 import sys
 if sys.version_info < (3, 0):
-    sys.stdout.write("Sorry, this application  requires Python 3.x, not Python 2.x\n")
+    sys.stdout.write("Sorry, this application requires Python 3.x.\n")
     sys.exit(1)
 
 import struct
 
 __author__  = 'K Wilson'
 __version__ = "0.0.1"
-
 
 # cmd line parsing
 #from operator import itemgetter, attrgetter
@@ -68,7 +67,6 @@ class MissingOption(Exception):
     def __str__(self):
         return repr(self.value)
 
-
 def read_datafile(infile):
     f     = open(infile, "rb")
     block = block = f.read(20)
@@ -95,7 +93,7 @@ def read_datafile(infile):
 
 if __name__ == "__main__":
     try:
-        default_infile = "data_log.txt"
+        default_infile = "LOGSMALL.bin"
 
     #  parse command line
         usage = "usage: %prog --infile string  [-h|--help]"
@@ -135,9 +133,7 @@ if __name__ == "__main__":
         print ("settings: ")
         print (runsettings)
 
-        #                    #
-        # end administrative #
-        #                    #
+        # end administrative 
 
         read_datafile(infile)
 

@@ -225,24 +225,24 @@ void sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
 
 /*! \brief Store a checksum and end of data fiducial marks
  *
- *  A line of data would look like this:
- *     [GENERIC_message][chksum]
- *  We want a line at the end-of-data(eod) to look like this:
- *     [GENERIC_message][chksum][0xa5a5]
- *
- *  What happens if power fails partway through a write? There will
- *  be NO eod marker. So write a length of eod markers every write past the
- *  length of the next write.
- *     [GENERIC_message][checksum][0xa5a5..(len(GENERIC_message+checksum+some extra)..0xa5a5]
- *                                ^
- *                                Seek fp-index (sdc_set_fp_index) to here.
- *
- *  Now, in the event of failure during the next write, we have already placed
- *  eod markers. A partial filled line will have an incorrect checksum.
- *
- *  If we pre-allocate the file on the sd card, then the file will already exist
- *  in the FAT and shouldn't be damaged due to a partial file size reallocation.
- *
+     A line of data would look like this:
+        [GENERIC_message][chksum]
+     We want a line at the end-of-data(eod) to look like this:
+        [GENERIC_message][chksum][0xa5a5]
+  
+     What happens if power fails partway through a write? There will
+     be NO eod marker. So write a length of eod markers every write past the
+     length of the next write.
+        [GENERIC_message][checksum][0xa5a5..(len(GENERIC_message+checksum+some extra)..0xa5a5]
+                                   ^
+                                   Seek fp-index (sdc_set_fp_index) to here.
+  
+     Now, in the event of failure during the next write, we have already placed
+     eod markers. A partial filled line will have an incorrect checksum.
+  
+     If we pre-allocate the file on the sd card, then the file will already exist
+     in the FAT and shouldn't be damaged due to a partial file size reallocation.
+  
  */
 FRESULT sdc_write_checksum(FIL* DATAFil, const crc_t* crcd, uint32_t* bw) {
     FRESULT rc;
