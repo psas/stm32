@@ -95,7 +95,8 @@ CSRC = $(PORTSRC) \
         main.c \
         rnh_shell.c \
         KS8999.c \
-        BQ24725.c
+        BQ24725.c \
+	RNH.c
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CPPSRC =
@@ -139,7 +140,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
 MCU  = cortex-m4
 
 #TRGT = arm-elf-
-TRGT = arm-psas-eabi-
+#TRGT = arm-psas-eabi-
+TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.

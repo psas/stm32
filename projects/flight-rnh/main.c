@@ -1,8 +1,10 @@
+#include <string.h>
 #include "ch.h"
 #include "hal.h"
 #include "rnh_shell.h"
 #include "BQ24725.h"
 #include "KS8999.h"
+#include "RNH.h"
 
 #include "lwip/ip_addr.h"
 #include "lwipopts.h"
@@ -58,17 +60,14 @@ static void led(void *arg __attribute__ ((unused))) {
 
 /*
  * Parts that we need:
- * BQ
- * KSZ
- * Serial/eth terminals
+ * eth terminal
  * logic (turn on/off port, etc)
  * Logger
- * LED
  *
  */
 
 
-void BQ24725_init(void){
+void BQ24725_start(void){
     BQ24725_charge_options BQ24725_rocket_init = {
                 .ACOK_deglitch_time = t150ms,
                 .WATCHDOG_timer = disabled,
@@ -87,43 +86,61 @@ void BQ24725_init(void){
             BQ24725_SetChargeOption(&BQ24725_rocket_init);
 }
 
+void eth_start(void){
+    struct lwipthread_opts ip_opts;
+    struct ip_addr ip, gateway, netmask;
+    uint8_t RNET_macAddress[6] = RNET_A_MAC_ADDRESS;
+
+    RNET_A_IP_ADDR(&ip);
+    RNET_A_GATEWAY(&gateway);
+    RNET_A_NETMASK(&netmask);
+
+    ip_opts.macaddress = RNET_macAddress;
+    ip_opts.address    = ip.addr;
+    ip_opts.netmask    = netmask.addr;
+    ip_opts.gateway    = gateway.addr;
+
+    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, &ip_opts);
+//  chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
+//  chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
+}
+
 void sleep(void){
 
 }
 
-void main(void) {
 
-//
-	/*
-	 * System initializations.
-	 * - HAL initialization, this also initializes the configured device drivers
-	 *   and performs the board-specific initializations.
-	 * - Kernel initialization, the main() function becomes a thread and the
-	 *   RTOS is active.
-	 */
+static void ACOK_cb(EXTDriver *extp __attribute__ ((unused)),
+                    expchannel_t channel __attribute__ ((unused))) {
+
+    if(BQ24725_ACOK()){
+        KS8999_enable(TRUE);
+    }else{
+        RNH_power(RNH_PORT_ALL, RNH_PORT_OFF);
+        KS8999_enable(FALSE);
+    }
+}
+
+void main(void) {
     halInit();
     chSysInit();
 
+    //start the LED blinker thread
     chThdCreateStatic(led_area, sizeof(led_area), NORMALPRIO, (tfunc_t)led, NULL);
-    BQ24725_init();
-    KS8999_init();
 
-    struct lwipthread_opts ip_opts;
-	struct ip_addr ip, gateway, netmask;
-    uint8_t RNET_macAddress[6] = RNET_A_MAC_ADDRESS;
+    //Init hardware
+    if(BQ24725_ACOK()){
+        BQ24725_start();
+        KS8999_init();
+        eth_start();
+    }
+    //Start ACOK power events
+    EXTConfig bqextcfg;
+    memset(&bqextcfg, 0, sizeof(bqextcfg));
+    bqextcfg.channels[0].mode = EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD;
+    bqextcfg.channels[0].cb = &ACOK_cb;
+    extStart(&EXTD1, &bqextcfg);
 
-	RNET_A_IP_ADDR(&ip);
-	RNET_A_GATEWAY(&gateway);
-	RNET_A_NETMASK(&netmask);
-
-	ip_opts.macaddress = RNET_macAddress;
-	ip_opts.address    = ip.addr;
-	ip_opts.netmask    = netmask.addr;
-	ip_opts.gateway    = gateway.addr;
-//
-	chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, &ip_opts);
-//	chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
-//	chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
 
 
     //main should never return

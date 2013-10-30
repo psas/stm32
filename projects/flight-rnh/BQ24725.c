@@ -55,8 +55,9 @@ static const I2CConfig i2cfg = {
 };
 
 static void BQ24725_init(void){
-	i2cStart(I2CD, &i2cfg);
-	initialized = true;
+    if(initialized == false)
+        i2cStart(I2CD, &i2cfg);
+        initialized = true;
 	//todo: gpio for acok?
 	//todo: adc for IMON?
 }
