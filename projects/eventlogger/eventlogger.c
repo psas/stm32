@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <time.h>
 #include "ch.h"
 #include "hal.h"
