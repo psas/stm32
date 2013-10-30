@@ -3,7 +3,7 @@
 
 #include "mpu9150.h"
 
-#define MPU9150_DEBUG true
+#define MPU9150_DEBUG false
 
 
 /**
@@ -44,11 +44,10 @@ void mpu9150_init(I2CDriver* i2cptr) {
  * It is called by the Thread_mpu9150_int_dispatch defined below.
  */
 void mpu9150_int_event_handler(eventid_t _) {
-#ifdef MPU9150_DEBUG
+#if MPU9150_DEBUG
 	static uint16_t count = 0;
   static BaseSequentialStream* chp = (BaseSequentialStream*) &SDU_PSAS;
 #endif
-
 
 	mpu9150_a_read_x_y_z(mpu9150_driver.i2c_instance, &mpu9150_current_read.accel_xyz);
 	mpu9150_g_read_x_y_z(mpu9150_driver.i2c_instance, &mpu9150_current_read.gyro_xyz);
@@ -57,13 +56,8 @@ void mpu9150_int_event_handler(eventid_t _) {
 	/* clear the interrupt status bits on mpu9150 */
 	mpu9150_a_g_read_int_status(mpu9150_driver.i2c_instance);
 
-#ifdef MPU9150_DEBUG
+#if MPU9150_DEBUG
 	++count;
-
-  if (count % 100 == 0) {
-    chprintf(chp, "%d\r\n", count);
-  }
-
 	if (count > 500) {
     chprintf(chp, "\r\n*** MPU9150 ***\r\n");
     chprintf(chp, "raw_temp: %d C\r\n", mpu9150_temp_to_dC(mpu9150_current_read.celsius));
