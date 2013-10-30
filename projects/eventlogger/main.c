@@ -73,7 +73,8 @@ const EXTConfig extcfg = {
  * Event Generator Thread
  */
 
-static WORKING_AREA(wa_thread_event_generator, 64);
+// must be at least 128 to save locals on the stack in case of interrupt
+static WORKING_AREA(wa_thread_event_generator, 128);
 
 msg_t event_generator(void *_) {
   char i;
