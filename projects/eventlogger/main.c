@@ -70,26 +70,6 @@ const EXTConfig extcfg = {
  *******************************************************************************/
 
 /*
- * Event Generator Thread
- */
-
-// must be at least 128 to save locals on the stack in case of interrupt
-static WORKING_AREA(wa_thread_event_generator, 128);
-
-msg_t event_generator(void *_) {
-  char i;
-
-  chThdSleepMilliseconds(2000);
-  for (i = 0; i < 255; i++) {
-    post_event((event_t) i);
-    if (i % 10 == 0) chThdSleepMilliseconds(500);
-  }
-
-  return 0;
-}
-
-
-/*
  * LED Blinker Thread
  *
  * Blink slowly when the SD card is not inserted, and quickly when it is.
@@ -197,15 +177,9 @@ int main(void) {
                    );
 
   /*!
-   * Starts the eventlogger thread and our own event generator thread.
+   * Starts the eventlogger
    */
   eventlogger_init();
-  chThdCreateStatic( wa_thread_event_generator
-                   , sizeof(wa_thread_event_generator)
-                   , NORMALPRIO
-                   , event_generator
-                   , NULL
-                   );
 
   /*!
    * Initializes MPU9150 & associated I2C connection

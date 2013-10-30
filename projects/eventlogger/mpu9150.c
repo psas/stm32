@@ -1,9 +1,19 @@
+// PSAS/common includes
 #include "MPU9150.h"
 #include "usbdetail.h"
 
+// project includes
 #include "mpu9150.h"
+#include "eventlogger.h"
+
+
+
+/**
+ ** Preprocessory Definitions
+ ****************************/
 
 #define MPU9150_DEBUG false
+
 
 
 /**
@@ -55,6 +65,8 @@ void mpu9150_int_event_handler(eventid_t _) {
 
 	/* clear the interrupt status bits on mpu9150 */
 	mpu9150_a_g_read_int_status(mpu9150_driver.i2c_instance);
+
+  post_event((event_t) 42);
 
 #if MPU9150_DEBUG
 	++count;
