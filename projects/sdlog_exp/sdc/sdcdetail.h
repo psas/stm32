@@ -29,7 +29,6 @@ extern          WORKING_AREA(wa_sdlog_thread, SDC_THREAD_STACKSIZE_BYTES);
 /* A 166 byte message written at 1000hz will use 4GB in about 6.5 Hours */
 
 #define         SDC_MAX_PAYLOAD_BYTES                       150
-#define         SDC_NUM_ID_CHARS                            4
 
    msg_t           sdlog_thread(void *p) ;
 
