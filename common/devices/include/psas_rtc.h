@@ -25,8 +25,9 @@ extern "C" {
 #define     PSAS_RTC_COE_DEBUG      0          // Enable the calibration output on PC13
 #endif
 
-    typedef struct psas_rtc_state {
+    typedef struct psas_rtc_state_s {
         bool                  initialized;
+        unsigned long         fc_boot_time_mark;
     } psas_rtc_state;
 
     typedef struct psas_timespec {
@@ -39,6 +40,7 @@ extern "C" {
 
     void   psas_rtc_lld_init(void) ;
 
+    void   psas_rtc_set_fc_boot_mark(uint64_t mark) ;
     void   psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) ;
     void   psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) ;
 
