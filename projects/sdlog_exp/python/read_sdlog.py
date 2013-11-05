@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 # read_data.py
-# read a binary file written by an embedded c program to an sd card.
+# read a binary file written by the psas_sdlog interface to the sd card
 #
 
 # get division operator '/' vs. '//'
@@ -67,11 +67,13 @@ class MissingOption(Exception):
     def __str__(self):
         return repr(self.value)
 
-def read_datafile(infile):
+def read_sdlogfile(infile):
     f     = open(infile, "rb")
-    block = block = f.read(20)
-    while (len(block) == 20):
+    block = block = f.read(msgsize)
+    while (len(block) == msgsize):
         # Do stuff with byte.
+        (id, )       = struct.unpack('4c', block[0:4]
+
         (index,    ) = struct.unpack('I', block[0:4])
         (tv_date,  ) = struct.unpack('I', block[4:8])
         (tv_time,  ) = struct.unpack('I', block[8:12])
@@ -93,9 +95,10 @@ def read_datafile(infile):
 
 if __name__ == "__main__":
     try:
-        default_infile = "LOGSMALL.bin"
+        default_infile  = "LOGSMALL.bin"
+        default_msgsize = 166
 
-    #  parse command line
+        #  parse command line
         usage = "usage: %prog --infile string  [-h|--help]"
         parser = OptionParser(usage=usage)
         parser.add_option(\
@@ -103,6 +106,13 @@ if __name__ == "__main__":
                 dest="infile", \
                 help="Input file name.", \
                 default=default_infile)
+        
+        parser.add_option(\
+                "-s", "--msgsize", \
+                dest="msgsize", \
+                help="Generic Message size in bytes.", \
+                default=default_msgsize)
+
 
         (options, args) = parser.parse_args()
 
@@ -114,7 +124,7 @@ if __name__ == "__main__":
         now         = now.strftime("%Y-%m-%d--%H-%M")
 
         infile      = options.infile
-
+        msgsize     = options.msgsize
 
         if infile == "":
             print ("No infile file name.")
@@ -124,6 +134,14 @@ if __name__ == "__main__":
         if infile==default_infile:
             print ("Using default input file: " + infile)
 
+        if msgsize == "":
+            print ("No message size supplied.")
+            print (usage)
+            raise MissingOption("No message size supplied.")           
+
+        if msgsize==default_msgsize:
+            print ("Using default message size: " + msgsize)
+ 
         print ("command: ")
         print (run_command + "\n")
 
@@ -135,7 +153,7 @@ if __name__ == "__main__":
 
         # end administrative 
 
-        read_datafile(infile)
+        read_sdlogfile(infile)
 
 
     except BadFileRead as e:

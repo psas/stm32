@@ -5,13 +5,14 @@
 #ifndef _MAIN_H
 #define _MAIN_H
 
-/*! \mainpage STM32 LWIP Ethernet UDP experiments
+/*! \mainpage STM32 microSD Logging experiments 
 *
 *
 * \section intro Introduction
 *
-* Experiment with creating an stm32 - flight computer datapath usinw LwIP
-* and ChibiOS.
+* Experiment with the STM32 microSD card interface and the fatfs in ChibiOS
+*
+* Use to develop the psas_sdlog interface.
 *
 * \section filestructure File Tree
 *

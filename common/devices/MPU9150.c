@@ -24,6 +24,8 @@
 #include "MPU9150.h"
 
 
+const char               mpuid[(sizeof("MPU9")-1)]  = "MPU9";
+
 MPU9150_Driver           mpu9150_driver;
 MPU9150_read_data        mpu9150_current_read;
 

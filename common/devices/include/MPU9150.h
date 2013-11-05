@@ -297,6 +297,8 @@ extern       EventSource               mpu9150_int_event;
 
 extern       MPU9150_Driver            mpu9150_driver;
 
+extern const char   mpuid[4];
+
 void         mpu9150_start(I2CDriver* i2c) ;
 void         mpu9150_reset(I2CDriver* i2cptr) ;
 
