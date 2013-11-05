@@ -34,7 +34,6 @@ extern "C" {
     } psas_timespec;
 
     extern  psas_rtc_state     psas_rtc_s;
-    extern  psas_rtc_state     psas_rtc_s;
     extern  bool               fs_ready;
 
     void   psas_rtc_lld_init(void) ;
