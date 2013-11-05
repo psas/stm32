@@ -220,6 +220,7 @@ void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
       }
       else{
           chprintf(chp, "%Ds %Dus %s",unix_time, psas_time.tv_msec, " - unix time\r\n");
+          chprintf(chp, "%lu\r\n", psas_rtc_s.fc_boot_time_mark );
           rtcGetTimeTm(&RTCD1, &timp);
           chprintf(chp, "%s%s",asctime(&timp)," - formatted time string\r\n");
       }

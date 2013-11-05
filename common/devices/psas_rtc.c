@@ -48,8 +48,23 @@ limitations under the License.
 
 #include "stm32f4xx.h"
 
+#include "chprintf.h"
 #include "chrtclib.h"
+
+#include "sdcdetail.h"
+
 #include "psas_rtc.h"
+
+#define         DEBUG_RTCEXP
+
+#ifdef DEBUG_RTCEXP
+#include "usbdetail.h"
+BaseSequentialStream    *rtcexp   =  (BaseSequentialStream *)&SDU_PSAS;
+#define RTCDBG(format, ...) chprintf( rtcexp, format, ##__VA_ARGS__ )
+#else
+#define RTCDBG(...) do{ } while ( false )
+#endif
+
 
 /*!
  * \brief   Wait for synchronization of RTC registers with APB1 bus.
@@ -140,6 +155,11 @@ void psas_rtc_lld_init(void) {
 
 }
 
+void psas_rtc_set_fc_boot_mark(uint64_t mark) {
+    psas_rtc_s.fc_boot_time_mark = mark;
+}
+
+
 /*! \brief   Converts from STM32 BCD to canonicalized time format.
  *
  * \param[out] timp     pointer to a @p tm structure as defined in time.h
@@ -188,8 +208,11 @@ void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) {
 void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
     uint64_t  total_ns         = 0;
 
+    RTCDBG("unix:\t%lu\r\n", rtc->tv_time);
     total_ns              = rtc->tv_time    * 1e9;
+    RTCDBG("ns:\t%lu\r\n", total_ns);
     total_ns              += (rtc->tv_msec) * 1e6;
+    RTCDBG("ns+ms:\t%lu\r\n\n", total_ns);
     // memcpy(dst, src, length)
     memcpy(&ts->PSAS_ns[0], &total_ns, 6);
 }
@@ -287,6 +310,7 @@ int psas_rtc_get_unix_time( RTCDriver *rtcp, RTCTime *timespec) {
         return PSAS_RTC_INCORRECT_TIME_ERROR; 
     }
 
+    RTCDBG("unix_time:\t%lu\r\n", unix_time);
     timespec->tv_time = unix_time;
 
     return 0;

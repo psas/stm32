@@ -56,26 +56,75 @@ class MissingOption(Exception):
     typedef struct GENERIC_message GENERIC_message;
 
 """
+# msg = bytearray()
+# msg.extend(struct.pack("I",len(points))
+# 
+# 
+#         ypeError: unsupported operand type(s) for <<: 'str' and 'int'
+#         >>> x
+#         '3'
+#         >>> x = 3
+#         >>> y = x <<8
+#         >>> y
+#         768
+#         >>> pow(3,8)
+#         6561
+#         >>> bin(x)
+#         '0b11'
+#         >>> bin(y)
+#         '0b1100000000'
+#         >>> y ^= 0b11
+#         >>> y
+#         771
+#         >>> bin(y)
+#         '0b1100000011'
+#         >>> 
+#         ~  > 
+# 
+# 
+# 
+# 
+# 
 
+def list_to_psas_ts(sixbytes):
+    psas_ts = long(0)
+    j       = 0
+    for i in reversed(range(0,6)):
+        print(sixbytes[j])
+        psas_ts ^= long(sixbytes[j]) << i * 8
+        j       += 1
+    print (long(psas_ts))
+    return long(psas_ts & 0xffffffffffff)
+        
 def read_sdlogfile(infile, msgsize):
     f     = open(infile, "rb")
     block = f.read(msgsize)
     while (len(block) == msgsize):
         # Do stuff with byte.
-        (ident,     ) = struct.unpack('4c', block[0:4])         # 4 chars
-        (index,     ) = struct.unpack('I',  block[4:8])         # uint32
-        (timespec,  ) = struct.unpack('I',  block[8:14])        # timespec, 6 bytes
-        (data_len,  ) = struct.unpack('I',  block[14:17])
-        print( "ident    = " + str(ident))
-        print( "index    = " + str(index))
-        print( "timespec = " + str(timespec))
-        print( "deta_len = " + str(data_len))
+        (c1,c2,c3,c4,     )          = struct.unpack('4c', block[0:4])         # 4 chars
+        (index,           )         = struct.unpack('I',  block[4:8])         # uint32
+        # (ts1,ts2,ts3,ts4,ts5,ts6,  ) = struct.unpack('6b',  block[8:14])        # timespec, 6 bytes
+        foo = struct.unpack('6B',  block[8:14])        # timespec, 6 bytes
+        psas_ts = list_to_psas_ts(foo)
+        (data_len,  )                = struct.unpack('I',  block[14:18])
+
+        ident                        = ''.join([c1,c2,c3,c4])
+
+        print("ident    = " + ident)
+        print("index    = " + str(index))
+#        print("timespec = " + str(ts1))
+        #print("timespec = " + str(psas_ts))
+        print("timespec = " + str(foo))
+        print("deta_len = " + str(data_len))
         print("--\n")
-        checksum = f.read(2)
-        print( "checksum = " + str(checksum))
+        block = f.read(2)
+        (checksum, ) = struct.unpack('H', block[0:3]);
+        print( "checksum = "  + str(checksum))
+        # check for end of data
+
         block    = f.read(msgsize)
 
-        f.close()
+    f.close()
 
 
 if __name__ == "__main__":
@@ -84,7 +133,7 @@ if __name__ == "__main__":
         default_msgsize = 166
 
         #  parse command line
-        usage = "usage: %prog --infile string  [-h|--help]"
+        usage = "usage: %prog --msgsize int --infile string  [-h|--help]"
         parser = OptionParser(usage=usage)
         parser.add_option(\
             "-i", "--infile", \
@@ -131,7 +180,8 @@ if __name__ == "__main__":
         print (run_command + "\n")
 
         runsettings = progname\
-                + " --infile " + infile\
+                + " --infile  " + infile\
+                + " --msgsize " + str(msgsize)\
                 + "\n"
         print ("settings: ")
         print (runsettings)

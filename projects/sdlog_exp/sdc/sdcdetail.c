@@ -39,7 +39,7 @@ BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 #endif
 
 static const    char*           sdc_log_data_file                = "LOGSMALL.bin";
-static const    unsigned        sdlog_thread_sleeptime_ms        = 10;
+static const    unsigned        sdlog_thread_sleeptime_ms        = 5000;
 
 /*! Stack area for the sdlog_thread.  */
 WORKING_AREA(wa_sdlog_thread, SDC_THREAD_STACKSIZE_BYTES); 
@@ -131,6 +131,7 @@ msg_t sdlog_thread(void *p) {
                 /*continue;*/
             }
             psas_rtc_to_psas_ts(&log_data.mh.ts, &timenow);
+            //SDLOGEXPDBG( "(%u,%u,%u,%u,%u,%u)\r\n", log_data.mh.ts.PSAS_ns[0], log_data.mh.ts.PSAS_ns[1] , log_data.mh.ts.PSAS_ns[2], log_data.mh.ts.PSAS_ns[3], log_data.mh.ts.PSAS_ns[4], log_data.mh.ts.PSAS_ns[5]);
 
             memcpy(&log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
 
