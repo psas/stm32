@@ -66,7 +66,7 @@ void mpu9150_int_event_handler(eventid_t _) {
 	/* clear the interrupt status bits on mpu9150 */
 	mpu9150_a_g_read_int_status(mpu9150_driver.i2c_instance);
 
-  post_event((event_t) 42);
+    log_event("MPU9", (uint8_t*) &mpu9150_current_read, 14);
 
 #if MPU9150_DEBUG
 	++count;

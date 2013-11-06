@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <string.h>
 #include <time.h>
 #include "ch.h"
 #include "hal.h"
@@ -6,100 +7,102 @@
 #include "chrtclib.h"
 
 #include "psas_rtc.h"
+#include "psas_sdclog.h"
 #include "usbdetail.h"
 
 #include "eventlogger.h"
 
 
 
-/**
- ** Definitions
- **************/
+/*
+ * Definitions
+ * =========== *****************************************************************
+ */
 
 #define EVENTBUFF_LENGTH 64
-#define EVENTLOG_DEBUG false
+#define EVENTLOG_DEBUG true
 
-typedef struct {
-  uint32_t seconds;
-  uint32_t packed_us_event;
-} Event;
+#ifdef EVENTLOG_DEBUG
+BaseSequentialStream *sdclog = (BaseSequentialStream *)&SDU_PSAS;
+#define LOG_DEBUG(format, ...) chprintf( sdclog, format, ##__VA_ARGS__ )
+#else
+BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+#define LOG_DEBUG(...)
+#endif
+
+static const char* sdc_log_file    = "LOGSMALL.bin";
 
 
 
-/**
- ** Private Function Declarations
- ********************************/
+/*
+ * Private Function Declarations
+ * ============================= ***********************************************
+ */
 
 /*
  * This is the logger thread that writes the posted events to the SD card.
  */
-static msg_t log_event(void* _);
+static msg_t eventlogger(void* _);
 
 /*
- * This creates an Event struct, gets the current time from the RTC, and packs
- * the fields together.
+ * This creates a GenericMessage struct with the given ID and data, filling out
+ * all other requisite fields as appropriate.
  */
-Event* make_event(event_t et);
+GenericMessage* make_msg(const char* id, const uint8_t* data, uint16_t data_length);
 
 
 
-/**
- ** Private Macro Definitions
- ****************************/
-
-#define pack_event_and_us(et, us) ((uint32_t) ((us & ((1 << 20) - 1)) << 8 | (et & 0xff)))
-#define unpack_event(et_us)       ((uint8_t)  et_us & 0xff)
-#define unpack_us(et_us)          ((uint32_t) et_us >> 8)
-
-
-
-/**
- ** Private Global Variables
- ***************************/
+/*
+ * Private Global Variables
+ * ======================== ****************************************************
+ */
 
 /*
  * This here mailbox is the hidden point of contact between the public
- * post_event() function and the private log_event().
+ * log_event() function and the private log_event().
  */
-static msg_t event_buffer[EVENTBUFF_LENGTH];
-static MAILBOX_DECL(event_mail, event_buffer, EVENTBUFF_LENGTH);
+static msg_t mail_buffer[EVENTBUFF_LENGTH];
+static MAILBOX_DECL(event_mail, mail_buffer, EVENTBUFF_LENGTH);
 
-static MemoryPool event_pool;
+static MemoryPool msg_pool;
 /*
- * This is the static storage that backs the events' memory pool.
- * The size of this array defines the maximum number of Event objects that can
- * be allocated at any one time.
- * Since each message posted to the above mailbox will refer to one Event, this
- * array should have the same size as the mailbox.
+ * This is the static storage that backs the GenericMessage memory pool.
+ * The size of this array defines the maximum number of GenericMessage objects
+ * that can be allocated at any one time.
+ * Since each message posted to the above mailbox will refer to one
+ * GenericMessage, this array should have the same size as the mailbox.
  */
-static Event event_data[EVENTBUFF_LENGTH] __attribute__((aligned(sizeof(stkalign_t))));
+static GenericMessage msg_data[EVENTBUFF_LENGTH] __attribute__((aligned(sizeof(stkalign_t))));
 
-static WORKING_AREA(wa_thread_log_event, 512);
+static WORKING_AREA(wa_thread_eventlogger, 2048);
 
 
-
-/**
- ** Public Function Definitions
- ******************************/
 
 /*
- * post_event
+ * Public Function Definitions
+ * =========================== *************************************************
+ */
+
+/*
+ * log_event
  *
- * This is how you send events to the logger.
- * For now, the event_t e is just an opaque int.
- * TODO: figure out data format.
- * The returned boolean indicates whether the event was succesfully posted
- * (true) or failed because the buffer of events to be logged was full (false).
+ * This is how you send things to the logger so it can log them.
+ * The id parameter must point to an array of at least SDC_MSG_ID_BYTES chars.
+ * The data_length parameter must accurately represent the length of the array
+ * pointed to by the data parameter, and this length must be no longer than
+ * SDC_MSG_MAX_PAYLOAD_BYTES. The returned boolean indicates whether the event
+ * was succesfully posted (true) or failed because the buffer of events to be
+ * logged was full (false).
  */
-bool post_event(event_t et) {
-  msg_t status;
+bool log_event(const char* id, const uint8_t* data, uint16_t data_length) {
+    msg_t status;
 
-  Event* e = make_event(et);
-  if (e == NULL) return false;
+    GenericMessage* msg = make_msg(id, data, data_length);
+    if (msg == NULL) return false;
 
-  status = chMBPost(&event_mail, (msg_t) e, TIME_IMMEDIATE);
+    status = chMBPost(&event_mail, (msg_t) msg, TIME_IMMEDIATE);
 
-  return status == RDY_OK;
+    return status == RDY_OK;
 }
 
 
@@ -112,79 +115,192 @@ bool post_event(event_t et) {
  * chSysInit().
  */
 void eventlogger_init(void) {
-  chPoolInit(&event_pool, sizeof(Event), NULL);
-  chPoolLoadArray(&event_pool, event_data, EVENTBUFF_LENGTH);
+    chPoolInit(&msg_pool, sizeof(GenericMessage), NULL);
+    chPoolLoadArray(&msg_pool, msg_data, EVENTBUFF_LENGTH);
 
-  chThdCreateStatic( wa_thread_log_event
-                   , sizeof(wa_thread_log_event)
-                   , NORMALPRIO
-                   , log_event
-                   , NULL
-                   );
+    chThdCreateStatic( wa_thread_eventlogger
+                     , sizeof(wa_thread_eventlogger)
+                     , NORMALPRIO
+                     , eventlogger
+                     , NULL
+                     );
 }
 
 
-
-/**
- ** Private Function Definitions
- *******************************/
 
 /*
- * log_event
- *
- * Just pulls messages out of the mailbox for now.
- * TODO: actually log things to the SD card.
+ * Private Function Definitions
+ * ============================ ************************************************
  */
-static msg_t log_event(void *_) {
-  Event* posted;
-  time_t curr_s;
-  uint32_t e_us, curr_us;
-  int32_t us_diff;
-  uint8_t et;
 
-  chRegSetThreadName("eventlogger");
+/*
+ * eventlogger
+ *
+ * Log messages from the event mailbox to the SD card.
+ */
+static msg_t eventlogger(void *_) {
+    uint32_t        write_errs = 0;
+    uint32_t        bytes_written;
+    bool            log_opened = false;
+    FIL             LogFile;
+    GenericMessage* posted;
 
-  while (true) {
-    // TODO: figure out if chMBFetch does the sensible thing and puts the thread
-    // to sleep until something gets posted to the mailbox.
-    chMBFetch(&event_mail, (msg_t *) &posted, TIME_INFINITE);
+    chRegSetThreadName("eventlogger");
+    LOG_DEBUG("Started eventlog thread\r\n");
 
-    e_us = unpack_us(posted->packed_us_event);
-    et = unpack_event(posted->packed_us_event);
+    sdc_reset_fp_index();
+    sdc_init_eod((uint8_t) 0xa5);
 
-    psas_rtc_lld_get_s_and_us(&RTCD1, &curr_s, &curr_us);
-    us_diff = curr_us - e_us;
-    us_diff = (us_diff < 0) ? 1000000 - us_diff : us_diff;
+    // ensure message is half-word aligned (i.e. 16-bit aligned)
+    if (sizeof(GenericMessage) % 2 != 0) {
+        LOG_DEBUG("Generic message is not 16-bit aligned!\r\n");
+        return SDC_ASSERT_ERROR;
+    }
 
-#if EVENTLOG_DEBUG
-    chprintf( (BaseSequentialStream *) &SDU_PSAS
-            , "\"logging\" event %03d from %D.%06D delay %D.%06D s\r\n"
-            , et
-            , posted->seconds
-            , e_us
-            , curr_s - posted->seconds
-            , us_diff
-            );
-#endif
+    while (true) {
 
-    chPoolFree(&event_pool, posted);
-  }
+        // if sd card has not been mounted, sleep for 10 ms then try again
+        if (!fs_ready && !log_opened) {
+            chThdSleepMilliseconds(10);
+            continue;
+        }
 
-  return -1;
+        // if sd card has been mounted but the log file hasn't been opened, try
+        // to open it.
+        if (fs_ready && !log_opened) {
+            FRESULT file_err;
+
+            int tries = 0;
+            do {
+                file_err = f_open(&LogFile, sdc_log_file, FA_OPEN_EXISTING | FA_WRITE);
+                tries++;
+            } while (file_err && tries < 3);
+
+            // if we couldn't open the log file, try to create a new one
+            if (file_err) {
+                LOG_DEBUG("Failed to open existing log file \"%s\"\r\n", sdc_log_file);
+
+                tries = 0;
+                do {
+                    file_err = f_open(&LogFile, sdc_log_file, FA_CREATE_ALWAYS | FA_WRITE);
+                    tries++;
+                } while (file_err && tries < 3);
+
+                log_opened = !file_err;
+
+                if (log_opened) {
+                    LOG_DEBUG("Created new log file \"%s\"\r\n", sdc_log_file);
+                } else {
+                    LOG_DEBUG("Failed to create new log file \"%s\"\r\n", sdc_log_file);
+                }
+            } else {
+                LOG_DEBUG("Opened existing log file \"%s\"\r\n", sdc_log_file);
+                log_opened = true;
+            }
+
+            continue;
+        }
+
+        // if sd card is not mounted but our log is open (meaning the card was
+        // mounted previously and has since been unmounted), close the log
+        if (!fs_ready && log_opened) {
+            int status = f_close(&LogFile);
+            LOG_DEBUG("close log file status: %d\r\n", status);
+            log_opened = false;
+
+            continue;
+        }
+
+        // if sd card has been mounted and the log file has been opened, wait
+        // for a message from our mailbox and log it to disk.
+        if (fs_ready && log_opened) {
+            int           status;
+            crc_t         crc16;
+            RTCTime       logged_time;
+            psas_timespec logged_ts;
+            uint64_t      posted_ns = 0;
+            uint64_t      ns_delay = 0;
+
+            chMBFetch(&event_mail, (msg_t *) &posted, TIME_INFINITE);
+            status = sdc_write_log_message(&LogFile, posted, &bytes_written);
+
+            if (status != FR_OK) {
+                write_errs++;
+                LOG_DEBUG( "Could not log message %5d: error %d\r\n"
+                         , posted->head.index
+                         , status
+                         );
+                goto msg_cleanup;
+            }
+
+            crc16 = crc_init();
+            crc16 = crc_update(crc16, (const unsigned char*) posted, sizeof(GenericMessage));
+            crc16 = crc_finalize(crc16);
+
+            status = sdc_write_checksum(&LogFile, &crc16, &bytes_written);
+            if (status != FR_OK) {
+                write_errs++;
+                LOG_DEBUG( "Could not write checksum for message %5d: error %d\r\n"
+                         , posted->head.index
+                         , status
+                         );
+                goto msg_cleanup;
+            }
+
+            status = psas_rtc_get_unix_time(&RTCD1, &logged_time);
+            if (status != 0) {
+                LOG_DEBUG( "Logged message %05d, delay unknown due to rtc error %d\r\n"
+                         , posted->head.index
+                         , status
+                         );
+                goto msg_cleanup;
+            }
+
+            psas_rtc_to_psas_ts(&logged_ts, &logged_time);
+            memcpy(&posted_ns, &posted->head.ts, PSAS_RTC_NS_BYTES);
+            memcpy(&ns_delay, &logged_ts.ns, PSAS_RTC_NS_BYTES);
+            ns_delay -= posted_ns;
+
+            LOG_DEBUG( "Logged message %05d with delay of %8d ns\r\n"
+                     , posted->head.index
+                     , ns_delay
+                     );
+
+msg_cleanup:
+            chPoolFree(&msg_pool, posted);
+            continue;
+        }
+    }
+
+    return -1;
 }
 
-Event* make_event(event_t et) {
-  Event* e = (Event *) chPoolAlloc(&event_pool);
 
-  // bail if the pool is empty
-  if (e == NULL) return NULL;
+GenericMessage* make_msg(const char* id, const uint8_t* data, uint16_t data_length) {
+    static int msg_index = 0;
 
-  time_t s;
-  uint32_t us;
-  psas_rtc_lld_get_s_and_us(&RTCD1, &s, &us);
+    int             status;
+    RTCTime         now;
+    GenericMessage* msg = (GenericMessage*) chPoolAlloc(&msg_pool);
 
-  e->seconds = s;
-  e->packed_us_event = pack_event_and_us(et, us);
+    // bail if the pool is empty
+    if (msg == NULL) return NULL;
 
-  return e;
+    // fill out most of message's head fields
+    strncpy(msg->head.ID, id, SDC_MSG_ID_BYTES);
+    msg->head.index = msg_index++;
+
+    // fill out message's head timestamp field
+    now.h12 = 1;
+    if ((status = psas_rtc_get_unix_time(&RTCD1, &now)) != 0) {
+        LOG_DEBUG("psas_rtc time read error: %d\r\n", status);
+        return NULL;
+    }
+    psas_rtc_to_psas_ts(&msg->head.ts, &now);
+
+    // copy the data into the msg
+    msg->head.data_length = data_length;
+    memcpy(&msg->data, data, data_length);
+
+    return msg;
 }

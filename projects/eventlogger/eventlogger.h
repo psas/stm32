@@ -1,14 +1,6 @@
 /*
- * Types
- */
-
-typedef uint8_t event_t;
-
-
-
-/*
  * The API
  */
 
 void eventlogger_init(void);
-bool post_event(event_t et);
+bool log_event(const char* id, const uint8_t* data, uint16_t data_length);

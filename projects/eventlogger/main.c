@@ -182,7 +182,7 @@ int main(void) {
     /*!
      * Starts the eventlogger
      */
-    //eventlogger_init();
+    eventlogger_init();
 
     /*!
      * Initializes MPU9150 & associated I2C connection
