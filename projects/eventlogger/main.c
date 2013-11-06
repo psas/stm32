@@ -120,6 +120,7 @@ int main(void) {
     chSysInit();
 
     psas_rtc_lld_init();
+    psas_rtc_set_fc_boot_mark(&RTCD1);
 
     palSetPad(GPIOC, GPIOC_LED);
 
