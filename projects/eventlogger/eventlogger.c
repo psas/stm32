@@ -26,7 +26,6 @@
 BaseSequentialStream *sdclog = (BaseSequentialStream *)&SDU_PSAS;
 #define LOG_DEBUG(format, ...) chprintf( sdclog, format, ##__VA_ARGS__ )
 #else
-BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 #define LOG_DEBUG(...)
 #endif
 
@@ -214,6 +213,7 @@ static msg_t eventlogger(void *_) {
         // if sd card has been mounted and the log file has been opened, wait
         // for a message from our mailbox and log it to disk.
         if (fs_ready && log_opened) {
+            int           i;
             int           status;
             crc_t         crc16;
             RTCTime       logged_time;
@@ -247,23 +247,22 @@ static msg_t eventlogger(void *_) {
                 goto msg_cleanup;
             }
 
-            status = psas_rtc_get_unix_time(&RTCD1, &logged_time);
-            if (status != 0) {
-                LOG_DEBUG( "Logged message %05d, delay unknown due to rtc error %d\r\n"
-                         , posted->head.index
-                         , status
-                         );
-                goto msg_cleanup;
-            }
-
+            // calculate time between when the message was created and when we
+            // logged it, in ns
+            psas_rtc_lld_get_time(&RTCD1, &logged_time);
+            logged_time.tv_time = psas_rtc_dr_tr_to_unixtime(&logged_time);
             psas_rtc_to_psas_ts(&logged_ts, &logged_time);
-            memcpy(&posted_ns, &posted->head.ts, PSAS_RTC_NS_BYTES);
-            memcpy(&ns_delay, &logged_ts.ns, PSAS_RTC_NS_BYTES);
+
+            for (i = 0; i < PSAS_RTC_NS_BYTES; i++) {
+                posted_ns += (uint64_t) posted->head.ts.ns[i] << (i * 8);
+                ns_delay += (uint64_t) logged_ts.ns[i] << (i * 8);
+            }
             ns_delay -= posted_ns;
 
-            LOG_DEBUG( "Logged message %05d with delay of %8d ns\r\n"
+            LOG_DEBUG( "Logged message %5u with delay of %3u.%06u ms\r\n"
                      , posted->head.index
-                     , ns_delay
+                     , (uint32_t) (ns_delay / 1000000)
+                     , (uint32_t) (ns_delay % 1000000)
                      );
 
 msg_cleanup:
@@ -292,10 +291,8 @@ GenericMessage* make_msg(const char* id, const uint8_t* data, uint16_t data_leng
 
     // fill out message's head timestamp field
     now.h12 = 1;
-    if ((status = psas_rtc_get_unix_time(&RTCD1, &now)) != 0) {
-        LOG_DEBUG("psas_rtc time read error: %d\r\n", status);
-        return NULL;
-    }
+    psas_rtc_lld_get_time(&RTCD1, &now);
+    now.tv_time = psas_rtc_dr_tr_to_unixtime(&now);
     psas_rtc_to_psas_ts(&msg->head.ts, &now);
 
     // copy the data into the msg
