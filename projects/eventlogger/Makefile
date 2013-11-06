@@ -88,10 +88,13 @@ CSRC = $(PORTSRC) \
        $(BOARDSRC) \
        $(FATFSSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
-       $(PSAS_COMMON)/psas_rtc.c \
-       $(PSAS_COMMON)/usbdetail.c \
+       $(CHIBIOS)/os/various/chrtclib.c \
+       $(CHIBIOS)/os/various/syscalls.c \
+       $(PSAS_DEVICES)/usbdetail.c \
        $(PSAS_DEVICES)/MPU9150.c \
-       ./sdc/sdcdetail.c \
+       $(PSAS_DEVICES)/psas_rtc.c \
+       $(PSAS_DEVICES)/psas_sdclog.c \
+       $(PSAS_UTIL)/crc_16_reflect.c \
        ./eventlogger.c \
        ./mpu9150.c \
        main.c
@@ -128,7 +131,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(FATFSINC) \
          $(CHIBIOS)/os/various \
          $(PSAS_COMMON) \
-         $(PSAS_DEVICES)/include
+         $(PSAS_DEVICES)/include \
+         $(PSAS_UTIL)/include
 
 #
 # Project, sources and paths
