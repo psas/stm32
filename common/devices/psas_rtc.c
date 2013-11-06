@@ -51,18 +51,15 @@ limitations under the License.
 #include "chprintf.h"
 #include "chrtclib.h"
 
-#include "sdcdetail.h"
-
 #include "psas_rtc.h"
 
-#define         DEBUG_RTCEXP
 
 #ifdef DEBUG_RTCEXP
 #include "usbdetail.h"
 BaseSequentialStream    *rtcexp   =  (BaseSequentialStream *)&SDU_PSAS;
 #define RTCDBG(format, ...) chprintf( rtcexp, format, ##__VA_ARGS__ )
 #else
-#define RTCDBG(...) do{ } while ( false )
+#define RTCDBG(...)
 #endif
 
 
@@ -82,12 +79,15 @@ BaseSequentialStream    *rtcexp   =  (BaseSequentialStream *)&SDU_PSAS;
 #define PSAS_RTC_INCORRECT_TIME_ERROR            -1
 #define PSAS_RTC_ERROR                           -2
 
+#define ONE_BILLION 1000000000
+
+
 /*!
  * \brief   Finalizing of configuration procedure.
  */
 #define psas_rtc_lld_exit_init() {RTCD1.id_rtc->ISR &= ~RTC_ISR_INIT;}
 
-psas_rtc_state     psas_rtc_s = {false};
+psas_rtc_state     psas_rtc_s = {false, 0};
 
 /*!
  * \brief   Enable access to registers.
@@ -133,7 +133,7 @@ void psas_rtc_lld_init(void) {
     RTCD1.id_rtc->CR   |= RTC_CR_COE;
     RTCD1.id_rtc->CR   |= RTC_CR_COSEL;
 #else
-    RTCD1.id_rtc->CR   = 0; 
+    RTCD1.id_rtc->CR   = 0;
 #endif
 
     psas_rtc_lld_enter_init();
@@ -155,8 +155,11 @@ void psas_rtc_lld_init(void) {
 
 }
 
-void psas_rtc_set_fc_boot_mark(uint64_t mark) {
-    psas_rtc_s.fc_boot_time_mark = mark;
+void psas_rtc_set_fc_boot_mark(RTCDriver* rtcp) {
+    RTCTime mark_time;
+
+    psas_rtc_get_unix_time(rtcp, &mark_time);
+    psas_rtc_s.fc_boot_time_mark = mark_time.tv_time;
 }
 
 
@@ -198,7 +201,7 @@ void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) {
     timp->tm_hour += 12 * ((tv_time & RTC_TR_PM) >> RTC_TR_PM_OFFSET);
 }
 
-/*! \brief Convert from an RTCTime struct to a psas_timespec 
+/*! \brief Convert from an RTCTime struct to a psas_timespec
  *
  *  \warning rtc is assumed to be in seconds, not the raw register
  *   (BCD-ish) form.
@@ -206,16 +209,20 @@ void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) {
  *  \sa psas_rtc_lld_get_time()
  */
 void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
-    uint64_t  total_ns         = 0;
+    uint64_t total_ns = 0;
 
-    total_ns              = rtc->tv_time   - psas_rtc_s.fc_boot_time_mark;
-    total_ns              = total_ns * 1000000000;
-    total_ns              += (rtc->tv_msec) * 1000;
-    // memcpy(dst, src, length)
-    memcpy(&ts->PSAS_ns[0], &total_ns, 6);
+    total_ns = rtc->tv_time - psas_rtc_s.fc_boot_time_mark;
+    total_ns = total_ns * ONE_BILLION;
+    total_ns += (rtc->tv_msec) * 1000;
+
+    int i;
+    for (i = 0; i < PSAS_RTC_NS_BYTES; i++) {
+        ts->ns[i] = (uint8_t) (total_ns >> (i * 8)) & 0xff;
+    }
 }
 
-/*! \brief Convert from a psas_timespec to an RTCTime struct 
+
+/*! \brief Convert from a psas_timespec to an RTCTime struct
  *
  *  \warning rtc is returned in seconds, not the raw register
  *   (BCD-ish) form.
@@ -223,16 +230,20 @@ void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
  *  \sa psas_rtc_lld_get_time()
  */
 void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) {
-    uint64_t   total_ns_in    = 0;
+    uint64_t    total_ns_in = 0;
+    int         i           = 0;
 
-    memcpy(&total_ns_in, &ts->PSAS_ns[0], 6);
-    rtc->tv_time   = (uint32_t) (total_ns_in / 1e9);
-    rtc->tv_msec   = (uint32_t) (total_ns_in/1e6)-(rtc->tv_time*1000);
+    for (i = 0; i < PSAS_RTC_NS_BYTES; i++) {
+        total_ns_in += (uint64_t) ts->ns[i] << (i * 8);
+    }
+
+    rtc->tv_time = (uint32_t) (total_ns_in / ONE_BILLION);
+    rtc->tv_msec = (uint32_t) (total_ns_in % ONE_BILLION) / 1000;
 }
 
 /*! \brief Utility function to convert from RTC TR register
- * 
- * Return the simple calendar time representation from a 
+ *
+ * Return the simple calendar time representation from a
  * RTC DR and TR register read.
  */
 time_t psas_rtc_dr_tr_to_unixtime(RTCTime* timespec) {
@@ -248,11 +259,11 @@ time_t psas_rtc_dr_tr_to_unixtime(RTCTime* timespec) {
 /*!
  * \brief   Get current time.
  * Returns time in format from RTC{TR,DR} registers
- * timespec->tv_msec is in milliseconds. 
+ * timespec->tv_msec is in microseconds.
  *
  * \param[in]  rtcp      pointer to RTC driver structure
  * \param[out] timespec  pointer to a @p RTCTime structure
- * 
+ *
  * Returns raw data from TR and DR. Consider using
  *
  *       time_t        unix_time;
@@ -264,7 +275,7 @@ time_t psas_rtc_dr_tr_to_unixtime(RTCTime* timespec) {
  *        unix_time = mktime(&timp);
  *      (...)
  *
- * This is how the ChibiOS function rtc_lld_get_time() works. 
+ * This is how the ChibiOS function rtc_lld_get_time() works.
  * This function attempts to parallel that behavior.
  *
  * \sa psas_tr_to_unixtime
@@ -304,8 +315,8 @@ int psas_rtc_get_unix_time( RTCDriver *rtcp, RTCTime *timespec) {
 
     unix_time = psas_rtc_dr_tr_to_unixtime(&psas_time);
 
-    if(unix_time  == -1) { 
-        return PSAS_RTC_INCORRECT_TIME_ERROR; 
+    if(unix_time  == -1) {
+        return PSAS_RTC_INCORRECT_TIME_ERROR;
     }
 
     RTCDBG("unix_time:\t%lu\r\n", unix_time);
