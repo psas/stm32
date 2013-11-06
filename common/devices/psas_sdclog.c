@@ -298,7 +298,7 @@ FRESULT sdc_write_log_message(FIL* DATAFil, GenericMessage* d, uint32_t* bw) {
 
     rc = f_write(DATAFil, (const void *)(d), sizeof(GenericMessage), (unsigned int*) bw);
     if (rc)  {
-        SDCDEBUG("f_write log error:\r\n") ;
+        SDCDEBUG("f_write error: %d\r\n", rc) ;
         return rc;
     }
     sdc_fp_index += *bw;
