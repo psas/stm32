@@ -48,8 +48,20 @@ limitations under the License.
 
 #include "stm32f4xx.h"
 
+#include "chprintf.h"
 #include "chrtclib.h"
+
 #include "psas_rtc.h"
+
+
+#ifdef DEBUG_RTCEXP
+#include "usbdetail.h"
+BaseSequentialStream    *rtcexp   =  (BaseSequentialStream *)&SDU_PSAS;
+#define RTCDBG(format, ...) chprintf( rtcexp, format, ##__VA_ARGS__ )
+#else
+#define RTCDBG(...)
+#endif
+
 
 /*!
  * \brief   Wait for synchronization of RTC registers with APB1 bus.
@@ -67,12 +79,15 @@ limitations under the License.
 #define PSAS_RTC_INCORRECT_TIME_ERROR            -1
 #define PSAS_RTC_ERROR                           -2
 
+#define ONE_BILLION 1000000000
+
+
 /*!
  * \brief   Finalizing of configuration procedure.
  */
 #define psas_rtc_lld_exit_init() {RTCD1.id_rtc->ISR &= ~RTC_ISR_INIT;}
 
-psas_rtc_state     psas_rtc_s = {false};
+psas_rtc_state     psas_rtc_s = {false, 0};
 
 /*!
  * \brief   Enable access to registers.
@@ -140,6 +155,14 @@ void psas_rtc_lld_init(void) {
 
 }
 
+void psas_rtc_set_fc_boot_mark(RTCDriver* rtcp) {
+    RTCTime mark_time;
+
+    psas_rtc_get_unix_time(rtcp, &mark_time);
+    psas_rtc_s.fc_boot_time_mark = mark_time.tv_time;
+}
+
+
 /*! \brief   Converts from STM32 BCD to canonicalized time format.
  *
  * \param[out] timp     pointer to a @p tm structure as defined in time.h
@@ -186,13 +209,18 @@ void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) {
  *  \sa psas_rtc_lld_get_time()
  */
 void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
-    uint64_t  total_ns         = 0;
+    uint64_t total_ns = 0;
 
-    total_ns              = rtc->tv_time    * 1e9;
-    total_ns              += (rtc->tv_msec) * 1e6;
-    // memcpy(dst, src, length)
-    memcpy(&ts->ns[0], &total_ns, PSAS_RTC_NS_BYTES);
+    total_ns = rtc->tv_time - psas_rtc_s.fc_boot_time_mark;
+    total_ns = total_ns * ONE_BILLION;
+    total_ns += (rtc->tv_msec) * 1000;
+
+    int i;
+    for (i = 0; i < PSAS_RTC_NS_BYTES; i++) {
+        ts->ns[i] = (uint8_t) (total_ns >> (i * 8)) & 0xff;
+    }
 }
+
 
 /*! \brief Convert from a psas_timespec to an RTCTime struct
  *
@@ -202,11 +230,15 @@ void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
  *  \sa psas_rtc_lld_get_time()
  */
 void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) {
-    uint64_t   total_ns_in    = 0;
+    uint64_t    total_ns_in = 0;
+    int         i           = 0;
 
-    memcpy(&total_ns_in, &ts->ns[0], PSAS_RTC_NS_BYTES);
-    rtc->tv_time   = (uint32_t) (total_ns_in / 1e9);
-    rtc->tv_msec   = (uint32_t) (total_ns_in/1e6)-(rtc->tv_time*1000);
+    for (i = 0; i < PSAS_RTC_NS_BYTES; i++) {
+        total_ns_in |= ts->ns[i] << (i * 8);
+    }
+
+    rtc->tv_time = (uint32_t) (total_ns_in / ONE_BILLION);
+    rtc->tv_msec = (uint32_t) (total_ns_in % ONE_BILLION) / 1000;
 }
 
 /*! \brief Utility function to convert from RTC TR register

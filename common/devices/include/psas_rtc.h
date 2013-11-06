@@ -27,11 +27,13 @@ extern "C" {
 
 #define PSAS_RTC_NS_BYTES 6
 
-    typedef struct psas_rtc_state {
-        bool                  initialized;
+    typedef struct {
+        bool    initialized;
+        time_t  fc_boot_time_mark;
     } psas_rtc_state;
 
     typedef struct psas_timespec {
+        // this array contains a 48-bit number, byte-by-byte, in LSB order
         uint8_t ns[PSAS_RTC_NS_BYTES];
     } psas_timespec;
 
@@ -40,6 +42,7 @@ extern "C" {
 
     void   psas_rtc_lld_init(void) ;
 
+    void   psas_rtc_set_fc_boot_mark(RTCDriver* rtcp) ;
     void   psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) ;
     void   psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) ;
 
