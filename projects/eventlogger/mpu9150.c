@@ -54,9 +54,9 @@ void mpu9150_init(I2CDriver* i2cptr) {
  * It is called by the Thread_mpu9150_int_dispatch defined below.
  */
 void mpu9150_int_event_handler(eventid_t _) {
-#if MPU9150_DEBUG
 	static uint16_t count = 0;
-  static BaseSequentialStream* chp = (BaseSequentialStream*) &SDU_PSAS;
+#if MPU9150_DEBUG
+    static BaseSequentialStream* chp = (BaseSequentialStream*) &SDU_PSAS;
 #endif
 
 	mpu9150_a_read_x_y_z(mpu9150_driver.i2c_instance, &mpu9150_current_read.accel_xyz);
@@ -65,11 +65,13 @@ void mpu9150_int_event_handler(eventid_t _) {
 
 	/* clear the interrupt status bits on mpu9150 */
 	mpu9150_a_g_read_int_status(mpu9150_driver.i2c_instance);
+    count++;
 
-    log_event("MPU9", (uint8_t*) &mpu9150_current_read, 14);
+    if (count % 10 == 0) {
+        log_event("MPU9", (uint8_t*) &mpu9150_current_read, 14);
+    }
 
 #if MPU9150_DEBUG
-	++count;
 	if (count > 500) {
     chprintf(chp, "\r\n*** MPU9150 ***\r\n");
     chprintf(chp, "raw_temp: %d C\r\n", mpu9150_temp_to_dC(mpu9150_current_read.celsius));
