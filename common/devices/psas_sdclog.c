@@ -25,6 +25,9 @@
 
 #include "psas_sdclog.h"
 
+
+
+
 #define         DEBUG_SDC
 
 #ifdef DEBUG_SDC
@@ -34,6 +37,7 @@
 #else
     #define SDCDEBUG(...) do{ } while ( false )
 #endif
+
 
 // static declarations
 static const    unsigned        sdc_polling_interval             = 10;
@@ -55,6 +59,13 @@ DWORD                           sdc_fp_index_old                 = 0;
 
 EventSource                     sdc_inserted_event;
 EventSource                     sdc_removed_event;
+
+
+
+/*
+ * Function Definitions
+ * ====================
+ */
 
 /*!
  * @brief           Insertion monitor timer callback function.
@@ -88,11 +99,11 @@ static void sdc_tmrfunc(void *p) {
 
 /*! \brief Init end of data fiducials.
  */
-void sdc_init_eod (uint8_t marker_byte) {
+void sdc_init_eod(uint8_t marker_byte) {
     unsigned int i;
 
-    for(i=0; i<sizeof(sdc_eod_marker) ; ++i) {
-        sdc_eod.sdc_eodmarks[i] = marker_byte ;
+    for (i = 0; i < sizeof(sdc_eod_marker); i++) {
+        sdc_eod.sdc_eodmarks[i] = marker_byte;
     }
 }
 
@@ -116,7 +127,7 @@ void sdc_tmr_init(void *p) {
 /*!
  * \brief Card insertion event.
  *
- * Also use at power up to see if card was or remained 
+ * Also use at power up to see if card was or remained
  * inserted while power unavailable.
  */
 void sdc_insert_handler(eventid_t id) {
@@ -226,23 +237,23 @@ void sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
 /*! \brief Store a checksum and end of data fiducial marks
  *
      A line of data would look like this:
-        [GENERIC_message][chksum]
+        [GenericMessage][chksum]
      We want a line at the end-of-data(eod) to look like this:
-        [GENERIC_message][chksum][0xa5a5]
-  
+        [GenericMessage][chksum][0xa5a5]
+
      What happens if power fails partway through a write? There will
      be NO eod marker. So write a length of eod markers every write past the
      length of the next write.
-        [GENERIC_message][checksum][0xa5a5..(len(GENERIC_message+checksum+some extra)..0xa5a5]
+        [GenericMessage][checksum][0xa5a5..(len(GenericMessage+checksum+some extra)..0xa5a5]
                                    ^
                                    Seek fp-index (sdc_set_fp_index) to here.
-  
+
      Now, in the event of failure during the next write, we have already placed
      eod markers. A partial filled line will have an incorrect checksum.
-  
+
      If we pre-allocate the file on the sd card, then the file will already exist
      in the FAT and shouldn't be damaged due to a partial file size reallocation.
-  
+
  */
 FRESULT sdc_write_checksum(FIL* DATAFil, const crc_t* crcd, uint32_t* bw) {
     FRESULT rc;
@@ -276,16 +287,16 @@ FRESULT sdc_write_checksum(FIL* DATAFil, const crc_t* crcd, uint32_t* bw) {
     return FR_OK;
 }
 
-/*! \brief Store GENERIC_message to the SD card
+/*! \brief Store GenericMessage to the SD card
 */
-FRESULT   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t* bw) {
+FRESULT sdc_write_log_message(FIL* DATAFil, GenericMessage* d, uint32_t* bw) {
     FRESULT rc;
 
     if((d==NULL) || (bw == NULL)) {
         return SDC_NULL_PARAMETER_ERROR;
     }
 
-    rc = f_write(DATAFil, (const void *)(d), sizeof(GENERIC_message), (unsigned int*) bw);
+    rc = f_write(DATAFil, (const void *)(d), sizeof(GenericMessage), (unsigned int*) bw);
     if (rc)  {
         SDCDEBUG("f_write log error:\r\n") ;
         return rc;
@@ -300,14 +311,14 @@ FRESULT   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t* bw) 
     return FR_OK;
 }
 
-/*! 
+/*!
  * Instead of restarting from byte0 in opened existing data file, continue
  * from last successful data write.
  *
  * Track from reset due to power cycle or watchdog for instance.
  *
  */
-void sdc_seek_eod(FIL* DATAFil, GENERIC_message* d, uint32_t* sdindexbyte) {
+void sdc_seek_eod(FIL* DATAFil, GenericMessage* d, uint32_t* sdindexbyte) {
     (void) DATAFil;     // temporary, these are void for compile purposes.
     (void) d;           // ditto
     (void) sdindexbyte; // ibid
