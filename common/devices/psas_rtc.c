@@ -208,11 +208,9 @@ void psas_stm32_rtc_bcd2tm(struct tm *timp, RTCTime *timespec) {
 void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
     uint64_t  total_ns         = 0;
 
-    RTCDBG("unix:\t%lu\r\n", rtc->tv_time);
-    total_ns              = rtc->tv_time    * 1e9;
-    RTCDBG("ns:\t%lu\r\n", total_ns);
-    total_ns              += (rtc->tv_msec) * 1e6;
-    RTCDBG("ns+ms:\t%lu\r\n\n", total_ns);
+    total_ns              = rtc->tv_time   - psas_rtc_s.fc_boot_time_mark;
+    total_ns              = total_ns * 1000000000;
+    total_ns              += (rtc->tv_msec) * 1000;
     // memcpy(dst, src, length)
     memcpy(&ts->PSAS_ns[0], &total_ns, 6);
 }
