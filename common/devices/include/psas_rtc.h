@@ -22,15 +22,17 @@ extern "C" {
 #endif
 
 #ifndef PSAS_RTC_COE_DEBUG
-#define     PSAS_RTC_COE_DEBUG      0          // Enable the calibration output on PC13
+#define PSAS_RTC_COE_DEBUG 0 // Enable the calibration output on PC13
 #endif
+
+#define PSAS_RTC_NS_BYTES 6
 
     typedef struct psas_rtc_state {
         bool                  initialized;
     } psas_rtc_state;
 
     typedef struct psas_timespec {
-        uint8_t PSAS_ns[6];
+        uint8_t ns[PSAS_RTC_NS_BYTES];
     } psas_timespec;
 
     extern  psas_rtc_state     psas_rtc_s;

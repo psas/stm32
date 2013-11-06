@@ -191,7 +191,7 @@ void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
     total_ns              = rtc->tv_time    * 1e9;
     total_ns              += (rtc->tv_msec) * 1e6;
     // memcpy(dst, src, length)
-    memcpy(&ts->PSAS_ns[0], &total_ns, 6);
+    memcpy(&ts->ns[0], &total_ns, PSAS_RTC_NS_BYTES);
 }
 
 /*! \brief Convert from a psas_timespec to an RTCTime struct
@@ -204,7 +204,7 @@ void psas_rtc_to_psas_ts(psas_timespec* ts, RTCTime* rtc) {
 void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) {
     uint64_t   total_ns_in    = 0;
 
-    memcpy(&total_ns_in, &ts->PSAS_ns[0], 6);
+    memcpy(&total_ns_in, &ts->ns[0], PSAS_RTC_NS_BYTES);
     rtc->tv_time   = (uint32_t) (total_ns_in / 1e9);
     rtc->tv_msec   = (uint32_t) (total_ns_in/1e6)-(rtc->tv_time*1000);
 }
