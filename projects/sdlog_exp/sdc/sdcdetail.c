@@ -39,7 +39,7 @@ BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 #endif
 
 static const    char*           sdc_log_data_file                = "LOGSMALL.bin";
-static const    unsigned        sdlog_thread_sleeptime_ms        = 5000;
+static const    unsigned        sdlog_thread_sleeptime_ms        = 1234;
 
 /*! Stack area for the sdlog_thread.  */
 WORKING_AREA(wa_sdlog_thread, SDC_THREAD_STACKSIZE_BYTES); 
@@ -110,6 +110,7 @@ msg_t sdlog_thread(void *p) {
             } else {
                 SDLOGEXPDBG("Opened existing file OK.\r\n");
                 sd_log_opened = true;
+                write_errors  = 0;
             }
         }
 
@@ -125,11 +126,13 @@ msg_t sdlog_thread(void *p) {
 
             // timestamp
             timenow.h12             = 1;
+
             rc = psas_rtc_get_unix_time( &RTCD1, &timenow) ;
             if (rc == -1) {
                 SDLOGEXPDBG( "%s: psas_rtc time read errors: %d\r\n",__func__, rc);
                 /*continue;*/
             }
+            SDLOGEXPDBG("msec: %d\r\n", timenow.tv_msec);
             psas_rtc_to_psas_ts(&log_data.mh.ts, &timenow);
             //SDLOGEXPDBG( "(%u,%u,%u,%u,%u,%u)\r\n", log_data.mh.ts.PSAS_ns[0], log_data.mh.ts.PSAS_ns[1] , log_data.mh.ts.PSAS_ns[2], log_data.mh.ts.PSAS_ns[3], log_data.mh.ts.PSAS_ns[4], log_data.mh.ts.PSAS_ns[5]);
 
@@ -152,7 +155,7 @@ msg_t sdlog_thread(void *p) {
 #ifdef DEBUG_SDLOGEXP
             if((sdc_fp_index - sdc_fp_index_old) > 100000) { 
                 if(write_errors !=0) {
-                    SDLOGEXPDBG("%d", write_errors); 
+                    SDLOGEXPDBG("E%d", write_errors); 
                 } else {
                     SDLOGEXPDBG("x");
                 }
