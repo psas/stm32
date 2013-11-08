@@ -56,44 +56,12 @@ class MissingOption(Exception):
     typedef struct GENERIC_message GENERIC_message;
 
 """
-# msg = bytearray()
-# msg.extend(struct.pack("I",len(points))
-# 
-# 
-#         ypeError: unsupported operand type(s) for <<: 'str' and 'int'
-#         >>> x
-#         '3'
-#         >>> x = 3
-#         >>> y = x <<8
-#         >>> y
-#         768
-#         >>> pow(3,8)
-#         6561
-#         >>> bin(x)
-#         '0b11'
-#         >>> bin(y)
-#         '0b1100000000'
-#         >>> y ^= 0b11
-#         >>> y
-#         771
-#         >>> bin(y)
-#         '0b1100000011'
-#         >>> 
-#         ~  > 
-# 
-# 
-# 
-# 
-# 
-
 def list_to_psas_ts(sixbytes):
     psas_ts = long(0)
     j       = 0
-    for i in reversed(range(0,6)):
-        print(sixbytes[j])
+    for i in range(0,6):
         psas_ts ^= long(sixbytes[j]) << i * 8
         j       += 1
-    print (long(psas_ts))
     return long(psas_ts & 0xffffffffffff)
         
 def read_sdlogfile(infile, msgsize):
@@ -112,9 +80,7 @@ def read_sdlogfile(infile, msgsize):
 
         print("ident    = " + ident)
         print("index    = " + str(index))
-#        print("timespec = " + str(ts1))
-        #print("timespec = " + str(psas_ts))
-        print("timespec = " + str(foo))
+        print("timespec = " + str(psas_ts))
         print("deta_len = " + str(data_len))
         print("--\n")
         block = f.read(2)

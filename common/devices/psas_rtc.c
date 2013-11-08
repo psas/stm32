@@ -321,6 +321,7 @@ int psas_rtc_get_unix_time( RTCDriver *rtcp, RTCTime *timespec) {
 
     RTCDBG("unix_time:\t%lu\r\n", unix_time);
     timespec->tv_time = unix_time;
+    timespec->tv_msec = psas_time.tv_msec;
 
     return 0;
 }

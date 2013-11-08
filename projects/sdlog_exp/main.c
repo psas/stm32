@@ -108,13 +108,7 @@ int main(void) {
 
     psas_rtc_lld_init();
 
-    RTCTime   psas_time;
-    struct    tm timp;
-    time_t    unix_time;
-    psas_rtc_lld_get_time(&RTCD1, &psas_time);
-    psas_stm32_rtc_bcd2tm(&timp, &psas_time);
-    unix_time = mktime(&timp);
-    psas_rtc_set_fc_boot_mark(unix_time); 
+    psas_rtc_set_fc_boot_mark(&RTCD1); 
 
     extdetail_init();
 
