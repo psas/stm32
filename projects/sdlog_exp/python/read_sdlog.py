@@ -42,18 +42,30 @@ class MissingOption(Exception):
 
 """
     struct Message_head {
-            char                 ID[SDC_NUM_ID_CHARS];         // This must be first part of data. Reserved value: 0xa5a5
-            uint32_t             index;
-            psas_timespec        ts;
-            uint16_t             data_length;
-            } __attribute__((packed));
+        char                 ID[SDC_NUM_ID_CHARS];         // This must be first part of data. Reserved value: 0xa5a5
+        uint32_t             index;
+        psas_timespec        ts;
+        uint16_t             data_length;
+    } __attribute__((packed));
     typedef struct Message_head Message_head;
 
+    /*! RTCLogtime is not psas_timespec. 
+     *      psas_timespec is time since FC reboot 
+     *      RTCLogtime    is the RTC on the STM32, running on a backup battery.
+     */
+    struct RTCLogtime {
+      time_t   tv_time;
+      uint32_t tv_msec;
+    } __attribute__((packed));
+    typedef struct RTCLogtime RTCLogtime;
+
     struct GENERIC_message {
-            Message_head         mh;                           // 16 bytes
-            uint8_t              data[SDC_MAX_PAYLOAD_BYTES];  // 150 bytes
-            } __attribute__((packed));
+        Message_head         mh;                           // 16 bytes
+        RTCLogtime           logtime;                      // 12 bytes
+        uint8_t              data[SDC_MAX_PAYLOAD_BYTES];  // 150 bytes
+    } __attribute__((packed));
     typedef struct GENERIC_message GENERIC_message;
+
 
 """
 def list_to_psas_ts(sixbytes):
@@ -69,24 +81,32 @@ def read_sdlogfile(infile, msgsize):
     block = f.read(msgsize)
     while (len(block) == msgsize):
         # Do stuff with byte.
-        (c1,c2,c3,c4,     )          = struct.unpack('4c', block[0:4])         # 4 chars
-        (index,           )         = struct.unpack('I',  block[4:8])         # uint32
-        # (ts1,ts2,ts3,ts4,ts5,ts6,  ) = struct.unpack('6b',  block[8:14])        # timespec, 6 bytes
-        foo = struct.unpack('6B',  block[8:14])        # timespec, 6 bytes
-        psas_ts = list_to_psas_ts(foo)
-        (data_len,  )                = struct.unpack('I',  block[14:18])
-
+        (c1,c2,c3,c4,     )          = struct.unpack('4c', block[0:4])           # 4 chars
+        (index,           )          = struct.unpack('I',  block[4:8])           # uint32
+        psas_ts_bytes = struct.unpack('6B',  block[8:14])                        # timespec, 6 bytes
+        psas_ts = list_to_psas_ts(psas_ts_bytes)
+        (data_len,  )                = struct.unpack('H',  block[14:16])
+        (tv_time,         )          = struct.unpack('I',  block[16:20])          # uint32
+        (tv_msec,         )          = struct.unpack('I',  block[20:24])          # uint32
+ 
         ident                        = ''.join([c1,c2,c3,c4])
 
         print("ident    = " + ident)
         print("index    = " + str(index))
         print("timespec = " + str(psas_ts))
-        print("deta_len = " + str(data_len))
-        print("--\n")
+        print("data_len = " + str(data_len))
         block = f.read(2)
-        (checksum, ) = struct.unpack('H', block[0:3]);
+        (checksum, ) = struct.unpack('H', block[0:2])
         print( "checksum = "  + str(checksum))
+        print("tv_time.tv_msec = " + str(tv_time) + "." + str(tv_msec))
         # check for end of data
+        block = f.read(2)
+        (eodquery, ) = struct.unpack('H', block[0:2])
+        if(eodquery == 0xa5a5):
+            print "End of data reached"
+            break;
+        f.seek(-2, 1)    # go back two bytes and continue
+        print("--\n")
 
         block    = f.read(msgsize)
 
@@ -96,7 +116,7 @@ def read_sdlogfile(infile, msgsize):
 if __name__ == "__main__":
     try:
         default_infile  = "LOGSMALL.bin"
-        default_msgsize = 166
+        default_msgsize = 174
 
         #  parse command line
         usage = "usage: %prog --msgsize int --infile string  [-h|--help]"
