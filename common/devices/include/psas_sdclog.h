@@ -59,8 +59,19 @@ extern "C" {
     } __attribute__((packed));
     typedef struct Message_head Message_head;
 
+    /*! RTCLogtime is not psas_timespec. 
+     *      psas_timespec is time since FC reboot 
+     *      RTCLogtime    is the RTC on the STM32, running on a backup battery.
+     */
+    struct RTCLogtime {
+      time_t   tv_time;
+      uint32_t tv_msec;
+    } __attribute__((packed));
+    typedef struct RTCLogtime RTCLogtime;
+
     struct GENERIC_message {
         Message_head         mh;                           // 16 bytes
+        RTCLogtime           logtime;                      // 12 bytes
         uint8_t              data[SDC_MAX_PAYLOAD_BYTES];  // 150 bytes
     } __attribute__((packed));
     typedef struct GENERIC_message GENERIC_message;

@@ -63,6 +63,10 @@ msg_t sdlog_thread(void *p) {
 
     chRegSetThreadName("sdlog_thread");
 
+#ifdef DEBUG_SDLOGEXP
+    chThdSleepMilliseconds(1000);
+#endif
+
     SDLOGEXPDBG("Start sdlog thread\r\n");
 
     sdc_reset_fp_index();
@@ -80,6 +84,7 @@ msg_t sdlog_thread(void *p) {
         SDLOGEXPDBG("%s: DATA size is too large\r\n");
         return (SDC_ASSERT_ERROR);
     }
+
     while(1) {
         uint32_t            bw;
         int                 rc;
@@ -130,11 +135,10 @@ msg_t sdlog_thread(void *p) {
             rc = psas_rtc_get_unix_time( &RTCD1, &timenow) ;
             if (rc == -1) {
                 SDLOGEXPDBG( "%s: psas_rtc time read errors: %d\r\n",__func__, rc);
-                /*continue;*/
             }
-            SDLOGEXPDBG("msec: %d\r\n", timenow.tv_msec);
+            log_data.logtime.tv_time = timenow.tv_time;
+            log_data.logtime.tv_msec = timenow.tv_msec;
             psas_rtc_to_psas_ts(&log_data.mh.ts, &timenow);
-            //SDLOGEXPDBG( "(%u,%u,%u,%u,%u,%u)\r\n", log_data.mh.ts.PSAS_ns[0], log_data.mh.ts.PSAS_ns[1] , log_data.mh.ts.PSAS_ns[2], log_data.mh.ts.PSAS_ns[3], log_data.mh.ts.PSAS_ns[4], log_data.mh.ts.PSAS_ns[5]);
 
             memcpy(&log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
 

@@ -32,10 +32,11 @@ extern "C" {
         time_t  fc_boot_time_mark;
     } psas_rtc_state;
 
-    typedef struct psas_timespec {
+    struct psas_timespec {
         // this array contains a 48-bit number, byte-by-byte, in LSB order
         uint8_t ns[PSAS_RTC_NS_BYTES];
-    } psas_timespec;
+    } __attribute__((packed));
+    typedef struct psas_timespec psas_timespec;
 
     extern  psas_rtc_state     psas_rtc_s;
     extern  bool               fs_ready;

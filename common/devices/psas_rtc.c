@@ -312,6 +312,7 @@ int psas_rtc_get_unix_time( RTCDriver *rtcp, RTCTime *timespec) {
     RTCTime   psas_time;
 
     psas_rtc_lld_get_time(rtcp, &psas_time);
+    timespec->tv_msec = psas_time.tv_msec;
 
     unix_time = psas_rtc_dr_tr_to_unixtime(&psas_time);
 
@@ -319,9 +320,7 @@ int psas_rtc_get_unix_time( RTCDriver *rtcp, RTCTime *timespec) {
         return PSAS_RTC_INCORRECT_TIME_ERROR;
     }
 
-    RTCDBG("unix_time:\t%lu\r\n", unix_time);
     timespec->tv_time = unix_time;
-    timespec->tv_msec = psas_time.tv_msec;
 
     return 0;
 }
