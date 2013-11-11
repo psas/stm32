@@ -24,7 +24,7 @@
 */
 
  /* \brief UDP Server wrapper thread
- * @addtogroup dataudp
+ * @addtogroup dataudp-mpu
  * @{
  */
 
@@ -42,16 +42,54 @@
 
 #define PSAS_IP_BROADCAST                    ((uint32_t)0xffffffffUL)
 
-#define DATA_UDP_MSG_SIZE                    50
+#define DATA_UDP_MSG_SIZE                    128
+
+#if !defined(DEBUG_SENSOR_UDP) || defined(__DOXYGEN__)
+#define 	DEBUG_SENSOR_UDP                   1
+#endif
+/*! \typedef mpu9150 MAC Connection info
+ *
+ */
+typedef struct mpu9150_MAC_info {
+	struct     netconn    *conn ;
+	struct     netbuf     *buf ;
+	char                   msg[DATA_UDP_MSG_SIZE] ;
+} MPU9150_MAC_info;
+
+
+/*! \typedef adis16405 MAC Connection info
+ *
+ */
+typedef struct adis16405_MAC_info {
+	struct     netconn    *conn ;
+	struct     netbuf     *buf ;
+	char                   msg[DATA_UDP_MSG_SIZE] ;
+} ADIS16405_MAC_info;
+
+/*! \typedef mpl3115a2 MAC Connection info
+ *
+ */
+typedef struct mpl3115a2_MAC_info {
+    struct     netconn    *conn ;
+    struct     netbuf     *buf ;
+    char                   msg[DATA_UDP_MSG_SIZE] ;
+} MPL3115A2_MAC_info;
 
 extern WORKING_AREA(wa_data_udp_send_thread,    DATA_UDP_SEND_THREAD_STACK_SIZE);
 extern WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
 
+extern EventSource                           mpu9150_data_event;
+
+extern EventSource                           adis16405_data_event;
+extern EventSource                           fc_req_reset_event;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+  void data_udp_init(void) ;
   msg_t data_udp_send_thread(void *p);
   msg_t data_udp_receive_thread(void *p);
+
 
 #ifdef __cplusplus
 }

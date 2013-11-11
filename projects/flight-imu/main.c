@@ -1,12 +1,11 @@
 /*! \file main.c
  *
- * This is specific to the Olimex stm32-e407 board.
+ * This is specific to the Olimex stm32-e407 board modified for flight with IMU sensors.
  *
- * Test writing data to the sd card and develop the psas_sdlog interface
  */
 
 /*!
- * \defgroup mainapp FATFS experiments
+ * \defgroup mainapp flight-imu Flight Application IMU
  * @{
  */
 
@@ -34,6 +33,12 @@
 
 #include "board.h"
 
+#include "MPU9150.h"
+#include "ADIS16405.h"
+
+#include "MPL3115A2.h"
+#include "sensor_mpl.h"
+
 #include "device_net.h"
 #include "fc_net.h"
 
@@ -43,13 +48,13 @@
 
 #include "main.h"
 
+static const int    flight_imu_watchdog_ms = 250;
+
 static const ShellCommand commands[] = {
-    {"sdct",    cmd_sdct},
+    {"tree",    cmd_tree},
+    {"date",    cmd_date},
     {"mem",     cmd_mem},
     {"threads", cmd_threads},
-    {"date",    cmd_date},
-    {"phy",     cmd_phy},
-    {"tree",    cmd_tree},
     {NULL,      NULL}
 };
 
@@ -57,6 +62,17 @@ static const ShellConfig shell_cfg1 = {
     (BaseSequentialStream *)&SDU_PSAS,
     commands
 };
+
+/*! configure the i2c module on stm32
+ *
+ */
+const I2CConfig IMU_I2C_Config = {
+		OPMODE_I2C,
+		400000,                // i2c clock speed. Test at 400000 when r=4.7k
+		FAST_DUTY_CYCLE_2,
+		// STD_DUTY_CYCLE,
+};
+
 
 static WORKING_AREA(waThread_blinker, 64);
 /*! \brief Green LED blinker thread
@@ -80,19 +96,19 @@ static msg_t Thread_indwatchdog(void *arg) {
     chRegSetThreadName("iwatchdog");
     while (TRUE) {
         iwdg_lld_reload();
-        chThdSleepMilliseconds(250);
+        chThdSleepMilliseconds(flight_imu_watchdog_ms);
     }
     return -1;
 }
 
+
 int main(void) {
     static Thread            *shelltp       = NULL;
     static const evhandler_t evhndl_main[]  = {
-        extdetail_WKUP_button_handler,
         sdc_insert_handler,
         sdc_remove_handler
     };
-    struct EventListener     el0, el1, el2;
+    struct EventListener     el0, el1;
 
     //struct lwipthread_opts   ip_opts;
 
@@ -109,10 +125,6 @@ int main(void) {
     psas_rtc_lld_init();
 
     psas_rtc_set_fc_boot_mark(&RTCD1); 
-
-    extdetail_init();
-
-    palSetPad(GPIOC, GPIOC_LED);
 
     /*!
      * GPIO Pins for generating pulses at data input detect and data output send.
@@ -159,6 +171,9 @@ int main(void) {
 
     chThdSleepMilliseconds(300);
 
+    mpl3115a2_start(&I2CD2);
+	i2cStart(mpu9150_driver.i2c_instance, &IMU_I2C_Config);
+
     /*! Activates the EXT driver 1. */
     extStart(&EXTD1, &extcfg);
 
@@ -182,11 +197,10 @@ int main(void) {
      *    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
      */
 
-    chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
+    //chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
 
-    chEvtRegister(&extdetail_wkup_event, &el0, 0);
-    chEvtRegister(&sdc_inserted_event,   &el1, 1);
-    chEvtRegister(&sdc_removed_event,    &el2, 2);
+    chEvtRegister(&sdc_inserted_event,   &el0, 0);
+    chEvtRegister(&sdc_removed_event,    &el1, 1);
 
     // It is possible the card is already inserted. Check now by calling insert handler directly.
     sdc_insert_handler(0);

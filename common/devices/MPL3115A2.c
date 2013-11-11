@@ -16,6 +16,7 @@
 
 MPL3115A2_Driver           mpl3115a2_driver;
 EventSource                mpl3115a2_int_event;
+EventSource                mpl3115a2_data_event;
 MPL3115A2_read_data        mpl3115a2_current_read;
 
 const       systime_t      mpl3115a2_i2c_timeout        = MS2ST(400);

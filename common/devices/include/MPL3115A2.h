@@ -159,7 +159,9 @@ typedef struct {
 extern const I2CConfig                 mpl3115a2_config;
 extern const mpl3115a2_connect         mpl3115a2_connections ;
 
+extern       EventSource               mpl3115a2_data_event;
 extern       EventSource               mpl3115a2_int_event;
+
 extern       MPL3115A2_Driver          mpl3115a2_driver;
 extern       MPL3115A2_read_data       mpl3115a2_current_read;
 

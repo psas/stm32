@@ -16,13 +16,15 @@
 extern "C" {
 #endif
 
-extern           EventSource     extdetail_wkup_event;
 
 extern const     EXTConfig       extcfg;
 
-void extdetail_WKUP_button_handler(eventid_t id) ;
 void extdetail_init(void) ;
 void extdetail_wkup_btn(EXTDriver *extp, expchannel_t channel) ;
+void extdetail_adis_dio1(EXTDriver *extp, expchannel_t channel) ;
+void extdetail_mpu9150_int(EXTDriver *extp, expchannel_t channel) ;
+void extdetail_mpl3115a2_int_1(EXTDriver *extp, expchannel_t channel) ;
+
 
 #ifdef __cplusplus
 }

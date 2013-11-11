@@ -11,16 +11,16 @@
 #include "hal.h"
 #include "chprintf.h"
 
+#include "ADIS16405.h"
+#include "MPL3115A2.h"
+#include "MPU9150.h"
 #include "usbdetail.h"
 #include "extdetail.h"
-
-EventSource     extdetail_wkup_event;
 
 /*! \sa HAL_USE_EXT in hal_conf.h
  */
 const EXTConfig extcfg = {
 		{
-				{EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOA, extdetail_wkup_btn},   // WKUP Button PA0
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
@@ -30,13 +30,14 @@ const EXTConfig extcfg = {
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_DISABLED, NULL},
+				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD, extdetail_adis_dio1},         // D9
+				{EXT_CH_MODE_DISABLED, NULL}, // 10
+				{EXT_CH_MODE_DISABLED, NULL}, // 11
+				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOF, extdetail_mpl3115a2_int_1},   // F12
+				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOF, extdetail_mpu9150_int},       // F13
+				{EXT_CH_MODE_DISABLED, NULL}, // 14 R PF3 G PF2 B PF14
+				{EXT_CH_MODE_DISABLED, NULL}, // 15
+				{EXT_CH_MODE_DISABLED, NULL}, //
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
@@ -47,48 +48,55 @@ const EXTConfig extcfg = {
 };
 
 /*!
- * Initialize event for wakup button on olimex board.
+ * External interrupt from ADIS
+ *
+ * @param extp
+ * @param channel
  */
-void extdetail_init() {
-	chEvtInit(&extdetail_wkup_event);
+void extdetail_adis_dio1(EXTDriver *extp, expchannel_t channel) {
+	(void)extp;
+	(void)channel;
+//	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
+//	chprintf(chp, "\r\n***\t ADIS dio1 ***\r\n");
+	chSysLockFromIsr();
+	chEvtBroadcastI(&adis_dio1_event);
+	chSysUnlockFromIsr();
 }
 
-static void green_led_off(void *arg) {
-	(void)arg;
-	palSetPad(GPIOC, GPIOC_LED);
-}
 
 /*!
- * WKUP button handler
+ * External interrupt from MPU9150
  *
- * Used for debugging
+ * @param extp
+ * @param channel
  */
-void extdetail_WKUP_button_handler(eventid_t id) {
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-	chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
-}
-
-/*! Triggered when the WKUP button is pressed or released. The LED is set to ON.
- *
- * Challenge: Add de-bouncing
- */
-void extdetail_wkup_btn(EXTDriver *extp, expchannel_t channel) {
-	static VirtualTimer vt4;
-
+void extdetail_mpu9150_int(EXTDriver *extp, expchannel_t channel) {
 	(void)extp;
 	(void)channel;
 
-	palClearPad(GPIOC, GPIOC_LED);
 	chSysLockFromIsr();
-	chEvtBroadcastI(&extdetail_wkup_event);
-
-	if (chVTIsArmedI(&vt4))
-		chVTResetI(&vt4);
-
-	/* LED4 set to OFF after 500mS.*/
-	chVTSetI(&vt4, MS2ST(500), green_led_off, NULL);
+	chEvtBroadcastI(&mpu9150_int_event);
 	chSysUnlockFromIsr();
 }
+
+
+
+/*!
+ * External interrupt from MPL3115A2 INT_1
+ *
+ * @param extp
+ * @param channel
+ */
+void extdetail_mpl3115a2_int_1(EXTDriver *extp, expchannel_t channel) {
+    (void)extp;
+    (void)channel;
+
+    chSysLockFromIsr();
+    chEvtBroadcastI(&mpl3115a2_int_event);
+    chSysUnlockFromIsr();
+}
+
+
 
 //! @}
 
