@@ -180,6 +180,7 @@ int main(void) {
     chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
     chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
+    chThdCreateStatic(waThread_mpl_int_1        , sizeof(waThread_mpl_int_1)        , NORMALPRIO    , Thread_mpl_int_1       , NULL);
     /*
      *    static       uint8_t      IMU_macAddress[6]           = IMU_A_MAC_ADDRESS;
      *    struct       ip_addr      ip, gateway, netmask;
