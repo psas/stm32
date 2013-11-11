@@ -95,7 +95,7 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/psas_rtc.c \
        $(PSAS_DEVICES)/psas_sdclog.c \
        $(PSAS_UTIL)/crc_16_reflect.c \
-       ./eventlogger.c \
+       $(PSAS_UTIL)/eventlogger.c \
        ./mpu9150.c \
        main.c
 

@@ -5,13 +5,13 @@
 #include "chprintf.h"
 #include "rtc.h"
 
+#include "eventlogger.h"
 #include "MPU9150.h"
 #include "psas_rtc.h"
 #include "psas_sdclog.h"
 #include "usbdetail.h"
 
 #include "mpu9150.h"
-#include "eventlogger.h"
 
 
 
@@ -128,15 +128,15 @@ int main(void) {
      * I2C2 I/O pins setup
      */
     palSetPadMode( mpu9150_connections.i2c_sda_port
-            , mpu9150_connections.i2c_sda_pad
-            , PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN
-            | PAL_STM32_OSPEED_HIGHEST
-            | PAL_STM32_PUDR_FLOATING
-            );
+                 , mpu9150_connections.i2c_sda_pad
+                 , PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN
+                                         | PAL_STM32_OSPEED_HIGHEST
+                                         | PAL_STM32_PUDR_FLOATING
+                 );
     palSetPadMode( mpu9150_connections.i2c_scl_port
-            , mpu9150_connections.i2c_scl_pad
-            , PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST
-            | PAL_STM32_PUDR_FLOATING
+                 , mpu9150_connections.i2c_scl_pad
+                 , PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST
+                                         | PAL_STM32_PUDR_FLOATING
             );
     palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad);
 
