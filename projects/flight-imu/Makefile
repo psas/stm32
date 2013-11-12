@@ -65,6 +65,7 @@ PROJECT = ch
 
 # Imported source files and paths
 PSAS= ../../common
+CONF= conf
 include $(PSAS)/psas.mk
 BOARDINC = $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407
 BOARDSRC = $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407/board.c
@@ -142,6 +143,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(CHIBIOS)/os/various \
          $(PSAS_NET) \
          $(PSAS_DEVICES)/include \
+         $(CONF) \
          $(PSAS_UTIL)/include
 
 
