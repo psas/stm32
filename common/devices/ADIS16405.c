@@ -31,6 +31,7 @@ EventSource             adis_spi_burst_data_captured;
 EventSource             adis_spi_cb_data_captured;
 EventSource             adis_spi_cb_releasebus;
 
+const char              adisid[(sizeof("ADIS")-1)] = "ADIS";
 
 /*! \brief ADIS SPI Pin connections
  *

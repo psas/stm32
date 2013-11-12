@@ -1,4 +1,3 @@
-
 /*!
  * \file data_udp.h
  */
@@ -78,9 +77,8 @@ typedef struct mpl3115a2_MAC_info {
 extern WORKING_AREA(wa_data_udp_send_thread,    DATA_UDP_SEND_THREAD_STACK_SIZE);
 extern WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
 
-extern EventSource                           mpu9150_data_event;
 
-extern EventSource                           adis16405_data_event;
+//extern EventSource                           adis16405_data_event;
 extern EventSource                           fc_req_reset_event;
 
 #ifdef __cplusplus

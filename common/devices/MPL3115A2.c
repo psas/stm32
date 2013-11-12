@@ -22,6 +22,7 @@ MPL3115A2_read_data        mpl3115a2_current_read;
 const       systime_t      mpl3115a2_i2c_timeout        = MS2ST(400);
 
 const		uint8_t	       mpl3115a2_i2c_slave_addr  	= 0x60;
+const       char           mplid[(sizeof("MPL3")-1)]    = "MPL3";
 
 #if DEBUG_MPL3115A2
 static void log_error(volatile char *s) {

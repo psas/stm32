@@ -288,6 +288,8 @@ typedef struct {
 	uint16_t                 int_pad;
 } mpu9150_connect;
 
+extern       EventSource               mpu9150_data_event;
+
 extern const I2CConfig                 si_i2c_config;
 extern const mpu9150_connect           si_i2c_connections ;
 

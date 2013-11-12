@@ -30,6 +30,7 @@ MPU9150_Driver           mpu9150_driver;
 MPU9150_read_data        mpu9150_current_read;
 
 EventSource              mpu9150_int_event;
+EventSource              mpu9150_data_event;
 
 const       systime_t    mpu9150_i2c_timeout        = MS2ST(400);
 const       uint8_t      mpu9150_i2c_a_g_addr       = 0x68;    // See page 8 , MPU9150 Register Map and Descriptions r4.0

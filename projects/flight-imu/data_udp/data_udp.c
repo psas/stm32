@@ -46,17 +46,17 @@
 #include "usbdetail.h"
 #include "fc_net.h"
 #include "device_net.h"
-#include "data_udp.h"
 
 #include "ADIS16405.h"
 #include "MPU9150.h"
 #include "MPL3115A2.h"
 #include "psas_packet.h"
 
+#include "data_udp.h"
+
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
-EventSource                             mpu9150_data_event;
 EventSource                             fc_req_reset_event;
 
 static        MPU9150_MAC_info          mpu9150_mac_info;

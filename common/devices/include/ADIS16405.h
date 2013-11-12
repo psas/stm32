@@ -200,6 +200,7 @@ typedef struct {
 } adis_connect;
 
 
+
 extern const SPIConfig               adis_spicfg ;
 extern       adis_cache              adis_cache_data;
 
@@ -212,6 +213,8 @@ extern       EventSource             adis_spi_cb_data_captured;
 extern       EventSource             adis_spi_cb_releasebus;
 
 extern       ADIS16405_burst_data    adis16405_burst_data;
+
+extern const char                    adisid[4];
 
 void         adis_init(void);
 void 	     adis_tstall_delay(void);
