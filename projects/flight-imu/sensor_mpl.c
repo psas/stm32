@@ -24,7 +24,7 @@ void mpl_read_handler(eventid_t id) {
     mpl3115a2_read_P_T(mpl3115a2_driver.i2c_instance, &mpl3115a2_current_read);
     mpl3115a2_read_f_status(mpl3115a2_driver.i2c_instance);
 
-    chEvtBroadcast(&mpl3115a2_data_event);   //! \sa data_udp_send_thread
+    chEvtBroadcast(&mpl3115a2_data_event);   //! \sa data_udp_send_thread   \sa sd log thread
 
     /* Set up a one shot which will trigger next interrupt */
     reg =  mpl3115a2_read_ctrl_1(mpl3115a2_driver.i2c_instance);
