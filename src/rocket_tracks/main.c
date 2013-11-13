@@ -67,7 +67,9 @@ uint32_t pwmGetPclk(void);
 
 static const GPTConfig gpt1cfg = {
 	1000000,
-	motordrive
+//	10000000,
+//	motordrive
+	NULL
 };
 
 static const ADCConversionGroup adcgrp1cfg5 = {
@@ -739,7 +741,7 @@ int main(void) {
 
 	// Enable Continuous GPT for 1ms Interval
 	gptStart(&GPTD1, &gpt1cfg);
-	gptStartContinuous(&GPTD1,1000);
+	gptStartContinuous(&GPTD1,10000);
 
 	/*
 	* Shell manager initialization.
@@ -835,16 +837,16 @@ int main(void) {
 	*/
 	chEvtRegister(&wkup_event, &el0, 0);
 	while (TRUE) {
+		//Cycle motordrive if timer fails
+		if(U32DelayCount++ > 2500){
+			motordrive(&GPTD1);
+		}
 		if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
 		  shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
 		else if (chThdTerminated(shelltp)) {
 		  chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
 		  shelltp = NULL;           /* Triggers spawning of a new shell.        */
 		}
-//		//Cycle motordrive if timer fails
-//		if(U32DelayCount++ > 250){
-//			motordrive(&GPTD1);
-//		}
 	chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
 	}
 }
