@@ -99,6 +99,7 @@ void mpl3115a2_start(I2CDriver* i2c) {
     mpl3115a2_current_read.mpu_pressure    = 0xa5a5a5a5;
     mpl3115a2_current_read.mpu_temperature = 0xa5a5a5a5;
 
+    chEvtInit(&mpl3115a2_data_event);
     chEvtInit(&mpl3115a2_int_event);
 }
 //
@@ -459,6 +460,7 @@ msg_t mpl3115a2_write_ctrl_5(I2CDriver* i2c, mpl3115a2_i2c_data rdata) {
  * @param i2c  Which I2C module on STM to use.
  */
 void mpl3115a2_init(I2CDriver* i2c) {
+
     mpl3115a2_i2c_data          reg;
 
     mpl3115a2_write_ctrl_1(i2c, 0 ) ;  // put into stdby mode in order to write registers.

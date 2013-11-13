@@ -311,10 +311,6 @@ uint16_t mpu9150_a_g_fifo_cnt(I2CDriver* i2cptr) {
 void mpu9150_a_read_x_y_z(I2CDriver* i2cptr, MPU9150_accel_data* d) {
 	msg_t    status     = RDY_OK;
 
-#if DEBUG_MPU9150
-    BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
-#endif
-
 	mpu9150_reg_data rdata = 0;
 
 	status = mpu9150_read_register(i2cptr, A_G_ACCEL_XOUT_H, &rdata);

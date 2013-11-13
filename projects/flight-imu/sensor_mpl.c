@@ -5,10 +5,9 @@
 #include "sensor_mpl.h"
 
 /*!
- * \defgroup sensor_mpl Support for MPL sensorin Flight Application IMU
+ * \defgroup sensor_mpl Support for MPL sensor in Flight Application IMU
  * @{
  */
-
 
 /*! \brief Periodic reads (post interrupt)
  *
@@ -31,8 +30,6 @@ void mpl_read_handler(eventid_t id) {
     reg |= (1<<MPL3115A2_CTL1_OST_BIT);
     mpl3115a2_write_ctrl_1(mpl3115a2_driver.i2c_instance, reg);
 }
-
-
 
 WORKING_AREA(waThread_mpl_int_1, MPL_INT_THREAD_STACKSIZE_BYTES);
 /*! \brief MPL INT1 thread

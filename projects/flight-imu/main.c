@@ -15,40 +15,38 @@
 
 #include "ch.h"
 #include "hal.h"
-
 #include "chprintf.h"
 #include "shell.h"
+
+#include "board.h"
+#include "lwip/ip_addr.h"
+#include "lwipopts.h"
+#include "lwipthread.h"
+#include "ff.h"
+
+#include "MPU9150.h"
+#include "ADIS16405.h"
+#include "MPL3115A2.h"
+
+#include "device_net.h"
+#include "fc_net.h"
 
 #include "iwdg_lld.h"
 #include "usbdetail.h"
 #include "extdetail.h"
 #include "cmddetail.h"
-#include "psas_rtc.h"
 
-#include <lwip/ip_addr.h>
+#include "sensor_mpl.h"
+#include "sensor_mpu.h"
 
 #include "data_udp.h"
-#include "lwipopts.h"
-#include "lwipthread.h"
-
-#include "board.h"
-
-#include "MPU9150.h"
-#include "ADIS16405.h"
-
-#include "MPL3115A2.h"
-#include "sensor_mpl.h"
-
-#include "device_net.h"
-#include "fc_net.h"
-
+#include "psas_rtc.h"
 #include "psas_sdclog.h"
 #include "sdcdetail.h"
-#include "ff.h"
 
 #include "main.h"
 
-static const int    flight_imu_watchdog_ms = 250;
+static const int    FLIGHT_IMU_WATCHDOG_MS = 250;
 
 static const ShellCommand commands[] = {
     {"tree",    cmd_tree},
@@ -67,10 +65,10 @@ static const ShellConfig shell_cfg1 = {
  *
  */
 const I2CConfig IMU_I2C_Config = {
-		OPMODE_I2C,
-		400000,                // i2c clock speed. Test at 400000 when r=4.7k
-		FAST_DUTY_CYCLE_2,
-		// STD_DUTY_CYCLE,
+    OPMODE_I2C,
+    400000,                // i2c clock speed. Test at 400000 when r=4.7k
+    FAST_DUTY_CYCLE_2,
+    // STD_DUTY_CYCLE,
 };
 
 /*! \typedef mpu9150_config
@@ -78,12 +76,12 @@ const I2CConfig IMU_I2C_Config = {
  * Configuration for the MPU IMU connections
  */
 const mpu9150_connect mpu9150_connections = {
-		GPIOF,                // i2c sda port
-		0,                    // i2c_sda_pad
-		GPIOF,                // i2c_scl_port
-		1,                    // i2c scl pad
-		GPIOF,                // interrupt port
-		13,                    // interrupt pad;
+    GPIOF,                // i2c sda port
+    0,                    // i2c_sda_pad
+    GPIOF,                // i2c_scl_port
+    1,                    // i2c scl pad
+    GPIOF,                // interrupt port
+    13,                   // interrupt pad;
 };
 
 static WORKING_AREA(waThread_blinker, 64);
@@ -108,11 +106,10 @@ static msg_t Thread_indwatchdog(void *arg) {
     chRegSetThreadName("iwatchdog");
     while (TRUE) {
         iwdg_lld_reload();
-        chThdSleepMilliseconds(flight_imu_watchdog_ms);
+        chThdSleepMilliseconds(FLIGHT_IMU_WATCHDOG_MS);
     }
     return -1;
 }
-
 
 int main(void) {
     static Thread            *shelltp       = NULL;
@@ -167,7 +164,7 @@ int main(void) {
      */
     sdc_tmr_init(&SDCD1);
 
-    /*!
+    /* 
      * Activates the USB driver and then the USB bus pull-up on D+.
      * Note, a delay is inserted in order to not have to disconnect the cable
      * after a reset.
@@ -183,12 +180,11 @@ int main(void) {
 
     chThdSleepMilliseconds(300);
 
-	//adis_init();
-	//adis_reset();
+    //adis_init();
+    //adis_reset();
 
-
-	//mpu9150_start(&I2CD2);
-    mpl3115a2_start(&I2CD2);
+    mpu9150_start(&I2CD2);
+    //mpl3115a2_start(&I2CD2);
 
     /*
      * I2C2 I/O pins setup
@@ -202,22 +198,22 @@ int main(void) {
     palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
 
     // the mpu and the mpl sensor share the same I2C instance
-	i2cStart(mpu9150_driver.i2c_instance, &IMU_I2C_Config);
+    i2cStart(mpu9150_driver.i2c_instance, &IMU_I2C_Config);
 
-    /*! Activates the EXT driver 1. */
+    /*! Activates the EXT driver */
     extStart(&EXTD1, &extcfg);
 
     chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
     chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
-    chThdCreateStatic(waThread_mpl_int_1        , sizeof(waThread_mpl_int_1)        , NORMALPRIO    , Thread_mpl_int_1       , NULL);
+    //chThdCreateStatic(waThread_mpl_int_1        , sizeof(waThread_mpl_int_1)        , NORMALPRIO    , Thread_mpl_int_1       , NULL);
 
-    //chThdCreateStatic(waThread_mpu9150_int,         sizeof(waThread_mpu9150_int)        , NORMALPRIO    , Thread_mpu9150_int,        NULL);
+    chThdCreateStatic(waThread_mpu9150_int,         sizeof(waThread_mpu9150_int)        , NORMALPRIO    , Thread_mpu9150_int,        NULL);
     //chThdCreateStatic(waThread_mpu9150_reset_req,   sizeof(waThread_mpu9150_reset_req)  , NORMALPRIO    , Thread_mpu9150_reset_req,  NULL);
 
-	/* SPI ADIS */
-	//chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
-	//chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
+    /* SPI ADIS */
+    //chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
+    //chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
 
 
     /*
@@ -237,7 +233,7 @@ int main(void) {
      *    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
      */
 
-    chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
+    //chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
 
     chEvtRegister(&sdc_inserted_event,   &el0, 0);
     chEvtRegister(&sdc_removed_event,    &el1, 1);
@@ -255,6 +251,5 @@ int main(void) {
         chEvtDispatch(evhndl_main, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(50)));
     }
 }
-
 
 //! @}

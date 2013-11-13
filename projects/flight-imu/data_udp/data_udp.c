@@ -77,9 +77,7 @@ static void log_error(volatile char *s) {
  *
  */
 void data_udp_init(void) {
-		chEvtInit(&mpu9150_data_event);
-		chEvtInit(&mpl3115a2_data_event);
-		chEvtInit(&fc_req_reset_event);
+	chEvtInit(&fc_req_reset_event);
 }
 
 /*! \brief event handler for mpu9150 udp data

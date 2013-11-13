@@ -16,9 +16,9 @@
 extern "C" {
 #endif
 
-
 extern WORKING_AREA(waThread_mpl_int_1, MPL_INT_THREAD_STACKSIZE_BYTES);
 
+void mpl_init(void) ;
 void mpl_read_handler(eventid_t id) ;
 msg_t Thread_mpl_int_1(void *arg) ;
 
