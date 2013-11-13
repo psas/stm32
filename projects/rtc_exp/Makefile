@@ -64,17 +64,16 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-PSAS= ../../common
+PSAS     = ../../common
 include $(PSAS)/psas.mk
-CHIBIOS = ../../ChibiOS
-include ./boards/OLIMEX_STM32_E407/board.mk
+BOARDINC = $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407
+BOARDSRC = $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407/board.c
+CHIBIOS  = ../../ChibiOS
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
 include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
-
-
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
@@ -92,6 +91,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
+       $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/various/chrtclib.c \
        $(PSAS_DEVICES)/iwdg_lld.c \
        $(PSAS_DEVICES)/usbdetail.c \
@@ -128,8 +128,9 @@ TCPPSRC =
 # List ASM source files here
 ASMSRC = $(PORTASM)
 
-INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
+INCDIR = $(PORTINC) $(KERNINC) \
+         $(HALINC) $(PLATFORMINC) $(BOARDINC) \
+	 $(LWINC)\
          $(CHIBIOS)/os/various \
 	 $(PSAS_NET) \
          $(PSAS_DEVICES)/include \
@@ -146,7 +147,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
 MCU  = cortex-m4
 
 #TRGT = arm-elf-
-TRGT = arm-psas-eabi-
+#TRGT = arm-psas-eabi-
+TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.
@@ -204,14 +206,13 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DPSAS_RTC_COE_DEBUG=1
+#UDEFS = -DPSAS_RTC_COE_DEBUG=1
 
 
 # Define ASM defines here
 UADEFS =
 
 # List all user directories here
-# UINCDIR = ./boards/OLIMEX_STM32_E407
 UINCDIR = ./shell_cmd \
 	  ./ext_pins
 
