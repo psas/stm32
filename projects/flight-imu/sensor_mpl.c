@@ -4,7 +4,7 @@
 #include "MPL3115A2.h"
 #include "sensor_mpl.h"
 
-#define	    DEBUG_SENSOR_MPL
+//#define	    DEBUG_SENSOR_MPL
 
 #ifdef	DEBUG_SENSOR_MPL
     #include "usbdetail.h"
@@ -49,8 +49,9 @@ void mpl_read_handler(eventid_t id) {
         chprintf(chp, "p: %d\tt: %d\r\n\r\n", mpl3115a2_current_read.mpl_pressure, mpl3115a2_current_read.mpl_temperature );
         count = 0;
     }
-}
 #endif
+
+}
 
 WORKING_AREA(waThread_mpl_int_1, MPL_INT_THREAD_STACKSIZE_BYTES);
 /*! \brief MPL INT1 thread

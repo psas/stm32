@@ -9,7 +9,7 @@
 
 #include "MPU9150.h"
 
-#define DEBUG_SENSOR_MPU
+// #define DEBUG_SENSOR_MPU
 
 #ifdef	DEBUG_SENSOR_MPU
     #include "usbdetail.h"
@@ -94,7 +94,6 @@ msg_t Thread_mpu9150_int(void* arg) {
 	(void) arg;
 	static const evhandler_t evhndl_mpu9150[]       = {
 			mpu9150_int_event_handler
-			//mpu9150_reset_req
 	};
 	struct EventListener     evl_mpu9150;
 

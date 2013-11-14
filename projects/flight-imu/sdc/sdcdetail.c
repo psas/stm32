@@ -40,7 +40,7 @@ BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 #define SDCLOGDBG(...) do{ } while ( false )
 #endif
 
-enum WHICH_SENSOR { MPU9150, MPL3115A2, ADIS16405 };
+enum WHICH_SENSOR { MPU9150=1, MPL3115A2, ADIS16405 };
 
 static const    char*           sdc_log_data_file                = "LOGSMALL.bin";
 static const    unsigned        sdlog_thread_sleeptime_ms        = 1234;
@@ -58,6 +58,15 @@ static struct dfstate {
 
 
 static void sdc_log_data(eventid_t id) {
+    static const  int32_t      mpu_downsample  = 20;
+    static const  int32_t      mpl_downsample  = 20;
+    //static const  int32_t      adis_downsample = 20;
+
+    static  int32_t      mpu_count       = 0; 
+    static  int32_t      mpl_count       = 0; 
+    //static  int32_t      adis_count      = 0; 
+
+    bool                write_log       = false;
     uint32_t            bw;
     int                 rc;
     FRESULT             ret;
@@ -107,48 +116,66 @@ static void sdc_log_data(eventid_t id) {
         datafile_state.log_data.logtime.tv_msec = timenow.tv_msec;
         psas_rtc_to_psas_ts(&datafile_state.log_data.mh.ts, &timenow);
 
+        //SDCLOGDBG("%d ", id);
         switch(id) {
             case MPU9150:
-                strncpy(datafile_state.log_data.mh.ID, mpuid, sizeof(datafile_state.log_data.mh.ID));
-                memcpy(&datafile_state.log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
-                datafile_state.log_data.mh.data_length = sizeof(MPU9150_read_data);
+                if(mpu_count++ > mpu_downsample) {
+                    SDCLOGDBG("u");
+                    mpu_count = 0;
+                }
+                /*
+                 *strncpy(datafile_state.log_data.mh.ID, mpuid, sizeof(datafile_state.log_data.mh.ID));
+                 *memcpy(&datafile_state.log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
+                 *datafile_state.log_data.mh.data_length = sizeof(MPU9150_read_data);
+                 */
                 break;
             case MPL3115A2:
-                strncpy(datafile_state.log_data.mh.ID, mplid, sizeof(datafile_state.log_data.mh.ID));
-                memcpy(&datafile_state.log_data.data, (void*) &mpl3115a2_current_read, sizeof(MPL3115A2_read_data) );
-                datafile_state.log_data.mh.data_length = sizeof(MPL3115A2_read_data);
+                if(mpl_count++ > mpl_downsample) {
+                    strncpy(datafile_state.log_data.mh.ID, mplid, sizeof(datafile_state.log_data.mh.ID));
+                    SDCLOGDBG("l");
+                    //SDCLOGDBG( "%s: mpl data %c%c%c%c\r\n",__func__, datafile_state.log_data.mh.ID[0],datafile_state.log_data.mh.ID[1],datafile_state.log_data.mh.ID[2],datafile_state.log_data.mh.ID[3]);
+                    memcpy(&datafile_state.log_data.data, (void*) &mpl3115a2_current_read, sizeof(MPL3115A2_read_data) );
+                    datafile_state.log_data.mh.data_length = sizeof(MPL3115A2_read_data);
+                    mpl_count = 0;
+                    write_log = true;
+                }            
                 break;
             case ADIS16405:
-                strncpy(datafile_state.log_data.mh.ID, adisid, sizeof(datafile_state.log_data.mh.ID));
-                memcpy(&datafile_state.log_data.data, (void*) &adis16405_burst_data, sizeof(ADIS16405_burst_data) );
-                datafile_state.log_data.mh.data_length = sizeof(ADIS16405_burst_data);
+                /*
+                 *strncpy(datafile_state.log_data.mh.ID, adisid, sizeof(datafile_state.log_data.mh.ID));
+                 *memcpy(&datafile_state.log_data.data, (void*) &adis16405_burst_data, sizeof(ADIS16405_burst_data) );
+                 *datafile_state.log_data.mh.data_length = sizeof(ADIS16405_burst_data);
+                 */
                 break;
             default:
                 break;
         }
 
-        rc = sdc_write_log_message(&datafile_state.DATAFil, &datafile_state.log_data, &bw) ;
-        if(rc != FR_OK ) { ++datafile_state.write_errors; SDCLOGDBG("*"); }
+        if(write_log) {
+            rc = sdc_write_log_message(&datafile_state.DATAFil, &datafile_state.log_data, &bw) ;
+            if(rc != FR_OK ) { ++datafile_state.write_errors; SDCLOGDBG("*"); }
 
-        // calc checksum
-        crc16                   = crc_init();
-        crc16                   = crc_update(crc16, (const unsigned char*) &datafile_state.log_data, sizeof(GENERIC_message));
-        crc16                   = crc_finalize(crc16);
+            // calc checksum
+            crc16                   = crc_init();
+            crc16                   = crc_update(crc16, (const unsigned char*) &datafile_state.log_data, sizeof(GENERIC_message));
+            crc16                   = crc_finalize(crc16);
 
-        rc = sdc_write_checksum(&datafile_state.DATAFil, &crc16, &bw) ;
+            rc = sdc_write_checksum(&datafile_state.DATAFil, &crc16, &bw) ;
 
-        if(rc != FR_OK ) { ++datafile_state.write_errors; SDCLOGDBG("+"); }
+            if(rc != FR_OK ) { ++datafile_state.write_errors; SDCLOGDBG("+"); }
 
 #ifdef DEBUG_SDCLOG
-        if((sdc_fp_index - sdc_fp_index_old) > 100000) {
-            if(datafile_state.write_errors !=0) {
-                SDCLOGDBG("E%d", datafile_state.write_errors);
-            } else {
-                SDCLOGDBG("x");
+            if((sdc_fp_index - sdc_fp_index_old) > 100000) {
+                if(datafile_state.write_errors !=0) {
+                    SDCLOGDBG("E%d", datafile_state.write_errors);
+                } else {
+                    SDCLOGDBG("x");
+                }
+                sdc_fp_index_old = sdc_fp_index;
             }
-            sdc_fp_index_old = sdc_fp_index;
-        }
 #endif
+            write_log = false;
+        }
 
     } else {
         if(datafile_state.sd_log_opened) {
@@ -172,7 +199,7 @@ msg_t sdlog_thread(void *p) {
     static const evhandler_t evhndl_sdclog[]  = {
         sdc_log_data,
         sdc_log_data,
-        sdc_log_data 
+        sdc_log_data
     };
     struct EventListener     el0, el1, el2;
 
@@ -201,8 +228,8 @@ msg_t sdlog_thread(void *p) {
 
     // Assert we will not overflow Payload
     if(  (sizeof(MPU9150_read_data)    > (sizeof(datafile_state.log_data.data)-1)) ||
-            (sizeof(MPL3115A2_read_data)  > (sizeof(datafile_state.log_data.data)-1)) ||  
-            (sizeof(ADIS16405_burst_data) > (sizeof(datafile_state.log_data.data)-1))) {  
+         (sizeof(MPL3115A2_read_data)  > (sizeof(datafile_state.log_data.data)-1)) ||
+         (sizeof(ADIS16405_burst_data) > (sizeof(datafile_state.log_data.data)-1))) {
         SDCLOGDBG("%s: DATA size is too large\r\n");
         return (SDC_ASSERT_ERROR);
     }
