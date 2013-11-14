@@ -9,7 +9,9 @@
 
 #include "MPU9150.h"
 
-#if	DEBUG_MPU9150
+#define DEBUG_SENSOR_MPU
+
+#ifdef	DEBUG_SENSOR_MPU
     #include "usbdetail.h"
     #include "chprintf.h"
 #endif
@@ -71,7 +73,7 @@ static void mpu9150_int_event_handler(eventid_t id) {
 	// clear the interrupt status bits on mpu9150
 	mpu9150_a_g_read_int_status(mpu9150_driver.i2c_instance);
 
-#if	DEBUG_MPU9150
+#ifdef	DEBUG_SENSOR_MPU
 	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
 	static uint16_t     count = 0;
 

@@ -132,8 +132,8 @@ typedef struct mpl3115a2_driver {
  *
  */
 struct MPL3115A2_read_data {
-	mpl3115a2_pressure_data         mpu_pressure;
-	mpl3115a2_temperature_data      mpu_temperature;
+	mpl3115a2_pressure_data         mpl_pressure;
+	mpl3115a2_temperature_data      mpl_temperature;
 } __attribute__((packed)) ;
 typedef struct MPL3115A2_read_data MPL3115A2_read_data;
 
