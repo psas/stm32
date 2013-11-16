@@ -405,7 +405,7 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) {
     unsigned int    bytes_read;
     uint16_t        eod_marker;
 
-    /* step 0: If first line has valid (checksum) data, then seek to end of data , else return -1 */
+    /* step 0: If first line has valid (checksum) data, then seek to end of data , else return  */
     sdc_ret = sdc_check_message(DATAFil, 0) ;
     if(sdc_ret != SDC_OK) { 
         *sdindexbyte = 0;
@@ -415,10 +415,9 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) {
     // check next halfword for eod marker....
     sdc_ret = sdc_f_read(DATAFil, &eod_marker, sizeof(uint16_t), &bytes_read);
     if(sdc_ret != SDC_OK) { return sdc_ret; }
-
     while(eod_marker != sdc_eod.marker) { 
         // reset pointer past next message+checksum
-        sdc_set_fp_index(DATAFil, (DWORD) (sizeof(GENERIC_message) + sizeof(crc_t) + sdc_fp_index)) ;
+        sdc_set_fp_index(DATAFil, (DWORD)(sizeof(GENERIC_message) + sizeof(crc_t) + (sdc_fp_index-2)) ) ;
         sdc_ret = sdc_f_read(DATAFil, &eod_marker, sizeof(uint16_t), &bytes_read);
         if(sdc_ret != SDC_OK) { return sdc_ret; }   // this will capture EOF condition
     } 
