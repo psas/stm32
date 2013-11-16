@@ -73,20 +73,21 @@ static void sdc_log_data(eventid_t id) {
 
     if(fs_ready && !datafile_state.sd_log_opened ) {
         // open an existing log file for writing
-        ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
+        ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_READ | FA_WRITE );
         if(ret) { // try again....
-            SDCLOGDBG("open existing ret: %d\r\n", ret);
-            ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_WRITE );
+            SDCLOGDBG("open existing failed ret: %d\r\n", ret);
+            chThdSleepMilliseconds(500);
+            ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_READ | FA_WRITE );
         }
 
         if (ret) {
-            SDCLOGDBG("failed to open existing %s\r\n",sdc_log_data_file);
+            SDCLOGDBG("failed to open existing %s return %d\r\n",sdc_log_data_file, ret);
             // ok...try creating the file
-            ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
+            ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE );
             if(ret) {
                 // try again
                 SDCLOGDBG("open new file ret: %d\r\n", ret);
-                ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE   );
+                ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_CREATE_ALWAYS | FA_WRITE );
             }
             if (ret) {
                 datafile_state.sd_log_opened = false;
@@ -94,7 +95,15 @@ static void sdc_log_data(eventid_t id) {
                 datafile_state.sd_log_opened = true;
             }
         } else {
+            SDC_ERRORCode  seekret;
             SDCLOGDBG("Opened existing file OK.\r\n");
+            /* Seek to end of data if first line is good data */
+            seekret = sdc_seek_eod(&datafile_state.DATAFil, &sdc_fp_index);
+            if(seekret == SDC_OK) {
+                sdc_set_fp_index(&datafile_state.DATAFil, sdc_fp_index) ;
+            } else {
+                sdc_reset_fp_index();
+            }
             datafile_state.sd_log_opened = true;
             datafile_state.write_errors  = 0;
         }
@@ -121,19 +130,17 @@ static void sdc_log_data(eventid_t id) {
             case MPU9150:
                 if(mpu_count++ > mpu_downsample) {
                     SDCLOGDBG("u");
+                    strncpy(datafile_state.log_data.mh.ID, mpuid, sizeof(datafile_state.log_data.mh.ID));
+                    memcpy(&datafile_state.log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
+                    datafile_state.log_data.mh.data_length = sizeof(MPU9150_read_data);
                     mpu_count = 0;
+                    write_log = true;
                 }
-                /*
-                 *strncpy(datafile_state.log_data.mh.ID, mpuid, sizeof(datafile_state.log_data.mh.ID));
-                 *memcpy(&datafile_state.log_data.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
-                 *datafile_state.log_data.mh.data_length = sizeof(MPU9150_read_data);
-                 */
                 break;
             case MPL3115A2:
                 if(mpl_count++ > mpl_downsample) {
-                    strncpy(datafile_state.log_data.mh.ID, mplid, sizeof(datafile_state.log_data.mh.ID));
                     SDCLOGDBG("l");
-                    //SDCLOGDBG( "%s: mpl data %c%c%c%c\r\n",__func__, datafile_state.log_data.mh.ID[0],datafile_state.log_data.mh.ID[1],datafile_state.log_data.mh.ID[2],datafile_state.log_data.mh.ID[3]);
+                    strncpy(datafile_state.log_data.mh.ID, mplid, sizeof(datafile_state.log_data.mh.ID));
                     memcpy(&datafile_state.log_data.data, (void*) &mpl3115a2_current_read, sizeof(MPL3115A2_read_data) );
                     datafile_state.log_data.mh.data_length = sizeof(MPL3115A2_read_data);
                     mpl_count = 0;
@@ -151,6 +158,7 @@ static void sdc_log_data(eventid_t id) {
                 break;
         }
 
+//        if(false) {
         if(write_log) {
             rc = sdc_write_log_message(&datafile_state.DATAFil, &datafile_state.log_data, &bw) ;
             if(rc != FR_OK ) { ++datafile_state.write_errors; SDCLOGDBG("*"); }

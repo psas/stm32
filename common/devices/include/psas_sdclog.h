@@ -1,6 +1,5 @@
 /*! \file psas_sdclog.h
- *
- */
+ * */
 
 #ifndef PSAS_SDCLOG_H_
 #define PSAS_SDCLOG_H_
@@ -39,6 +38,7 @@ extern "C" {
     // create end of data fiducials...slightly larger than log entry
     typedef struct sdc_eod_marker {
         // GENERIC_message + checksum + eod_marker + eod_marker
+        uint16_t marker_hw;
         uint8_t sdc_eodmarks[166+2+2+2];
     } sdc_eod_marker;
 
@@ -47,7 +47,10 @@ extern "C" {
         SDC_NULL_PARAMETER_ERROR = -1,
         SDC_FSYNC_ERROR          = -2,
         SDC_FWRITE_ERROR         = -3,
-        SDC_ASSERT_ERROR         = -4,
+        SDC_SYNC_ERROR           = -4,
+        SDC_FREAD_ERROR          = -5,
+        SDC_ASSERT_ERROR         = -6,
+        SDC_CHECKSUM_ERROR       = -7,
         SDC_UNKNOWN_ERROR        = -99
     } SDC_ERRORCode;
 
@@ -80,18 +83,25 @@ extern "C" {
         sdc_fp_index = 0;
     }
 
+    static inline DWORD sdc_get_fp_index(void) {
+        return sdc_fp_index;
+    }
+
     void            sdc_insert_handler(eventid_t id) ;
     void            sdc_remove_handler(eventid_t id) ;
     void            sdc_tmr_init(void *p) ;
     void            sdc_set_fp_index(FIL* DATAFil, DWORD ofs) ;
     void            sdc_init_eod (uint8_t marker_byte) ;
 
-    FRESULT         sdc_write_checksum(FIL* DATAFil, const crc_t* d, uint32_t* bw) ;
-    FRESULT         sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t * bw) ;
+    SDC_ERRORCode   sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) ;
+    SDC_ERRORCode   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t * bw) ;
     FRESULT         sdc_scan_files(BaseSequentialStream *chp, char *path) ;
 
+    SDC_ERRORCode sdc_f_write(FIL* fp, void* buff, unsigned int btr,  unsigned int*  bytes_written);
+    SDC_ERRORCode sdc_f_read(FIL* fp, void* buff, unsigned int btr,  unsigned int*  bytes_read) ;
+
     /*! \todo implement sdc_seek_eod function. */
-    void            sdc_seek_eod(FIL* DATAFil, GENERIC_message* d, uint32_t* sdindexbyte) ;
+    int             sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) ;
 
 #ifdef __cplusplus
 }
