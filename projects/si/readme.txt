@@ -1,6 +1,6 @@
+SI - Sensor Integration 
 
 
-This experiment develops the I2C interface for the MPU9150 IMU.
-
-It is developed on an Olimex stm32-e407 board
+This is the flight software for the sensor board, integrating the ADIS, MPU,
+and MPL sensors, and sending the read data to the FC over ethernet.
 
