@@ -1,30 +1,42 @@
 
 
-Mon 30 September 2013 11:36:41 (PDT)
-Currently, this repo is undergoing a reorganization. We have passed
-the initial 'how to get things working' phase and are moving towards a more
-application focused model of development.
-
-
+Fri November 15 2013 
+We are preparing to switch compilers and remove the old compiler binary from the repo. This will
+make it much smaller but since history will be rewritten, all changes need to be committed before
+this happens. 
 
 --------------------
 
 This repo is for firmware, OS, and application code for the STM32F4xx series of microcontrollers used on the PSAS AV3 avionics system.
 
-To initialise the Chibios submodule run:
+To initialize the ChibiOS submodule run:
 
     $ git submodule update --init
 
+If it's been a while since you've updated ChibiOS you'll need to re-sync it as its origin has changed:
+
+    $ git submodule sync
+    $ git submodule update
 
 ### Directories:
 
- - src
-   - projects go here. Each ChibiOS project needs its own board files.
- - openocd
-   - configuration files for openocd
+ - projects
+   - projects go here. 
+ - common
+   - code that tends to be reused in projects. At the top level it has makefiles and
+     is further grouped into
+   - boards
+     - boardfiles for our own custom boards. Most off the shelf board boardfiles
+       can be found in ChibiOS/boards
+   - devices
+     - for peripheral drivers
+   - net
+     - network IPs
+   - util
+     - other utilities 
  - ChibiOS
-   - git submodule pulled from Github development on Chibios
+   - git submodule pulled from our own fork of ChibiOS
  - toolchain
-    - development director for crosscompilers
- - devices
-    - specific device support files
+    - development directory for cross compilers and openocd
+ - notes
+    - general notes that don't have a more specific location

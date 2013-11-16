@@ -1,12 +1,3 @@
-** TARGET **
-
-The demo runs on an Olimex STM32-E407 board.
-
-** Notes **
-
-Some files used by the demo are not part of ChibiOS/RT but are copyright of
-ST Microelectronics and are licensed under a different license.
-Also note that not all the files present in the ST library are distributed
-with ChibiOS/RT, you can find the whole library on the ST web site:
-
-                             http://www.st.com
+This is the flight software for the Roll Control Servo board. It controls a
+servo via commands received over ethernet and also notifies the FC of launch
+detect.

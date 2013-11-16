@@ -1,21 +1,11 @@
 *****************************************************************************
-** ChibiOS/RT HAL - EXT driver demo for STM32F4xx.                         **
+** PSAS Rocketnet Hub serial test                                          **
 *****************************************************************************
 
 ** TARGET **
 
-olimex e407 board
+PSAS Rocketnet Hub
 
 ** PURPOSE **
 
-run the ChibiOS shell through the usart system, not the usb subsystem
-
-
-** Notes **
-
-Some files used by the demo are not part of ChibiOS/RT but are copyright of
-ST Microelectronics and are licensed under a different license.
-Also note that not all the files present in the ST library are distributed
-with ChibiOS/RT, you can find the whole library on the ST web site:
-
-                             http://www.st.com
+Communicate with the STM32 on the RocketNet Hub via the exposed serial port.
