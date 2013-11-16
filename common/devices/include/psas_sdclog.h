@@ -38,7 +38,7 @@ extern "C" {
     // create end of data fiducials...slightly larger than log entry
     typedef struct sdc_eod_marker {
         // GENERIC_message + checksum + eod_marker + eod_marker
-        uint16_t marker_hw;
+        uint16_t marker;
         uint8_t sdc_eodmarks[166+2+2+2];
     } sdc_eod_marker;
 
@@ -51,6 +51,7 @@ extern "C" {
         SDC_FREAD_ERROR          = -5,
         SDC_ASSERT_ERROR         = -6,
         SDC_CHECKSUM_ERROR       = -7,
+        SDC_FSEEK_ERROR          = -8,
         SDC_UNKNOWN_ERROR        = -99
     } SDC_ERRORCode;
 
@@ -90,7 +91,7 @@ extern "C" {
     void            sdc_insert_handler(eventid_t id) ;
     void            sdc_remove_handler(eventid_t id) ;
     void            sdc_tmr_init(void *p) ;
-    void            sdc_set_fp_index(FIL* DATAFil, DWORD ofs) ;
+    SDC_ERRORCode   sdc_set_fp_index(FIL* DATAFil, DWORD ofs) ;
     void            sdc_init_eod (uint8_t marker_byte) ;
 
     SDC_ERRORCode   sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) ;
@@ -100,8 +101,7 @@ extern "C" {
     SDC_ERRORCode sdc_f_write(FIL* fp, void* buff, unsigned int btr,  unsigned int*  bytes_written);
     SDC_ERRORCode sdc_f_read(FIL* fp, void* buff, unsigned int btr,  unsigned int*  bytes_read) ;
 
-    /*! \todo implement sdc_seek_eod function. */
-    int             sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) ;
+    SDC_ERRORCode sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) ;
 
 #ifdef __cplusplus
 }

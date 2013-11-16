@@ -106,7 +106,7 @@ static void sdc_tmrfunc(void *p) {
 void sdc_init_eod (uint8_t marker_byte) {
     unsigned int i;
 
-    sdc_eod.marker_hw = (marker_byte << 8) | marker_byte;
+    sdc_eod.marker = (marker_byte << 8) | marker_byte;
     for(i=0; i<sizeof(sdc_eod_marker) ; ++i) {
         sdc_eod.sdc_eodmarks[i] = marker_byte ;
     }
@@ -234,9 +234,18 @@ FRESULT sdc_scan_files(BaseSequentialStream *chp, char *path) {
  *  sdcp_fp_index tracks what byte we are pointing to
  *  from start of file (byte0)
  */
-void sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
-    f_lseek(DATAFil, ofs);
+SDC_ERRORCode sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
+    FRESULT f_ret;
+    f_ret = f_lseek(DATAFil, ofs);
+    if(f_ret != FR_OK) { 
+        f_ret = f_lseek(DATAFil, ofs);
+        if(f_ret != FR_OK) { 
+            SDCDEBUG("f_lseek error: %d\r\n", f_ret) ;
+            return SDC_FSEEK_ERROR;
+        }
+    }
     sdc_fp_index      = ofs;
+    return SDC_OK;
 }
 
 /*! \brief Store a checksum and end of data fiducial marks
@@ -268,13 +277,11 @@ SDC_ERRORCode sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) {
     }
     sdc_rc = sdc_f_write(DATAFil, (void *)(crcd), sizeof(crc_t), (unsigned int*) bw);
     if (sdc_rc)  {
-        SDCDEBUG("f_write ckdata error: %d\r\n", sdc_rc) ;
         return sdc_rc;
     }
 
     sdc_rc = sdc_f_write(DATAFil, (void *)(&sdc_eod), sizeof(sdc_eod_marker), (unsigned int*) bw);
     if (sdc_rc)  {
-        SDCDEBUG("f_write eod error: %d\r\n", sdc_rc) ;
         return sdc_rc;
     }
 
@@ -295,7 +302,6 @@ SDC_ERRORCode sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t* 
 
     rc = sdc_f_write(DATAFil, (void *)(d), sizeof(GENERIC_message), (unsigned int*) bw);
     if (rc)  {
-        SDCDEBUG("f_write log error:\r\n") ;
         return SDC_FWRITE_ERROR;
     }
     return SDC_OK;
@@ -359,46 +365,21 @@ SDC_ERRORCode sdc_f_read(FIL* fp, void* buff, unsigned int btr,  unsigned int*  
     return SDC_OK;
 }
 
-/*!
- * Instead of restarting from byte0 in opened existing data file, continue
- * from last successful data write.
- *
- * Track from reset due to power cycle or watchdog for instance.
- *
- */
-int sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) {
-    int             ret                 = 0;
-    FRESULT         f_ret;
+SDC_ERRORCode sdc_check_message(FIL* df, DWORD ofs) {
+    SDC_ERRORCode   sdc_ret;
+
     crc_t           crcd, crcd_calc;
-
-    uint16_t        eod_marker;
-    unsigned int    bytes_read;
     uint8_t         rd[sizeof(GENERIC_message)];
+    unsigned int    bytes_read;
 
-    //SDCDEBUG("%s: Not implemented yet.\r\n", __func__);
-    //return -2;
+    sdc_ret = sdc_set_fp_index(df, ofs) ;
+    if(sdc_ret != SDC_OK) { return sdc_ret; }
 
-    /* step 0: If first line has valid (checksum) data, then seek to end of data , else return -1 */
+    sdc_ret  = sdc_f_read(df, rd, sizeof(GENERIC_message), &bytes_read);
+    if(sdc_ret != SDC_OK) { return sdc_ret; }
 
-    f_ret  = f_read(DATAFil, rd, sizeof(GENERIC_message), &bytes_read);
-
-    if(f_ret != FR_OK) {
-        SDCDEBUG("%s: read first message fail: %d\r\n", __func__, f_ret );
-        f_ret  = f_read(DATAFil, rd, sizeof(GENERIC_message), &bytes_read);
-        if(f_ret != FR_OK) {
-            SDCDEBUG("%s: 2 read first message fail: %d\r\n", __func__, f_ret );
-        }
-    }
-
-    f_ret = f_read(DATAFil, &crcd, sizeof(crc_t), &bytes_read);
-
-    if(f_ret != FR_OK) {
-        SDCDEBUG("%s: read checksum: %d\r\n", __func__, f_ret );
-        f_ret = f_read(DATAFil, &crcd, sizeof(crc_t), &bytes_read);
-        if(f_ret != FR_OK) {
-            SDCDEBUG("%s: 2 read checksum: %d\r\n", __func__, f_ret );
-        }
-    }
+    sdc_ret = sdc_f_read(df, &crcd, sizeof(crc_t), &bytes_read);
+    if(sdc_ret != SDC_OK) { return sdc_ret; }
 
     // calc checksum
     crcd_calc                   = crc_init();
@@ -406,35 +387,56 @@ int sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) {
     crcd_calc                   = crc_finalize(crcd_calc);
     if(crcd != crcd_calc) {
         SDCDEBUG("%s: No valid checksum in first data. File: %u\tvs.\tCalc: %u\r\n", __func__, crcd, crcd_calc);
-        *sdindexbyte = 0;
         return SDC_CHECKSUM_ERROR;
+    }
+    return SDC_OK;
+}
+
+/*!
+ * Instead of restarting from byte0 in opened existing data file, continue
+ * from last successful data write.
+ *
+ * Track from reset due to power cycle or watchdog for instance.
+ *
+ */
+SDC_ERRORCode sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) {
+    SDC_ERRORCode   sdc_ret;
+
+    unsigned int    bytes_read;
+    uint16_t        eod_marker;
+
+    /* step 0: If first line has valid (checksum) data, then seek to end of data , else return -1 */
+    sdc_ret = sdc_check_message(DATAFil, 0) ;
+    if(sdc_ret != SDC_OK) { 
+        *sdindexbyte = 0;
+        return sdc_ret; 
     }
 
     // check next halfword for eod marker....
-    /*
-     *f_ret = f_read(DATAFil, &eod_marker, sizeof(uint16_t), &bytes_read);
-     *if(f_ret != FR_OK) { return SDC_FREAD_ERROR; }
-     */
-/*
- *    while(eod_marker != sdc_eod_marker.marker_hw) { 
- *        // reset pointer past message+checksum
- *
- *
- *
- *    } 
- *
- *    // looks like there is a current data file there.
- *    while (!eof)....
- *        if so return position and ok
- *        // else keep skipping by generic_messagesize + 2 and looking for eod...
- *    *sdindexbyte = 0;
- *
- */
+    sdc_ret = sdc_f_read(DATAFil, &eod_marker, sizeof(uint16_t), &bytes_read);
+    if(sdc_ret != SDC_OK) { return sdc_ret; }
+
+    while(eod_marker != sdc_eod.marker) { 
+        // reset pointer past next message+checksum
+        sdc_set_fp_index(DATAFil, (DWORD) (sizeof(GENERIC_message) + sizeof(crc_t) + sdc_fp_index)) ;
+        sdc_ret = sdc_f_read(DATAFil, &eod_marker, sizeof(uint16_t), &bytes_read);
+        if(sdc_ret != SDC_OK) { return sdc_ret; }   // this will capture EOF condition
+    } 
+    // Found eod marker back up to end of previous good checksum message
+    //sdc_set_fp_index(DATAFil, (DWORD) (sizeof(GENERIC_message) + sizeof(crc_t) + sdc_fp_index)) ;
+
+
+    // looks like there is a current data file there.
+    //while (!eof)....
+     //   if so return position and ok
+        // else keep skipping by generic_messagesize + 2 and looking for eod...
+    //*sdindexbyte = 0;
+
     /*  Confirm end of data by finding last data with successful checksum */
 
     /* phase 2: Use eeprom (not avail on e407, wait for new PSAS GFE) as scratch pad to end of data. */
 
-    return ret;
+    return SDC_OK;
 }
 
 
