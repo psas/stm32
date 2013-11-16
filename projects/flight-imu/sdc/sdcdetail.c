@@ -48,6 +48,7 @@ static const    unsigned        sdlog_thread_sleeptime_ms        = 1234;
 static struct dfstate {
     uint32_t            log_sequence;
     uint32_t            write_errors;
+    DWORD               fp_index;
 
     GENERIC_message     log_data;
 
@@ -98,10 +99,11 @@ static void sdc_log_data(eventid_t id) {
             SDC_ERRORCode  seekret;
             SDCLOGDBG("Opened existing file OK.\r\n");
             /* Seek to end of data if first line is good data */
-            seekret = sdc_seek_eod(&datafile_state.DATAFil, &sdc_fp_index);
+            seekret = sdc_seek_eod(&datafile_state.DATAFil);
             if(seekret == SDC_OK) {
-                sdc_set_fp_index(&datafile_state.DATAFil, sdc_fp_index) ;
+                SDCLOGDBG("found eod marker. %lu\r\n", sdc_fp_index);
             } else {
+                SDCLOGDBG("no eod marker. %lu\r\n", sdc_fp_index);
                 sdc_reset_fp_index();
             }
             datafile_state.sd_log_opened = true;

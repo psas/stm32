@@ -399,7 +399,7 @@ SDC_ERRORCode sdc_check_message(FIL* df, DWORD ofs) {
  * Track from reset due to power cycle or watchdog for instance.
  *
  */
-SDC_ERRORCode sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) {
+SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
     SDC_ERRORCode   sdc_ret;
 
     unsigned int    bytes_read;
@@ -408,7 +408,6 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) {
     /* step 0: If first line has valid (checksum) data, then seek to end of data , else return  */
     sdc_ret = sdc_check_message(DATAFil, 0) ;
     if(sdc_ret != SDC_OK) { 
-        *sdindexbyte = 0;
         return sdc_ret; 
     }
 
@@ -422,7 +421,7 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) {
         if(sdc_ret != SDC_OK) { return sdc_ret; }   // this will capture EOF condition
     } 
     // Found eod marker back up to end of previous good checksum message
-    //sdc_set_fp_index(DATAFil, (DWORD) (sizeof(GENERIC_message) + sizeof(crc_t) + sdc_fp_index)) ;
+    sdc_set_fp_index(DATAFil, (DWORD) (sdc_fp_index-2)) ;
 
 
     // looks like there is a current data file there.

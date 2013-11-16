@@ -101,7 +101,7 @@ extern "C" {
     SDC_ERRORCode sdc_f_write(FIL* fp, void* buff, unsigned int btr,  unsigned int*  bytes_written);
     SDC_ERRORCode sdc_f_read(FIL* fp, void* buff, unsigned int btr,  unsigned int*  bytes_read) ;
 
-    SDC_ERRORCode sdc_seek_eod(FIL* DATAFil, uint32_t* sdindexbyte) ;
+    SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) ;
 
 #ifdef __cplusplus
 }
