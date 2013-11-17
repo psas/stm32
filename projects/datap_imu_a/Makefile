@@ -82,6 +82,7 @@ LDSCRIPT= $(PORTLD)/STM32F407xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
+# syscalls.c needed for _sbrk_r call
 CSRC = $(PORTSRC) \
        $(KERNSRC) \
        $(HALSRC) \
@@ -91,7 +92,7 @@ CSRC = $(PORTSRC) \
        $(FATFSSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
-       $(CHIBIOS)/os/various/syscalls.c \   # needed for _sbrk_r call
+       $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_DEVICES)/iwdg_lld.c \
        $(PSAS_DEVICES)/usbdetail.c \
