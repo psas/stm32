@@ -38,7 +38,7 @@
  * given the ~5x speedup this approach has over the previous approach calling
  * f_sync 3 times per message....
  */
-#define         SDC_F_SYNC_COUNT                     ((int8_t) 20)
+#define         SDC_F_SYNC_COUNT                     ((int8_t) 40)
 
 #define         DEBUG_SDC
 
@@ -106,8 +106,8 @@ static void sdc_tmrfunc(void *p) {
 void sdc_init_eod (uint8_t marker_byte) {
     unsigned int i;
 
-    sdc_eod.marker = (marker_byte << 8) | marker_byte;
-    for(i=0; i<sizeof(sdc_eod_marker) ; ++i) {
+    sdc_eod.marker = (marker_byte << 8) | marker_byte ;
+    for(i=0; i<SDC_MARKER_BYTES ; ++i) {
         sdc_eod.sdc_eodmarks[i] = marker_byte ;
     }
 }
@@ -237,9 +237,9 @@ FRESULT sdc_scan_files(BaseSequentialStream *chp, char *path) {
 SDC_ERRORCode sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
     FRESULT f_ret;
     f_ret = f_lseek(DATAFil, ofs);
-    if(f_ret != FR_OK) { 
+    if(f_ret != FR_OK) {
         f_ret = f_lseek(DATAFil, ofs);
-        if(f_ret != FR_OK) { 
+        if(f_ret != FR_OK) {
             SDCDEBUG("f_lseek error: %d\r\n", f_ret) ;
             return SDC_FSEEK_ERROR;
         }
@@ -270,23 +270,28 @@ SDC_ERRORCode sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
 
  */
 SDC_ERRORCode sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) {
-    SDC_ERRORCode      sdc_rc;
+    SDC_ERRORCode      sdc_ret;
 
     if((DATAFil == NULL) || (crcd==NULL) || (bw == NULL)) {
         return SDC_NULL_PARAMETER_ERROR;
     }
-    sdc_rc = sdc_f_write(DATAFil, (void *)(crcd), sizeof(crc_t), (unsigned int*) bw);
-    if (sdc_rc)  {
-        return sdc_rc;
+    sdc_ret = sdc_f_write(DATAFil, (void *)(crcd), sizeof(crc_t), (unsigned int*) bw);
+    if (sdc_ret)  {
+        return sdc_ret;
     }
 
-    sdc_rc = sdc_f_write(DATAFil, (void *)(&sdc_eod), sizeof(sdc_eod_marker), (unsigned int*) bw);
-    if (sdc_rc)  {
-        return sdc_rc;
+    sdc_ret = sdc_f_write(DATAFil, (void *)(&sdc_eod.sdc_eodmarks), sizeof(sdc_eod_marker), (unsigned int*) bw);
+    if (sdc_ret)  {
+        return sdc_ret;
     }
 
+     SDCDEBUG("%s:\t%d\tgm:\t%d\r\n",__func__,  sizeof(sdc_eod_marker), sizeof(GENERIC_message)) ;
     // be kind, rewind.
-    sdc_set_fp_index(DATAFil, sdc_fp_index) ;
+    sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index - sizeof(sdc_eod_marker)) ;
+    if (sdc_ret)  {
+        return sdc_ret;
+    }
+
 
    return FR_OK;
 }
@@ -368,6 +373,7 @@ SDC_ERRORCode sdc_f_read(FIL* fp, void* buff, unsigned int btr,  unsigned int*  
 SDC_ERRORCode sdc_check_message(FIL* df, DWORD ofs) {
     SDC_ERRORCode   sdc_ret;
 
+    DWORD           saved_ofs = sdc_fp_index;
     crc_t           crcd, crcd_calc;
     uint8_t         rd[sizeof(GENERIC_message)];
     unsigned int    bytes_read;
@@ -386,9 +392,16 @@ SDC_ERRORCode sdc_check_message(FIL* df, DWORD ofs) {
     crcd_calc                   = crc_update(crcd_calc, (const unsigned char*) &rd, sizeof(GENERIC_message));
     crcd_calc                   = crc_finalize(crcd_calc);
     if(crcd != crcd_calc) {
-        SDCDEBUG("%s: No valid checksum in first data. File: %u\tvs.\tCalc: %u\r\n", __func__, crcd, crcd_calc);
+        SDCDEBUG("%s: No valid checksum in data. Data: %u\tvs.\tCalc: %u\r\n", __func__, crcd, crcd_calc);
+
+        sdc_ret = sdc_set_fp_index(df, saved_ofs) ;
+        if(sdc_ret != SDC_OK) { return sdc_ret; }
+
         return SDC_CHECKSUM_ERROR;
     }
+    sdc_ret = sdc_set_fp_index(df, saved_ofs) ;
+    if(sdc_ret != SDC_OK) { return sdc_ret; }
+
     return SDC_OK;
 }
 
@@ -402,36 +415,86 @@ SDC_ERRORCode sdc_check_message(FIL* df, DWORD ofs) {
 SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
     SDC_ERRORCode   sdc_ret;
 
+    int32_t         i ;
     unsigned int    bytes_read;
-    uint16_t        eod_marker;
+    uint16_t        eod_marker = 0xff;
+    uint16_t        bom_marker = 0xff;
+    unsigned int    bw       = 0;
+    DWORD           jumpsize =  (DWORD) (sizeof(GENERIC_message) + sizeof(crc_t));
+
+    sdc_reset_fp_index();
 
     /* step 0: If first line has valid (checksum) data, then seek to end of data , else return  */
-    sdc_ret = sdc_check_message(DATAFil, 0) ;
-    if(sdc_ret != SDC_OK) { 
-        return sdc_ret; 
+    sdc_ret = sdc_check_message(DATAFil, 2) ;
+    if(sdc_ret != SDC_OK) {
+        SDCDEBUG("%s: First message failed checksum\t%lu\r\n", __func__ );
+        return sdc_ret;
+    }
+
+    sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index + jumpsize) ;
+    if(sdc_ret != SDC_OK) {
+        sdc_reset_fp_index();
+        return sdc_ret;
     }
 
     // check next halfword for eod marker....
     sdc_ret = sdc_f_read(DATAFil, &eod_marker, sizeof(uint16_t), &bytes_read);
-    if(sdc_ret != SDC_OK) { return sdc_ret; }
-    while(eod_marker != sdc_eod.marker) { 
-        // reset pointer past next message+checksum
-        sdc_set_fp_index(DATAFil, (DWORD)(sizeof(GENERIC_message) + sizeof(crc_t) + (sdc_fp_index-2)) ) ;
+    if(sdc_ret != SDC_OK) {
+        sdc_reset_fp_index();
+        return sdc_ret;
+    }
+
+    while(eod_marker != sdc_eod.marker) {
         sdc_ret = sdc_f_read(DATAFil, &eod_marker, sizeof(uint16_t), &bytes_read);
-        if(sdc_ret != SDC_OK) { return sdc_ret; }   // this will capture EOF condition
-    } 
-    // Found eod marker back up to end of previous good checksum message
-    sdc_set_fp_index(DATAFil, (DWORD) (sdc_fp_index-2)) ;
+        if(sdc_ret != SDC_OK) {
+            sdc_reset_fp_index();
+            return sdc_ret;
+        }
 
+        SDCDEBUG("%s:eod: 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, eod_marker);
+    }
 
-    // looks like there is a current data file there.
-    //while (!eof)....
-     //   if so return position and ok
-        // else keep skipping by generic_messagesize + 2 and looking for eod...
-    //*sdindexbyte = 0;
+    // Found eod marker back up two previous messages
+    for(i=0 ; i<2; ++i) {
+        do {
+            sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index - 4 ) ;
+            sdc_ret = sdc_f_read(DATAFil, &bom_marker, sizeof(uint16_t), &bytes_read);
+            if(sdc_ret != SDC_OK) {
+                sdc_reset_fp_index();
+                return sdc_ret;
+            }
+            SDCDEBUG("%s:bom: 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, bom_marker);
+        } while (bom_marker != SDC_BOM_MARK) ;
+    }
+    SDCDEBUG("%s: 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, bom_marker);
 
-    /*  Confirm end of data by finding last data with successful checksum */
+    sdc_ret = sdc_check_message(DATAFil, (DWORD) sdc_fp_index) ;
+    if(sdc_ret != SDC_OK) {
+        sdc_reset_fp_index();
+        return sdc_ret;
+    }
 
+    SDCDEBUG("%s:checkmessage passed, index\t%u\r\n", __func__, sdc_fp_index);
+    sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index+jumpsize);
+    if(sdc_ret != SDC_OK) {
+        sdc_reset_fp_index();
+        return sdc_ret;
+    }
+
+    SDCDEBUG("%s:jump to end of good message \t%u\r\n", __func__, sdc_fp_index);
+    sdc_ret = sdc_f_write(DATAFil, (void *)(&sdc_eod), sizeof(sdc_eod_marker), (unsigned int*) &bw);
+    if (sdc_ret)  {
+        sdc_reset_fp_index();
+        return sdc_ret;
+    }
+
+    sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index - sizeof(sdc_eod_marker)) ;
+    if (sdc_ret)  {
+        sdc_reset_fp_index();
+        return sdc_ret;
+    }
+
+    SDCDEBUG("%s:after rewind:\t%u\r\n", __func__, sdc_fp_index);
     /* phase 2: Use eeprom (not avail on e407, wait for new PSAS GFE) as scratch pad to end of data. */
 
     return SDC_OK;

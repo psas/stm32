@@ -24,6 +24,8 @@ extern "C" {
 /* A 162 byte message written at 1000hz will use 4GB in about 6.5 Hours */
 #define         SDC_MAX_PAYLOAD_BYTES                       150
 #define         SDC_NUM_ID_CHARS                            4
+#define         SDC_BOM_MARK                                0x5a5a
+#define         SDC_MARKER_BYTES                            SDC_MAX_PAYLOAD_BYTES + 50
 
 
     extern          bool            fs_ready;
@@ -39,7 +41,7 @@ extern "C" {
     typedef struct sdc_eod_marker {
         // GENERIC_message + checksum + eod_marker + eod_marker
         uint16_t marker;
-        uint8_t sdc_eodmarks[166+2+2+2];
+        uint8_t sdc_eodmarks[SDC_MARKER_BYTES];
     } sdc_eod_marker;
 
     typedef enum SDC_ERRORCode {
