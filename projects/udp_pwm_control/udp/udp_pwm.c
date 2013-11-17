@@ -10,8 +10,10 @@
 #include "lwip/udp.h"
 #include <stdio.h>
 #include "udp_pwm.h"
+
+EventSource packet_event;
 /*BaseSequentialStream *chp;*/
-void udp_receive_server_init(void) {
+msg_t udp_receive_server_init(void * arg __attribute__((unused))) {
 	struct udp_pcb *upcb;
 	err_t err;
 	/*create the control block*/
@@ -29,6 +31,7 @@ void udp_receive_server_init(void) {
 	} else {
 		/*No control block for us*/
 	}
+	return 0;
 }
 
 void udp_pwm_control_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, struct ip_addr *addr, u16_t port) {
