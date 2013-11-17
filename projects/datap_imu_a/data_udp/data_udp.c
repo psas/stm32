@@ -127,15 +127,13 @@ msg_t data_udp_send_thread(void *p) {
 }
 
 static void print_ip(ip_addr_t addr, uint16_t port) {
-	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
-
+	BaseSequentialStream *chp = getActiveUsbSerialStream();
 	chprintf(chp, "my_ip: %u.%u.%u.%u: %u\r\n", ip_addr_1(addr), ip_addr_2(addr), ip_addr_3(addr), ip_addr_4(addr), port);
 
 }
 
 static void data_udp_rx_serve(struct netconn *conn) {
-	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
-
+	BaseSequentialStream *chp = getActiveUsbSerialStream();
 	static uint8_t       count  = 0;
 
 	struct netbuf        *inbuf;
