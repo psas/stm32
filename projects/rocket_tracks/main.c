@@ -552,11 +552,6 @@ static const ShellCommand commands[] = {
 	{NULL, cmd_stop}
 };
 
-static const ShellConfig shell_cfg1 = {
-	(BaseSequentialStream *)&SDU_PSAS,
-	commands
-};
-
 /*
  * ADC1 end conversion callback.
  * The vertical axis control loop is run and PWM updated.
@@ -693,7 +688,7 @@ static void motordrive(GPTDriver *gptp) {
  */
 static void WKUP_button_handler(eventid_t id) {
 
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+	BaseSequentialStream *chp = getActiveUsbSerialStream();
 	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
 	chprintf(chp, "STM32_TIMCLK1 is: %d\r\n", STM32_TIMCLK1);
 }
@@ -702,7 +697,6 @@ static void WKUP_button_handler(eventid_t id) {
  * Application entry point.
  */
 int main(void) {
-	static Thread *shelltp = NULL;
 	static const evhandler_t evhndl[] = {
 	WKUP_button_handler
 	};
@@ -723,30 +717,14 @@ int main(void) {
 	*/
 	chEvtInit(&wkup_event);
 
-	/*
-	* Initializes a serial-over-USB CDC driver.
-	*/
-	sduObjectInit(&SDU_PSAS);
-	sduStart(&SDU_PSAS, &serusbcfg);
-
-	/*
-	* Activates the USB driver and then the USB bus pull-up on D+.
-	* Note, a delay is inserted in order to not have to disconnect the cable
-	* after a reset.
-	*/
-	usbDisconnectBus(serusbcfg.usbp);
-	chThdSleepMilliseconds(1000);
-	usbStart(serusbcfg.usbp, &usbcfg);
-	usbConnectBus(serusbcfg.usbp);
+    /*
+    * Shell manager initialization.
+    */
+	usbSerialShellStart(commands);
 
 	// Enable Continuous GPT for 1ms Interval
 	gptStart(&GPTD1, &gpt1cfg);
 	gptStartContinuous(&GPTD1,10000);
-
-	/*
-	* Shell manager initialization.
-	*/
-	shellInit();
 
 	// Configure pins for Feedback ADC's
 	palSetPadMode(GPIOA, GPIOA_PIN4, PAL_MODE_INPUT_ANALOG);
@@ -840,12 +818,6 @@ int main(void) {
 		//Cycle motordrive if timer fails
 		if(U32DelayCount++ > 2500){
 			motordrive(&GPTD1);
-		}
-		if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
-		  shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-		else if (chThdTerminated(shelltp)) {
-		  chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-		  shelltp = NULL;           /* Triggers spawning of a new shell.        */
 		}
 	chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
 	}
