@@ -271,6 +271,7 @@ SDC_ERRORCode sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
  */
 SDC_ERRORCode sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) {
     SDC_ERRORCode      sdc_ret;
+    int                backjump; 
 
     if((DATAFil == NULL) || (crcd==NULL) || (bw == NULL)) {
         return SDC_NULL_PARAMETER_ERROR;
@@ -280,18 +281,20 @@ SDC_ERRORCode sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) {
         return sdc_ret;
     }
 
-    sdc_ret = sdc_f_write(DATAFil, (void *)(&sdc_eod.sdc_eodmarks), sizeof(sdc_eod_marker), (unsigned int*) bw);
+    sdc_ret = sdc_f_write(DATAFil, (void *)(&sdc_eod.sdc_eodmarks), SDC_MARKER_BYTES,  (unsigned int*) bw);
     if (sdc_ret)  {
         return sdc_ret;
     }
 
-     SDCDEBUG("%s:\t%d\tgm:\t%d\r\n",__func__,  sizeof(sdc_eod_marker), sizeof(GENERIC_message)) ;
-    // be kind, rewind.
-    sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index - sizeof(sdc_eod_marker)) ;
+    backjump = sdc_fp_index - (int) SDC_MARKER_BYTES;
+    if(backjump < 0) {
+        SDCDEBUG("%s: backjump less than zero.\r\n", __func__ ) ;
+        return sdc_ret;
+    }
+    sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index - SDC_MARKER_BYTES) ;
     if (sdc_ret)  {
         return sdc_ret;
     }
-
 
    return FR_OK;
 }
@@ -450,23 +453,30 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
             sdc_reset_fp_index();
             return sdc_ret;
         }
-
-        SDCDEBUG("%s:eod: 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, eod_marker);
     }
+
+    SDCDEBUG("%s:eod: 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, eod_marker);
 
     // Found eod marker back up two previous messages
     for(i=0 ; i<2; ++i) {
+        long int backjump     = 0;
         do {
+            backjump = sdc_fp_index - 4;
+            if(backjump < 0) {
+                sdc_reset_fp_index();
+                return SDC_UNKNOWN_ERROR;
+            }
             sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index - 4 ) ;
             sdc_ret = sdc_f_read(DATAFil, &bom_marker, sizeof(uint16_t), &bytes_read);
             if(sdc_ret != SDC_OK) {
                 sdc_reset_fp_index();
                 return sdc_ret;
             }
-            SDCDEBUG("%s:bom: 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, bom_marker);
         } while (bom_marker != SDC_BOM_MARK) ;
+
     }
-    SDCDEBUG("%s: 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, bom_marker);
+
+    SDCDEBUG("%s:bom 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, bom_marker);
 
     sdc_ret = sdc_check_message(DATAFil, (DWORD) sdc_fp_index) ;
     if(sdc_ret != SDC_OK) {

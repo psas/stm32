@@ -25,7 +25,7 @@ extern "C" {
 #define         SDC_MAX_PAYLOAD_BYTES                       150
 #define         SDC_NUM_ID_CHARS                            4
 #define         SDC_BOM_MARK                                0x5a5a
-#define         SDC_MARKER_BYTES                            SDC_MAX_PAYLOAD_BYTES + 50
+#define         SDC_MARKER_BYTES                            ((int) (SDC_MAX_PAYLOAD_BYTES + 50))
 
 
     extern          bool            fs_ready;
