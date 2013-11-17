@@ -39,11 +39,7 @@ static const ShellCommand commands[] = {
         {NULL, NULL}
 };
 
-static const ShellConfig shell_cfg1 = {
-        (BaseSequentialStream *)&SDU_PSAS,
-        commands
-};
-
+BaseSequentialStream * chp = NULL;
 
 static void led_init(void) {
 
@@ -91,7 +87,6 @@ static msg_t Thread_pwmtest(void *arg) {
     chRegSetThreadName("pwmtest");
 
     //    uint32_t i = 0;
-     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
     //
     chThdSleepMilliseconds(1000);
 
@@ -160,8 +155,6 @@ static msg_t Thread_indwatchdog(void *arg) {
 }
 
 int main(void) {
-    static Thread            *shelltp       = NULL;
-
     static const evhandler_t evhndl_main[]       = {
             extdetail_WKUP_button_handler
     };
@@ -180,23 +173,13 @@ int main(void) {
     palClearPad(GPIOF, GPIOF_BLUE_LED);
     palClearPad(GPIOF, GPIOF_GREEN_LED);
 
+
+    usbSerialShellStart(commands);
+    chp = getActiveUsbSerialStream();
+
     led_init();
 
-    sduObjectInit(&SDU_PSAS);
-    sduStart(&SDU_PSAS, &serusbcfg);
-
-    usbDisconnectBus(serusbcfg.usbp);
-    chThdSleepMilliseconds(1000);
-    usbStart(serusbcfg.usbp, &usbcfg);
-    usbConnectBus(serusbcfg.usbp);
-
-    shellInit();
-
     iwdg_begin();
-
-    sdStart(&SD6, NULL);
-
-    chThdSleepMilliseconds(300);
 
     extStart(&EXTD1, &extcfg);
 
@@ -229,13 +212,8 @@ int main(void) {
 
     chEvtRegister(&extdetail_wkup_event, &el0, 0);
 
+
     while (TRUE) {
-        if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
-            shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-        else if (chThdTerminated(shelltp)) {
-            chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-            shelltp = NULL;           /* Triggers spawning of a new shell.        */
-        }
         chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
     }
 }
