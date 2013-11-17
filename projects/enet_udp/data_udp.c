@@ -30,7 +30,7 @@ msg_t data_udp_send_thread(void *p __attribute__ ((unused))){
      */
 
     chRegSetThreadName("data_udp_send_thread");
-    BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+    BaseSequentialStream *chp = getActiveUsbSerialStream();
 
     //Create our own address (remember to have the data in network byte order)
     struct sockaddr_in addr;
@@ -86,7 +86,7 @@ msg_t data_udp_receive_thread(void *p __attribute__ ((unused))) {
      */
 
     chRegSetThreadName("data_udp_receive_thread");
-    BaseSequentialStream *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+    BaseSequentialStream *chp = getActiveUsbSerialStream();
 
     //Create our own address (remember to have the data in network byte order)
     struct sockaddr_in addr;
