@@ -4,11 +4,13 @@
 
 #include "ch.h"
 #include "hal.h"
-
+#include "chprintf.h"
+#include "usbdetail.h"
+#include "shell.h"
 /* Simple PWM example */
 
 //TODO: shell function to set period et al.
-/*
+
 void cmd_pwm(BaseSequentialStream *chp, int argc, char *argv[]) {
     (void)argv;
     (void)argc;
@@ -32,7 +34,7 @@ void cmd_pwm(BaseSequentialStream *chp, int argc, char *argv[]) {
     chprintf(chp, "STM32_PCLK2\t%d\r\n", STM32_PCLK2);
 
 }
-*/
+
 /*
  * STM32F40x includes 4 general purpose timers: TIM2, TIM3, TIM4, TIM5
  * TIM3 and TIM4 are 16 bit timers with PWM support.
@@ -124,6 +126,11 @@ void main(void) {
     //Channel here is indexed from 0 instead of 1 as is in the config struct
 	pwmEnableChannel(&PWMD4, 3, INIT_PWM_WIDTH_TICS);
 
+    const ShellCommand commands[] = {
+            {"pwm", cmd_pwm},
+            {NULL, NULL}
+    };
+    usbSerialShellStart(commands);
 
 	/*
 	 * Creates the blinker thread.
