@@ -22,10 +22,10 @@ extern "C" {
 #define SHELL_WA_SIZE   THD_WA_SIZE(2048)
 
 void cmd_tree(BaseSequentialStream *chp, int argc, char *argv[]);
+void cmd_sdchalt(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]);
 void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]);
-
 
 #ifdef __cplusplus
 }

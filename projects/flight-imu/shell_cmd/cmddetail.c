@@ -23,10 +23,11 @@
 
 #include "chrtclib.h"
 
-#include "cmddetail.h"
 
 #include "psas_sdclog.h"
 #include "psas_rtc.h"
+
+#include "cmddetail.h"
 
 #define         DEBUG_SHELLCMD
 
@@ -45,55 +46,11 @@ static uint8_t     fbuff[1024];
 
 #define MAX_FILLER 11
 
-static char *long_to_string_with_divisor(BaseSequentialStream *chp,
-                                         char *p,
-                                         unsigned long long num,
-                                         unsigned radix,
-                                         long divisor) {
-
-    (void)chp;
-  unsigned long long i;
-  char *q;
-  unsigned long long l, ll;
-  char tmpbuf[MAX_FILLER + 1];
-
-  tmpbuf[MAX_FILLER] = '\0';
-  p = tmpbuf;
-  q = tmpbuf;
-
-  l = num;
-  if (divisor == 0) {
-    ll = num;
-  } else {
-    ll = divisor;
-  }
-
-  q = p + MAX_FILLER;
-  do {
-    i =  (unsigned long long)(l % radix);
-    i += '0';
-    if (i > '9')
-      i += 'A' - '0' - 10;
-    *--q = i;
-    l /= radix;
-  } while ((ll /= radix) != 0);
-
-  i = (unsigned long long) (p + MAX_FILLER - q);
-  do {
-    *p++ = *q++;
-  } while (--i);
-  SHELLDBG("%s: %s\r\n", __func__, tmpbuf);
-  return p;
-}
-
 void cmd_tree(BaseSequentialStream *chp, int argc, char *argv[]) {
     FRESULT err;
     unsigned long clusters;
-    unsigned long long total;
+    unsigned long long total = 0;
     FATFS *fsp;
-    int howbig;
-    char* p;
-   // char buffern[20];
 
     (void)argv;
     if (argc > 0) {
@@ -112,17 +69,21 @@ void cmd_tree(BaseSequentialStream *chp, int argc, char *argv[]) {
                     return;
             }
     }
-    SHELLDBG("ULONG_MAX: %lu\n", ULONG_MAX);
-    total =  1936690ULL * 8ULL * 512ULL;
-    //total = clusters * (uint32_t)SDC_FS.csize * (uint32_t)MMCSD_BLOCK_SIZE;
-    p = long_to_string_with_divisor(chp, p, total, 10, 0);
-    howbig = sizeof(unsigned long);
-    SHELLDBG("howbig: %i\r\n", howbig);
     SHELLDBG("FS: %lu free clusters, %lu sectors per cluster, %lu bytes free.\r\n",
             clusters, (uint32_t)SDC_FS.csize,
             total);
     fbuff[0] = 0;
     sdc_scan_files(chp, (char *)fbuff);
+}
+
+void cmd_sdchalt(BaseSequentialStream *chp, int argc, char *argv[]){
+    (void)argv;
+    (void)argc;
+    (void)chp;
+
+    sdc_haltnow() ;
+
+	SHELLDBG("SDC card system halted. Remove and restart system before inserting.\r\n");
 }
 
 

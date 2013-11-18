@@ -49,11 +49,12 @@
 static const int    FLIGHT_IMU_WATCHDOG_MS = 250;
 
 static const ShellCommand commands[] = {
-    {"tree",    cmd_tree},
-    {"date",    cmd_date},
-    {"mem",     cmd_mem},
-    {"threads", cmd_threads},
-    {NULL,      NULL}
+    {"tree",        cmd_tree},
+    {"sdchalt",     cmd_sdchalt},
+    {"date",        cmd_date},
+    {"mem",         cmd_mem},
+    {"threads",     cmd_threads},
+    {NULL,          NULL}
 };
 
 static const ShellConfig shell_cfg1 = {
@@ -194,7 +195,6 @@ int main(void) {
     palSetPadMode(mpu9150_connections.i2c_scl_port, mpu9150_connections.i2c_scl_pad,
             PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
 
-
     palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
 
     // the mpu and the mpl sensor share the same I2C instance
@@ -213,10 +213,9 @@ int main(void) {
     // MPU 6 axis IMU sensor
     chThdCreateStatic(waThread_mpu9150_int      , sizeof(waThread_mpu9150_int)      , NORMALPRIO    , Thread_mpu9150_int     , NULL);
 
-    /* SPI ADIS */
+    /* SPI ADIS - As of: Mon 18 November 2013 11:11:42 (PST) Unavailable for testing. */
     //chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
     //chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
-
 
     /*
      *    static       uint8_t      IMU_macAddress[6]           = IMU_A_MAC_ADDRESS;

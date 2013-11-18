@@ -40,18 +40,22 @@ BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 #define SDCLOGDBG(...) do{ } while ( false )
 #endif
 
-enum WHICH_SENSOR { MPU9150=1, MPL3115A2, ADIS16405 };
+enum WHICH_SENSOR { MPU9150=0, MPL3115A2, ADIS16405, SENSOR_LOG_HALT, SENSOR_LOG_START };
 
 static const    char*           sdc_log_data_file                = "LOGSMALL.bin";
 static const    unsigned        sdlog_thread_sleeptime_ms        = 1234;
 
+static  bool                    fs_stop                          = true;
+
 static struct dfstate {
+    DWORD               filesize;
     uint32_t            log_sequence;
     uint32_t            write_errors;
     DWORD               fp_index;
 
     GENERIC_message     log_data;
 
+    FILINFO             DATAFil_info;
     FIL                 DATAFil;
 
     bool                sd_log_opened;
@@ -72,9 +76,19 @@ static void sdc_log_data(eventid_t id) {
     FRESULT             f_ret;
     SDC_ERRORCode       sdc_ret;
 
+    if(id == SENSOR_LOG_START) {
+        fs_stop  = false;
+        return;
+    }
+
     if(fs_ready && !datafile_state.sd_log_opened ) {
+        f_ret = f_stat(sdc_log_data_file, &datafile_state.DATAFil_info);
+        if(f_ret) {
+            SDCLOGDBG("fail stat on file\r\n");
+        }
+        SDCLOGDBG("file size of %s is: %d\r\n", sdc_log_data_file, datafile_state.DATAFil_info.fsize);
         // open an existing log file for writing
-       f_ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_READ | FA_WRITE );
+        f_ret = f_open(&datafile_state.DATAFil, sdc_log_data_file, FA_OPEN_EXISTING | FA_READ | FA_WRITE );
         if(f_ret) { // try again....
             SDCLOGDBG("open existing failed ret: %d\r\n", f_ret);
             chThdSleepMilliseconds(500);
@@ -113,7 +127,6 @@ static void sdc_log_data(eventid_t id) {
     if (fs_ready && datafile_state.sd_log_opened) {
         crc_t          crc16;
         RTCTime        timenow;
-        uint16_t       bom_marker = SDC_BOM_MARK;
         int            rc;
 
         datafile_state.log_data.mh.index        = datafile_state.log_sequence++;
@@ -157,13 +170,20 @@ static void sdc_log_data(eventid_t id) {
                  *datafile_state.log_data.mh.data_length = sizeof(ADIS16405_burst_data);
                  */
                 break;
+            case SENSOR_LOG_HALT:
+                f_ret = f_close(&datafile_state.DATAFil);
+                if(f_ret) { // try again....
+                    SDCLOGDBG("close existing failed ret: %d\r\n", f_ret);
+                    chThdSleepMilliseconds(5);
+                    f_ret = f_close(&datafile_state.DATAFil);
+                }
+                fs_stop  = true;
+                break;
             default:
                 break;
         }
 
         if(write_log) {
-            sdc_ret = sdc_f_write(&datafile_state.DATAFil, (void *)(&bom_marker), sizeof(uint16_t), (unsigned int*) &bw);
-            if(sdc_ret != SDC_OK ) { ++datafile_state.write_errors; }
             sdc_ret = sdc_write_log_message(&datafile_state.DATAFil, &datafile_state.log_data, &bw) ;
             if(sdc_ret != SDC_OK ) { ++datafile_state.write_errors; }
 
@@ -180,7 +200,7 @@ static void sdc_log_data(eventid_t id) {
                 if(datafile_state.write_errors !=0) {
                     SDCLOGDBG("E%d", datafile_state.write_errors);
                 } else {
-                    //SDCLOGDBG("x");
+                    SDCLOGDBG("x");
                 }
                 sdc_fp_index_old = sdc_fp_index;
             }
@@ -210,9 +230,11 @@ msg_t sdlog_thread(void *p) {
     static const evhandler_t evhndl_sdclog[]  = {
         sdc_log_data,
         sdc_log_data,
+        sdc_log_data,
+        sdc_log_data,
         sdc_log_data
     };
-    struct EventListener     el0, el1, el2;
+    struct EventListener     el0, el1, el2, el3, el4;
 
     chRegSetThreadName("sdlog_thread");
 
@@ -248,9 +270,14 @@ msg_t sdlog_thread(void *p) {
     chEvtRegister(&mpl3115a2_data_event        ,   &el0, MPL3115A2);
     chEvtRegister(&adis_spi_burst_data_captured,   &el1, ADIS16405);
     chEvtRegister(&mpu9150_data_event          ,   &el2, MPU9150);
-
+    chEvtRegister(&sdc_halt_event              ,   &el3, SENSOR_LOG_HALT);
+    chEvtRegister(&sdc_start_event             ,   &el4, SENSOR_LOG_START);
     while(1) {
-        chEvtDispatch(evhndl_sdclog, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(50)));
+        if(!fs_stop) {
+            chEvtDispatch(evhndl_sdclog, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(50)));
+        } else {
+            chEvtDispatch(evhndl_sdclog, chEvtWaitOneTimeout((1<<SENSOR_LOG_START), MS2ST(50)));
+        }
     }
     return -1;
 }

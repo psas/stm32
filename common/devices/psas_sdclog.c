@@ -43,11 +43,11 @@
 #define         DEBUG_SDC
 
 #ifdef DEBUG_SDC
-    #include "usbdetail.h"
-    BaseSequentialStream    *sdcchp   =  (BaseSequentialStream *)&SDU_PSAS;
-    #define SDCDEBUG(format, ...) chprintf( sdcchp, format, ##__VA_ARGS__ )
+#include "usbdetail.h"
+BaseSequentialStream    *sdcchp   =  (BaseSequentialStream *)&SDU_PSAS;
+#define SDCDEBUG(format, ...) chprintf( sdcchp, format, ##__VA_ARGS__ )
 #else
-    #define SDCDEBUG(...) do{ } while ( false )
+#define SDCDEBUG(...) do{ } while ( false )
 #endif
 
 // static declarations
@@ -55,6 +55,7 @@ static const    unsigned        sdc_polling_interval             = 10;
 static const    unsigned        sdc_polling_delay                = 10;
 
 static          sdc_eod_marker  sdc_eod;
+static          uint16_t        sdc_bom_marker                   = SDC_BOM_MARK;
 
 static          unsigned        sdc_debounce_count               = 0;
 
@@ -70,6 +71,10 @@ DWORD                           sdc_fp_index_old                 = 0;
 
 EventSource                     sdc_inserted_event;
 EventSource                     sdc_removed_event;
+EventSource                     sdc_start_event;
+
+// Emergency Stop
+EventSource                     sdc_halt_event;
 
 /*!
  * @brief           Insertion monitor timer callback function.
@@ -102,7 +107,7 @@ static void sdc_tmrfunc(void *p) {
 }
 
 /*! \brief Init end of data fiducials.
- */
+*/
 void sdc_init_eod (uint8_t marker_byte) {
     unsigned int i;
 
@@ -123,6 +128,8 @@ void sdc_tmr_init(void *p) {
 
     chEvtInit(&sdc_inserted_event);
     chEvtInit(&sdc_removed_event);
+    chEvtInit(&sdc_halt_event);
+    chEvtInit(&sdc_start_event);
     chSysLock();
     sdc_debounce_count = sdc_polling_interval;
     chVTSetI(&sdc_tmr, MS2ST(sdc_polling_delay), sdc_tmrfunc, p);
@@ -143,6 +150,8 @@ void sdc_insert_handler(eventid_t id) {
     /*! \todo generate a mailbox event here */
 
     /*! \todo test event message system */
+
+    chEvtBroadcast(&sdc_start_event);
 
     /*!
      * On insertion SDC initialization and FS mount.
@@ -172,10 +181,12 @@ void sdc_remove_handler(eventid_t id) {
     (void)id;
     bool_t ret;
 
+    chEvtBroadcast(&sdc_halt_event);
+    chThdSleepMilliseconds(5);
+
     /*! \todo generate a mailbox event here */
 
     /*! \todo test event message system */
-
     ret = sdcDisconnect(&SDCD1);
     if(ret) {
         SDCDEBUG("sdcDiscon fail\r\n");   // this happens a lot!
@@ -250,25 +261,25 @@ SDC_ERRORCode sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
 
 /*! \brief Store a checksum and end of data fiducial marks
  *
-     A line of data would look like this:
-        [GENERIC_message][chksum]
-     We want a line at the end-of-data(eod) to look like this:
-        [GENERIC_message][chksum][0xa5a5]
+ A line of data would look like this:
+ [GENERIC_message][chksum]
+ We want a line at the end-of-data(eod) to look like this:
+ [GENERIC_message][chksum][0xa5a5]
 
-     What happens if power fails partway through a write? There will
-     be NO eod marker. So write a length of eod markers every write past the
-     length of the next write.
-        [GENERIC_message][checksum][0xa5a5..(len(GENERIC_message+checksum+some extra)..0xa5a5]
-                                   ^
-                                   Seek fp-index (sdc_set_fp_index) to here.
+ What happens if power fails partway through a write? There will
+ be NO eod marker. So write a length of eod markers every write past the
+ length of the next write.
+ [GENERIC_message][checksum][0xa5a5..(len(GENERIC_message+checksum+some extra)..0xa5a5]
+ ^
+ Seek fp-index (sdc_set_fp_index) to here.
 
-     Now, in the event of failure during the next write, we have already placed
-     eod markers. A partial filled line will have an incorrect checksum.
+ Now, in the event of failure during the next write, we have already placed
+ eod markers. A partial filled line will have an incorrect checksum.
 
-     If we pre-allocate the file on the sd card, then the file will already exist
-     in the FAT and shouldn't be damaged due to a partial file size reallocation.
+ If we pre-allocate the file on the sd card, then the file will already exist
+ in the FAT and shouldn't be damaged due to a partial file size reallocation.
 
- */
+*/
 SDC_ERRORCode sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) {
     SDC_ERRORCode      sdc_ret;
     int                backjump; 
@@ -296,16 +307,24 @@ SDC_ERRORCode sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) {
         return sdc_ret;
     }
 
-   return FR_OK;
+    return FR_OK;
 }
 
 /*! \brief Store GENERIC_message to the SD card
+ * Store 2 byte BOM (Beginning of message marker) befor GENERIC message.
+ * This will be used to find the start of messages when searching for last good
+ * data message in \sa sdc_seek_eom
 */
 SDC_ERRORCode sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t* bw) {
     SDC_ERRORCode rc;
 
     if((DATAFil == NULL) || (d==NULL) || (bw == NULL)) {
         return SDC_NULL_PARAMETER_ERROR;
+    }
+
+    rc = sdc_f_write(DATAFil, (void *)(&sdc_bom_marker), sizeof(uint16_t), (unsigned int*) bw);
+    if(rc != SDC_OK ) {
+        return SDC_FWRITE_ERROR;
     }
 
     rc = sdc_f_write(DATAFil, (void *)(d), sizeof(GENERIC_message), (unsigned int*) bw);
@@ -315,22 +334,57 @@ SDC_ERRORCode sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t* 
     return SDC_OK;
 }
 
+void sdc_haltnow(void) {
+    bool  b_ret;
+
+    chEvtBroadcast(&sdc_halt_event);
+    chThdSleepMilliseconds(5);
+
+    b_ret = sdcDisconnect(&SDCD1);
+    if(b_ret) {
+        SDCDEBUG("sdcDiscon fail\r\n");   // this happens a lot!
+        b_ret = sdcDisconnect(&SDCD1);
+        if(b_ret) {
+            SDCDEBUG("sdcDiscon fail2\r\n");
+        }
+    }
+    sdc_reset_fp_index();
+    fs_ready = FALSE;
+
+    SDCDEBUG("SDC card halted.\r\n");
+}
+
 /*
  * Wrapper around fatfs f_write function.
  *  Try to write twice before failing
  *  Track the sdc_fp_index
  *  Do periodic f_sync to sd card
  */
-SDC_ERRORCode sdc_f_write(FIL* fp, void* buff, unsigned int btr,  unsigned int*  bytes_written) {
+SDC_ERRORCode sdc_f_write(FIL* fp, void* buff, unsigned int btw,  unsigned int*  bytes_written) {
     static  int8_t     sync_wait = SDC_F_SYNC_COUNT;
     FRESULT f_ret;
 
-    f_ret = f_write(fp, buff, btr,  bytes_written);
+    f_ret = f_write(fp, buff, btw,  bytes_written);
     if (f_ret) {
-        SDCDEBUG("%s: f_write error: %d\r\n",__func__, f_ret) ;
-        f_ret = f_write(fp, buff, btr,  bytes_written);
+        /*
+         * const    char*           sdc_testdata_file                = "LOGSMALL.bin";
+         * FILINFO DATAFil_info;
+         *f_ret = f_stat(sdc_testdata_file, &DATAFil_info);
+         *if(f_ret) {
+         *    SDCDEBUG("fail stat on file\r\n");
+         *}
+         *SDCDEBUG("file size of %s is: %d\r\n", sdc_testdata_file, DATAFil_info.fsize);
+         */
+        SDCDEBUG("\r\n%s: f_write error: %d\tbtw: %d\tbw: %d\r\n",__func__, f_ret, btw, *bytes_written) ;
+        SDCDEBUG("sdc_fp_index is: %lu\r\n", sdc_fp_index);
+
+        SDCDEBUG("f_size returns: %lu\r\n", f_size(fp));
+        sdc_haltnow() ;
+        // SDCDEBUG("f_eof returns: %lu\r\n", f_eof(fp));
+
+        f_ret = f_write(fp, buff, btw,  bytes_written);
         if (f_ret) {
-            SDCDEBUG("%s: f_write error final: %d\r\n",__func__, f_ret) ;
+            SDCDEBUG("%s: f_write error: %d\tbtw: %d\tbw: %d\r\n",__func__, f_ret, btw, *bytes_written) ;
             return SDC_FWRITE_ERROR;
         }
     }
@@ -345,7 +399,6 @@ SDC_ERRORCode sdc_f_write(FIL* fp, void* buff, unsigned int btr,  unsigned int* 
                 return SDC_SYNC_ERROR;
             }
         }
-        SDCDEBUG("*");
         sync_wait = SDC_F_SYNC_COUNT;
     }
     return SDC_OK;
@@ -455,8 +508,6 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
         }
     }
 
-    SDCDEBUG("%s:eod: 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, eod_marker);
-
     // Found eod marker back up two previous messages
     for(i=0 ; i<2; ++i) {
         long int backjump     = 0;
@@ -476,22 +527,18 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
 
     }
 
-    SDCDEBUG("%s:bom 0x%x(%u)\t0x%x\r\n",__func__, sdc_fp_index, sdc_fp_index, bom_marker);
-
     sdc_ret = sdc_check_message(DATAFil, (DWORD) sdc_fp_index) ;
     if(sdc_ret != SDC_OK) {
         sdc_reset_fp_index();
         return sdc_ret;
     }
 
-    SDCDEBUG("%s:checkmessage passed, index\t%u\r\n", __func__, sdc_fp_index);
     sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index+jumpsize);
     if(sdc_ret != SDC_OK) {
         sdc_reset_fp_index();
         return sdc_ret;
     }
 
-    SDCDEBUG("%s:jump to end of good message \t%u\r\n", __func__, sdc_fp_index);
     sdc_ret = sdc_f_write(DATAFil, (void *)(&sdc_eod), sizeof(sdc_eod_marker), (unsigned int*) &bw);
     if (sdc_ret)  {
         sdc_reset_fp_index();
@@ -504,7 +551,6 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
         return sdc_ret;
     }
 
-    SDCDEBUG("%s:after rewind:\t%u\r\n", __func__, sdc_fp_index);
     /* phase 2: Use eeprom (not avail on e407, wait for new PSAS GFE) as scratch pad to end of data. */
 
     return SDC_OK;

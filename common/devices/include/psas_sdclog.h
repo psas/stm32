@@ -35,6 +35,8 @@ extern "C" {
 
     extern          EventSource     sdc_inserted_event;
     extern          EventSource     sdc_removed_event;
+    extern          EventSource     sdc_halt_event;
+    extern          EventSource     sdc_start_event;
 
 
     // create end of data fiducials...slightly larger than log entry
@@ -90,6 +92,7 @@ extern "C" {
         return sdc_fp_index;
     }
 
+    void            sdc_haltnow(void) ;
     void            sdc_insert_handler(eventid_t id) ;
     void            sdc_remove_handler(eventid_t id) ;
     void            sdc_tmr_init(void *p) ;
