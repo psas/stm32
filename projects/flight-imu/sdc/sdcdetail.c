@@ -177,6 +177,7 @@ static void sdc_log_data(eventid_t id) {
                     chThdSleepMilliseconds(5);
                     f_ret = f_close(&datafile_state.DATAFil);
                 }
+                datafile_state.sd_log_opened = false;
                 fs_stop  = true;
                 break;
             default:
@@ -239,7 +240,7 @@ msg_t sdlog_thread(void *p) {
     chRegSetThreadName("sdlog_thread");
 
 #ifdef DEBUG_SDCLOG
-    chThdSleepMilliseconds(1000);
+    /*chThdSleepMilliseconds(1000);*/
 #endif
 
     SDCLOGDBG("Start sdlog thread\r\n");

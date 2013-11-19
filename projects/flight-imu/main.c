@@ -236,6 +236,8 @@ int main(void) {
 
     chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
 
+    chThdSleepMilliseconds(10);
+
     chEvtRegister(&sdc_inserted_event,   &el0, 0);
     chEvtRegister(&sdc_removed_event,    &el1, 1);
 

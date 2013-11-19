@@ -83,7 +83,7 @@ void cmd_sdchalt(BaseSequentialStream *chp, int argc, char *argv[]){
 
     sdc_haltnow() ;
 
-	SHELLDBG("SDC card system halted. Remove and restart system before inserting.\r\n");
+	SHELLDBG("SDC card system halted. Remove card and restart system before inserting again.\r\n");
 }
 
 

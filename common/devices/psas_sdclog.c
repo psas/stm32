@@ -151,7 +151,6 @@ void sdc_insert_handler(eventid_t id) {
 
     /*! \todo test event message system */
 
-    chEvtBroadcast(&sdc_start_event);
 
     /*!
      * On insertion SDC initialization and FS mount.
@@ -172,6 +171,7 @@ void sdc_insert_handler(eventid_t id) {
     }
     sdc_reset_fp_index();
     fs_ready = TRUE;
+    chEvtBroadcast(&sdc_start_event);
 }
 
 /*!
@@ -338,7 +338,8 @@ void sdc_haltnow(void) {
     bool  b_ret;
 
     chEvtBroadcast(&sdc_halt_event);
-    chThdSleepMilliseconds(5);
+
+    chThdSleepMilliseconds(20);
 
     b_ret = sdcDisconnect(&SDCD1);
     if(b_ret) {
@@ -484,9 +485,11 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
     sdc_ret = sdc_check_message(DATAFil, 2) ;
     if(sdc_ret != SDC_OK) {
         SDCDEBUG("%s: First message failed checksum\t%lu\r\n", __func__ );
+        sdc_reset_fp_index();
         return sdc_ret;
     }
 
+    // we are now at byte 2, go to end of first good message
     sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index + jumpsize) ;
     if(sdc_ret != SDC_OK) {
         sdc_reset_fp_index();
@@ -509,6 +512,7 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
     }
 
     // Found eod marker back up two previous messages
+    // If there is only one message in the file...just start over.
     for(i=0 ; i<2; ++i) {
         long int backjump     = 0;
         do {
@@ -539,12 +543,14 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
         return sdc_ret;
     }
 
+    // mark the new eod
     sdc_ret = sdc_f_write(DATAFil, (void *)(&sdc_eod), sizeof(sdc_eod_marker), (unsigned int*) &bw);
     if (sdc_ret)  {
         sdc_reset_fp_index();
         return sdc_ret;
     }
 
+    // rewind to new messages starting point
     sdc_ret = sdc_set_fp_index(DATAFil, sdc_fp_index - sizeof(sdc_eod_marker)) ;
     if (sdc_ret)  {
         sdc_reset_fp_index();
