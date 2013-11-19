@@ -320,7 +320,7 @@ void adis_newdata_handler(eventid_t id) {
 	}
 
 #if ADIS_DEBUG
-	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
+	BaseSequentialStream    *chp = getActiveUsbSerialStream();
 	bool                  negative = false;
 	uint32_t              result_ug = 0;
 	static uint32_t       j        = 0;

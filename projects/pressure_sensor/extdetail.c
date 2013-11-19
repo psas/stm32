@@ -66,7 +66,7 @@ static void green_led_off(void *arg) {
  * Used for debugging
  */
 void extdetail_WKUP_button_handler(eventid_t id) {
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+	BaseSequentialStream *chp = getActiveUsbSerialStream();
 	chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
 	chprintf(chp, "\r\ndebug_spi: %d\r\n", adis_driver.debug_spi_count);
 }

@@ -22,7 +22,6 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "usb_cdc.h"
 #include "chprintf.h"
 #include "shell.h"
 
@@ -39,21 +38,9 @@
 //#include "lwipopts.h"
 //#include "lwipthread.h"
 
-//BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
+BaseSequentialStream *chp = NULL;
 
 static Mutex mtx;
-static const ShellCommand commands[] = {
-		{"mem", cmd_mem},
-		{"threads", cmd_threads},
-		{NULL, NULL}
-};
-
-static const ShellConfig shell_cfg1 = {
-		(BaseSequentialStream *)&SDU1,
-		commands
-};
-
-
 
 /*! configure the i2c module on stm32
  *
@@ -114,23 +101,20 @@ static WORKING_AREA(waThread_mpl3115a2, 256);
  */
 static msg_t Thread_mpl3115a2(void *arg) {
 	(void)arg;
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU1;
 	//float altitude = 5.0;
 	chRegSetThreadName("mpl3115a2");
 	
+	MPL3115A2_read_data d;
+
 	while (TRUE) {
 		//chEvtDispatch(evhndl_newdata, chEvtWaitOneTimeout((eventmask_t)1, US2ST(50)));
 		//chprintf(chp,"This is the pressure sensor thread talking\n");
 		//altitude = mpl3115a2_get_altitude(mpl3115a2_driver.i2c_instance);
 		chMtxLock(&mtx);
-		mpl3115a2_get_temperature(mpl3115a2_driver.i2c_instance);
-		//chprintf(chp,"High order temperature bits: %d.  Low order temperature bits %d\r\n", mpl3115a2_driver.ho_temp, mpl3115a2_driver.lo_temp);
+		mpl3115a2_read_P_T(mpl3115a2_driver.i2c_instance, &d);
 		chMtxUnlock();
-		chprintf(chp,"High order temperature bits: %d.  Low order temperature bits %d\r\n", mpl3115a2_driver.ho_temp, mpl3115a2_driver.lo_temp);
-		chMtxLock(&mtx);
-		mpl3115a2_get_bar(mpl3115a2_driver.i2c_instance);
-		chMtxUnlock();
-		chprintf(chp, "High order pressure bits: %d.  Center pressure bits: %d.  Low order pressure bits: %d\r\n",  mpl3115a2_driver.bar_msb,  mpl3115a2_driver.bar_csb,  mpl3115a2_driver.bar_lsb);
+		chprintf(chp,"Temperature: %d\r\n", d.mpu_temperature);
+		chprintf(chp, "Pressure %d\r\n",  d.mpu_pressure);
 		chThdSleepMilliseconds(1000);
 	}
 	return -1;
@@ -153,7 +137,6 @@ static msg_t Thread_indwatchdog(void *arg) {
 
 
 int main(void) {
-	static Thread            *shelltp       = NULL;
 	static const evhandler_t evhndl_main[]       = {
 			extdetail_WKUP_button_handler
 	};
@@ -188,31 +171,16 @@ int main(void) {
 
 	palSetPad(mpl3115a2_connections.i2c_scl_port,  mpl3115a2_connections.i2c_scl_pad );
 
-	/*!
-	 * Initializes a serial-over-USB CDC driver.
-	 */
-	sduObjectInit(&SDU1);
-	sduStart(&SDU1, &serusbcfg);
 
-	/*!
-	 * Activates the USB driver and then the USB bus pull-up on D+.
-	 * Note, a delay is inserted in order to not have to disconnect the cable
-	 * after a reset.
-	 */
-	usbDisconnectBus(serusbcfg.usbp);
-	chThdSleepMilliseconds(1000);
-	usbStart(serusbcfg.usbp, &usbcfg);
-	usbConnectBus(serusbcfg.usbp);
-
-	shellInit();
+	const ShellCommand commands[] = {
+	        {"mem", cmd_mem},
+	        {"threads", cmd_threads},
+	        {NULL, NULL}
+	};
+	usbSerialShellStart(commands);
+	chp = getActiveUsbSerialStream();
 
 	iwdg_begin();
-
-	/*!
-	 * Activates the serial driver 6 and SDC driver 1 using default
-	 * configuration.
-	 */
-	//sdStart(&SD6, NULL);
 
 	//spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
@@ -229,12 +197,6 @@ int main(void) {
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
-		if (!shelltp && (SDU1.config->usbp->state == USB_ACTIVE))
-			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-		else if (chThdTerminated(shelltp)) {
-			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-			shelltp = NULL;           /* Triggers spawning of a new shell.        */
-		}
 		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
 	}
 }

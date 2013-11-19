@@ -12,47 +12,34 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "shell.h"
 #include "serial_usb.h"
-#include "usb.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// OTG2 connector has problems on Olimex E407 board?
-#define PSAS_USE_OTG1                       1
+/* If PSAS_USE_OTG1 is TRUE then the usb serial shell will use OTG1, if FALSE
+ * then OTG2 is used. The OTG2 connector may have problems on the Olimex E407
+ * board?
+ */
+#define PSAS_USE_OTG1   TRUE
 
-    /*
-     * Serial over USB Driver structure.
-     */
-extern struct SerialUSBDriver SDU_PSAS;
+extern      struct      SerialUSBDriver         SDU_PSAS;
+extern      const       USBConfig               usbcfg;
+extern      const       SerialUSBConfig         serusbcfg;
 
-#if PSAS_USE_OTG1
-	#define USBD1_DATA_REQUEST_EP           1
-	#define USBD1_DATA_AVAILABLE_EP         1
-	#define USBD1_INTERRUPT_REQUEST_EP      2
-#else
-	#define USBD2_DATA_REQUEST_EP           1
-	#define USBD2_DATA_AVAILABLE_EP         1
-	#define USBD2_INTERRUPT_REQUEST_EP      2
-#endif
+/* Call usbSerialShellStart with a list of commands and will
+ * handle setting up the usb, usb serial, and shell drivers, as well as
+ * a thread to run them in.
+ */
+void usbSerialShellStart(const ShellCommand* commands);
 
-    /*
-     * USB driver configuration.
-     */
-    extern const USBConfig usbcfg;
-
-    /*
-     * Serial over USB driver configuration.
-     */
-    extern const SerialUSBConfig serusbcfg;
-
-    void usb_event(USBDriver *usbp, usbevent_t event) ;
-
-    const USBDescriptor *get_descriptor(USBDriver *usbp,
-            uint8_t dtype,
-            uint8_t dindex,
-            uint16_t lang);
+/* Sets up and then returns a BaseSequentialStream suitable for using with
+ * chprintf that writes to the USB Serial driver
+ */
+//FIXME: This is a horrendous name.
+BaseSequentialStream * getActiveUsbSerialStream(void);
 
 #ifdef __cplusplus
 }

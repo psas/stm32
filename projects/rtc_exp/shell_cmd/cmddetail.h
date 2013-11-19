@@ -19,11 +19,6 @@
 extern "C" {
 #endif
 
-
-#define SHELL_WA_SIZE   THD_WA_SIZE(2048)
-#define TEST_WA_SIZE    THD_WA_SIZE(256)
-
-
 /* MII divider optimal value.*/
 #if (STM32_HCLK >= 150000000)
 #define MACMIIDR_CR ETH_MACMIIAR_CR_Div102

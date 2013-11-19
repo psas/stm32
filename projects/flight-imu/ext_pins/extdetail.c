@@ -47,6 +47,7 @@ const EXTConfig extcfg = {
 		}
 };
 
+
 /*!
  * External interrupt from ADIS
  *

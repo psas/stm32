@@ -15,7 +15,28 @@
 #include "serial_usb.h"
 #include "usb_lld.h"
 #include "usb.h"
+#include "shell.h"
+
 #include "usbdetail.h"
+
+
+#if PSAS_USE_OTG1
+    #define USBD1_DATA_REQUEST_EP           1
+    #define USBD1_DATA_AVAILABLE_EP         1
+    #define USBD1_INTERRUPT_REQUEST_EP      2
+#else
+    #define USBD2_DATA_REQUEST_EP           1
+    #define USBD2_DATA_AVAILABLE_EP         1
+    #define USBD2_INTERRUPT_REQUEST_EP      2
+#endif
+
+void usb_event(USBDriver *usbp, usbevent_t event) ;
+
+const USBDescriptor *get_descriptor(USBDriver *usbp,
+        uint8_t dtype,
+        uint8_t dindex,
+        uint16_t lang);
+
 
 /*!
  * Serial over USB Driver structure.
@@ -341,6 +362,71 @@ void usb_event(USBDriver *usbp, usbevent_t event) {
             return;
     }
     return;
+}
+
+static int startUSD = FALSE;
+static void usbSerialDriverStart(void){
+    //todo: better way of doing this. Hardware checks?
+    if(!startUSD){
+        startUSD=TRUE;
+    }else{
+        return;
+    }
+    /*!
+     * Initializes a serial-over-USB CDC driver.
+     */
+    sduObjectInit(&SDU_PSAS);
+    sduStart(&SDU_PSAS, &serusbcfg);
+
+    /*!
+     * Activates the USB driver and then the USB bus pull-up on D+.
+     * Note, a delay is inserted in order to not have to disconnect the cable
+     * after a reset.
+     */ //XXX: Verify
+    usbDisconnectBus(serusbcfg.usbp);
+    chThdSleepMilliseconds(1500);
+    usbStart(serusbcfg.usbp, &usbcfg);
+    usbConnectBus(serusbcfg.usbp);
+}
+
+BaseSequentialStream * getActiveUsbSerialStream(void){
+    usbSerialDriverStart();
+    return (BaseSequentialStream *)&SDU_PSAS;
+}
+
+#define SHELL_WA_SIZE   THD_WA_SIZE(2048)
+static WORKING_AREA(wa_usst, 256);
+
+static msg_t usbSerialShellThread(void *arg){
+    chRegSetThreadName("usbSerialShell Manager");
+
+    static Thread *shelltp = NULL;
+    ShellCommand *commands = (ShellCommand *)arg;
+    const ShellConfig shell_cfg1 = {
+            (BaseSequentialStream *)&SDU_PSAS,
+            commands
+    };
+
+    usbSerialDriverStart();
+
+    shellInit();
+
+    while (TRUE) {
+        if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
+            shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
+        else if (chThdTerminated(shelltp)) {
+            chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
+            shelltp = NULL;           /* Triggers spawning of a new shell.        */
+        }
+        chThdSleepMilliseconds(500); //FIXME: why does sleeping here make things suddenly work?
+    }
+    return 0; //todo: no return
+}
+
+
+void usbSerialShellStart(const ShellCommand* commands){
+    //TODO: deep copy commands
+    chThdCreateStatic(wa_usst, sizeof(wa_usst), NORMALPRIO, usbSerialShellThread, (void *)commands);
 }
 
 //! @}

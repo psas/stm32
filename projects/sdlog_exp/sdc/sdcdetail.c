@@ -31,10 +31,8 @@
 
 #ifdef DEBUG_SDLOGEXP
 #include "usbdetail.h"
-BaseSequentialStream    *sdclog   =  (BaseSequentialStream *)&SDU_PSAS;
-#define SDLOGEXPDBG(format, ...) chprintf( sdclog, format, ##__VA_ARGS__ )
+#define SDLOGEXPDBG(format, ...) chprintf(getActiveUsbSerialStream(), format, ##__VA_ARGS__ )
 #else
-BaseSequentialStream    *chp   =  (BaseSequentialStream *)&SDU_PSAS;
 #define SDLOGEXPDBG(...) do{ } while ( false )
 #endif
 

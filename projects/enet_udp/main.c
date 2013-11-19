@@ -29,17 +29,6 @@
 #include "data_udp.h"
 #include "lwipthread.h"
 
-static const ShellCommand commands[] = {
-		{"mem", cmd_mem},
-		{"threads", cmd_threads},
-		{NULL, NULL}
-};
-
-static const ShellConfig shell_cfg1 = {
-		(BaseSequentialStream *)&SDU_PSAS,
-		commands
-};
-
 static WORKING_AREA(waThread_blinker, 64);
 /*! \brief Green LED blinker thread
  */
@@ -54,7 +43,6 @@ static msg_t Thread_blinker(void *arg) {
 }
 
 void main(void) {
-	static Thread            *shelltp       = NULL;
 	struct lwipthread_opts   ip_opts;
 
 	/*
@@ -69,23 +57,14 @@ void main(void) {
 
 	palSetPad(GPIOC, GPIOC_LED);
 
-	/*!
-	 * Initializes a serial-over-USB CDC driver.
-	 */
-	sduObjectInit(&SDU_PSAS);
-	sduStart(&SDU_PSAS, &serusbcfg);
+	const ShellCommand commands[] = {
+	        {"mem", cmd_mem},
+	        {"threads", cmd_threads},
+	        {NULL, NULL}
+	};
+	usbSerialShellStart(commands);
+	BaseSequentialStream * chp = getActiveUsbSerialStream();
 
-	/*!
-	 * Activates the USB driver and then the USB bus pull-up on D+.
-	 * Note, a delay is inserted in order to not have to disconnect the cable
-	 * after a reset.
-	 */
-	usbDisconnectBus(serusbcfg.usbp);
-	chThdSleepMilliseconds(1000);
-	usbStart(serusbcfg.usbp, &usbcfg);
-	usbConnectBus(serusbcfg.usbp);
-
-	shellInit();
 
 	struct ip_addr ip, gateway, netmask;
 	IP4_ADDR(&ip,      192, 168, 0,   196);
@@ -97,24 +76,20 @@ void main(void) {
 	ip_opts.address    = ip.addr;
 	ip_opts.netmask    = netmask.addr;
 	ip_opts.gateway    = gateway.addr;
-	chprintf((struct BaseSequentialStream *)&SDU_PSAS, "LWIP ");
+	chprintf(chp, "LWIP ");
 	chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2,
 	                    lwip_thread, &ip_opts);
-	chprintf((struct BaseSequentialStream *)&SDU_PSAS, "tx ");
+	chprintf(chp, "tx ");
     chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO,
     		data_udp_send_thread, NULL);
-    chprintf((struct BaseSequentialStream *)&SDU_PSAS, "rx ");
+    chprintf(chp, "rx ");
     chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO,
       		data_udp_receive_thread, NULL);
-    chprintf((struct BaseSequentialStream *)&SDU_PSAS, "shell ");
+    chprintf(chp, "shell ");
     chThdCreateStatic(waThread_blinker, sizeof(waThread_blinker), NORMALPRIO, Thread_blinker, NULL);
-	while (TRUE) {
-		if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
-			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-		else if (chThdTerminated(shelltp)) {
-			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-			shelltp = NULL;           /* Triggers spawning of a new shell.        */
-		}
+
+    while (TRUE) {
+		chThdSleep(TIME_INFINITE);
 	}
 }
 

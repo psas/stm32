@@ -12,6 +12,13 @@ void KS8999_init(void) {
 }
 
 void KS8999_enable(int enable){
+    if(enable){
+        KS8999_power(TRUE);
+        palSetPad(GPIOD, GPIO_D4_ETH_N_RST);
+    }else{
+        palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
+        KS8999_power(FALSE);
+    }
 
 }
 
