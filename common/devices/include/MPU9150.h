@@ -12,17 +12,36 @@
  * @{
  */
 
+
+
+/*
+ * Header Boilerplate
+ * ================== **********************************************************
+ */
+
 #ifndef _MPU9150_H
 #define _MPU9150_H
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+
+
+/*
+ * Inclusions
+ * ========== ******************************************************************
+ */
+
 #include "ch.h"
 #include "hal.h"
 #include "fc_net.h"
+
+
+/*
+ * Constant Definitions
+ * ==================== ********************************************************
+ */
 
 #if !defined(DEBUG_MPU9150) || defined(__DOXYGEN__)
 #define 	DEBUG_MPU9150                   0

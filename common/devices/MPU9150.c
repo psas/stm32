@@ -1,13 +1,6 @@
-/*! \file ADIS16405.c
+/*! \file MPU9150.c
  *
- * API to support transactions through the SPI port to
- * the Analog Devices ADIS16405 series IMU.
- *
- */
-
-/*! \defgroup adis16405 ADIS IMU
- *
- * @{
+ * API to support reading sensor data from an MPU9150 IMU via I2C.
  */
 
 /*! Is the mpu9150 really a MPU6050 & AKM8975 in the same package?
@@ -59,7 +52,6 @@ const       uint8_t      mpu9150_i2c_magn_addr      = 0x0C;    // See page 28, M
 		}
 		return "I2C Error Unknown";
 	}
-
 #endif
 
 static msg_t mpu9150_read_register(I2CDriver* i2cptr, mpu9150_a_g_regaddr ra, mpu9150_reg_data* d) {
