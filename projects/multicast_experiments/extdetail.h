@@ -1,0 +1,52 @@
+/*! \file extdetail.h
+ *
+ */
+
+#ifndef _EXTDETAIL_H
+#define _EXTDETAIL_H
+
+/*!
+ * \addtogroup extdetail
+ * @{
+ */
+
+#include <stdbool.h>
+
+#include "ch.h"
+#include "hal.h"
+
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern           bool            launch_detected;
+
+extern           EventSource     extdetail_wkup_event;
+extern           EventSource     extdetail_launch_detect_event;
+
+
+extern const     EXTConfig       extcfg;
+
+void extdetail_launch_detect_handler(eventid_t id) ;
+void launch_detect_init(void) ;
+
+void extdetail_WKUP_button_handler(eventid_t id) ;
+void extdetail_init(void) ;
+void extdetail_wkup_btn(EXTDriver *extp, expchannel_t channel) ;
+void extdetail_launch_detect(EXTDriver *extp, expchannel_t channel) ;
+
+/*void extdetail_adis_dio1(EXTDriver *extp, expchannel_t channel) ;*/
+
+#ifdef __cplusplus
+}
+#endif
+
+
+
+//! @}
+
+
+#endif
+
