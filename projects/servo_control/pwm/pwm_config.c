@@ -38,7 +38,7 @@ static PWMConfig pwmcfg = {
             {PWM_OUTPUT_DISABLED, NULL},
             {PWM_OUTPUT_DISABLED, NULL},
             {PWM_OUTPUT_DISABLED, NULL},
-            {PWM_OUTPUT_ACTIVE_HIGH, NULL},   /* Only channel 4 enabled */
+            {PWM_OUTPUT_ACTIVE_HIGH, NULL},   /* Only channel 4 enabled, PD15 */
     },
     0
 };
