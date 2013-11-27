@@ -5,14 +5,14 @@
 #include "usbdetail.h"
 #include "chprintf.h"
 #include "shell.h"
-#include "cmddetail.h"
 
 static EventSource button_event;
 static EventSource shell_event;
 //static EventSource timer_event; ?
 
 
-void cmd_event(BaseSequentialStream *chp, int argc, char *argv[]){
+void cmd_event(BaseSequentialStream *chp, int argc __attribute__((unused)),
+               char *argv[] __attribute__((unused))){
     chprintf(chp, "Sending shell event \r\n");
     /* Call the normal version because we're not in an ISR */
     chEvtBroadcast(&shell_event);
@@ -70,8 +70,6 @@ void main(void) {
 
   /* Start the USB serial shell */
   static const ShellCommand commands[] = {
-    {"mem", cmd_mem},
-    {"threads", cmd_threads},
     {"event", cmd_event},
     {NULL, NULL}
   };
@@ -79,6 +77,7 @@ void main(void) {
   usbSerialShellStart(commands);
 
   /* Activate the external interrupt driver */
+  palSetPadMode(GPIOA, GPIOA_BUTTON_WKUP, PAL_MODE_INPUT_PULLDOWN | PAL_STM32_OSPEED_HIGHEST);
   static EXTConfig extcfg = {
     {
       {EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOA, ext_cb},   // WKUP Button PA0
@@ -114,6 +113,6 @@ void main(void) {
     shell_handler
   };
   while (TRUE) {
-    chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
+    chEvtDispatch(evhndl, chEvtWaitAll(ALL_EVENTS));
   }
 }
