@@ -36,7 +36,7 @@ const EXTConfig extcfg = {
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL}, // D9
-				{EXT_CH_MODE_DISABLED, NULL}, // 10
+				{EXT_CH_MODE_DISABLED, NULL}, // D10
 				{EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD, extdetail_launch_detect},   // D11
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
@@ -56,8 +56,8 @@ const EXTConfig extcfg = {
  * Initialize event for wakup button on olimex board.
  */
 void extdetail_init() {
-	chEvtInit(&extdetail_wkup_event);
-	 chEvtInit(&extdetail_launch_detect_event);
+    chEvtInit(&extdetail_wkup_event);
+    chEvtInit(&extdetail_launch_detect_event);
 }
 
 /*!
