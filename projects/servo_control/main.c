@@ -1,15 +1,21 @@
-/*! \file main.c
- *
- *  PWM controlled from FC
- *
+/*
+ * The Roll Control Module is responsible for activating a PWM servo. Commands
+ * sent from the FC over ethernet set the pulsewidth. An interrupt state determines
+ * launch detect.
+ */
+
+/*
+ * Includes
+ * ======== ********************************************************************
  */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <lwip/ip_addr.h>
+
 #include "ch.h"
 #include "hal.h"
-
 #include "chprintf.h"
 #include "shell.h"
 
@@ -17,76 +23,130 @@
 #include "usbdetail.h"
 #include "extdetail.h"
 #include "cmddetail.h"
-
-#include <lwip/ip_addr.h>
-
 #include "data_udp.h"
 #include "lwipopts.h"
 #include "lwipthread.h"
 #include "pwm.h"
 #include "pwm_config.h"
-
 #include "device_net.h"
 #include "fc_net.h"
 
-#include "main.h"
 
-#define 		DEBUG_PWM 				0
+
+/*
+ * Constant Definitions
+ * ==================== ********************************************************
+ */
+
+//#define DEBUG_PWM 0
 
 static const ShellCommand commands[] = {
-        {"mem", cmd_mem},
-        {"threads", cmd_threads},
-        {NULL, NULL}
+    {"mem", cmd_mem},
+    {"threads", cmd_threads},
+    {NULL, NULL}
 };
 
 static const ShellConfig shell_cfg1 = {
-        (BaseSequentialStream *)&SDU_PSAS,
-        commands
+    (BaseSequentialStream *)&SDU_PSAS,
+    commands
 };
 
 
-static void led_init(void) {
 
-    palClearPad(GPIOF, GPIOF_BLUE_LED);
-    palClearPad(GPIOF, GPIOF_RED_LED);
-    palClearPad(GPIOF, GPIOF_GREEN_LED);
+/*
+ * Global Variables
+ * ================ ************************************************************
+ */
 
-    int i = 0;
-    for(i=0; i<5; ++i) {
-        palSetPad(GPIOF, GPIOF_RED_LED);
-        chThdSleepMilliseconds(150);
-        palClearPad(GPIOF, GPIOF_RED_LED);
-        palSetPad(GPIOF, GPIOF_BLUE_LED);
-        chThdSleepMilliseconds(150);
-        palClearPad(GPIOF, GPIOF_BLUE_LED);
-        palSetPad(GPIOF, GPIOF_GREEN_LED);
-        chThdSleepMilliseconds(150);
-        palClearPad(GPIOF, GPIOF_GREEN_LED);
-    }
-}
+static WORKING_AREA(wa_launch_detect_dispatcher, 1024);
+static WORKING_AREA(wa_led_blinker, 128);
+static WORKING_AREA(wa_watchdog_keeper, 128);
 
-static WORKING_AREA(waThread_launch_detect, 1024);
-static msg_t Thread_launch_detect(void *arg) {
-    (void)arg;
-    static const evhandler_t evhndl_launch_det[] = {
-            extdetail_launch_detect_handler
+#ifdef DEBUG_PWM
+static WORKING_AREA(wa_pwm_tester, 512);
+#endif
+
+
+
+/*
+ * Threads
+ * ======= *********************************************************************
+ */
+
+/*
+ * Launch Detect Thread
+ *
+ * This thread just waits for the external interrupt to broadcast the
+ * extdetail_launch_detect_event, and dispatches it to the
+ * extdetail_launch_detect_handler.
+ */
+static msg_t launch_detect_dispatcher(void *_) {
+    (void)_;
+
+    struct EventListener launch_event_listener;
+    static const evhandler_t launch_event_handlers[] = {
+        extdetail_launch_detect_handler
     };
-    struct EventListener     evl_launch_det;
 
     chRegSetThreadName("launch_detect");
     launch_detect_init();
-
-    chEvtRegister(&extdetail_launch_detect_event,      &evl_launch_det,         0);
+    chEvtRegister(&extdetail_launch_detect_event, &launch_event_listener, 0);
 
     while (TRUE) {
-        chEvtDispatch(evhndl_launch_det, chEvtWaitOneTimeout((EVENT_MASK(0)), US2ST(50)));
+        chEvtDispatch(launch_event_handlers, chEvtWaitOne(EVENT_MASK(0)));
     }
     return -1;
 }
 
+
+/*
+ * LED Blinker Thread
+ *
+ * This thread blinks LEDs so we can tell that we have not halted as long as the
+ * LEDs are still blinking.
+ */
+static msg_t led_blinker(void *_) {
+    (void)_;
+
+    chRegSetThreadName("blinker");
+    palClearPad(GPIOF, GPIOF_GREEN_LED);
+    palClearPad(GPIOF, GPIOF_RED_LED);
+    palClearPad(GPIOF, GPIOF_BLUE_LED);
+
+    while (TRUE) {
+        palTogglePad(GPIOC, GPIOC_LED);
+        palTogglePad(GPIOF, GPIOF_GREEN_LED);
+        chThdSleepMilliseconds(500);
+    }
+    return -1;
+}
+
+
+/*
+ * Watchdog Thread
+ *
+ * Keep the watchdog at bay - we power cycle if this thread doesn't run.
+ */
+static msg_t watchdog_keeper(void *_) {
+    (void)_;
+
+    chRegSetThreadName("iwatchdog");
+
+    while (TRUE) {
+        iwdg_lld_reload();
+        chThdSleepMilliseconds(250);
+    }
+    return -1;
+}
+
+
+/*
+ * Test PWM Sequence Thread
+ *
+ * Runs through max left, neutral, and max right servo positions
+ */
 #if DEBUG_PWM
-static WORKING_AREA(waThread_pwmtest, 512);
-static msg_t Thread_pwmtest(void *arg) {
+static msg_t pwm_tester(void *arg) {
     (void)arg;
     chRegSetThreadName("pwmtest");
 
@@ -130,112 +190,145 @@ static msg_t Thread_pwmtest(void *arg) {
 }
 #endif
 
-/*blinker thread vars and functions*/
-static WORKING_AREA(waThread_blinker, 128);
-static msg_t Thread_blinker(void *arg) {
-    (void)arg;
-    chRegSetThreadName("blinker");
-    palClearPad(GPIOF, GPIOF_GREEN_LED);
+
+
+/*
+ * Hardware Init & Main
+ * ==================== ********************************************************
+ */
+
+static void led_init(void) {
+    palSetPad(GPIOC, GPIOC_LED);
     palClearPad(GPIOF, GPIOF_RED_LED);
+    palClearPad(GPIOF, GPIOF_GREEN_LED);
     palClearPad(GPIOF, GPIOF_BLUE_LED);
-    while (TRUE) {
-        palTogglePad(GPIOC, GPIOC_LED);
-        palTogglePad(GPIOF, GPIOF_GREEN_LED);
-        chThdSleepMilliseconds(500);
+
+    int i = 0;
+    for(i=0; i<5; ++i) {
+        palSetPad(GPIOF, GPIOF_RED_LED);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOF, GPIOF_RED_LED);
+        palSetPad(GPIOF, GPIOF_GREEN_LED);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOF, GPIOF_GREEN_LED);
+        palSetPad(GPIOF, GPIOF_BLUE_LED);
+        chThdSleepMilliseconds(150);
+        palClearPad(GPIOF, GPIOF_BLUE_LED);
     }
-    return -1;
 }
 
-/*watchdog timer thread vars and functions*/
-static WORKING_AREA(waThread_indwatchdog, 128);
-static msg_t Thread_indwatchdog(void *arg) {
-    (void)arg;
-
-    chRegSetThreadName("iwatchdog");
-    while (TRUE) {
-        iwdg_lld_reload();
-        chThdSleepMilliseconds(250);
-    }
-    return -1;
-}
 
 int main(void) {
-    static Thread            *shelltp       = NULL;
-
-    static const evhandler_t evhndl_main[]       = {
-            extdetail_WKUP_button_handler
+    static Thread          *shelltp = NULL;
+    struct EventListener   wakeup_listener;
+    struct lwipthread_opts ip_opts;
+    static const evhandler_t wakeup_handlers[] = {
+        extdetail_WKUP_button_handler
     };
-    struct EventListener     el0;
-
-    struct lwipthread_opts   ip_opts;
 
     /* initialize HAL */
     halInit();
     chSysInit();
 
+    // initialize wakeup & launch detect events
     extdetail_init();
-    palSetPad(GPIOC, GPIOC_LED);
 
-    palClearPad(GPIOF, GPIOF_RED_LED);
-    palClearPad(GPIOF, GPIOF_BLUE_LED);
-    palClearPad(GPIOF, GPIOF_GREEN_LED);
-
+    // run through colored lights, for funzies i guess
     led_init();
 
+    // start serial-over-USB
     sduObjectInit(&SDU_PSAS);
     sduStart(&SDU_PSAS, &serusbcfg);
-
     usbDisconnectBus(serusbcfg.usbp);
     chThdSleepMilliseconds(1000);
     usbStart(serusbcfg.usbp, &usbcfg);
     usbConnectBus(serusbcfg.usbp);
 
+    // start the command shell
     shellInit();
 
+    // start the watchdog timer
     iwdg_begin();
 
+    // start the serial driver (TODO: why?)
     sdStart(&SD6, NULL);
 
+    // why does this exist?
     chThdSleepMilliseconds(300);
 
+    // activate EXT peripheral so we can get external interrupts
     extStart(&EXTD1, &extcfg);
 
-    chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
-
+    // activate PWM output
     pwm_start();
 
-    static       uint8_t      ROLL_CTL_macAddress[6]         = ROLL_CTL_MAC_ADDRESS;
-    struct       ip_addr      ip, gateway, netmask;
+    // configure IP
+    static uint8_t roll_ctl_mac_address[6] = ROLL_CTL_MAC_ADDRESS;
+    struct ip_addr ip, gateway, netmask;
     ROLL_CTL_IP_ADDR(&ip);
     ROLL_CTL_GATEWAY(&gateway);
     ROLL_CTL_NETMASK(&netmask);
-
-    ip_opts.macaddress = ROLL_CTL_macAddress;
+    ip_opts.macaddress = roll_ctl_mac_address;
     ip_opts.address    = ip.addr;
     ip_opts.netmask    = netmask.addr;
     ip_opts.gateway    = gateway.addr;
 
-    chThdCreateStatic(wa_lwip_thread              , sizeof(wa_lwip_thread)              , NORMALPRIO + 2, lwip_thread            , &ip_opts);
-    //chThdCreateStatic(wa_data_udp_send_thread     , sizeof(wa_data_udp_send_thread)     , NORMALPRIO    , data_udp_send_thread   , NULL);
-    chThdCreateStatic(wa_data_udp_receive_thread  , sizeof(wa_data_udp_receive_thread)  , NORMALPRIO    , data_udp_receive_thread, NULL);
+    // start threads
+    chThdCreateStatic( wa_led_blinker
+                     , sizeof(wa_led_blinker)
+                     , NORMALPRIO
+                     , led_blinker
+                     , NULL
+                     );
 
-    chThdCreateStatic(waThread_launch_detect      , sizeof(waThread_launch_detect)      , NORMALPRIO    , Thread_launch_detect   , NULL);
+    chThdCreateStatic( wa_lwip_thread
+                     , sizeof(wa_lwip_thread)
+                     , NORMALPRIO + 2
+                     , lwip_thread
+                     , &ip_opts
+                     );
 
-    chThdCreateStatic(waThread_indwatchdog        , sizeof(waThread_indwatchdog)        , NORMALPRIO    , Thread_indwatchdog     , NULL);
+    chThdCreateStatic( wa_data_udp_receive_thread
+                     , sizeof(wa_data_udp_receive_thread)
+                     , NORMALPRIO
+                     , data_udp_receive_thread
+                     , NULL
+                     );
+
+    chThdCreateStatic( wa_launch_detect_dispatcher
+                     , sizeof(wa_launch_detect_dispatcher)
+                     , NORMALPRIO
+                     , launch_detect_dispatcher
+                     , NULL
+                     );
+
+    chThdCreateStatic( wa_watchdog_keeper
+                     , sizeof(wa_watchdog_keeper)
+                     , NORMALPRIO
+                     , watchdog_keeper
+                     , NULL
+                     );
 
 #if DEBUG_PWM
-    chThdCreateStatic(waThread_pwmtest, sizeof(waThread_pwmtest), NORMALPRIO, Thread_pwmtest, NULL);
+    chThdCreateStatic( wa_pwm_tester
+                     , sizeof(wa_pwm_tester)
+                     , NORMALPRIO
+                     , pwm_tester
+                     , NULL
+                     );
 #endif
 
-    chEvtRegister(&extdetail_wkup_event, &el0, 0);
+    chEvtRegister(&extdetail_wkup_event, &wakeup_listener, 0);
 
     while (TRUE) {
-        if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
+        if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE)) {
+            // create the shell thread if it needs to be and our USB connection is up
             shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-        else if (chThdTerminated(shelltp)) {
-            chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-            shelltp = NULL;           /* Triggers spawning of a new shell.        */
+        } else if (chThdTerminated(shelltp)) {
+            chThdRelease(shelltp); /* Recovers memory of the previous shell.   */
+            shelltp = NULL;        /* Triggers spawning of a new shell.        */
         }
-        chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
+
+        chEvtDispatch(wakeup_handlers, chEvtWaitOneTimeout((eventmask_t)0, MS2ST(500)));
     }
 }
