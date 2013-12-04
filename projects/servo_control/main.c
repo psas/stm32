@@ -38,7 +38,7 @@
  * ==================== ********************************************************
  */
 
-//#define DEBUG_PWM 0
+#define DEBUG_PWM 1
 
 static const ShellCommand commands[] = {
     {"mem", cmd_mem},
@@ -46,7 +46,7 @@ static const ShellCommand commands[] = {
     {NULL, NULL}
 };
 
-static const ShellConfig shell_cfg1 = {
+static const ShellConfig shell_cfg = {
     (BaseSequentialStream *)&SDU_PSAS,
     commands
 };
@@ -62,7 +62,7 @@ static WORKING_AREA(wa_launch_detect_dispatcher, 1024);
 static WORKING_AREA(wa_led_blinker, 128);
 static WORKING_AREA(wa_watchdog_keeper, 128);
 
-#ifdef DEBUG_PWM
+#if DEBUG_PWM
 static WORKING_AREA(wa_pwm_tester, 512);
 #endif
 
@@ -85,12 +85,12 @@ static msg_t launch_detect_dispatcher(void *_) {
 
     struct EventListener launch_event_listener;
     static const evhandler_t launch_event_handlers[] = {
-        extdetail_launch_detect_handler
+        launch_detect_handler
     };
 
     chRegSetThreadName("launch_detect");
     launch_detect_init();
-    chEvtRegister(&extdetail_launch_detect_event, &launch_event_listener, 0);
+    chEvtRegister(&launch_detect_event, &launch_event_listener, 0);
 
     while (TRUE) {
         chEvtDispatch(launch_event_handlers, chEvtWaitOne(EVENT_MASK(0)));
@@ -141,13 +141,14 @@ static msg_t watchdog_keeper(void *_) {
 
 
 /*
- * Test PWM Sequence Thread
+ * Test PWM Thread
  *
- * Runs through max left, neutral, and max right servo positions
+ * Steps up and then down through servo positions.
  */
 #if DEBUG_PWM
-static msg_t pwm_tester(void *arg) {
-    (void)arg;
+static msg_t pwm_tester(void *_) {
+    (void)_;
+
     chRegSetThreadName("pwmtest");
 
     //    uint32_t i = 0;
@@ -155,35 +156,30 @@ static msg_t pwm_tester(void *arg) {
     //
     chThdSleepMilliseconds(1000);
 
-    chprintf(chp, "%d %d %d\n", pwm_us_to_ticks(1050), pwm_us_to_ticks(1500), pwm_us_to_ticks(1090));
+    chprintf(chp, "%d %d %d\n", pwm_us_to_ticks(1050), pwm_us_to_ticks(1500), pwm_us_to_ticks(1900));
 
     while(1) {
         uint32_t pulse = 0;
 
-        //     chprintf(chp, ".");
-        //        pwm_set_pulse_width_ticks(pwm_us_to_ticks(333));
-        //        chThdSleepMilliseconds(200);
-        //
-        //        pwm_set_pulse_width_ticks(pwm_us_to_ticks(1050));
-        //        chThdSleepMilliseconds(200);
-        //
-        //        pwm_set_pulse_width_ticks(pwm_us_to_ticks(1900));
-        //        chThdSleepMilliseconds(200);
-        //
-        //        pwmDisableChannel(&PWMD4, 3);
-        //chThdSleepMilliseconds(250);
-        for (pulse = 1050; pulse <= 1900; pulse += 10) {
+        for (pulse = 0; pulse <= 3000; pulse += 50) {
             pwm_set_pulse_width_ticks(pwm_us_to_ticks(pulse));
+            chprintf(chp, "%d\r\n", pulse);
             chThdSleepMilliseconds(50);
         }
+
         pwmDisableChannel(&PWMD4, 3);
+        chprintf(chp, "rest\r\n");
         chThdSleepMilliseconds(2500);
 
-        for (pulse = pulse; pulse > 1050; pulse -= 10) {
+        for (pulse = 3000; pulse > 0; pulse -= 50) {
         	pwm_set_pulse_width_ticks(pwm_us_to_ticks(pulse));
+            chprintf(chp, "%d\r\n", pulse);
         	chThdSleepMilliseconds(50);
         }
-//
+
+        pwmDisableChannel(&PWMD4, 3);
+        chprintf(chp, "rest\r\n");
+        chThdSleepMilliseconds(2500);
 
     }
     return -1;
@@ -219,11 +215,11 @@ static void led_init(void) {
 
 
 int main(void) {
-    static Thread          *shelltp = NULL;
+           Thread          *shelltp = NULL;
     struct EventListener   wakeup_listener;
     struct lwipthread_opts ip_opts;
     static const evhandler_t wakeup_handlers[] = {
-        extdetail_WKUP_button_handler
+        wakeup_button_handler
     };
 
     /* initialize HAL */
@@ -245,7 +241,7 @@ int main(void) {
     usbConnectBus(serusbcfg.usbp);
 
     // start the command shell
-    shellInit();
+    //shellInit();
 
     // start the watchdog timer
     iwdg_begin();
@@ -318,16 +314,16 @@ int main(void) {
                      );
 #endif
 
-    chEvtRegister(&extdetail_wkup_event, &wakeup_listener, 0);
+    chEvtRegister(&wakeup_event, &wakeup_listener, 0);
 
     while (TRUE) {
-        if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE)) {
-            // create the shell thread if it needs to be and our USB connection is up
-            shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-        } else if (chThdTerminated(shelltp)) {
-            chThdRelease(shelltp); /* Recovers memory of the previous shell.   */
-            shelltp = NULL;        /* Triggers spawning of a new shell.        */
-        }
+        //if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE)) {
+        //    // create the shell thread if it needs to be and our USB connection is up
+        //    shelltp = shellCreate(&shell_cfg, SHELL_WA_SIZE, NORMALPRIO);
+        //} else if (chThdTerminated(shelltp)) {
+        //    chThdRelease(shelltp); /* Recovers memory of the previous shell.   */
+        //    shelltp = NULL;        /* Triggers spawning of a new shell.        */
+        //}
 
         chEvtDispatch(wakeup_handlers, chEvtWaitOneTimeout((eventmask_t)0, MS2ST(500)));
     }
