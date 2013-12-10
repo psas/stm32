@@ -16,22 +16,24 @@ sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
 sock.bind((IP_ADDR, SERVER_LISTEN_PORT))
 
 while True:
-	data, addr = sock.recvfrom(136) #
-	(msgType,t1Secs,t1MS,t2Secs,t2MS) = unpack("!cIIII",data)  #network byte order, char followed by 4 unsigned ints
-	msgType = int(msgType,8) #make sure its treated as an int
+	#(msgType,t1Secs,t1MS,t2Secs,t2MS) = unpack("<HIIII",data)  #network byte order, char followed by 4 unsigned ints
+	data,addr = sock.recvfrom(68);
+	(msgType,t1_secs,t1_ms,t2_secs,t2_ms) = unpack("<50xHIIII",data)
+	print msgType, t1_secs, t1_ms, t2_secs, t2_ms,  "\n"
 	currenttime = time.time()
-	print "received message:", data
 	if msgType == MsgType.t1:
+		print "sending type 1 message"
 		respSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		currenttime = time.time()
 		(msecs,secs) = math.modf(currenttime)
 		msecs = msecs * 1000
-		response = pack("!cIIII",1,secs,msecs,0,0)
-		respSock.sendto(response(addr,31338))
+		response = pack("<HIIII",1,secs,msecs,0,0)
+		respSock.sendto(response,(addr[0],31338))
+		print "Sent message type 1 secs %d msecs %d." % (secs,msecs)
 	elif msgType == MsgType.t2:
 		respSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		currenttime = time.time()
 		(msecs,secs) = math.modf(currenttime)
 		msecs = msecs * 1000
-		response = pack("!cIIII",1,secs,msecs,0,0)
-		respSock.sendto(response(addr,31338))
+		response = pack("<HIIII",1,secs,msecs,0,0)
+		respSock.sendto(response,(addr[0],31338))
