@@ -18,18 +18,6 @@ extern "C" {
 #include "ch.h"
 #include "hal.h"
 
-#define     ADIS_14_BIT_MASK                  0x3fff
-#define     ADIS_12_BIT_MASK                  0x0fff
-
-#define     ADIS_RESET_MSECS                  500
-#define     ADIS_TSTALL_US                    10
-#define     ADIS_TSTALL_US_LOWPOWER           75
-
-#define     ADIS_MAX_RX_BUFFER                64
-#define     ADIS_MAX_TX_BUFFER                16
-
-#define     ADIS_NUM_BURSTREAD_REGS           12
-
 #if !defined(ADIS_DEBUG) || defined(__DOXYGEN__)
 #define 	ADIS_DEBUG                   0
 #endif
@@ -78,7 +66,7 @@ typedef enum {
 	ADIS_ALM_SMPL2    = 0x46,        //  0x0000  Alarm 2 sample size
 	ADIS_ALM_CTRL     = 0x48,        //  0x0000  Alarm control
 	ADIS_AUX_DAC      = 0x4A,        //  0x0000  Auxiliary DAC data
-	//          =0x4C,to 0x55        //        Reserved
+	//                = 0x4C to 0x55 //          Reserved
 	ADIS_PRODUCT_ID   = 0x56         //          Product identifier
 
 } adis_regaddr;
@@ -144,19 +132,8 @@ extern EventSource adis_data_ready;
 void adis_init(const adis_pins * pins);
 uint16_t adis_get(adis_regaddr addr);
 void adis_set(adis_regaddr addr, uint16_t value);
-void adis_get_burst(ADIS16405_burst_data * data);
-void get_adis_data(ADIS16405_burst_data * data)
-
-void 	     adis_tstall_delay(void);
-
-void         adis_reset(void);
-
-//void         adis_spi_cb(SPIDriver *spip) ;
-//void         adis_newdata_handler(eventid_t id) ;
-//void         adis_read_id_handler(eventid_t id) ;
-//void         adis_read_dC_handler(eventid_t id) ;
-//void         adis_burst_read_handler(eventid_t id) ;
-//void         adis_spi_cb_txdone_handler(eventid_t id) ;
+void get_adis_data(ADIS16405_burst_data * data);
+void adis_reset(void);
 
 /*!
  * @}

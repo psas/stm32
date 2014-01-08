@@ -29,7 +29,6 @@
 static SPIDriver *SPID = NULL;
 static const adis_pins * PINS = NULL;
 EventSource adis_data_ready;
-ADIS16405_burst_data adis16405_burst_data;
 uint8_t adis_raw_in[sizeof(ADIS16405_burst_data)+ 2];
 
 
@@ -63,8 +62,6 @@ static void buffer_to_burst_data(uint8_t * raw, ADIS16405_burst_data * data){
     data->aux_adc    = (raw[22] << 8 | raw[23]) & 0x0fff;
 }
 
-
-
 static void adis_data_rdy_cb(EXTDriver *extp __attribute__((unused)),
                              expchannel_t channel __attribute__((unused)))
 {
@@ -79,17 +76,10 @@ static void adis_data_rdy_cb(EXTDriver *extp __attribute__((unused)),
 static void spi_complete_cb(SPIDriver * SPID){
     chSysLockFromIsr();
     spiUnselectI(SPID);
+//    todo: timestamp here to measure delay in event broadcasts
     chEvtBroadcastI(&adis_data_ready);
     chSysUnlockFromIsr();
 //    spiReleaseBus(SPID); TODO
-}
-
-
-void get_adis_data(ADIS16405_burst_data * data){ //adis error struct
-    // provides last sample or 0s if no sample received.
-    chSysLock();
-    buffer_to_burst_data(adis_raw_in + 2, adis16405_burst_data);
-    chSysUnlock();
 }
 
 void adis_init(const adis_pins * pins) {
@@ -158,32 +148,6 @@ void adis_init(const adis_pins * pins) {
     adis_reset();
 }
 
-//#if ADIS_DEBUG || defined(__DOXYGEN__)
-//	/*! \brief Convert an ADIS 14 bit accel. value to micro-g
-//	 *
-//	 * @param decimal
-//	 * @param accel reading
-//	 * @return   TRUE if less than zero, FALSE if greater or equal to zero
-//	 */
-//	static bool adis_accel2ug(uint32_t* decimal, uint16_t* twos_num) {
-//		uint16_t ones_comp;
-//		bool     isnegative = false;
-//
-//		//! bit 13 is 14-bit two's complement sign bit
-//		isnegative   = (((uint16_t)(1<<13) & *twos_num) != 0) ? true : false;
-//
-//		if(isnegative) {
-//			ones_comp    = ~(*twos_num & (uint16_t)0x3fff) & 0x3fff;
-//			*decimal     = (ones_comp) + 1;
-//		} else {
-//			*decimal     = *twos_num;
-//		}
-//		*decimal     *= 3330;
-//		return isnegative;
-//	}
-//#endif
-
-
 static int16_t sign_extend(uint16_t val, int bits) {
     if((val&(1<<(bits-1))) != 0){
         val = val - (1<<bits);
@@ -219,22 +183,13 @@ void adis_set(adis_regaddr addr, uint16_t value){ //todo:array
     spiReleaseBus(SPID);
 }
 
-
-void adis_get_burst(ADIS16405_burst_data * data){
-    uint8_t address[2] = {0x3E, 0};
-    uint8_t raw[sizeof(ADIS16405_burst_data)];
-
-    spiAcquireBus(SPID);
-    spiSelect(SPID);
-
-    spiSend(SPID, sizeof(address), address);
-    spiReceive(SPID, sizeof(raw), raw);
-
-    spiUnselect(SPID);
-    spiReleaseBus(SPID);
-
-    buffer_to_burst_data(raw, data);
+void get_adis_data(ADIS16405_burst_data * data){ // TODO: adis error struct
+    // provides last sample or 0s if no sample received.
+    chSysLock();
+    buffer_to_burst_data(adis_raw_in + 2, data);
+    chSysUnlock();
 }
+
 
 //void adis_auto_diagnostic(){
 //    uint16_t msc = adis_get(ADIS_MSC_CTRL);
@@ -244,180 +199,9 @@ void adis_get_burst(ADIS16405_burst_data * data){
 /*! \brief Reset the ADIS
  */
 void adis_reset() {
+    const unsigned int ADIS_RESET_MSECS = 500;
 	palClearPad(PINS->reset.port, PINS->reset.pad);
 	chThdSleepMilliseconds(ADIS_RESET_MSECS);
 	palSetPad(PINS->reset.port, PINS->reset.pad);
 	chThdSleepMilliseconds(ADIS_RESET_MSECS);
 }
-
-/*!
- * t_stall is 9uS according to ADIS datasheet.
- */
-void adis_tstall_delay() {
-	volatile uint32_t i, j;
-
-	/*!
-	 *  This is the ADIS T_stall time.
-	 *  Counting to 100 takes about 11uS.
-	 *  Measured on oscilloscope.
-	 *
-	 *  \todo Use a HW (not virtual) timer/counter unit to generate T_stall delays
-	 */
-	j = 0;
-	for(i=0; i<100; ++i) {
-		j++;
-	}
-}
-
-/*!
- *
- * @param spip
- */
-//void adis_release_bus(eventid_t id) {
-//	(void) id;
-//	spiReleaseBus(adis_driver.spi_instance);
-//}
-//
-///*! \brief adis_spi_cb
-// *
-// * What happens at end of ADIS SPI transaction
-// *
-// * This is executed during the SPI interrupt.
-// *
-// * @param spip
-// */
-//void adis_spi_cb(SPIDriver *spip) {
-//	chSysLockFromIsr();
-//
-//	uint8_t       i                              = 0;
-//
-//	chDbgCheck(adis_driver.spi_instance == spip, "adis_spi_cb driver mismatch");
-//	if(adis_driver.state == ADIS_TX_PEND) {
-//		chEvtBroadcastI(&adis_spi_cb_txdone_event);
-//	} else {
-//		for(i=0; i<adis_driver.tx_numbytes; ++i) {
-//			adis_cache_data.adis_tx_cache[i] = adis_driver.adis_txbuf[i];
-//		}
-//		for(i=0; i<adis_driver.rx_numbytes; ++i) {
-//			adis_cache_data.adis_rx_cache[i] = adis_driver.adis_rxbuf[i];
-//		}
-//		adis_cache_data.reg                  = adis_driver.reg;
-//		adis_cache_data.current_rx_numbytes  = adis_driver.rx_numbytes;
-//		adis_cache_data.current_tx_numbytes  = adis_driver.tx_numbytes;
-//		chEvtBroadcastI(&adis_spi_cb_data_captured);
-//		chEvtBroadcastI(&adis_spi_cb_releasebus);
-//	}
-//	chSysUnlockFromIsr();
-//}
-//
-///*! \brief Process an adis_newdata_event
-// */
-//void adis_newdata_handler(eventid_t id) {
-//	(void)                id;
-//
-//	spiUnselect(adis_driver.spi_instance);                /* Slave Select de-assertion.       */
-//
-//	if(adis_driver.reg == ADIS_GLOB_CMD) {
-//		adis16405_burst_data.adis_supply_out   = (((adis_cache_data.adis_rx_cache[0]  << 8) | adis_cache_data.adis_rx_cache[1] ) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_xgyro_out    = (((adis_cache_data.adis_rx_cache[2]  << 8) | adis_cache_data.adis_rx_cache[3] ) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_ygyro_out    = (((adis_cache_data.adis_rx_cache[4]  << 8) | adis_cache_data.adis_rx_cache[5] ) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_zgyro_out    = (((adis_cache_data.adis_rx_cache[6]  << 8) | adis_cache_data.adis_rx_cache[7] ) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_xaccl_out    = (((adis_cache_data.adis_rx_cache[8]  << 8) | adis_cache_data.adis_rx_cache[9] ) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_yaccl_out    = (((adis_cache_data.adis_rx_cache[10] << 8) | adis_cache_data.adis_rx_cache[11]) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_zaccl_out    = (((adis_cache_data.adis_rx_cache[12] << 8) | adis_cache_data.adis_rx_cache[13]) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_xmagn_out    = (((adis_cache_data.adis_rx_cache[14] << 8) | adis_cache_data.adis_rx_cache[15]) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_ymagn_out    = (((adis_cache_data.adis_rx_cache[16] << 8) | adis_cache_data.adis_rx_cache[17]) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_zmagn_out    = (((adis_cache_data.adis_rx_cache[18] << 8) | adis_cache_data.adis_rx_cache[19]) & ADIS_14_BIT_MASK );
-//		adis16405_burst_data.adis_temp_out     = (((adis_cache_data.adis_rx_cache[20] << 8) | adis_cache_data.adis_rx_cache[21]) & ADIS_12_BIT_MASK );
-//		adis16405_burst_data.adis_aux_adc      = (((adis_cache_data.adis_rx_cache[22] << 8) | adis_cache_data.adis_rx_cache[23]) & ADIS_12_BIT_MASK );
-//
-//		chEvtBroadcast(&adis_spi_burst_data_captured);         // Event monitored in data_udp_send thread
-//	}
-//
-//#if ADIS_DEBUG
-//	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
-//	bool                  negative = false;
-//	uint32_t              result_ug = 0;
-//	static uint32_t       j        = 0;
-//	static uint32_t       xcount   = 0;
-//
-//	++j;
-//	if(j>4000) {
-//		//chprintf(chp, "adis driver reg: %0x%x\n", adis_driver.reg);
-//		if(adis_driver.reg == ADIS_GLOB_CMD) {
-//			// chprintf(chp, "%d: supply: %x %d uV\r\n", xcount, burst_data.adis_supply_out, ( burst_data.adis_supply_out * 2418));
-//			//negative = twos2dec(&burst_data.adis_xaccl_out);
-//			chprintf(chp, "\r\n*** ADIS ***\r\n");
-//
-//			chprintf(chp, "%d: T: 0x%x C\r\n", xcount, adis16405_burst_data.adis_temp_out);
-//			negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_zaccl_out);
-//			chprintf(chp, "%d: z: 0x%x  %s%d ug\r\n", xcount, adis16405_burst_data.adis_zaccl_out, (negative) ? "-" : "", result_ug);
-//			negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_xaccl_out);
-//			chprintf(chp, "%d: x: 0x%x  %s%d ug\r\n", xcount, adis16405_burst_data.adis_xaccl_out, (negative) ? "-" : "", result_ug);
-//			negative   = adis_accel2ug(&result_ug, &adis16405_burst_data.adis_yaccl_out);
-//			chprintf(chp, "%d: y: 0x%x  %s%d ug\r\n\r\n", xcount, adis16405_burst_data.adis_yaccl_out, (negative) ? "-" : "", result_ug);
-//
-//		} else if (adis_driver.reg == ADIS_PRODUCT_ID) {
-//			chprintf(chp, "%d: Prod id: %x\r\n", xcount, ((adis_cache_data.adis_rx_cache[0]<< 8)|(adis_cache_data.adis_rx_cache[1])) );
-//		} else if (adis_driver.reg == ADIS_TEMP_OUT) {
-//			chprintf(chp, "%d: Temperature: 0x%x", xcount, (((adis_cache_data.adis_rx_cache[0] << 8) | adis_cache_data.adis_rx_cache[1]) & ADIS_12_BIT_MASK) );
-//		} else {
-//			chprintf(chp, "%d: not recognized %d\n", xcount, adis_driver.reg);
-//		}
-//
-//		j=0;
-//		++xcount;
-//	}
-//#endif
-//
-//	adis_driver.state             = ADIS_IDLE;   /* don't go to idle until data processed */
-//}
-//
-//void adis_read_id_handler(eventid_t id) {
-//	(void) id;
-//	adis_read_id(&SPID1);
-//}
-//
-//void adis_read_dC_handler(eventid_t id) {
-//	(void) id;
-//
-//	adis_read_dC(&SPID1);
-//}
-//
-//void adis_burst_read_handler(eventid_t id) {
-//	(void) id;
-//	//	BaseSequentialStream    *chp = (BaseSequentialStream *)&SDU_PSAS;
-//	//	chprintf(chp, "+");
-//
-//	adis_burst_read(&SPID1);
-//}
-//
-///*! \brief Process information from a adis_spi_cb event
-// *
-// */
-//void adis_spi_cb_txdone_handler(eventid_t id) {
-//	(void) id;
-//	switch(adis_driver.reg) {
-//		case ADIS_PRODUCT_ID:
-//		case ADIS_TEMP_OUT:
-//			spiUnselect(adis_driver.spi_instance);
-//			spiReleaseBus(adis_driver.spi_instance);
-//			adis_tstall_delay();
-//			spiAcquireBus(adis_driver.spi_instance);
-//			spiSelect(adis_driver.spi_instance);
-//			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
-//			adis_driver.state             = ADIS_RX_PEND;
-//			break;
-//		case ADIS_GLOB_CMD:
-//			spiStartReceive(adis_driver.spi_instance, adis_driver.rx_numbytes, adis_driver.adis_rxbuf);
-//			adis_driver.state             = ADIS_RX_PEND;
-//			break;
-//		default:
-//			spiUnselect(adis_driver.spi_instance);
-//			spiReleaseBus(adis_driver.spi_instance);
-//			adis_driver.state             = ADIS_IDLE;
-//			break;
-//	}
-//}
-
-//! @}
