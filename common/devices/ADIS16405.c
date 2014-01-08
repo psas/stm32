@@ -29,6 +29,9 @@
 static SPIDriver *SPID = NULL;
 static const adis_pins * PINS = NULL;
 EventSource adis_data_ready;
+ADIS16405_burst_data adis16405_burst_data;
+uint8_t adis_raw_in[sizeof(ADIS16405_burst_data)+ 2];
+
 
 const adis_pins adis_olimex_e407 = {
         .spi_cs = {GPIOA, GPIOA_PIN4},
@@ -42,15 +45,52 @@ const adis_pins adis_olimex_e407 = {
         .dio4 = {GPIOD, GPIOD_PIN12},
 };
 
+
+static void buffer_to_burst_data(uint8_t * raw, ADIS16405_burst_data * data){
+    //todo: check nd and ea bits
+
+    data->supply_out = (raw[0] << 8 | raw[1]) & 0x3fff;
+    data->xgyro_out  = sign_extend((raw[2]  << 8 | raw[3]) & 0x3fff, 14);
+    data->ygyro_out  = sign_extend((raw[4]  << 8 | raw[5]) & 0x3fff, 14);
+    data->zgyro_out  = sign_extend((raw[6]  << 8 | raw[7]) & 0x3fff, 14);
+    data->xaccl_out  = sign_extend((raw[8]  << 8 | raw[9]) & 0x3fff, 14);
+    data->yaccl_out  = sign_extend((raw[10] << 8 | raw[11]) & 0x3fff, 14);
+    data->zaccl_out  = sign_extend((raw[12] << 8 | raw[13]) & 0x3fff, 14);
+    data->xmagn_out  = sign_extend((raw[14] << 8 | raw[15]) & 0x3fff, 14);
+    data->ymagn_out  = sign_extend((raw[16] << 8 | raw[17]) & 0x3fff, 14);
+    data->zmagn_out  = sign_extend((raw[18] << 8 | raw[19]) & 0x3fff, 14);
+    data->temp_out   = sign_extend((raw[20] << 8 | raw[21]) & 0x0fff, 12);
+    data->aux_adc    = (raw[22] << 8 | raw[23]) & 0x0fff;
+}
+
+
+
 static void adis_data_rdy_cb(EXTDriver *extp __attribute__((unused)),
                              expchannel_t channel __attribute__((unused)))
 {
-    palSetPad(GPIOC, GPIOC_LED);
+    static uint8_t address[sizeof(ADIS16405_burst_data)+2] = {0x3E, 0};
+//    spiAcquireBus(SPID);TODO
     chSysLockFromIsr();
-    chEvtBroadcastI(&adis_data_ready);
+    spiSelectI(SPID);
+    spiStartExchangeI(SPID, sizeof(ADIS16405_burst_data)+2, address, adis_raw_in);
     chSysUnlockFromIsr();
 }
 
+static void spi_complete_cb(SPIDriver * SPID){
+    chSysLockFromIsr();
+    spiUnselectI(SPID);
+    chEvtBroadcastI(&adis_data_ready);
+    chSysUnlockFromIsr();
+//    spiReleaseBus(SPID); TODO
+}
+
+
+void get_adis_data(ADIS16405_burst_data * data){ //adis error struct
+    // provides last sample or 0s if no sample received.
+    chSysLock();
+    buffer_to_burst_data(adis_raw_in + 2, adis16405_burst_data);
+    chSysUnlock();
+}
 
 void adis_init(const adis_pins * pins) {
 
@@ -78,7 +118,7 @@ void adis_init(const adis_pins * pins) {
      */
 
     static SPIConfig spicfg = {
-            .end_cb = NULL,
+            .end_cb = spi_complete_cb,
             .cr1 = SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
     };
     spicfg.ssport = pins->spi_cs.port;
@@ -179,6 +219,7 @@ void adis_set(adis_regaddr addr, uint16_t value){ //todo:array
     spiReleaseBus(SPID);
 }
 
+
 void adis_get_burst(ADIS16405_burst_data * data){
     uint8_t address[2] = {0x3E, 0};
     uint8_t raw[sizeof(ADIS16405_burst_data)];
@@ -192,20 +233,7 @@ void adis_get_burst(ADIS16405_burst_data * data){
     spiUnselect(SPID);
     spiReleaseBus(SPID);
 
-    //todo: check nd and ea bits
-
-    data->supply_out = (raw[0] << 8 | raw[1]) & 0x3fff;
-    data->xgyro_out  = sign_extend((raw[2]  << 8 | raw[3]) & 0x3fff, 14);
-    data->ygyro_out  = sign_extend((raw[4]  << 8 | raw[5]) & 0x3fff, 14);
-    data->zgyro_out  = sign_extend((raw[6]  << 8 | raw[7]) & 0x3fff, 14);
-    data->xaccl_out  = sign_extend((raw[8]  << 8 | raw[9]) & 0x3fff, 14);
-    data->yaccl_out  = sign_extend((raw[10] << 8 | raw[11]) & 0x3fff, 14);
-    data->zaccl_out  = sign_extend((raw[12] << 8 | raw[13]) & 0x3fff, 14);
-    data->xmagn_out  = sign_extend((raw[14] << 8 | raw[15]) & 0x3fff, 14);
-    data->ymagn_out  = sign_extend((raw[16] << 8 | raw[17]) & 0x3fff, 14);
-    data->zmagn_out  = sign_extend((raw[18] << 8 | raw[19]) & 0x3fff, 14);
-    data->temp_out   = sign_extend((raw[20] << 8 | raw[21]) & 0x0fff, 12);
-    data->aux_adc    = (raw[22] << 8 | raw[23]) & 0x0fff;
+    buffer_to_burst_data(raw, data);
 }
 
 //void adis_auto_diagnostic(){
