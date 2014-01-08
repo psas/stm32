@@ -20,6 +20,31 @@
 #include "usbdetail.h"
 #include "data_udp.h"
 
+static int get_udp_socket(const char * ip, unsigned int port){
+    BaseSequentialStream *chp = getActiveUsbSerialStream();
+
+    //Create our own address (remember to have the data in network byte order)
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(struct sockaddr_in));
+    addr.sin_family = AF_INET,
+    addr.sin_port = htons(port);
+    inet_aton(ip, &addr.sin_addr);
+
+    //Create the socket
+    int s = socket(AF_INET,  SOCK_DGRAM, 0);
+    if(s < 0){
+        chprintf(chp, "Socket allocation failure \r\n");
+        return -1;
+    }
+
+    //bind our own address to the socket
+    if(bind(s, (struct sockaddr*)&addr, sizeof(addr)) < 0){
+        chprintf(chp, "Socket bind failure\r\t");
+        return -2;
+    }
+    return s;
+}
+
 WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 
 msg_t data_udp_send_thread(void *p __attribute__ ((unused))){
@@ -32,12 +57,7 @@ msg_t data_udp_send_thread(void *p __attribute__ ((unused))){
     chRegSetThreadName("data_udp_send_thread");
     BaseSequentialStream *chp = getActiveUsbSerialStream();
 
-    //Create our own address (remember to have the data in network byte order)
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(struct sockaddr_in));
-    addr.sin_family = AF_INET,
-    addr.sin_port = htons(DATA_UDP_TX_THREAD_PORT);
-    inet_aton(IP_PSAS_SENSOR, &addr.sin_addr);
+    int s = get_udp_socket(IP_PSAS_SENSOR, DATA_UDP_TX_THREAD_PORT);
 
     //Create the address to send to (remember to have the data in network byte order)
     struct sockaddr_in dest_addr;
@@ -45,19 +65,6 @@ msg_t data_udp_send_thread(void *p __attribute__ ((unused))){
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(DATA_UDP_TX_THREAD_PORT);
     inet_aton(IP_PSAS_FC, &dest_addr.sin_addr);
-
-    //Create the socket
-    int s = socket(AF_INET,  SOCK_DGRAM, 0);
-    if(s < 0){
-        chprintf(chp, "Send socket allocation failure \r\n");
-        return -1;
-    }
-
-    //bind our own address to the socket
-    if(bind(s, (struct sockaddr*)&addr, sizeof(addr)) < 0){
-        chprintf(chp, "Send socket bind failure\r\t");
-        return -2;
-    }
 
     //send data to another socket
     char msg[DATA_UDP_MSG_SIZE];
@@ -88,25 +95,7 @@ msg_t data_udp_receive_thread(void *p __attribute__ ((unused))) {
     chRegSetThreadName("data_udp_receive_thread");
     BaseSequentialStream *chp = getActiveUsbSerialStream();
 
-    //Create our own address (remember to have the data in network byte order)
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(struct sockaddr_in));
-    addr.sin_family = AF_INET,
-    addr.sin_port = htons(DATA_UDP_RX_THREAD_PORT);
-    inet_aton(IP_PSAS_SENSOR, &addr.sin_addr);
-
-    //Create the socket
-    int s = socket(AF_INET,  SOCK_DGRAM, 0);
-    if(s < 0){
-        chprintf(chp, "Receive socket allocation failure \r\n");
-        return -1;
-    }
-
-    //bind our own address to the socket
-    if(bind(s, (struct sockaddr*)&addr, sizeof(addr)) < 0){
-        chprintf(chp, "Receive socket bind failure \r\n");
-        return -2;
-    }
+    int s = get_udp_socket(IP_PSAS_SENSOR, DATA_UDP_RX_THREAD_PORT);
 
     //read data from socket
     char msg[DATA_UDP_MSG_SIZE];
