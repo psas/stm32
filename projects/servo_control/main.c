@@ -284,10 +284,10 @@ int main(void) {
                      , &ip_opts
                      );
 
-    chThdCreateStatic( wa_data_udp_receive_thread
-                     , sizeof(wa_data_udp_receive_thread)
+    chThdCreateStatic( wa_data_udp_rx_thread
+                     , sizeof(wa_data_udp_rx_thread)
                      , NORMALPRIO
-                     , data_udp_receive_thread
+                     , data_udp_rx_thread
                      , NULL
                      );
 
