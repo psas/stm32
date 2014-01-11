@@ -1,14 +1,5 @@
-/*! \file pwm_config.h
- *
- */
-
 #ifndef _PWM_CONFIG_H
 #define _PWM_CONFIG_H
-
-/*!
- * \addtogroup pwm_config
- * @{
- */
 
 /*!
  * Try to standardize units on 'ticks'
@@ -24,18 +15,19 @@
 #include "pwm_lld.h"
 
 
-/*! \warning PERIOD setting for PWM is uint16_t (0-65535)
+/*
+ * \warning PERIOD setting for PWM is uint16_t (0-65535)
  *
- *    Do not overflow this value! You may have to turn down
- *    INIT_PWM_FREQ to obtain pulsewidths you need. See Hitec
- *    20mS example settings.
+ * Do not overflow this value! You may have to turn down
+ * INIT_PWM_FREQ to obtain pulsewidths you need. See Hitec
+ * 20mS example settings.
  * Testing only:
  * Hitec 20mS period (50hZ) servos (Models HS-81 and HS-45HB)
  *  Pulse widths range from 900 uS to 2100 uS
 
 #define         INIT_PWM_FREQ                  3000000
-#define         INIT_PWM_PERIOD_TICS           ((pwmcnt_t)  60000)
-#define         INIT_PWM_PULSE_WIDTH_TICS      ((pwmcnt_t)  4500)
+#define         INIT_PWM_PERIOD_TICKS           ((pwmcnt_t)  60000)
+#define         INIT_PWM_PULSE_WIDTH_TICKS      ((pwmcnt_t)  4500)
 */
 
 /* Rocket servo
@@ -48,14 +40,29 @@
 
  */
 
+
+
+/*
+ * Constant Definitions
+ * ==================== ********************************************************
+ */
+
 #define         INIT_PWM_FREQ                  6000000
-#define         INIT_PWM_PERIOD_TICS           ((pwmcnt_t) 20000)
-#define         INIT_PWM_PULSE_WIDTH_TICS      ((pwmcnt_t) 9000)
+#define         INIT_PWM_PERIOD_TICKS           ((pwmcnt_t) 20000)
+#define         INIT_PWM_PULSE_WIDTH_TICKS      ((pwmcnt_t) 9000)
 
 
+// boilerplate
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+
+/*
+ * Function Declarations
+ * ===================== *******************************************************
+ */
 
 void            pwm_start(void);
 void            pwm_set_pulse_width_ticks(uint32_t width_ticks);
@@ -67,6 +74,8 @@ uint32_t        pwm_get_period_ms(void);
 pwmcnt_t        pwm_get_pulse_width(void);
 pwmcnt_t        pwm_us_to_ticks(uint32_t us) ;
 
+
+// boilerplate
 #ifdef __cplusplus
 }
 #endif
