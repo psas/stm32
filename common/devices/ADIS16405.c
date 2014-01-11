@@ -45,6 +45,13 @@ const adis_pins adis_olimex_e407 = {
 };
 
 
+static int16_t sign_extend(uint16_t val, int bits) {
+    if((val&(1<<(bits-1))) != 0){
+        val = val - (1<<bits);
+    }
+    return val;
+}
+
 static void buffer_to_burst_data(uint8_t * raw, ADIS16405_burst_data * data){
     //todo: check nd and ea bits
 
@@ -148,13 +155,6 @@ void adis_init(const adis_pins * pins) {
     adis_reset();
 }
 
-static int16_t sign_extend(uint16_t val, int bits) {
-    if((val&(1<<(bits-1))) != 0){
-        val = val - (1<<bits);
-    }
-    return val;
-}
-
 uint16_t adis_get(adis_regaddr addr){ //todo: array
     uint8_t txbuf[2] = {addr, 0};
     uint8_t rxbuf[2];
@@ -183,7 +183,7 @@ void adis_set(adis_regaddr addr, uint16_t value){ //todo:array
     spiReleaseBus(SPID);
 }
 
-void get_adis_data(ADIS16405_burst_data * data){ // TODO: adis error struct
+void adis_get_data(ADIS16405_burst_data * data){ // TODO: adis error struct
     // provides last sample or 0s if no sample received.
     chSysLock();
     buffer_to_burst_data(adis_raw_in + 2, data);

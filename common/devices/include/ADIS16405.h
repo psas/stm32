@@ -132,7 +132,7 @@ extern EventSource adis_data_ready;
 void adis_init(const adis_pins * pins);
 uint16_t adis_get(adis_regaddr addr);
 void adis_set(adis_regaddr addr, uint16_t value);
-void get_adis_data(ADIS16405_burst_data * data);
+void adis_get_data(ADIS16405_burst_data * data);
 void adis_reset(void);
 
 /*!
