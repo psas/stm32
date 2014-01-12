@@ -5,21 +5,19 @@
 #include "BQ24725.h"
 #include "KS8999.h"
 #include "RNH.h"
+#include "device_net.h"
 
 #include "lwip/ip_addr.h"
+#include "lwip/sockets.h"
 #include "lwipopts.h"
 #include "lwipthread.h"
 
-// Local header files
-//#include "data_udp.h"
-//#include "device_net.h"
-//#include "fc_net.h"
 #define         RNET_A_IP_ADDR(p)         IP4_ADDR(p, 10, 0, 0,   5);
 #define         RNET_A_GATEWAY(p)         IP4_ADDR(p, 0,  0, 0,   0  );
 #define         RNET_A_NETMASK(p)         IP4_ADDR(p, 255, 255, 255, 0  );
 #define         RNET_A_IP_ADDR_STRING     "10.0.0.5"
-#define         RNET_A_LISTEN_PORT        35003
-#define         RNET_A_TX_PORT            35004
+#define         RNET_A_LISTEN_PORT        36100
+#define         RNET_A_TX_PORT            36101
 #define         RNET_A_MAC_ADDRESS        {0xE6, 0x10, 0x20, 0x30, 0x40, 0xaa}
 
 static WORKING_AREA(led_area, 64);
@@ -66,6 +64,68 @@ static void led(void *arg __attribute__ ((unused))) {
  *
  */
 
+#define ETHERNET_COMMANDS_STACK_SIZE      1024
+WORKING_AREA(wa_ethernet_commands, ETHERNET_COMMANDS_STACK_SIZE);
+
+char ARM[]     = "#YOLO";
+char SAFE[]    = "#SAFE";
+char PIN_ON[]  = "#ON_P";
+char PIN_OFF[] = "#FF_P";
+char VERSION[] = "#VERS";
+char TIME[]    = "#TIME";
+char PWR_STAT[]= "#POWR";
+
+#define COMPARE_BUFFER_TO_CMD(a, b, len)\
+    !strncmp((char*)a, b, sizeof(b) > len? len: sizeof(b))
+
+
+
+msg_t ethernet_commands(void * arg __attribute__((unused))){
+
+    struct sockaddr_in rnh_in;
+    memset(&rnh_in, 0, sizeof(struct sockaddr_in));
+    rnh_in.sin_family = AF_INET,
+    rnh_in.sin_port = htons(RNET_A_LISTEN_PORT);
+    inet_aton(RNET_A_IP_ADDR_STRING, &rnh_in.sin_addr);
+
+    int s = socket(AF_INET,  SOCK_DGRAM, 0);
+    if(s < 0){
+        return -1;
+    }
+
+    if(bind(s, (struct sockaddr * )&rnh_in, sizeof(rnh_in)) < 0){
+        return -2;
+    }
+
+    char msg[50]; //TODO: non-arbitrary size
+    int ret;
+    unsigned int len;
+    while(TRUE) {
+        ret = recv(s, msg, sizeof(msg), 0);
+        if(ret < 0){
+            return -3;
+        }
+        len=ret;
+        if(COMPARE_BUFFER_TO_CMD(msg, ARM, len)){
+
+        } else if(COMPARE_BUFFER_TO_CMD(msg, SAFE, len)){
+
+        } else if(COMPARE_BUFFER_TO_CMD(msg, PIN_ON, len)){
+            int port_mask = msg[4];
+            RNH_power(port_mask, RNH_PORT_ON);
+        } else if(COMPARE_BUFFER_TO_CMD(msg, PIN_OFF, len)){
+            int port_mask = msg[4];
+            RNH_power(port_mask, RNH_PORT_OFF);
+        } else if(COMPARE_BUFFER_TO_CMD(msg, VERSION, len)){
+
+        } else if(COMPARE_BUFFER_TO_CMD(msg, TIME, len)){
+
+        } else if(COMPARE_BUFFER_TO_CMD(msg, PWR_STAT, len)){
+
+        }
+    }
+    return 0;
+}
 
 void BQ24725_start(void){
     BQ24725_charge_options BQ24725_rocket_init = {
@@ -101,14 +161,12 @@ void eth_start(void){
     ip_opts.gateway    = gateway.addr;
 
     chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, &ip_opts);
-//  chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
-//  chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
+    chThdCreateStatic(wa_ethernet_commands , sizeof(wa_ethernet_commands) , NORMALPRIO , ethernet_commands, NULL);
 }
 
 void sleep(void){
 
 }
-
 
 static void ACOK_cb(EXTDriver *extp __attribute__ ((unused)),
                     expchannel_t channel __attribute__ ((unused))) {
@@ -134,14 +192,13 @@ void main(void) {
         KS8999_init();
         eth_start();
     }
+
     //Start ACOK power events
     EXTConfig bqextcfg;
     memset(&bqextcfg, 0, sizeof(bqextcfg));
     bqextcfg.channels[0].mode = EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD;
     bqextcfg.channels[0].cb = &ACOK_cb;
     extStart(&EXTD1, &bqextcfg);
-
-
 
     //main should never return
     while (TRUE) {
