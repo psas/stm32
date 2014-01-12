@@ -96,7 +96,8 @@ CSRC = $(PORTSRC) \
         rnh_shell.c \
         KS8999.c \
         BQ24725.c \
-	RNH.c
+        RNH.c \
+       $(PSAS_NET)/device_net.c
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CPPSRC =
@@ -128,6 +129,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
          $(PSAS_DEVICES)/include \
+         $(PSAS_NET) \
          $(CONF)         
 #
 # Project, sources and paths

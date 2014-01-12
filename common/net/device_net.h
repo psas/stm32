@@ -8,10 +8,8 @@
 #define _DEVICE_NET_H
 
 #include "fc_net.h"
-
-#if LWIP_NETCONN
+#include "lwip/sockets.h"
 #include "lwip/ip_addr.h"
-#endif
 
 #if LWIP_NETCONN
 #define         IMU_A_IP_ADDR(p)            IP4_ADDR(p, 192, 168, 0,   196);
