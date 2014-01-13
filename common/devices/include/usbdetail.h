@@ -13,7 +13,6 @@
 #include "ch.h"
 #include "hal.h"
 #include "shell.h"
-#include "serial_usb.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,10 +23,6 @@ extern "C" {
  * board?
  */
 #define PSAS_USE_OTG1   TRUE
-
-extern      struct      SerialUSBDriver         SDU_PSAS;
-extern      const       USBConfig               usbcfg;
-extern      const       SerialUSBConfig         serusbcfg;
 
 /* Call usbSerialShellStart with a list of commands and will
  * handle setting up the usb, usb serial, and shell drivers, as well as
