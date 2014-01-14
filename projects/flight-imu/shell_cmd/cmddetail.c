@@ -33,8 +33,7 @@
 
 #ifdef DEBUG_SHELLCMD
 #include "usbdetail.h"
-BaseSequentialStream    *shellcmd   =  (BaseSequentialStream *)&SDU_PSAS;
-#define SHELLDBG(format, ...) chprintf(shellcmd, format, ##__VA_ARGS__ )
+#define SHELLDBG(format, ...) chprintf(getActiveUsbSerialStream(), format, ##__VA_ARGS__ )
 #else
 #define SHELLDBG(...)
 #endif

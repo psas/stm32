@@ -33,11 +33,16 @@
 
 #define 		DEBUG_PWM 				0
 
+#define GPIOF_GREEN_LED             2
+#define GPIOF_RED_LED               3
+#define GPIOF_BLUE_LED              14
+
 static const ShellCommand commands[] = {
         {"mem", cmd_mem},
         {"threads", cmd_threads},
         {NULL, NULL}
 };
+
 
 BaseSequentialStream * chp = NULL;
 
@@ -130,6 +135,8 @@ static WORKING_AREA(waThread_blinker, 128);
 static msg_t Thread_blinker(void *arg) {
     (void)arg;
     chRegSetThreadName("blinker");
+
+    PIN_MODE_OUTPUT(GPIOF_BLUE_LED);
     palClearPad(GPIOF, GPIOF_GREEN_LED);
     palClearPad(GPIOF, GPIOF_RED_LED);
     palClearPad(GPIOF, GPIOF_BLUE_LED);

@@ -117,7 +117,7 @@ msg_t data_udp_send_thread(void *p) {
 			for( ;; ){
 				buf     =  netbuf_new();
 				data    =  netbuf_alloc(buf, sizeof(msg));
-				sprintf(msg, "sensor tx: %d", count++);
+				chsnprintf(msg, sizeof(msg), "sensor tx: %d", count++);
 				memcpy (data, msg, sizeof (msg));
 				palSetPadMode(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
 				palSetPad(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);

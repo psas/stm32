@@ -113,8 +113,8 @@ static msg_t Thread_mpl3115a2(void *arg) {
 		chMtxLock(&mtx);
 		mpl3115a2_read_P_T(mpl3115a2_driver.i2c_instance, &d);
 		chMtxUnlock();
-		chprintf(chp,"Temperature: %d\r\n", d.mpu_temperature);
-		chprintf(chp, "Pressure %d\r\n",  d.mpu_pressure);
+		chprintf(chp,"Temperature: %d\r\n", d.mpl_temperature);
+		chprintf(chp, "Pressure %d\r\n",  d.mpl_pressure);
 		chThdSleepMilliseconds(1000);
 	}
 	return -1;

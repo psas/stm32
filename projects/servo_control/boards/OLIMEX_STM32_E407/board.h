@@ -151,9 +151,7 @@
 #define GPIOF_PIN0                  0
 #define GPIOF_PIN1                  1
 #define GPIOF_PIN2                  2
-#define GPIOF_GREEN_LED             2
 #define GPIOF_PIN3                  3
-#define GPIOF_RED_LED               3
 #define GPIOF_PIN4                  4
 #define GPIOF_PIN5                  5
 #define GPIOF_PIN6                  6
@@ -165,7 +163,6 @@
 #define GPIOF_PIN12                 12
 #define GPIOF_PIN13                 13
 #define GPIOF_PIN14                 14
-#define GPIOF_BLUE_LED              14
 #define GPIOF_PIN15                 15
 
 #define GPIOG_PIN0                  0

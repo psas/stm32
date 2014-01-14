@@ -96,7 +96,6 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/iwdg_lld.c \
        $(PSAS_DEVICES)/usbdetail.c \
        $(PSAS_DEVICES)/psas_rtc.c \
-       $(PSAS_DEVICES)/psas_sdclog.c \
        $(PSAS_DEVICES)/ADIS16405.c \
        $(PSAS_DEVICES)/MPU9150.c \
        $(PSAS_DEVICES)/MPL3115A2.c \
@@ -104,8 +103,7 @@ CSRC = $(PORTSRC) \
        ./data_udp/data_udp.c \
        cmddetail.c \
        extdetail.c \
-       $(PSAS_DEVICES)/usbdetail.c \
-	main.c
+       main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

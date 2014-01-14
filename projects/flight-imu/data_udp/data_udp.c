@@ -66,7 +66,7 @@ static        MPL3115A2_MAC_info        mpl3115a2_mac_info;
 
 static void log_error(volatile char *s) {
 #if DEBUG_SENSOR_UDP
-	static        BaseSequentialStream      *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+	BaseSequentialStream *chp = getActiveUsbSerialStream();
 	chprintf(chp, "E:%s\r\n", s);
 #else
 	(void) s;
@@ -284,7 +284,7 @@ static void data_udp_process_rx(char* rxbuf, uint16_t rxbuflen) {
 static void data_udp_rx_serve(struct netconn *conn) {
 #if DEBUG_SENSOR_UDP
 	static uint8_t       count  = 0;
-	static        BaseSequentialStream      *chp   =  (BaseSequentialStream *)&SDU_PSAS;
+	BaseSequentialStream *chp = getActiveUsbSerialStream();
 #endif
 
 	struct netbuf        *inbuf;

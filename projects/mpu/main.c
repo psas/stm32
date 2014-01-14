@@ -114,7 +114,7 @@ static void mpu9150_int_event_handler(eventid_t id __attribute__ ((unused))) {
 
     static uint16_t     count = 0;
 
-    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+    BaseSequentialStream *chp = getActiveUsbSerialStream();
 
 	++count;
 	if (count > 5000) {

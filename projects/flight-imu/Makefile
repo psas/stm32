@@ -67,9 +67,8 @@ PROJECT = ch
 PSAS= ../../common
 CONF= conf
 include $(PSAS)/psas.mk
-BOARDINC = $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407
-BOARDSRC = $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407/board.c
-CHIBIOS  = ../../ChibiOS
+CHIBIOS = ../../ChibiOS
+include $(CHIBIOS)/boards/OLIMEX_STM32_E407/board.mk
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk

@@ -44,8 +44,7 @@
 
 #ifdef DEBUG_SDC
 #include "usbdetail.h"
-BaseSequentialStream    *sdcchp   =  (BaseSequentialStream *)&SDU_PSAS;
-#define SDCDEBUG(format, ...) chprintf( sdcchp, format, ##__VA_ARGS__ )
+#define SDCDEBUG(format, ...) chprintf(getActiveUsbSerialStream(), format, ##__VA_ARGS__ )
 #else
 #define SDCDEBUG(...) do{ } while ( false )
 #endif

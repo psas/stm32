@@ -92,6 +92,7 @@ CSRC = $(PORTSRC) \
        $(FATFSSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
+       $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_DEVICES)/usbdetail.c \
        data_udp.c \

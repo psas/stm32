@@ -55,8 +55,6 @@
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
-EventSource                             mpl3115a2_data_event;
-EventSource                             mpu9150_data_event;
 EventSource                             fc_req_reset_event;
 
 static        MPU9150_MAC_info          mpu9150_mac_info;

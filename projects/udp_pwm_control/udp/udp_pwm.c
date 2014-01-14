@@ -8,7 +8,6 @@
 #include "lwip/api.h"
 #include "lwip/pbuf.h"
 #include "lwip/udp.h"
-#include <stdio.h>
 #include "udp_pwm.h"
 
 EventSource packet_event;
@@ -37,5 +36,4 @@ msg_t udp_receive_server_init(void * arg __attribute__((unused))) {
 void udp_pwm_control_receive_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p, struct ip_addr *addr, u16_t port) {
 	/*need to figure out how to tear the packet apart and read from it*/
 	chEvtBroadcast(&packet_event);
-	printf("We got a packet!\n");
 }

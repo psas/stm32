@@ -36,11 +36,6 @@ static const ShellCommand commands[] = {
 		{NULL, NULL}
 };
 
-static const ShellConfig shell_cfg1 = {
-		(BaseSequentialStream *)&SDU_PSAS,
-		commands
-};
-
 /*! \brief ADIS SPI configuration
  *
  * 656250Hz, CPHA=1, CPOL=1, MSb first.
@@ -146,7 +141,6 @@ static msg_t Thread_indwatchdog(void *arg) {
 }
 
 int main(void) {
-	static Thread            *shelltp       = NULL;
 	static const evhandler_t evhndl_main[]       = {
 			extdetail_WKUP_button_handler
 	};
@@ -161,36 +155,10 @@ int main(void) {
 	 */
 	halInit();
 	chSysInit();
-
+	usbSerialShellStart(commands);
 	extdetail_init();
 
 	palSetPad(GPIOC, GPIOC_LED);
-
-	/*!
-	 * Initializes a serial-over-USB CDC driver.
-	 */
-	sduObjectInit(&SDU_PSAS);
-	sduStart(&SDU_PSAS, &serusbcfg);
-
-	/*!
-	 * Activates the USB driver and then the USB bus pull-up on D+.
-	 * Note, a delay is inserted in order to not have to disconnect the cable
-	 * after a reset.
-	 */
-	usbDisconnectBus(serusbcfg.usbp);
-	chThdSleepMilliseconds(1000);
-	usbStart(serusbcfg.usbp, &usbcfg);
-	usbConnectBus(serusbcfg.usbp);
-
-	shellInit();
-
-	iwdg_begin();
-
-	/*!
-	 * Activates the serial driver 6 and SDC driver 1 using default
-	 * configuration.
-	 */
-	sdStart(&SD6, NULL);
 
 	spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
@@ -209,12 +177,6 @@ int main(void) {
 
 	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
-		if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
-			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-		else if (chThdTerminated(shelltp)) {
-			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-			shelltp = NULL;           /* Triggers spawning of a new shell.        */
-		}
 		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
 	}
 }

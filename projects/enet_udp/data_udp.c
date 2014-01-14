@@ -63,7 +63,7 @@ msg_t data_udp_send_thread(void *p __attribute__ ((unused))){
     char msg[DATA_UDP_MSG_SIZE];
     uint8_t count;
     for(count = 0;; ++count){
-        sprintf(msg, "PSAS Rockets! %d", count);
+        chsnprintf(msg, sizeof(msg), "PSAS Rockets! %d", count);
         if(sendto(s, msg, sizeof(msg), 0, (struct sockaddr*)&dest_addr, sizeof(dest_addr)) < 0){
             chprintf(chp, "Send socket send failure\r\t");
             return -3;
