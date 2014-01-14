@@ -12,6 +12,8 @@
 #include "lwipopts.h"
 #include "lwipthread.h"
 
+#include "chprintf.h"
+
 #define         RNET_A_IP_ADDR(p)         IP4_ADDR(p, 10, 0, 0,   5);
 #define         RNET_A_GATEWAY(p)         IP4_ADDR(p, 0,  0, 0,   0  );
 #define         RNET_A_NETMASK(p)         IP4_ADDR(p, 255, 255, 255, 0  );
@@ -81,7 +83,7 @@ char PWR_STAT[]= "#POWR";
 
 
 msg_t ethernet_commands(void * arg __attribute__((unused))){
-
+    BaseSequentialStream *chp = (BaseSequentialStream *)&SD1;
     struct sockaddr_in rnh_in;
     memset(&rnh_in, 0, sizeof(struct sockaddr_in));
     rnh_in.sin_family = AF_INET,
@@ -98,6 +100,7 @@ msg_t ethernet_commands(void * arg __attribute__((unused))){
     }
 
     char msg[50]; //TODO: non-arbitrary size
+    memset(msg, 0, sizeof(msg));
     int ret;
     unsigned int len;
     while(TRUE) {
@@ -106,15 +109,18 @@ msg_t ethernet_commands(void * arg __attribute__((unused))){
             return -3;
         }
         len=ret;
+
         if(COMPARE_BUFFER_TO_CMD(msg, ARM, len)){
 
         } else if(COMPARE_BUFFER_TO_CMD(msg, SAFE, len)){
 
-        } else if(COMPARE_BUFFER_TO_CMD(msg, PIN_ON, len)){
-            int port_mask = msg[4];
+        } else if(COMPARE_BUFFER_TO_CMD(msg, PIN_ON, 4)){
+            chprintf(chp, "port: %d on\r\n", msg[5]);
+            int port_mask = msg[5];
             RNH_power(port_mask, RNH_PORT_ON);
-        } else if(COMPARE_BUFFER_TO_CMD(msg, PIN_OFF, len)){
-            int port_mask = msg[4];
+        } else if(COMPARE_BUFFER_TO_CMD(msg, PIN_OFF, 4)){
+            chprintf(chp, "port: %d off \r\n", msg[5]);
+            int port_mask = msg[5];
             RNH_power(port_mask, RNH_PORT_OFF);
         } else if(COMPARE_BUFFER_TO_CMD(msg, VERSION, len)){
 
