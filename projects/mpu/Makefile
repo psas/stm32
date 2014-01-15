@@ -10,7 +10,7 @@ endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = 
+  USE_COPT =
 endif
 
 # C++ specific options here (added to USE_OPT).
@@ -65,6 +65,7 @@ PROJECT = ch
 
 # Imported source files and paths
 PSAS= ../../common
+CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
 include $(CHIBIOS)/boards/OLIMEX_STM32_E407/board.mk
@@ -73,8 +74,6 @@ include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
 include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
-
-
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
@@ -92,14 +91,19 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
+       $(CHIBIOS)/os/various/chrtclib.c \
+       $(CHIBIOS)/os/various/syscalls.c \
        $(PSAS_DEVICES)/iwdg_lld.c \
+       $(PSAS_DEVICES)/usbdetail.c \
+       $(PSAS_DEVICES)/psas_rtc.c \
        $(PSAS_DEVICES)/ADIS16405.c \
        $(PSAS_DEVICES)/MPU9150.c \
+       $(PSAS_DEVICES)/MPL3115A2.c \
+       $(PSAS_UTIL)/crc_16_reflect.c \
        ./data_udp/data_udp.c \
        cmddetail.c \
        extdetail.c \
-       $(PSAS_DEVICES)/usbdetail.c \
-	main.c
+       main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -131,9 +135,11 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-	 $(PSAS_NET) \
+         $(PSAS_NET) \
          $(PSAS_DEVICES)/include \
-          ./data_udp
+         $(CONF) \
+         $(PSAS_UTIL)/include
+
 
 #
 # Project, sources and paths
@@ -146,7 +152,8 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
 MCU  = cortex-m4
 
 #TRGT = arm-elf-
-TRGT = arm-psas-eabi-
+#TRGT = arm-psas-eabi-
+TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.
@@ -204,7 +211,7 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DADIS_DEBUG=0
+# UDEFS =
 
 
 # Define ASM defines here
@@ -212,7 +219,7 @@ UADEFS =
 
 # List all user directories here
 # UINCDIR = ./boards/OLIMEX_STM32_E407
-UINCDIR =
+UINCDIR = ./data_udp \
 
 # List the user directory to look for the libraries here
 ULIBDIR =
@@ -241,4 +248,3 @@ endif
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
 
 include $(PSAS)/oocd.mk
-

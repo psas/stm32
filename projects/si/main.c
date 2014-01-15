@@ -50,6 +50,9 @@
 #if !defined(DEBUG_SI) || defined(__DOXYGEN__)
 #define     DEBUG_SI                   1
 #endif
+#define GPIOF_GREEN_LED             2
+#define GPIOF_RED_LED               3
+#define GPIOF_BLUE_LED              14
 
 static const ShellCommand commands[] = {
 		{"mem", cmd_mem},
@@ -149,7 +152,7 @@ const mpu9150_connect mpu9150_connections = {
 };
 
 static void led_init(void) {
-
+    PIN_MODE_OUTPUT(GPIOF_BLUE_LED);
     palClearPad(GPIOF, GPIOF_BLUE_LED);
     palClearPad(GPIOF, GPIOF_RED_LED);
     palClearPad(GPIOF, GPIOF_GREEN_LED);
@@ -439,10 +442,6 @@ int main(void) {
 	 *
 	 * \sa board.h
 	 */
-	palClearPad(  TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
-	palSetPadMode(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-	palSetPad(    TIMEINPUT_PORT, TIMEINPUT_PIN);
-	palSetPadMode(TIMEINPUT_PORT, TIMEINPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL );
 
 	/*
 	 * SPI1 I/O pins setup.

@@ -132,8 +132,8 @@ typedef struct mpl3115a2_driver {
  *
  */
 struct MPL3115A2_read_data {
-	mpl3115a2_pressure_data         mpu_pressure;
-	mpl3115a2_temperature_data      mpu_temperature;
+	mpl3115a2_pressure_data         mpl_pressure;
+	mpl3115a2_temperature_data      mpl_temperature;
 } __attribute__((packed)) ;
 typedef struct MPL3115A2_read_data MPL3115A2_read_data;
 
@@ -155,13 +155,16 @@ typedef struct {
 	/*! \brief The INT pad number. */
 	uint16_t                 int_pad;
 } mpl3115a2_connect;
-
 extern const I2CConfig                 mpl3115a2_config;
 extern const mpl3115a2_connect         mpl3115a2_connections ;
 
+extern       EventSource               mpl3115a2_data_event;
 extern       EventSource               mpl3115a2_int_event;
+
 extern       MPL3115A2_Driver          mpl3115a2_driver;
 extern       MPL3115A2_read_data       mpl3115a2_current_read;
+
+extern      const char                mplid[4];
 
 void               mpl3115a2_start(I2CDriver* i2c) ;
 void               mpl3115a2_init(I2CDriver* i2c);

@@ -198,7 +198,6 @@ void main(void) {
         KS8999_init();
         eth_start();
     }
-
     //Start ACOK power events
     EXTConfig bqextcfg;
     memset(&bqextcfg, 0, sizeof(bqextcfg));

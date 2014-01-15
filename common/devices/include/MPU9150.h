@@ -25,7 +25,7 @@ extern "C" {
 #include "fc_net.h"
 
 #if !defined(DEBUG_MPU9150) || defined(__DOXYGEN__)
-#define 	DEBUG_MPU9150                   0
+#define 	DEBUG_MPU9150                   1
 #endif
 
 typedef     uint8_t                               mpu9150_i2c_data;
@@ -287,6 +287,8 @@ typedef struct {
 	/*! \brief The INT pad number. */
 	uint16_t                 int_pad;
 } mpu9150_connect;
+
+extern       EventSource               mpu9150_data_event;
 
 extern const I2CConfig                 si_i2c_config;
 extern const mpu9150_connect           si_i2c_connections ;

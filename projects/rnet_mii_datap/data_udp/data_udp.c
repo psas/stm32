@@ -30,7 +30,6 @@
  * @{
  */
 
-#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 
@@ -126,7 +125,7 @@ msg_t data_udp_send_thread(void *p) {
 			for( ;; ){
 				buf     =  netbuf_new();
 				data    =  netbuf_alloc(buf, sizeof(msg));
-				sprintf(msg, "rnet tx: %d", count++);
+				chsnprintf(msg, sizeof(msg), "rnet tx: %d", count++);
 				memcpy (data, msg, sizeof (msg));
 				err = netconn_send(conn, buf);
 				// chprintf(chp, "rnet sent: index: %d. Error: %d\r\n", count, err);

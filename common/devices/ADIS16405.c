@@ -13,11 +13,6 @@
 #include "ch.h"
 #include "hal.h"
 
-#if ADIS_DEBUG || defined(__DOXYGEN__)
-#include "usbdetail.h"
-#include "chprintf.h"
-#endif
-
 #include "usbdetail.h"
 #include "chprintf.h"
 
@@ -31,6 +26,7 @@ static const adis_pins * PINS = NULL;
 EventSource adis_data_ready;
 uint8_t adis_raw_in[sizeof(ADIS16405_burst_data)+ 2];
 
+const char adisid[(sizeof("ADIS")-1)] = "ADIS";
 
 const adis_pins adis_olimex_e407 = {
         .spi_cs = {GPIOA, GPIOA_PIN4},

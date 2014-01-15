@@ -15,8 +15,9 @@
 #include "serial_usb.h"
 #include "usb_lld.h"
 #include "usb.h"
-#include "usbdetail.h"
 #include "shell.h"
+
+#include "usbdetail.h"
 
 
 #if PSAS_USE_OTG1

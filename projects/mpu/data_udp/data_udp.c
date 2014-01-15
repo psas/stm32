@@ -53,7 +53,6 @@
 #define LWIP_NETCONN 1
 #if LWIP_NETCONN
 
-EventSource                        mpu9150_data_event;
 static        MPU9150_MAC_info     mpu9150_mac_info;
 
 /*! \brief Initialize events for threads

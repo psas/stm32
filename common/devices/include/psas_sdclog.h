@@ -1,6 +1,5 @@
 /*! \file psas_sdclog.h
- *
- */
+ * */
 
 #ifndef PSAS_SDCLOG_H_
 #define PSAS_SDCLOG_H_
@@ -25,6 +24,8 @@ extern "C" {
 /* A 162 byte message written at 1000hz will use 4GB in about 6.5 Hours */
 #define         SDC_MAX_PAYLOAD_BYTES                       150
 #define         SDC_NUM_ID_CHARS                            4
+#define         SDC_BOM_MARK                                0x5a5a
+#define         SDC_MARKER_BYTES                            ((int) (SDC_MAX_PAYLOAD_BYTES + 50))
 
 
     extern          bool            fs_ready;
@@ -34,12 +35,15 @@ extern "C" {
 
     extern          EventSource     sdc_inserted_event;
     extern          EventSource     sdc_removed_event;
+    extern          EventSource     sdc_halt_event;
+    extern          EventSource     sdc_start_event;
 
 
     // create end of data fiducials...slightly larger than log entry
     typedef struct sdc_eod_marker {
         // GENERIC_message + checksum + eod_marker + eod_marker
-        uint8_t sdc_eodmarks[166+2+2+2];
+        uint16_t marker;
+        uint8_t sdc_eodmarks[SDC_MARKER_BYTES];
     } sdc_eod_marker;
 
     typedef enum SDC_ERRORCode {
@@ -47,7 +51,11 @@ extern "C" {
         SDC_NULL_PARAMETER_ERROR = -1,
         SDC_FSYNC_ERROR          = -2,
         SDC_FWRITE_ERROR         = -3,
-        SDC_ASSERT_ERROR         = -4,
+        SDC_SYNC_ERROR           = -4,
+        SDC_FREAD_ERROR          = -5,
+        SDC_ASSERT_ERROR         = -6,
+        SDC_CHECKSUM_ERROR       = -7,
+        SDC_FSEEK_ERROR          = -8,
         SDC_UNKNOWN_ERROR        = -99
     } SDC_ERRORCode;
 
@@ -80,18 +88,25 @@ extern "C" {
         sdc_fp_index = 0;
     }
 
+    static inline DWORD sdc_get_fp_index(void) {
+        return sdc_fp_index;
+    }
+
+    void            sdc_haltnow(void) ;
     void            sdc_insert_handler(eventid_t id) ;
     void            sdc_remove_handler(eventid_t id) ;
     void            sdc_tmr_init(void *p) ;
-    void            sdc_set_fp_index(FIL* DATAFil, DWORD ofs) ;
+    SDC_ERRORCode   sdc_set_fp_index(FIL* DATAFil, DWORD ofs) ;
     void            sdc_init_eod (uint8_t marker_byte) ;
 
-    FRESULT         sdc_write_checksum(FIL* DATAFil, const crc_t* d, uint32_t* bw) ;
-    FRESULT         sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t * bw) ;
+    SDC_ERRORCode   sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) ;
+    SDC_ERRORCode   sdc_write_log_message(FIL* DATAFil, GENERIC_message* d, uint32_t * bw) ;
     FRESULT         sdc_scan_files(BaseSequentialStream *chp, char *path) ;
 
-    /*! \todo implement sdc_seek_eod function. */
-    void            sdc_seek_eod(FIL* DATAFil, GENERIC_message* d, uint32_t* sdindexbyte) ;
+    SDC_ERRORCode sdc_f_write(FIL* fp, void* buff, unsigned int btr,  unsigned int*  bytes_written);
+    SDC_ERRORCode sdc_f_read(FIL* fp, void* buff, unsigned int btr,  unsigned int*  bytes_read) ;
+
+    SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) ;
 
 #ifdef __cplusplus
 }
