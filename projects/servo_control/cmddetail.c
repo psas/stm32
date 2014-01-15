@@ -1,12 +1,13 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
 
 #include "cmddetail.h"
+
 
 
 void cmd_mem(BaseSequentialStream *out, int _, char *__[]) {
@@ -45,4 +46,28 @@ void cmd_threads(BaseSequentialStream *out, int _, char *__[]) {
                 );
         t = chRegNextThread(t);
     } while (t != NULL);
+}
+
+
+void cmd_pwmlims(BaseSequentialStream *out, int argc, char* argv[]) {
+    if (argc == 0) {
+        chprintf(out, "lo: %i\thi: %i\r\n", pwm_lo, pwm_hi);
+        return;
+    }
+
+    if (argc != 2) {
+        chprintf(out, "usage: pwm [lo hi]\r\n");
+        return;
+    }
+
+    int lo = atoi(argv[0]);
+    int hi = atoi(argv[1]);
+
+    if (lo > hi) {
+        chprintf(out, "ERROR: lo limit (%i) is greater than hi limit (%i)\r\n", lo, hi);
+        return;
+    }
+
+    pwm_lo = lo;
+    pwm_hi = hi;
 }

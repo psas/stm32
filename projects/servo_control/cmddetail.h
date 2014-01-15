@@ -27,6 +27,17 @@ extern "C" {
 #define TEST_WA_SIZE    THD_WA_SIZE(256)
 
 
+
+/*
+ * Global Variables
+ * ================ ************************************************************
+ */
+
+extern int pwm_lo;
+extern int pwm_hi;
+
+
+
 /*
  * Declarations
  * ============ ****************************************************************
@@ -34,6 +45,8 @@ extern "C" {
 
 void cmd_mem(BaseSequentialStream *out, int argc, char *argv[]);
 void cmd_threads(BaseSequentialStream *out, int argc, char *argv[]);
+void cmd_pwmlims(BaseSequentialStream *out, int argc, char *argv[]);
+
 
 
 // boilerplate

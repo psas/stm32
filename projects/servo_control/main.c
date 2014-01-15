@@ -43,6 +43,7 @@
 static const ShellCommand commands[] = {
     {"mem", cmd_mem},
     {"threads", cmd_threads},
+    {"pwm", cmd_pwmlims},
     {NULL, NULL}
 };
 
@@ -64,6 +65,9 @@ static WORKING_AREA(wa_watchdog_keeper, 128);
 
 #if DEBUG_PWM
 static WORKING_AREA(wa_pwm_tester, 512);
+
+int pwm_lo = 1300;
+int pwm_hi = 1700;
 #endif
 
 
@@ -151,35 +155,29 @@ static msg_t pwm_tester(void *_) {
 
     chRegSetThreadName("pwmtest");
 
-    //    uint32_t i = 0;
-     BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
-    //
+    BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
     chThdSleepMilliseconds(1000);
 
-    chprintf(chp, "%d %d %d\n", pwm_us_to_ticks(1050), pwm_us_to_ticks(1500), pwm_us_to_ticks(1900));
-
     while(1) {
-        uint32_t pulse = 0;
+        int32_t pulse = 0;
 
-        for (pulse = 0; pulse <= 3000; pulse += 50) {
+        for (pulse = pwm_lo; pulse <= pwm_hi; pulse += 50) {
             pwm_set_pulse_width_ticks(pwm_us_to_ticks(pulse));
             chprintf(chp, "%d\r\n", pulse);
             chThdSleepMilliseconds(50);
         }
 
-        pwmDisableChannel(&PWMD4, 3);
         chprintf(chp, "rest\r\n");
-        chThdSleepMilliseconds(2500);
+        chThdSleepMilliseconds(5000);
 
-        for (pulse = 3000; pulse > 0; pulse -= 50) {
+        for (pulse = pwm_hi; pulse >= pwm_lo; pulse -= 50) {
         	pwm_set_pulse_width_ticks(pwm_us_to_ticks(pulse));
             chprintf(chp, "%d\r\n", pulse);
         	chThdSleepMilliseconds(50);
         }
 
-        pwmDisableChannel(&PWMD4, 3);
         chprintf(chp, "rest\r\n");
-        chThdSleepMilliseconds(2500);
+        chThdSleepMilliseconds(5000);
 
     }
     return -1;
@@ -241,7 +239,7 @@ int main(void) {
     usbConnectBus(serusbcfg.usbp);
 
     // start the command shell
-    //shellInit();
+    shellInit();
 
     // start the watchdog timer
     iwdg_begin();
@@ -317,13 +315,13 @@ int main(void) {
     chEvtRegister(&wakeup_event, &wakeup_listener, 0);
 
     while (TRUE) {
-        //if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE)) {
-        //    // create the shell thread if it needs to be and our USB connection is up
-        //    shelltp = shellCreate(&shell_cfg, SHELL_WA_SIZE, NORMALPRIO);
-        //} else if (chThdTerminated(shelltp)) {
-        //    chThdRelease(shelltp); /* Recovers memory of the previous shell.   */
-        //    shelltp = NULL;        /* Triggers spawning of a new shell.        */
-        //}
+        if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE)) {
+            // create the shell thread if it needs to be and our USB connection is up
+            shelltp = shellCreate(&shell_cfg, SHELL_WA_SIZE, NORMALPRIO);
+        } else if (chThdTerminated(shelltp)) {
+            chThdRelease(shelltp); /* Recovers memory of the previous shell.   */
+            shelltp = NULL;        /* Triggers spawning of a new shell.        */
+        }
 
         chEvtDispatch(wakeup_handlers, chEvtWaitOneTimeout((eventmask_t)0, MS2ST(500)));
     }
