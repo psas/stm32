@@ -32,6 +32,7 @@
 #define         ROLL_CTL_MAC_ADDRESS        {0xE6, 0x10, 0x20, 0x30, 0x40, 0xaa}
 
 struct sockaddr * make_sockaddr(struct sockaddr_in * addr, char * ip, int port);
+int get_udp_socket(struct sockaddr *addr);
 
 extern struct sockaddr_in adis_out;
 extern struct sockaddr_in adis_in;

@@ -33,3 +33,20 @@ struct sockaddr * make_sockaddr(struct sockaddr_in * addr, char * ip, int port){
     inet_aton(ip, &addr->sin_addr);
     return (struct sockaddr*) addr;
 }
+
+
+int get_udp_socket(struct sockaddr *addr){
+    //Create the socket
+    int s = socket(AF_INET,  SOCK_DGRAM, 0);
+    if(s < 0){
+        /* socket allocation failure */
+        return -1;
+    }
+
+    //bind our own address to the socket
+    if(bind(s, addr, sizeof(struct sockaddr)) < 0){
+        /* socket bind failure */
+        return -2;
+    }
+    return s;
+}
