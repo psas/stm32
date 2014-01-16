@@ -13,8 +13,8 @@ struct lwipthread_opts ip_opts;
 
 struct lwipthread_opts * get_adis_addr(void){
     struct ip_addr ip, gateway, netmask;
-    IP4_ADDR(&ip,      192, 168, 0,   196);
-    IP4_ADDR(&gateway, 192, 168, 1,   1  );
+    IP4_ADDR(&ip,      10, 0, 0,   20);
+    IP4_ADDR(&gateway, 10, 0, 0,   1  );
     IP4_ADDR(&netmask, 255, 255, 255, 0  );
     uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
 

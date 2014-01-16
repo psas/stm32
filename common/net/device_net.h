@@ -11,6 +11,8 @@
 #include "lwip/sockets.h"
 #include "lwip/ip_addr.h"
 
+#define FC_IP "10.0.0.10"
+
 #if LWIP_NETCONN
 #define         IMU_A_IP_ADDR(p)            IP4_ADDR(p, 192, 168, 0,   196);
 #define         IMU_A_GATEWAY(p)            IP4_ADDR(p, 192, 168, 1,   1  );
@@ -19,6 +21,15 @@
 #define         IMU_A_IP_ADDR_STRING        "192.168.0.196"
 #define         IMU_A_LISTEN_PORT           35001
 #define         IMU_A_TX_PORT               35002
+
+
+// Sensor Node
+#define SENSOR_IP "10.0.0.20"
+
+// ADIS
+#define ADIS_RX_PORT 35020
+#define ADIS_RX_PORT_S "35020"
+
 #define         IMU_A_MAC_ADDRESS           {0xE6, 0x10, 0x20, 0x30, 0x40, 0x11}
 
 #if LWIP_NETCONN
