@@ -27,7 +27,7 @@ struct lwipthread_opts * get_adis_addr(void){
 
 struct sockaddr * make_sockaddr(struct sockaddr_in * addr, char * ip, int port){
     //Create an address (remember to have the data in network byte order)
-    memset(&addr, 0, sizeof(struct sockaddr_in));
+    memset(addr, 0, sizeof(struct sockaddr_in));
     addr->sin_family = AF_INET,
     addr->sin_port = htons(port);
     inet_aton(ip, &addr->sin_addr);
