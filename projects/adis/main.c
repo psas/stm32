@@ -22,12 +22,29 @@
 
 static int sendsocket;
 
+void serialize_adis(ADIS16405_burst_data * data, uint16_t * buffer){
+    buffer[0] = htons(data->supply_out);
+    buffer[1] = htons(data->xgyro_out);
+    buffer[2] = htons(data->ygyro_out);
+    buffer[3] = htons(data->zgyro_out);
+    buffer[4] = htons(data->xaccl_out);
+    buffer[5] = htons(data->yaccl_out);
+    buffer[6] = htons(data->zaccl_out);
+    buffer[7] = htons(data->xmagn_out);
+    buffer[8] = htons(data->ymagn_out);
+    buffer[9] = htons(data->zmagn_out);
+    buffer[10] = htons(data->temp_out);
+    buffer[11] = htons(data->aux_adc);
+}
+
 static void adis_drdy_handler(eventid_t id __attribute__((unused)) ){
     BaseSequentialStream *chp = getActiveUsbSerialStream();
     ADIS16405_burst_data data;
+    uint16_t buffer[sizeof(data)/2];
     adis_get_data(&data);
     chprintf(chp, "Accel x:%d y:%d z:%d\r\n", data.xaccl_out, data.yaccl_out, data.zaccl_out);
-    if(send(sendsocket, &data, sizeof(data), 0) < 0){
+    serialize_adis(&data, buffer);
+    if(send(sendsocket, buffer, sizeof(buffer), 0) < 0){
         chprintf(chp, "Send socket send failure\r\t");
     }
 }
