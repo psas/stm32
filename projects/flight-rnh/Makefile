@@ -97,7 +97,8 @@ CSRC = $(PORTSRC) \
         KS8999.c \
         BQ24725.c \
         RNH.c \
-       $(PSAS_NET)/device_net.c
+       $(PSAS_NET)/device_net.c \
+       $(PSAS_NET)/rnet_cmd_interp.c
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CPPSRC =

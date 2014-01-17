@@ -6,6 +6,7 @@
 #include "KS8999.h"
 #include "RNH.h"
 #include "device_net.h"
+#include "rnet_cmd_interp.h"
 
 #include "lwip/ip_addr.h"
 #include "lwip/sockets.h"
