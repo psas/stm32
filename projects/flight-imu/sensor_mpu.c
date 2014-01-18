@@ -9,7 +9,7 @@
 
 #include "MPU9150.h"
 
-// #define DEBUG_SENSOR_MPU
+#define DEBUG_SENSOR_MPU
 
 #ifdef	DEBUG_SENSOR_MPU
     #include "usbdetail.h"
@@ -74,7 +74,7 @@ static void mpu9150_int_event_handler(eventid_t id) {
 	mpu9150_a_g_read_int_status(mpu9150_driver.i2c_instance);
 
 #ifdef	DEBUG_SENSOR_MPU
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+	BaseSequentialStream *chp =  getActiveUsbSerialStream();
 	static uint16_t     count = 0;
 
 	++count;

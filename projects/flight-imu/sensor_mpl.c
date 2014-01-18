@@ -4,7 +4,7 @@
 #include "MPL3115A2.h"
 #include "sensor_mpl.h"
 
-//#define	    DEBUG_SENSOR_MPL
+#define	    DEBUG_SENSOR_MPL
 
 #ifdef	DEBUG_SENSOR_MPL
     #include "usbdetail.h"
@@ -39,7 +39,7 @@ void mpl_read_handler(eventid_t id) {
     mpl3115a2_write_ctrl_1(mpl3115a2_driver.i2c_instance, reg);
 
 #ifdef	DEBUG_SENSOR_MPL
-	BaseSequentialStream *chp =  (BaseSequentialStream *)&SDU_PSAS;
+	BaseSequentialStream *chp = getActiveUsbSerialStream();
 	static uint16_t     count = 0;
 
     ++count;
