@@ -38,14 +38,16 @@ void serialize_adis(ADIS16405_burst_data * data, uint16_t * buffer){
 }
 
 static void adis_drdy_handler(eventid_t id __attribute__((unused)) ){
-    BaseSequentialStream *chp = getActiveUsbSerialStream();
+//    BaseSequentialStream *chp = getActiveUsbSerialStream();
     ADIS16405_burst_data data;
-    uint16_t buffer[sizeof(data)/2];
+    uint16_t buffer[25];
     adis_get_data(&data);
-    chprintf(chp, "Accel x:%d y:%d z:%d\r\n", data.xaccl_out, data.yaccl_out, data.zaccl_out);
+//    chprintf(chp, "Accel x:%d y:%d z:%d\r\n", data.xaccl_out, data.yaccl_out, data.zaccl_out);
     serialize_adis(&data, buffer);
-    if(send(sendsocket, buffer, sizeof(buffer), 0) < 0){
-        chprintf(chp, "Send socket send failure\r\t");
+    int ret;
+    ret = sendto(sendsocket, buffer, 24, 0, (struct sockaddr*)&adis_in, sizeof(adis_in));
+    if( ret < 0){
+//        chprintf(chp, "Send socket send failure : %d\r\n", ret);
     }
 }
 
@@ -62,19 +64,26 @@ void main(void) {
 	halInit();
 	chSysInit();
 
+    adis_init(&adis_olimex_e407);
     struct EventListener drdy;
     chEvtRegister(&adis_data_ready, &drdy, 0);
 
     static const evhandler_t evhndl[] = {
             adis_drdy_handler
     };
-	adis_init(&adis_olimex_e407);
+
 
     chThdCreateStatic(wa_led , sizeof(wa_led) , NORMALPRIO , led, NULL);
     chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2, lwip_thread, get_adis_addr());
-
+    sendsocket = -1;
+    ADIS_IN_ADDR;
     sendsocket = get_udp_socket(ADIS_OUT_ADDR);
-    connect(sendsocket, ADIS_IN_ADDR, sizeof(struct sockaddr_in));
+//    connect(sendsocket, ADIS_IN_ADDR, sizeof(struct sockaddr_in));
+    const ShellCommand commands[] = {
+            {NULL, NULL}
+    };
+
+    usbSerialShellStart(commands);
 
 	while(TRUE){
         chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
