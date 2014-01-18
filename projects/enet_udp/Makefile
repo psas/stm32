@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
+  USE_OPT = -O0 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
 endif
 
 # C specific options here (added to USE_OPT).
@@ -95,6 +95,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_DEVICES)/usbdetail.c \
+       $(PSAS_NET)/device_net.c \
        data_udp.c \
        cmddetail.c \
        main.c
@@ -129,7 +130,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_DEVICES)/include \
+         $(PSAS_DEVICES)/include $(PSAS_NET)\
          $(CONF)
 
 #
