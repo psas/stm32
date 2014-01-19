@@ -4,21 +4,22 @@
  *
  * This implementation is specific to the Olimex stm32-e407 board.
  */
+#include <stdint.h>
 
 #include "ch.h"
 #include "hal.h"
 
-#include "chprintf.h"
-#include "shell.h"
 #include "lwip/ip_addr.h"
 #include "lwip/sockets.h"
 #include "lwipthread.h"
 
-#include "usbdetail.h"
 #include "device_net.h"
-#include "fc_net.h"
 
 #include "ADIS16405.h"
+
+#define GPIOF_LED_RED GPIOF_PIN12
+#define GPIOF_LED_GREEN GPIOF_PIN13
+#define GPIOF_LED_BLUE GPIOF_PIN14
 
 static int sendsocket;
 
@@ -37,54 +38,61 @@ void serialize_adis(ADIS16405_burst_data * data, uint16_t * buffer){
     buffer[11] = htons(data->aux_adc);
 }
 
-static void adis_drdy_handler(eventid_t id __attribute__((unused)) ){
-//    BaseSequentialStream *chp = getActiveUsbSerialStream();
+static void adis_drdy_handler(eventid_t id __attribute__((unused))){
     ADIS16405_burst_data data;
-    uint16_t buffer[25];
+    uint16_t buffer[12]; //FIXME: buffer size
+    palSetPad(GPIOF, GPIOF_LED_BLUE
+            );
     adis_get_data(&data);
-//    chprintf(chp, "Accel x:%d y:%d z:%d\r\n", data.xaccl_out, data.yaccl_out, data.zaccl_out);
     serialize_adis(&data, buffer);
-    int ret;
-    ret = sendto(sendsocket, buffer, 24, 0, (struct sockaddr*)&adis_in, sizeof(adis_in));
-    if( ret < 0){
-//        chprintf(chp, "Send socket send failure : %d\r\n", ret);
+    if(write(sendsocket, buffer, sizeof(buffer)) < 0){
+        palSetPad(GPIOF, GPIOF_LED_RED);
     }
+
+    palClearPad(GPIOF, GPIOF_LED_BLUE);
 }
 
-WORKING_AREA(wa_led, 1024);
+/* Diagnotic led blinking. If it stops things dun goofed */
+WORKING_AREA(wa_led, THD_WA_SIZE(64));
 msg_t led(void * arg __attribute__((unused))) {
-    while (1) {
+    palSetPadMode(GPIOF, GPIOF_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(GPIOF, GPIOF_LED_GREEN, PAL_MODE_OUTPUT_PUSHPULL);
+    palSetPadMode(GPIOF, GPIOF_LED_BLUE, PAL_MODE_OUTPUT_PUSHPULL);
+    palClearPad(GPIOF, GPIOF_LED_RED);
+    palClearPad(GPIOF, GPIOF_LED_GREEN);
+    palClearPad(GPIOF, GPIOF_LED_BLUE);
+
+    while(1){
         palTogglePad(GPIOC, GPIOC_LED);
-        chThdSleepMilliseconds(500);
+        chThdSleepMilliseconds(250);
     }
     return -1;
 }
 
-void main(void) {
+void main(void){
 	halInit();
 	chSysInit();
 
-    adis_init(&adis_olimex_e407);
-    struct EventListener drdy;
-    chEvtRegister(&adis_data_ready, &drdy, 0);
+    chThdCreateStatic(wa_led, sizeof(wa_led), NORMALPRIO, led, NULL);
+    chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2, lwip_thread, get_adis_addr());
 
+    /* Create the ADIS out socket, connecting as it only sends to one place */
+    sendsocket = get_udp_socket(ADIS_ADDR);
+    if(sendsocket < 0){
+        palSetPad(GPIOF, GPIOF_LED_RED);
+    } else if(connect(sendsocket, FC_LISTEN_ADDR, sizeof(struct sockaddr_in)) < 0){
+        palSetPad(GPIOF, GPIOF_LED_RED);
+    }
+
+
+    adis_init(&adis_olimex_e407);
+
+    struct EventListener drdy;
     static const evhandler_t evhndl[] = {
             adis_drdy_handler
     };
 
-
-    chThdCreateStatic(wa_led , sizeof(wa_led) , NORMALPRIO , led, NULL);
-    chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2, lwip_thread, get_adis_addr());
-    sendsocket = -1;
-    ADIS_IN_ADDR;
-    sendsocket = get_udp_socket(ADIS_OUT_ADDR);
-//    connect(sendsocket, ADIS_IN_ADDR, sizeof(struct sockaddr_in));
-    const ShellCommand commands[] = {
-            {NULL, NULL}
-    };
-
-    usbSerialShellStart(commands);
-
+    chEvtRegister(&adis_data_ready, &drdy, 0);
 	while(TRUE){
         chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}

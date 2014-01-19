@@ -147,8 +147,6 @@ void adis_init(const adis_pins * pins) {
     extconfig.channels[pins->dio1.pad].mode = EXT_CH_MODE_RISING_EDGE | CHANNEL_MODE | EXT_CH_MODE_AUTOSTART;
 
     extStart(&EXTD1, &extconfig);
-
-    adis_reset();
 }
 
 uint16_t adis_get(adis_regaddr addr){ //todo: array
@@ -199,5 +197,4 @@ void adis_reset() {
 	palClearPad(PINS->reset.port, PINS->reset.pad);
 	chThdSleepMilliseconds(ADIS_RESET_MSECS);
 	palSetPad(PINS->reset.port, PINS->reset.pad);
-	chThdSleepMilliseconds(ADIS_RESET_MSECS);
 }

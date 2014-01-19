@@ -5,10 +5,9 @@
 #include "lwipthread.h"
 
 #include "device_net.h"
-#include "fc_net.h"
 
 struct sockaddr_in adis_out;
-struct sockaddr_in adis_in;
+struct sockaddr_in fc_listen;
 struct lwipthread_opts ip_opts;
 
 struct lwipthread_opts * get_adis_addr(void){

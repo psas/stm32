@@ -10,3 +10,5 @@ Keep Board files in common/boards, projects shouldn't have individual ones.
 build for flight turns off all debug symbols, sets O3, all warnings are errors, disables usb, serial
 
 Build for debug turns on all(?) debug symbols, sets O0, user specified warnings
+
+TODO: Common hostside program/framework thingy

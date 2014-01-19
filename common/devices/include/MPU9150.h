@@ -22,7 +22,6 @@ extern "C" {
 
 #include "ch.h"
 #include "hal.h"
-#include "fc_net.h"
 
 #if !defined(DEBUG_MPU9150) || defined(__DOXYGEN__)
 #define 	DEBUG_MPU9150                   1
