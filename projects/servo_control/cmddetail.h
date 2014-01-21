@@ -1,31 +1,57 @@
-/*! \file cmddetail.h
- *
- */
-
-
 #ifndef _CMDDETAIL_H
 #define _CMDDETAIL_H
 
-/*!
- * \addtogroup cmddetail
- * @{
+
+
+/*
+ * Includes
+ * ======== ********************************************************************
  */
 
 #include "ch.h"
 #include "hal.h"
 
+
+// boilerplate
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]);
-void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]);
 
+
+/*
+ * Constant Definitons
+ * =================== *********************************************************
+ */
+
+#define SHELL_WA_SIZE   THD_WA_SIZE(2048)
+#define TEST_WA_SIZE    THD_WA_SIZE(256)
+
+
+
+/*
+ * Global Variables
+ * ================ ************************************************************
+ */
+
+extern int pwm_lo;
+extern int pwm_hi;
+
+
+
+/*
+ * Declarations
+ * ============ ****************************************************************
+ */
+
+void cmd_mem(BaseSequentialStream *out, int argc, char *argv[]);
+void cmd_threads(BaseSequentialStream *out, int argc, char *argv[]);
+void cmd_pwmlims(BaseSequentialStream *out, int argc, char *argv[]);
+
+
+
+// boilerplate
 #ifdef __cplusplus
 }
 #endif
-
-
-//! @}
-
 #endif

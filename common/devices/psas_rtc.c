@@ -234,7 +234,7 @@ void psas_ts_to_psas_rtc(RTCTime* rtc, psas_timespec* ts) {
     int         i           = 0;
 
     for (i = 0; i < PSAS_RTC_NS_BYTES; i++) {
-        total_ns_in += (uint64_t) ts->ns[i] << (i * 8);
+        total_ns_in |= (uint64_t) ts->ns[i] << (i * 8);
     }
 
     rtc->tv_time = (uint32_t) (total_ns_in / ONE_BILLION);

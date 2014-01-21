@@ -49,6 +49,7 @@
 #define SDCDEBUG(...) do{ } while ( false )
 #endif
 
+
 // static declarations
 static const    unsigned        sdc_polling_interval             = 10;
 static const    unsigned        sdc_polling_delay                = 10;
@@ -74,6 +75,13 @@ EventSource                     sdc_start_event;
 
 // Emergency Stop
 EventSource                     sdc_halt_event;
+
+
+
+/*
+ * Function Definitions
+ * ====================
+ */
 
 /*!
  * @brief           Insertion monitor timer callback function.
@@ -281,7 +289,7 @@ SDC_ERRORCode sdc_set_fp_index(FIL* DATAFil, DWORD ofs) {
 */
 SDC_ERRORCode sdc_write_checksum(FIL* DATAFil, crc_t* crcd, uint32_t* bw) {
     SDC_ERRORCode      sdc_ret;
-    int                backjump; 
+    int                backjump;
 
     if((DATAFil == NULL) || (crcd==NULL) || (bw == NULL)) {
         return SDC_NULL_PARAMETER_ERROR;
@@ -563,4 +571,3 @@ SDC_ERRORCode sdc_seek_eod(FIL* DATAFil ) {
 
 
 //! @}
-

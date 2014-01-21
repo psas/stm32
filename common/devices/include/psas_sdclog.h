@@ -21,6 +21,7 @@
 extern "C" {
 #endif
 
+
 /* A 162 byte message written at 1000hz will use 4GB in about 6.5 Hours */
 #define         SDC_MAX_PAYLOAD_BYTES                       150
 #define         SDC_NUM_ID_CHARS                            4
@@ -67,8 +68,8 @@ extern "C" {
     } __attribute__((packed));
     typedef struct Message_head Message_head;
 
-    /*! RTCLogtime is not psas_timespec. 
-     *      psas_timespec is time since FC reboot 
+    /*! RTCLogtime is not psas_timespec.
+     *      psas_timespec is time since FC reboot
      *      RTCLogtime    is the RTC on the STM32, running on a backup battery.
      */
     struct RTCLogtime {
@@ -114,4 +115,3 @@ extern "C" {
 //! @}
 
 #endif
-

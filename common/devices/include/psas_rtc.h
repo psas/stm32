@@ -22,7 +22,7 @@ extern "C" {
 #endif
 
 #ifndef PSAS_RTC_COE_DEBUG
-#define     PSAS_RTC_COE_DEBUG      0          // Enable the calibration output on PC13
+#define PSAS_RTC_COE_DEBUG 0 // Enable the calibration output on PC13
 #endif
 
 #define PSAS_RTC_NS_BYTES 6
@@ -32,11 +32,10 @@ extern "C" {
         time_t  fc_boot_time_mark;
     } psas_rtc_state;
 
-    struct psas_timespec {
+    typedef struct psas_timespec {
         // this array contains a 48-bit number, byte-by-byte, in LSB order
         uint8_t ns[PSAS_RTC_NS_BYTES];
-    } __attribute__((packed));
-    typedef struct psas_timespec psas_timespec;
+    } __attribute__((packed)) psas_timespec;
 
     extern  psas_rtc_state     psas_rtc_s;
     extern  bool               fs_ready;
@@ -52,7 +51,6 @@ extern "C" {
     void   psas_rtc_lld_get_time( RTCDriver *rtcp, RTCTime *timespec) ;
     int    psas_rtc_get_unix_time( RTCDriver *rtcp, RTCTime *timespec) ;
     void   psas_rtc_lld_set_time( RTCDriver *rtcp, RTCTime *timespec) ;
-
 
 #ifdef __cplusplus
 }
