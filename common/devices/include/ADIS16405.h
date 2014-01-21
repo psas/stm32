@@ -105,7 +105,7 @@ typedef struct ADIS16405_burst_data {
 
 /*! \typedef adis_config
  *
- * Configuration for the ADIS connections EXCEPT SPI
+ * Configuration for the ADIS connections
  */
 
 struct pin {
