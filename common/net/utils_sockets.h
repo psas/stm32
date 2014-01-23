@@ -3,8 +3,8 @@
  *
  */
 
-#ifndef _DEVICE_NET_H
-#define _DEVICE_NET_H
+#ifndef UTILS_SOCKETS_H_
+#define UTILS_SOCKETS_H_
 
 #include "lwipthread.h"
 #include "lwip/sockets.h"

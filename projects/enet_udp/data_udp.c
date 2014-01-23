@@ -16,7 +16,7 @@
 #include "lwip/sockets.h"
 
 #include "usbdetail.h"
-#include "device_net.h"
+#include "utils_sockets.h"
 
 #include "data_udp.h"
 
@@ -32,11 +32,12 @@ msg_t data_udp_send_thread(void *p __attribute__ ((unused))){
     chRegSetThreadName("data_udp_send_thread");
     BaseSequentialStream *chp = getActiveUsbSerialStream();
     struct sockaddr_in self_addr;
-    int s = get_udp_socket(make_sockaddr(&self_addr, IP_DEVICE, DATA_UDP_TX_THREAD_PORT));
+    set_sockaddr(&self_addr, IP_DEVICE, DATA_UDP_TX_THREAD_PORT);
+    int s = get_udp_socket((struct sockaddr*)&self_addr);
 
-    //Create the address to send to (remember to have the data in network byte order)
+    //Create the address to send to
     struct sockaddr_in dest_addr;
-    make_sockaddr(&dest_addr, IP_HOST, DATA_UDP_TX_THREAD_PORT);
+    set_sockaddr(&dest_addr, IP_HOST, DATA_UDP_TX_THREAD_PORT);
 
     //send data to another socket
     char msg[DATA_UDP_MSG_SIZE];
@@ -67,7 +68,8 @@ msg_t data_udp_receive_thread(void *p __attribute__ ((unused))) {
     chRegSetThreadName("data_udp_receive_thread");
     BaseSequentialStream *chp = getActiveUsbSerialStream();
     struct sockaddr_in self_addr;
-    int s = get_udp_socket(make_sockaddr(&self_addr, IP_DEVICE, DATA_UDP_RX_THREAD_PORT));
+    set_sockaddr(&self_addr, IP_DEVICE, DATA_UDP_RX_THREAD_PORT);
+    int s = get_udp_socket((struct sockaddr*)&self_addr);
 
     //read data from socket
     char msg[DATA_UDP_MSG_SIZE];

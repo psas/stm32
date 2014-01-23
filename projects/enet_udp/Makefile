@@ -95,7 +95,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_DEVICES)/usbdetail.c \
-       $(PSAS_NET)/device_net.c \
+       $(PSAS_NET)/utils_sockets.c \
        data_udp.c \
        cmddetail.c \
        main.c

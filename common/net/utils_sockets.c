@@ -4,7 +4,7 @@
 #include "lwip/sockets.h"
 #include "lwipthread.h"
 
-#include "device_net.h"
+#include "utils_sockets.h"
 
 void set_lwipthread_opts(struct lwipthread_opts * ip_opts,
     const char * ip, const char * netmask, const char * gateway, uint8_t * mac)
