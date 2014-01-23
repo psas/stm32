@@ -6,31 +6,21 @@
 
 #include "device_net.h"
 
-struct sockaddr_in adis_out;
-struct sockaddr_in fc_listen;
-struct lwipthread_opts ip_opts;
-
-struct lwipthread_opts * get_adis_addr(void){
-    struct ip_addr ip, gateway, netmask;
-    IP4_ADDR(&ip,      10, 0, 0,   20);
-    IP4_ADDR(&gateway, 10, 0, 0,   1  );
-    IP4_ADDR(&netmask, 255, 0, 0, 0  );
-    uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
-
-    ip_opts.macaddress = macAddress;
-    ip_opts.address    = ip.addr;
-    ip_opts.netmask    = netmask.addr;
-
-    return &ip_opts;
+void set_lwipthread_opts(struct lwipthread_opts * ip_opts,
+    const char * ip, const char * netmask, const char * gateway, uint8_t * mac)
+{
+    ip_opts->macaddress = mac;
+    ip_opts->address = inet_addr(ip);
+    ip_opts->netmask = inet_addr(netmask);
+    ip_opts->gateway = inet_addr(gateway);
 }
 
-struct sockaddr * make_sockaddr(struct sockaddr_in * addr, const char * ip, int port){
+void set_sockaddr(struct sockaddr_in * addr, const char * ip, int port){
     //Create an address (remember to have the data in network byte order)
     memset(addr, 0, sizeof(struct sockaddr_in));
     addr->sin_family = AF_INET,
     addr->sin_port = htons(port);
     inet_aton(ip, &addr->sin_addr);
-    return (struct sockaddr*) addr;
 }
 
 
