@@ -130,7 +130,7 @@ int main(void) {
 
     psas_rtc_set_fc_boot_mark(&RTCD1); 
 
-        /*
+    /*
      * Activates the serial driver 6 and SDC driver 1 using default
      * configuration.
      */
@@ -142,10 +142,12 @@ int main(void) {
      */
     sdc_tmr_init(&SDCD1);
 
-    iwdg_begin();
+    //iwdg_begin();
 
     chThdSleepMilliseconds(300);
+
     usbSerialShellStart(commands);
+
     //adis_init();
     //adis_reset();
 
@@ -199,9 +201,7 @@ int main(void) {
      *    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
      */
 
-    chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
-
-    chThdSleepMilliseconds(10);
+    //chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
 
     chEvtRegister(&sdc_inserted_event,   &el0, 0);
     chEvtRegister(&sdc_removed_event,    &el1, 1);
