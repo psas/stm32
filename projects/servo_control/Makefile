@@ -95,8 +95,8 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/iwdg_lld.c \
        ./data_udp/data_udp.c \
        ./pwm/pwm_config.c \
+       launch_detect.c \
        cmddetail.c \
-       extdetail.c \
        $(PSAS_DEVICES)/usbdetail.c \
 	main.c
 

@@ -5,18 +5,17 @@
 #include "data_udp.h"
 #include "usbdetail.h"
 
-#include "extdetail.h"
+#include "launch_detect.h"
 
 
 
-/*
- * Constant Definitions
- * ==================== ********************************************************
- */
+// must be declared here in order to configure the external interrupt below
+void launch_detect_isr(EXTDriver *extp, expchannel_t channel);
 
-const EXTConfig extcfg = {
+// setup rising and falling external interrupts on PD11 to trigger the launch_detect_isr
+static const EXTConfig extcfg = {
     {
-        {EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOA, wakeup_button_isr}, // 0
+        {EXT_CH_MODE_DISABLED, NULL}, // 0
         {EXT_CH_MODE_DISABLED, NULL}, // 1
         {EXT_CH_MODE_DISABLED, NULL}, // 2
         {EXT_CH_MODE_DISABLED, NULL}, // 3
@@ -45,22 +44,28 @@ const EXTConfig extcfg = {
 
 
 /*
- * Public Global Variables
- * ======================= *****************************************************
+ * Global State Variables
+ * ====================== ******************************************************
  */
 
-bool        launch_detected = false;
-EventSource launch_detect_event;
-EventSource wakeup_event;
+// Statically initialized to false, can be changed by:
+//   1) the launch_detect_init function
+//   2) the launch_detect_handler
+// if either of them thinks that we have launched based on the state of pin D11,
+// after ghetto-debouncing by reading the pin twice with a short sleep between
+// the reads.
+bool launch_detected = false;
+
+static WORKING_AREA(wa_launch_detect_dispatcher, 1024);
+
+static EventSource launch_detect_event;
+static EventSource wakeup_event;
 
 
+// other private function declarations
 
-/*
- * Private Global Variables
- * ======================== ****************************************************
- */
-
-static uint16_t wakeup_button_presses = 0;
+static msg_t launch_detect_dispatcher(void *unused);
+static void launch_detect_handler(eventid_t _);
 
 
 
@@ -69,24 +74,17 @@ static uint16_t wakeup_button_presses = 0;
  * ========================== **************************************************
  */
 
-/*
- * This function initializes the events needed to respond to wakeup button
- * presses and launch detect pin level changes.
- */
-void extdetail_init() {
-    chEvtInit(&wakeup_event);
-    chEvtInit(&launch_detect_event);
+bool get_launch_detected(void) {
+    return launch_detected;
 }
 
-
-/*
- * This function initializes the launch_detected global to reflect the current
- * state of the launch_detect pin.
- *
- * Open questions: why is this seperate from extdetail_init? could it be called
- * from there?
- */
 void launch_detect_init() {
+    chEvtInit(&wakeup_event);
+    chEvtInit(&launch_detect_event);
+
+    // activate EXT peripheral so we can get external interrupts
+    extStart(&EXTD1, &extcfg);
+
     int pinval1, pinval2;
 
     // why do we do this?
@@ -100,6 +98,47 @@ void launch_detect_init() {
     if ((pinval1 == PAL_LOW) && (pinval2 == PAL_LOW)) {
         launch_detected = true;
     }
+
+    chThdCreateStatic( wa_launch_detect_dispatcher
+                     , sizeof(wa_launch_detect_dispatcher)
+                     , NORMALPRIO
+                     , launch_detect_dispatcher
+                     , NULL
+                     );
+}
+
+
+
+/*
+ * Other Function Definitions
+ * ========================== **************************************************
+ */
+
+/*
+ * Launch Detect Thread
+ *
+ * This thread just waits for the external interrupt to broadcast the
+ * launch_detect_event, and dispatches it to the launch_detect_handler.
+ */
+static msg_t launch_detect_dispatcher(void *unused) {
+    // FIXME: use "unused" attribute
+    (void)unused;
+
+    struct EventListener launch_event_listener;
+    static const evhandler_t launch_event_handlers[] = {
+        launch_detect_handler
+    };
+
+    chRegSetThreadName("launch_detect");
+    launch_detect_init();
+
+    chEvtRegister(&launch_detect_event, &launch_event_listener, 0);
+
+    while (TRUE) {
+        chEvtDispatch(launch_event_handlers, chEvtWaitOne(ALL_EVENTS));
+    }
+
+    return -1;
 }
 
 /*
@@ -116,12 +155,11 @@ void launch_detect_handler(eventid_t _) {
 
     // FIXME: inconsistent with launch_detect_init
     if (pinval == PAL_LOW) {
-    	launch_detected = false;
+        launch_detected = false;
     } else {
-    	launch_detected = true;
+        launch_detected = true;
     }
 
-    // why call this if launch_detect is false? do we log a false positive?
     data_udp_tx_launch_det(&launch_detected);
 
 #ifdef DEBUG_LAUNCH_DETECT
@@ -132,46 +170,11 @@ void launch_detect_handler(eventid_t _) {
 
 
 /*
- * This function handles the wakeup_event broadcast by the wakeup_button_isr. It
- * pointlessly increments the wakeup_button_presses global variable, which is
- * not read by anything ever.
- *
- * TODO: delete this or figure out why we can't.
- */
-void wakeup_button_handler(eventid_t _) {
-    (void)_;
-
-    ++wakeup_button_presses;
-
-#ifdef DEBUG_WAKEUP
-    BaseSequentialStream *usbserial = getActiveUsbSerialStream();
-    chprintf(usbserial, "\r\nWKUP btn. eventid: %d\r\n", _);
-#endif
-}
-
-
-/*
- * This ISR is triggered by any level change on the wakeup button's pin. It just
- * broadcasts the wakeup_event, which is handled by the wakeup_button_handler
- * function above.
- */
-void wakeup_button_isr(EXTDriver *extp, expchannel_t channel) {
-	(void)extp;
-	(void)channel;
-
-	chSysLockFromIsr();
-	chEvtBroadcastI(&wakeup_event);
-	chSysUnlockFromIsr();
-}
-
-
-/*
  * This ISR is triggered by any level change on the launch detect pin. It just
  * broadcasts the launch_detect_event, which is handled by the
  * launch_detect_handler above.
  */
 void launch_detect_isr(EXTDriver *extp, expchannel_t channel) {
-
     (void)extp;
     (void)channel;
 
