@@ -19,6 +19,7 @@
 #include "fc_net.h"
 #include "pwm_config.h"
 #include "psas_packet.h"
+#include "launch_detect.h"
 #include "usbdetail.h"
 
 
@@ -61,9 +62,8 @@ WORKING_AREA(wa_data_udp_rx_thread, DATA_UDP_RX_THREAD_STACK_SIZE);
  * return a RDY_OK msg. If anything goes wrong with the network bits, it tears
  * down the connection and returns a RDY_RESET msg.
  */
-msg_t data_udp_tx_launch_det(void* launch_detect_voidp) {
-    bool* launch_detect;
-    launch_detect = (bool*) launch_detect_voidp;
+msg_t data_udp_tx_launch_det(void* unused) {
+    (void)unused;
 
     err_t           net_err;
     ip_addr_t       our_address;
@@ -91,8 +91,8 @@ msg_t data_udp_tx_launch_det(void* launch_detect_voidp) {
     }
 
     // Connect to fc specific/broadcast address.
-    // TODO: Understand why a UDP needs a connect... this may be a LwIP thing
-    // that chooses between tcp_/udp_/raw_ connections internally.
+    // We setup the connection with the address here so it doesn't have to be
+    // specified later.
     net_err = netconn_connect(conn, &fc_address, FC_LISTEN_PORT);
 
     // bail if we couldn't connect to the flight computer's address
@@ -104,7 +104,7 @@ msg_t data_udp_tx_launch_det(void* launch_detect_voidp) {
     buff = netbuf_new();
     data = netbuf_alloc(buff, sizeof(LaunchDetect));
 
-    msg.launch_detect = (*launch_detect ? 1 : 0);
+    msg.launch_detect = (get_launch_detected() ? 1 : 0);
     memcpy(data, &msg, sizeof(LaunchDetect));
 
     netconn_send(conn, buff);
@@ -169,7 +169,7 @@ static void read_roll_ctl_and_adjust_pwm(struct netconn *conn) {
  * the above routine forever.
  */
 msg_t data_udp_rx_thread(void *_) {
-    _;
+    (void)_;
 
 	err_t           net_err;
 	struct netconn *conn;

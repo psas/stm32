@@ -21,8 +21,8 @@
 
 #include "iwdg_lld.h"
 #include "usbdetail.h"
-#include "extdetail.h"
 #include "cmddetail.h"
+#include "launch_detect.h"
 #include "data_udp.h"
 #include "lwipopts.h"
 #include "lwipthread.h"
@@ -59,7 +59,6 @@ static const ShellConfig shell_cfg = {
  * ================ ************************************************************
  */
 
-static WORKING_AREA(wa_launch_detect_dispatcher, 1024);
 static WORKING_AREA(wa_led_blinker, 128);
 static WORKING_AREA(wa_watchdog_keeper, 128);
 
@@ -77,31 +76,6 @@ int pwm_hi = 1700;
  * ======= *********************************************************************
  */
 
-/*
- * Launch Detect Thread
- *
- * This thread just waits for the external interrupt to broadcast the
- * extdetail_launch_detect_event, and dispatches it to the
- * extdetail_launch_detect_handler.
- */
-static msg_t launch_detect_dispatcher(void *_) {
-    (void)_;
-
-    struct EventListener launch_event_listener;
-    static const evhandler_t launch_event_handlers[] = {
-        launch_detect_handler
-    };
-
-    chRegSetThreadName("launch_detect");
-    launch_detect_init();
-    chEvtRegister(&launch_detect_event, &launch_event_listener, 0);
-
-    while (TRUE) {
-        chEvtDispatch(launch_event_handlers, chEvtWaitOne(EVENT_MASK(0)));
-    }
-    return -1;
-}
-
 
 /*
  * LED Blinker Thread
@@ -113,13 +87,9 @@ static msg_t led_blinker(void *_) {
     (void)_;
 
     chRegSetThreadName("blinker");
-    palClearPad(GPIOF, GPIOF_GREEN_LED);
-    palClearPad(GPIOF, GPIOF_RED_LED);
-    palClearPad(GPIOF, GPIOF_BLUE_LED);
 
     while (TRUE) {
         palTogglePad(GPIOC, GPIOC_LED);
-        palTogglePad(GPIOF, GPIOF_GREEN_LED);
         chThdSleepMilliseconds(500);
     }
     return -1;
@@ -193,41 +163,17 @@ static msg_t pwm_tester(void *_) {
 
 static void led_init(void) {
     palSetPad(GPIOC, GPIOC_LED);
-    palClearPad(GPIOF, GPIOF_RED_LED);
-    palClearPad(GPIOF, GPIOF_GREEN_LED);
-    palClearPad(GPIOF, GPIOF_BLUE_LED);
-
-    int i = 0;
-    for(i=0; i<5; ++i) {
-        palSetPad(GPIOF, GPIOF_RED_LED);
-        chThdSleepMilliseconds(150);
-        palClearPad(GPIOF, GPIOF_RED_LED);
-        palSetPad(GPIOF, GPIOF_GREEN_LED);
-        chThdSleepMilliseconds(150);
-        palClearPad(GPIOF, GPIOF_GREEN_LED);
-        palSetPad(GPIOF, GPIOF_BLUE_LED);
-        chThdSleepMilliseconds(150);
-        palClearPad(GPIOF, GPIOF_BLUE_LED);
-    }
 }
 
 
 int main(void) {
-           Thread          *shelltp = NULL;
-    struct EventListener   wakeup_listener;
+    Thread *shelltp = NULL;
     struct lwipthread_opts ip_opts;
-    static const evhandler_t wakeup_handlers[] = {
-        wakeup_button_handler
-    };
 
     /* initialize HAL */
     halInit();
     chSysInit();
 
-    // initialize wakeup & launch detect events
-    extdetail_init();
-
-    // run through colored lights, for funzies i guess
     led_init();
 
     // start serial-over-USB
@@ -250,8 +196,8 @@ int main(void) {
     // why does this exist?
     chThdSleepMilliseconds(300);
 
-    // activate EXT peripheral so we can get external interrupts
-    extStart(&EXTD1, &extcfg);
+    // initialize wakeup & launch detect events
+    launch_detect_init();
 
     // activate PWM output
     pwm_start();
@@ -289,13 +235,6 @@ int main(void) {
                      , NULL
                      );
 
-    chThdCreateStatic( wa_launch_detect_dispatcher
-                     , sizeof(wa_launch_detect_dispatcher)
-                     , NORMALPRIO
-                     , launch_detect_dispatcher
-                     , NULL
-                     );
-
     chThdCreateStatic( wa_watchdog_keeper
                      , sizeof(wa_watchdog_keeper)
                      , NORMALPRIO
@@ -312,8 +251,6 @@ int main(void) {
                      );
 #endif
 
-    chEvtRegister(&wakeup_event, &wakeup_listener, 0);
-
     while (TRUE) {
         if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE)) {
             // create the shell thread if it needs to be and our USB connection is up
@@ -323,6 +260,6 @@ int main(void) {
             shelltp = NULL;        /* Triggers spawning of a new shell.        */
         }
 
-        chEvtDispatch(wakeup_handlers, chEvtWaitOneTimeout((eventmask_t)0, MS2ST(500)));
+        chThdSleepMilliseconds(100);
     }
 }
