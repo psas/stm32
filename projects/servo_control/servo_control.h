@@ -12,9 +12,6 @@
 #include "hal.h"
 #include "math.h"
 
-#include "pwm_lld.h"
-
-
 /*
  * \warning PERIOD setting for PWM is uint16_t (0-65535)
  *
@@ -40,25 +37,6 @@
 
  */
 
-
-
-/*
- * Constant Definitions
- * ==================== ********************************************************
- */
-
-#define         INIT_PWM_FREQ                  6000000
-#define         INIT_PWM_PERIOD_TICKS           ((pwmcnt_t) 20000)
-#define         INIT_PWM_PULSE_WIDTH_TICKS      ((pwmcnt_t) 9000)
-
-
-// boilerplate
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-
 /*
  * Function Declarations
  * ===================== *******************************************************
@@ -74,11 +52,5 @@ uint32_t        pwm_get_period_ms(void);
 pwmcnt_t        pwm_get_pulse_width(void);
 pwmcnt_t        pwm_us_to_ticks(uint32_t us) ;
 
-
-// boilerplate
-#ifdef __cplusplus
-}
-#endif
-//! @}
 
 #endif
