@@ -18,6 +18,8 @@
 #include "launch_detect.h"
 #include "servo_control.h"
 
+#define DEBUG_PWM 1
+
 #if DEBUG_PWM
 #include "debug_pwm.h"
 #endif
@@ -84,7 +86,7 @@ void main(void) {
     debug_pwm_start();
 #endif
     // initialize launch detection subsystem
-    launch_detect_init();
+//    launch_detect_init();
     while (true) {
         chThdSleep(TIME_INFINITE);
     }

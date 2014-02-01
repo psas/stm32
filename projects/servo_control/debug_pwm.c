@@ -29,11 +29,11 @@
  */
 
 
-static WORKING_AREA(wa_watchdog_keeper, 128);
+//static WORKING_AREA(wa_watchdog_keeper, 128);
 static WORKING_AREA(wa_pwm_tester, 512);
 
-static int pwm_lo = 1300;
-static int pwm_hi = 1700;
+static int pwm_lo = 1420;
+static int pwm_hi = 1620;
 
 void cmd_mem(BaseSequentialStream *out, int _, char *__[]) {
     (void)_;
@@ -142,27 +142,27 @@ static msg_t pwm_tester(void *_) {
  *
  * Keep the watchdog at bay - we power cycle if this thread doesn't run.
  */
-static msg_t watchdog_keeper(void *_) {
-    (void)_;
-
-    chRegSetThreadName("iwatchdog");
-
-    while (TRUE) {
-        iwdg_lld_reload();
-        chThdSleepMilliseconds(250);
-    }
-    return -1;
-}
+//static msg_t watchdog_keeper(void *_) {
+//    (void)_;
+//
+//    chRegSetThreadName("iwatchdog");
+//
+//    while (TRUE) {
+//        iwdg_lld_reload();
+//        chThdSleepMilliseconds(250);
+//    }
+//    return -1;
+//}
 
 void debug_pwm_start(void){
     // start the watchdog timer
-    iwdg_begin();
-    chThdCreateStatic( wa_watchdog_keeper
-                     , sizeof(wa_watchdog_keeper)
-                     , NORMALPRIO
-                     , watchdog_keeper
-                     , NULL
-                     );
+//    iwdg_begin();
+//    chThdCreateStatic( wa_watchdog_keeper
+//                     , sizeof(wa_watchdog_keeper)
+//                     , NORMALPRIO
+//                     , watchdog_keeper
+//                     , NULL
+//                     );
 
 
     chThdCreateStatic( wa_pwm_tester

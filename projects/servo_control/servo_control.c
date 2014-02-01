@@ -53,6 +53,11 @@ enum {
     PWM_DISABLE
 };
 
+
+void pwm_set_pulse_width_ticks(uint32_t ticks){
+    pwmEnableChannel(&PWMD4, 3, ticks);
+}
+
 /*
  * This is a conversion function to return the period in ms.
  */
@@ -90,10 +95,10 @@ static void read_roll_ctl_and_adjust_pwm(int socket) {
     //fixme: numerical stability of doubles
     if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
         uint16_t width = rc_packet.u16ServoPulseWidthBin14;
-        double   ms_d  = width/pow(2,14);
-        double   us_d  = ms_d * 1000;
+//        double   ms_d  = width/pow(2,14);
+//        double   us_d  = ms_d * 1000;
 
-        pwmEnableChannel(&PWMD4, 3, pwm_us_to_ticks(us_d));
+        pwmEnableChannel(&PWMD4, 3, pwm_us_to_ticks(width));
     } else {
         pwmDisableChannel(&PWMD4, 3);
     }
@@ -114,7 +119,7 @@ msg_t data_udp_rx_thread(void * u UNUSED) {
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(struct sockaddr_in));
     addr.sin_family = AF_INET,
-    addr.sin_port = htons(ROLL_CTL_TX_PORT);
+    addr.sin_port = htons(ROLL_CTL_LISTEN_PORT);
     inet_aton(ROLL_CTL_IP_ADDR_STRING , &addr.sin_addr);
 
     int pwm_socket = socket(AF_INET,  SOCK_DGRAM, 0);
@@ -149,10 +154,10 @@ void pwm_start() {
     pwmEnableChannel(&PWMD4, 3, INIT_PWM_PULSE_WIDTH_TICKS);
     pwmDisableChannel(&PWMD4, 3);
 
-    chThdCreateStatic( wa_data_udp_rx_thread
-                     , sizeof(wa_data_udp_rx_thread)
-                     , NORMALPRIO
-                     , data_udp_rx_thread
-                     , NULL
-                     );
+//    chThdCreateStatic( wa_data_udp_rx_thread
+//                     , sizeof(wa_data_udp_rx_thread)
+//                     , NORMALPRIO
+//                     , data_udp_rx_thread
+//                     , NULL
+//                     );
 }
