@@ -19,12 +19,13 @@
  * =========== *****************************************************************
  */
 
+#define UNUSED __attribute__((unused))
+
 #define EVENTBUFF_LENGTH 64
 #define EVENTLOG_DEBUG true
 
 #ifdef EVENTLOG_DEBUG
-BaseSequentialStream *sdclog = (BaseSequentialStream *)&SDU_PSAS;
-#define LOG_DEBUG(format, ...) chprintf( sdclog, format, ##__VA_ARGS__ )
+#define LOG_DEBUG(format, ...) chprintf(getUsbStream(), format, ##__VA_ARGS__ )
 #else
 #define LOG_DEBUG(...)
 #endif
@@ -44,10 +45,10 @@ static const char* sdc_log_file    = "LOGSMALL.bin";
 static msg_t eventlogger(void* _);
 
 /*
- * This creates a GenericMessage struct with the given ID and data, filling out
+ * This creates a GENERIC_message struct with the given ID and data, filling out
  * all other requisite fields as appropriate.
  */
-GenericMessage* make_msg(const char* id, const uint8_t* data, uint16_t data_length);
+GENERIC_message* make_msg(const char* id, const uint8_t* data, uint16_t data_length);
 
 
 
@@ -65,13 +66,13 @@ static MAILBOX_DECL(event_mail, mail_buffer, EVENTBUFF_LENGTH);
 
 static MemoryPool msg_pool;
 /*
- * This is the static storage that backs the GenericMessage memory pool.
- * The size of this array defines the maximum number of GenericMessage objects
+ * This is the static storage that backs the GENERIC_message memory pool.
+ * The size of this array defines the maximum number of GENERIC_message objects
  * that can be allocated at any one time.
  * Since each message posted to the above mailbox will refer to one
- * GenericMessage, this array should have the same size as the mailbox.
+ * GENERIC_message, this array should have the same size as the mailbox.
  */
-static GenericMessage msg_data[EVENTBUFF_LENGTH] __attribute__((aligned(sizeof(stkalign_t))));
+static GENERIC_message msg_data[EVENTBUFF_LENGTH] __attribute__((aligned(sizeof(stkalign_t))));
 
 static WORKING_AREA(wa_thread_eventlogger, 2048);
 
@@ -96,7 +97,7 @@ static WORKING_AREA(wa_thread_eventlogger, 2048);
 bool log_event(const char* id, const uint8_t* data, uint16_t data_length) {
     msg_t status;
 
-    GenericMessage* msg = make_msg(id, data, data_length);
+    GENERIC_message* msg = make_msg(id, data, data_length);
     if (msg == NULL) return false;
 
     status = chMBPost(&event_mail, (msg_t) msg, TIME_IMMEDIATE);
@@ -114,7 +115,7 @@ bool log_event(const char* id, const uint8_t* data, uint16_t data_length) {
  * chSysInit().
  */
 void eventlogger_init(void) {
-    chPoolInit(&msg_pool, sizeof(GenericMessage), NULL);
+    chPoolInit(&msg_pool, sizeof(GENERIC_message), NULL);
     chPoolLoadArray(&msg_pool, msg_data, EVENTBUFF_LENGTH);
 
     chThdCreateStatic( wa_thread_eventlogger
@@ -137,12 +138,12 @@ void eventlogger_init(void) {
  *
  * Log messages from the event mailbox to the SD card.
  */
-static msg_t eventlogger(void *_) {
+static msg_t eventlogger(void *_ UNUSED) {
     uint32_t        write_errs = 0;
     uint32_t        bytes_written;
     bool            log_opened = false;
     FIL             LogFile;
-    GenericMessage* posted;
+    GENERIC_message* posted;
 
     chRegSetThreadName("eventlogger");
     LOG_DEBUG("Started eventlog thread\r\n");
@@ -151,7 +152,7 @@ static msg_t eventlogger(void *_) {
     sdc_init_eod((uint8_t) 0xa5);
 
     // ensure message is half-word aligned (i.e. 16-bit aligned)
-    if (sizeof(GenericMessage) % 2 != 0) {
+    if (sizeof(GENERIC_message) % 2 != 0) {
         LOG_DEBUG("Generic message is not 16-bit aligned!\r\n");
         return SDC_ASSERT_ERROR;
     }
@@ -227,21 +228,21 @@ static msg_t eventlogger(void *_) {
             if (status != FR_OK) {
                 write_errs++;
                 LOG_DEBUG( "Could not log message %5d: error %d\r\n"
-                         , posted->head.index
+                         , posted->mh.index
                          , status
                          );
                 goto msg_cleanup;
             }
 
             crc16 = crc_init();
-            crc16 = crc_update(crc16, (const unsigned char*) posted, sizeof(GenericMessage));
+            crc16 = crc_update(crc16, (const unsigned char*) posted, sizeof(GENERIC_message));
             crc16 = crc_finalize(crc16);
 
             status = sdc_write_checksum(&LogFile, &crc16, &bytes_written);
             if (status != FR_OK) {
                 write_errs++;
                 LOG_DEBUG( "Could not write checksum for message %5d: error %d\r\n"
-                         , posted->head.index
+                         , posted->mh.index
                          , status
                          );
                 goto msg_cleanup;
@@ -254,13 +255,13 @@ static msg_t eventlogger(void *_) {
             psas_rtc_to_psas_ts(&logged_ts, &logged_time);
 
             for (i = 0; i < PSAS_RTC_NS_BYTES; i++) {
-                posted_ns += (uint64_t) posted->head.ts.ns[i] << (i * 8);
+                posted_ns += (uint64_t) posted->mh.ts.ns[i] << (i * 8);
                 ns_delay += (uint64_t) logged_ts.ns[i] << (i * 8);
             }
             ns_delay -= posted_ns;
 
             LOG_DEBUG( "Logged message %5u with delay of %3u.%06u ms\r\n"
-                     , posted->head.index
+                     , posted->mh.index
                      , (uint32_t) (ns_delay / 1000000)
                      , (uint32_t) (ns_delay % 1000000)
                      );
@@ -275,28 +276,27 @@ msg_cleanup:
 }
 
 
-GenericMessage* make_msg(const char* id, const uint8_t* data, uint16_t data_length) {
+GENERIC_message* make_msg(const char* id, const uint8_t* data, uint16_t data_length) {
     static int msg_index = 0;
 
-    int             status;
     RTCTime         now;
-    GenericMessage* msg = (GenericMessage*) chPoolAlloc(&msg_pool);
+    GENERIC_message* msg = (GENERIC_message*) chPoolAlloc(&msg_pool);
 
     // bail if the pool is empty
     if (msg == NULL) return NULL;
 
     // fill out most of message's head fields
-    strncpy(msg->head.ID, id, SDC_MSG_ID_BYTES);
-    msg->head.index = msg_index++;
+    strncpy(msg->mh.ID, id, SDC_NUM_ID_CHARS );
+    msg->mh.index = msg_index++;
 
     // fill out message's head timestamp field
     now.h12 = 1;
     psas_rtc_lld_get_time(&RTCD1, &now);
     now.tv_time = psas_rtc_dr_tr_to_unixtime(&now);
-    psas_rtc_to_psas_ts(&msg->head.ts, &now);
+    psas_rtc_to_psas_ts(&msg->mh.ts, &now);
 
     // copy the data into the msg
-    msg->head.data_length = data_length;
+    msg->mh.data_length = data_length;
     memcpy(&msg->data, data, data_length);
 
     return msg;
