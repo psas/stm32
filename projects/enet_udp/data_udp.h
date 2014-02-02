@@ -20,8 +20,8 @@
 #define DATA_UDP_RX_THD_PRIORITY             (LOWPRIO)
 #define DATA_UDP_THREAD_PRIORITY             (LOWPRIO + 2)
 
-#define IP_PSAS_FC                           "192.168.0.91"
-#define IP_PSAS_SENSOR                       "192.168.0.196"
+#define IP_HOST                              "192.168.0.91"
+#define IP_DEVICE                            "192.168.0.196"
 
 #define DATA_UDP_MSG_SIZE                    50
 

@@ -35,7 +35,6 @@ extern "C" {
 
 #include "ch.h"
 #include "hal.h"
-#include "fc_net.h"
 
 
 /*

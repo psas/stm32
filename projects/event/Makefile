@@ -5,12 +5,12 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O0 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
+  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
 endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = 
+  USE_COPT =
 endif
 
 # C++ specific options here (added to USE_OPT).
@@ -62,6 +62,7 @@ endif
 
 # Define project name here
 PROJECT = ch
+
 # Imported source files and paths
 PSAS= ../../common
 include $(PSAS)/psas.mk
@@ -71,7 +72,6 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
-include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
@@ -81,14 +81,17 @@ LDSCRIPT= $(PORTLD)/STM32F407xG.ld
 # setting.
 CSRC = $(PORTSRC) \
        $(KERNSRC) \
+       $(TESTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       $(LWSRC) $(CHIBIOS)/os/various/evtimer.c \
-       $(PSAS_DEVICES)/ADIS16405.c \
-       main.c \
-       $(PSAS_NET)/utils_sockets.c \
-       $(PSAS_NET)/net_addrs.c 
+       $(LWSRC) \
+       $(FATFSSRC) \
+       $(CHIBIOS)/os/various/evtimer.c \
+       $(CHIBIOS)/os/various/chprintf.c \
+       $(CHIBIOS)/os/various/shell.c \
+       $(PSAS)/devices/usbdetail.c \
+       main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -118,11 +121,9 @@ TCPPSRC =
 ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC) \
+         $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
-         $(PSAS_COMMON) \
-         $(PSAS_DEVICES)/include \
-         $(PSAS_NET)
+         $(PSAS)/devices/include
 
 #
 # Project, sources and paths
@@ -135,7 +136,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
 MCU  = cortex-m4
 
 #TRGT = arm-elf-
-TRGT = arm-psas-eabi-
+TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.
@@ -193,14 +194,12 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DADIS_DEBUG=1
-
+UDEFS =
 
 # Define ASM defines here
 UADEFS =
 
 # List all user directories here
-# UINCDIR = ./boards/OLIMEX_STM32_E407
 UINCDIR =
 
 # List the user directory to look for the libraries here
@@ -228,4 +227,5 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
-include $(PSAS_COMMON)/oocd.mk
+
+include $(PSAS)/oocd.mk

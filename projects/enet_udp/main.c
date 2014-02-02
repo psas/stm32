@@ -10,24 +10,20 @@
  * @{
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
-
 #include "ch.h"
 #include "hal.h"
 
 #include "chprintf.h"
 #include "shell.h"
+#include "lwipthread.h"
+#include "lwip/ip_addr.h"
 
-#include "iwdg_lld.h"
+#include "utils_sockets.h"
 #include "usbdetail.h"
 #include "cmddetail.h"
-
-#include <lwip/ip_addr.h>
-
 #include "data_udp.h"
-#include "lwipthread.h"
+
+
 
 static WORKING_AREA(waThread_blinker, 64);
 /*! \brief Green LED blinker thread
@@ -43,8 +39,6 @@ static msg_t Thread_blinker(void *arg) {
 }
 
 void main(void) {
-	struct lwipthread_opts   ip_opts;
-
 	/*
 	 * System initializations.
 	 * - HAL initialization, this also initializes the configured device drivers
@@ -65,20 +59,17 @@ void main(void) {
 	usbSerialShellStart(commands);
 	BaseSequentialStream * chp = getActiveUsbSerialStream();
 
-
-	struct ip_addr ip, gateway, netmask;
-	IP4_ADDR(&ip,      192, 168, 0,   196);
-	IP4_ADDR(&gateway, 192, 168, 1,   1  );
-	IP4_ADDR(&netmask, 255, 255, 255, 0  );
+	/* fill out lwipthread_opts with our address*/
+    struct lwipthread_opts   ip_opts;
 	uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
+	set_lwipthread_opts(&ip_opts, IP_DEVICE, "255.255.255.0", "192.168.1.1", macAddress);
 
-	ip_opts.macaddress = macAddress;
-	ip_opts.address    = ip.addr;
-	ip_opts.netmask    = netmask.addr;
-	ip_opts.gateway    = gateway.addr;
+	/* Start the lwip thread*/
 	chprintf(chp, "LWIP ");
-	chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2,
+	chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2,
 	                    lwip_thread, &ip_opts);
+
+	/* Start the feature threads */
 	chprintf(chp, "tx ");
     chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO,
     		data_udp_send_thread, NULL);
