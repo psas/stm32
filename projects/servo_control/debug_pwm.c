@@ -14,19 +14,6 @@
 
 #define DEBUG_PWM 1
 #if DEBUG_PWM
-/*
- * Global Variables
- * ================ ************************************************************
- */
-
-/*
- * Threads
- * ======= *********************************************************************
- */
-/*
- * Constant Definitions
- * ==================== ********************************************************
- */
 
 #define UNUSED __attribute__((unused))
 
@@ -35,39 +22,6 @@ static WORKING_AREA(wa_pwm_tester, 512);
 
 static int pwm_lo = 1420;
 static int pwm_hi = 1620;
-
-void cmd_mem(BaseSequentialStream *out, int _ UNUSED, char *__[] UNUSED) {
-    size_t fragments, size;
-
-    fragments = chHeapStatus(NULL, &size);
-    chprintf(out, "core free memory : %u bytes\r\n", chCoreStatus());
-    chprintf(out, "heap fragments   : %u\r\n", fragments);
-    chprintf(out, "heap free total  : %u bytes\r\n", size);
-}
-
-
-void cmd_threads(BaseSequentialStream *out, int _ UNUSED, char *__[] UNUSED) {
-    static const char *THREAD_STATES[] = {THD_STATE_NAMES};
-    Thread *t;
-
-    chprintf(out, "addr\t\tstack\t\tprio\trefs\tstate\t\ttime\tname\r\n");
-
-    t = chRegFirstThread();
-    do {
-        chprintf( out
-                , "%.8lx\t%.8lx\t%4lu\t%4lu\t%9s\t%lu\t%s\r\n"
-                , (uint32_t)t               // address
-                , (uint32_t)t->p_ctx.r13    // stack
-                , (uint32_t)t->p_prio       // prio
-                , (uint32_t)(t->p_refs - 1) // refs
-                , THREAD_STATES[t->p_state] // state
-                , (uint32_t)t->p_time       // time
-                , t->p_name                 // name
-                );
-        t = chRegNextThread(t);
-    } while (t != NULL);
-}
-
 
 void cmd_pwmlims(BaseSequentialStream *out, int argc, char* argv[]) {
     if (argc == 0) {
@@ -140,8 +94,6 @@ void debug_pwm_start(void){
 
 
     static const ShellCommand commands[] = {
-        {"mem", cmd_mem},
-        {"threads", cmd_threads},
         {"pwm", cmd_pwmlims},
         {NULL, NULL}
     };
