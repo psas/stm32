@@ -5,11 +5,6 @@
  *
  */
 
-/*! \defgroup adis16405 ADIS IMU
- *
- * @{
- */
-
 #include "ch.h"
 #include "hal.h"
 

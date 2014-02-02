@@ -14,6 +14,7 @@
 #include "lwipthread.h"
 
 #include "utils_sockets.h"
+#include "net_addrs.h"
 
 #include "ADIS16405.h"
 
@@ -75,22 +76,15 @@ void main(void){
     chThdCreateStatic(wa_led, sizeof(wa_led), NORMALPRIO, led, NULL);
 
     /* Start lwip */
-	struct lwipthread_opts ip_opts;
-	SET_IMU_LWIPOPTS(&ip_opts);
-    chThdCreateStatic(wa_lwip_thread, LWIP_THREAD_STACK_SIZE, NORMALPRIO + 2, lwip_thread, &ip_opts);
+    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, SENSOR_LWIP);
 
     /* Create the ADIS out socket, connecting as it only sends to one place */
-    struct sockaddr_in adis;
-    struct sockaddr_in fc;
-    SET_ADIS_ADDR(&adis);
-    SET_FC_LISTEN_ADDR(&adis);
-    sendsocket = get_udp_socket((struct sockaddr *)&adis);
+    sendsocket = get_udp_socket(ADIS_ADDR);
     if(sendsocket < 0){
         palSetPad(GPIOF, GPIOF_LED_RED);
-    } else if(connect(sendsocket, (struct sockaddr *)&fc, sizeof(fc)) < 0){
+    } else if(connect(sendsocket, FC_ADDR, sizeof(struct sockaddr)) < 0){
         palSetPad(GPIOF, GPIOF_LED_RED);
     }
-
 
     adis_init(&adis_olimex_e407);
 
