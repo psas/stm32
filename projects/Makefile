@@ -1,3 +1,4 @@
+#FIXME: Pass -Werror to submakes
 SUBDIRS = $(shell ls -d */)
 CLEAN_SUBDIRS = $(SUBDIRS:%=install-%)
 
