@@ -30,7 +30,8 @@
 #include "lwip/sockets.h"
 
 // PSAS
-#include "device_net.h"
+#include "net_addrs.h"
+#include "utils_sockets.h"
 #include "psas_packet.h"
 #include "servo_control.h"
 
@@ -69,6 +70,7 @@ uint32_t pwm_get_period_ms() {
  * Convert from microseconds to PWM ticks (1 second = PWM_FREQ ticks)
  */
 pwmcnt_t pwm_us_to_ticks(uint32_t us) {
+    //fixme: numerical stability of doubles
     double   ticks_per_us_quot;
     uint32_t ticks_per_us;
 
@@ -80,53 +82,32 @@ pwmcnt_t pwm_us_to_ticks(uint32_t us) {
 
 
 /*
- * This is the inner loop of the data_udp_rx_thread, wherein we read a Roll
- * Control message from the network and adjust the PWM output according to its
- * instructions.
+ * PWM control thread - sets up a listen socket and then sets the pwm width
+ * according to the data received.
  */
-static void read_roll_ctl_and_adjust_pwm(int socket) {
+WORKING_AREA(wa_pwm_thread, 1024);
+msg_t pwm_thread(void * u UNUSED) {
+    chRegSetThreadName("data_udp_receive_thread");
     RCOutput       rc_packet;
     char data[sizeof(RCOutput)];
 
-    //fixme: throw away anything left
-    read(socket, data, sizeof(data));
-    memcpy(&rc_packet, data, sizeof(RCOutput));
-
-    //fixme: numerical stability of doubles
-    if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
-        uint16_t width = rc_packet.u16ServoPulseWidthBin14;
-//        double   ms_d  = width/pow(2,14);
-//        double   us_d  = ms_d * 1000;
-
-        pwmEnableChannel(&PWMD4, 3, pwm_us_to_ticks(width));
-    } else {
-        pwmDisableChannel(&PWMD4, 3);
+    int socket = get_udp_socket(ROLL_ADDR);
+    if(socket < 0){
+        return -1;
     }
 
-}
-
-/*
- * This is the other part of the data_udp_rx_thread, which wraps the
- * read_roll_ctl_and_adjust_pwm routine above. It sets up the UDP connection,
- * bailing with a RDY_RESET msg if binding doesn't succeed; otherwise it loops
- * the above routine forever.
- */
-WORKING_AREA(wa_data_udp_rx_thread, 1024);
-
-msg_t data_udp_rx_thread(void * u UNUSED) {
-    chRegSetThreadName("data_udp_receive_thread");
-    //FIXME: use common code networking
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(struct sockaddr_in));
-    addr.sin_family = AF_INET,
-    addr.sin_port = htons(ROLL_CTL_LISTEN_PORT);
-    inet_aton(ROLL_CTL_IP_ADDR_STRING , &addr.sin_addr);
-
-    int pwm_socket = socket(AF_INET,  SOCK_DGRAM, 0);
-    bind(pwm_socket, (struct sockaddr*)&addr, sizeof(addr));
-
     while(TRUE){
-        read_roll_ctl_and_adjust_pwm(pwm_socket);
+        //fixme: throw away anything left
+        read(socket, data, sizeof(data));
+        memcpy(&rc_packet, data, sizeof(RCOutput));
+
+        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
+            pwmcnt_t ticks = pwm_us_to_ticks(rc_packet.u16ServoPulseWidthBin14);
+            pwmEnableChannel(&PWMD4, 3, ticks);
+        } else {
+            pwmDisableChannel(&PWMD4, 3);
+        }
+
     }
 
     return -1;
@@ -154,10 +135,10 @@ void pwm_start() {
     pwmEnableChannel(&PWMD4, 3, INIT_PWM_PULSE_WIDTH_TICKS);
     pwmDisableChannel(&PWMD4, 3);
 
-//    chThdCreateStatic( wa_data_udp_rx_thread
-//                     , sizeof(wa_data_udp_rx_thread)
-//                     , NORMALPRIO
-//                     , data_udp_rx_thread
-//                     , NULL
-//                     );
+    chThdCreateStatic( wa_pwm_thread
+                     , sizeof(wa_pwm_thread)
+                     , NORMALPRIO
+                     , pwm_thread
+                     , NULL
+                     );
 }

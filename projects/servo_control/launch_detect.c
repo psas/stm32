@@ -6,7 +6,8 @@
 #include "lwip/ip_addr.h"
 #include "lwip/sockets.h"
 
-#include "device_net.h"
+#include "net_addrs.h"
+#include "utils_sockets.h"
 #include "launch_detect.h"
 
 #ifdef DEBUG_LAUNCH_DETECT
@@ -126,22 +127,9 @@ void launch_detect_init() {
         launch_detected = false;
     }
 
-    //FIXME: use common code networking
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(struct sockaddr_in));
-    addr.sin_family = AF_INET,
-    addr.sin_port = htons(ROLL_CTL_TX_PORT);
-    inet_aton(ROLL_CTL_IP_ADDR_STRING , &addr.sin_addr);
 
-    struct sockaddr_in dest_addr;
-    memset(&dest_addr, 0, sizeof(struct sockaddr_in));
-    dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(36000);
-    inet_aton("10.0.0.10", &dest_addr.sin_addr);
-
-    ld_socket = socket(AF_INET,  SOCK_DGRAM, 0);
-    bind(ld_socket, (struct sockaddr*)&addr, sizeof(addr));
-    connect(ld_socket, (struct sockaddr*)&dest_addr, sizeof(dest_addr));
+    ld_socket = get_udp_socket(TEATHER_ADDR);
+    connect(ld_socket, FC_ADDR, sizeof(struct sockaddr));
 
     handler(0); //sends initial launch status
 

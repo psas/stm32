@@ -12,7 +12,7 @@
 #include "lwipthread.h"
 
 // PSAS common
-#include "device_net.h"
+#include "net_addrs.h"
 
 // servo_control
 #include "launch_detect.h"
@@ -54,39 +54,27 @@ static void led_init(void) {
 }
 
 void main(void) {
-    struct lwipthread_opts ip_opts;
-
     /* initialize HAL */
     halInit();
     chSysInit();
     led_init();
 
-    // configure IP
-    static uint8_t roll_ctl_mac_address[6] = ROLL_CTL_MAC_ADDRESS;
-    struct ip_addr ip, gateway, netmask;
-    ROLL_CTL_IP_ADDR(&ip);
-    ROLL_CTL_GATEWAY(&gateway);
-    ROLL_CTL_NETMASK(&netmask);
-    ip_opts.macaddress = roll_ctl_mac_address;
-    ip_opts.address    = ip.addr;
-    ip_opts.netmask    = netmask.addr;
-    ip_opts.gateway    = gateway.addr;
 
     chThdCreateStatic( wa_lwip_thread
                      , sizeof(wa_lwip_thread)
                      , NORMALPRIO + 2
                      , lwip_thread
-                     , &ip_opts
+                     , ROLL_LWIP
                      );
 
     // activate PWM output
     pwm_start();
 #if DEBUG_PWM
-    // Starts watchdog, usb-serial terminal, pwm_tester thread
+    // Starts usb-serial terminal, pwm_tester thread
     debug_pwm_start();
 #endif
     // initialize launch detection subsystem
-//    launch_detect_init();
+    launch_detect_init();
     while (true) {
         chThdSleep(TIME_INFINITE);
     }

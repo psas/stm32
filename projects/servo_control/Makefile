@@ -91,10 +91,12 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_DEVICES)/iwdg_lld.c \
+       $(PSAS_DEVICES)/usbdetail.c \
+       $(PSAS_NET)/net_addrs.c \
+       $(PSAS_NET)/utils_sockets.c \
        servo_control.c \
        launch_detect.c \
        debug_pwm.c \
-       $(PSAS_DEVICES)/usbdetail.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -127,7 +129,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_DEVICES)/include
+         $(PSAS_DEVICES)/include $(PSAS_NET)
 
 #
 # Project, sources and paths
