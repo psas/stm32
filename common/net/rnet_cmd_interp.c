@@ -4,7 +4,7 @@
 #include "ch.h"
 #include "lwip/sockets.h"
 
-#include "device_net.h"
+#include "utils_sockets.h"
 
 #include "rnet_cmd_interp.h"
 

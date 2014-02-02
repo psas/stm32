@@ -40,10 +40,11 @@
 
 #include "board.h"
 
-#include "device_net.h"
-#include "fc_net.h"
+#include "net_addrs.h"
 
 #include "main.h"
+
+#define UNUSED __attribute__((unused))
 
 /*! configure the i2c module on stm32
  *
@@ -96,7 +97,7 @@ static void mpu9150_init(I2CDriver* i2cptr) {
 	mpu9150_write_int_enable(i2cptr, rdata);
 }
 
-static void mpu9150_int_event_handler(eventid_t id __attribute__ ((unused))) {
+static void mpu9150_int_event_handler(eventid_t id UNUSED) {
 
 	mpu9150_a_read_x_y_z(mpu9150_driver.i2c_instance, &mpu9150_current_read.accel_xyz);
 
@@ -114,7 +115,7 @@ static void mpu9150_int_event_handler(eventid_t id __attribute__ ((unused))) {
 
     static uint16_t     count = 0;
 
-    BaseSequentialStream *chp = getActiveUsbSerialStream();
+    BaseSequentialStream *chp = getUsbStream();
 
 	++count;
 	if (count > 5000) {
@@ -176,9 +177,6 @@ int main(void) {
 			extdetail_WKUP_button_handler
 	};
 	struct EventListener     el0;
-
-	struct lwipthread_opts   ip_opts;
-
 	/*
 	 * System initializations.
 	 * - HAL initialization, this also initializes the configured device drivers
@@ -239,20 +237,9 @@ int main(void) {
 	 * Use unicast address LSbit of MSB of MAC should be 0
 	 */
 	data_udp_init();
-	static       uint8_t      IMU_A_macAddress[6]         = IMU_A_MAC_ADDRESS;
-	struct       ip_addr      ip, gateway, netmask;
-	IMU_A_IP_ADDR(&ip);
-	IMU_A_GATEWAY(&gateway);
-	IMU_A_NETMASK(&netmask);
 
-	ip_opts.macaddress = IMU_A_macAddress;
-	ip_opts.address    = ip.addr;
-	ip_opts.netmask    = netmask.addr;
-	ip_opts.gateway    = gateway.addr;
-
-	chThdCreateStatic(wa_lwip_thread            , sizeof(wa_lwip_thread)            , NORMALPRIO + 2, lwip_thread            , &ip_opts);
+	chThdCreateStatic(wa_lwip_thread            , sizeof(wa_lwip_thread)            , NORMALPRIO + 2, lwip_thread            , SENSOR_LWIP);
 	chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
-	chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
 
 	/* i2c MPU9150 */
 	chThdCreateStatic(waThread_mpu9150_int,       sizeof(waThread_mpu9150_int)      , NORMALPRIO    , Thread_mpu9150_int,  NULL);

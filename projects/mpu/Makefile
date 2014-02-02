@@ -100,6 +100,8 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/MPU9150.c \
        $(PSAS_DEVICES)/MPL3115A2.c \
        $(PSAS_UTIL)/crc_16_reflect.c \
+       $(PSAS_NET)/net_addrs.c \
+       $(PSAS_NET)/utils_sockets.c \
        ./data_udp/data_udp.c \
        cmddetail.c \
        extdetail.c \
