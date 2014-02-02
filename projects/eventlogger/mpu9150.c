@@ -12,6 +12,8 @@
  ** Preprocessory Definitions
  ****************************/
 
+#define UNUSED __attribute__((unused))
+
 #define MPU9150_DEBUG false
 
 
@@ -53,7 +55,7 @@ void mpu9150_init(I2CDriver* i2cptr) {
  * interrupt from it.
  * It is called by the Thread_mpu9150_int_dispatch defined below.
  */
-void mpu9150_int_event_handler(eventid_t _) {
+void mpu9150_int_event_handler(eventid_t _ UNUSED) {
 	static uint16_t count = 0;
 #if MPU9150_DEBUG
     static BaseSequentialStream* chp = (BaseSequentialStream*) &SDU_PSAS;
@@ -87,7 +89,7 @@ void mpu9150_int_event_handler(eventid_t _) {
  * This thread simply waits for the ISR to trigger an mpu9150_int_event, then
  * dispatches to the above mpu9150_int_event_handler function to read the data.
  */
-msg_t Thread_mpu9150_int_dispatch(void* _) {
+msg_t Thread_mpu9150_int_dispatch(void* _ UNUSED) {
 	struct EventListener  evl_mpu9150;
 	const  evhandler_t    evhndl_mpu9150[] = { mpu9150_int_event_handler };
 
@@ -106,7 +108,7 @@ msg_t Thread_mpu9150_int_dispatch(void* _) {
  * Triggers on external interrupt from MPU9150.
  * Simply broadcast an event signifying that new data is ready.
  */
-void mpu9150_ISR(EXTDriver *_, expchannel_t __) {
+void mpu9150_ISR(EXTDriver *_ UNUSED, expchannel_t __ UNUSED) {
 	chSysLockFromIsr();
 	chEvtBroadcastI(&mpu9150_int_event);
 	chSysUnlockFromIsr();

@@ -14,6 +14,7 @@
 #include "mpu9150.h"
 
 
+#define UNUSED __attribute__((unused))
 
 /*
  * Configuration
@@ -79,7 +80,7 @@ const EXTConfig extcfg = {
 
 static WORKING_AREA(wa_thread_blinker, 64);
 
-static msg_t blinker(void *_) {
+static msg_t blinker(void *_ UNUSED) {
     chRegSetThreadName("blinker");
 
     while (TRUE) {
@@ -141,16 +142,9 @@ int main(void) {
     palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad);
 
     /*!
-     * Initializes serial-over-USB CDC driver.
-     */
-    sduObjectInit(&SDU_PSAS);
-    sduStart(&SDU_PSAS, &serusbcfg);
-
-    /*!
-     * Activates the serial driver 6 and SDC driver 1 using default
+     * Activates the SDC driver 1 using default
      * configuration.
      */
-    sdStart(&SD6, NULL);
     sdcStart(&SDCD1, NULL);
 
     /*!
@@ -159,16 +153,6 @@ int main(void) {
     sdc_tmr_init(&SDCD1);
     chEvtRegister(&sdc_inserted_event, &insertion_listener, 0);
     chEvtRegister(&sdc_removed_event,  &removal_listener,   1);
-
-    /*!
-     * Activates the USB driver and then the USB bus pull-up on D+.
-     * Note, a delay is inserted in order to not have to disconnect the cable
-     * after a reset.
-     */
-    usbDisconnectBus(serusbcfg.usbp);
-    chThdSleepMilliseconds(1000);
-    usbStart(serusbcfg.usbp, &usbcfg);
-    usbConnectBus(serusbcfg.usbp);
 
     /*!
      * Starts the LED blinker thread
