@@ -25,4 +25,9 @@ extern struct lwipthread_opts * ROLL_LWIP;
 extern struct sockaddr * ROLL_ADDR;    // Servo control
 extern struct sockaddr * TEATHER_ADDR; // Launch Detect
 
+/* Rocket Net Hub */
+extern struct lwipthread_opts * RNH_LWIP;
+extern struct sockaddr * RNH_LISTEN_ADDR;
+extern struct sockaddr * RNH_SEND_ADDR;
+
 #endif /* NET_ADDRS_H_ */

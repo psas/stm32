@@ -80,3 +80,14 @@ make_addr(MPL_ADDR, SENSOR_IP, MPL_PORT);
 make_lwipopts(ROLL_LWIP, ROLL_MAC, ROLL_IP, NETMASK, GATEWAY);
 make_addr(ROLL_ADDR, ROLL_IP, ROLL_PORT);
 make_addr(TEATHER_ADDR, ROLL_IP, TEATHER_PORT);
+
+/* Rocket Net Hub */
+#define RNH_IP (IPv4){10, 0, 0, 5}
+#define RNH_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0xaa}
+#define RNH_LISTEN 36100 //?
+#define RNH_SEND 36101     //???
+
+make_lwipopts(RNH_LWIP, RNH_MAC, RNH_IP, NETMASK, GATEWAY);
+make_addr(RNH_LISTEN_ADDR, RNH_IP, RNH_LISTEN);
+make_addr(RNH_SEND_ADDR, RNH_IP, RNH_SEND);
+
