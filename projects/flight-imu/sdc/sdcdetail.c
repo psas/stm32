@@ -33,7 +33,7 @@
 
 #ifdef DEBUG_SDCLOG
 #include "usbdetail.h"
-#define SDCLOGDBG(format, ...) chprintf(getActiveUsbSerialStream(), format, ##__VA_ARGS__ )
+#define SDCLOGDBG(format, ...) chprintf(getUsbStream(), format, ##__VA_ARGS__ )
 #else
 #define SDCLOGDBG(...) do{ } while ( false )
 #endif
@@ -267,7 +267,7 @@ msg_t sdlog_thread(void *p) {
     }
 
     chEvtRegister(&mpl3115a2_data_event        ,   &el0, MPL3115A2);
-    chEvtRegister(&adis_spi_burst_data_captured,   &el1, ADIS16405);
+    chEvtRegister(&adis_data_ready,   &el1, ADIS16405);
     chEvtRegister(&mpu9150_data_event          ,   &el2, MPU9150);
     chEvtRegister(&sdc_halt_event              ,   &el3, SENSOR_LOG_HALT);
     chEvtRegister(&sdc_start_event             ,   &el4, SENSOR_LOG_START);
