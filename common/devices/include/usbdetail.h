@@ -33,8 +33,7 @@ void usbSerialShellStart(const ShellCommand* commands);
 /* Sets up and then returns a BaseSequentialStream suitable for using with
  * chprintf that writes to the USB Serial driver
  */
-//FIXME: This is a horrendous name.
-BaseSequentialStream * getActiveUsbSerialStream(void);
+BaseSequentialStream * getUsbStream(void);
 
 #ifdef __cplusplus
 }

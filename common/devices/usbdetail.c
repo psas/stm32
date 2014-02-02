@@ -389,7 +389,7 @@ static void usbSerialDriverStart(void){
     usbConnectBus(serusbcfg.usbp);
 }
 
-BaseSequentialStream * getActiveUsbSerialStream(void){
+BaseSequentialStream * getUsbStream(void){
     usbSerialDriverStart();
     return (BaseSequentialStream *)&SDU_PSAS;
 }
