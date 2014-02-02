@@ -111,8 +111,6 @@ int main(void) {
 	halInit();
 	chSysInit();
 
-	extdetail_init();
-
 	/*
 	 * I2C2 I/O pins setup.
 	 */

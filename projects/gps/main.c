@@ -69,21 +69,21 @@ int max2769_write_word(uint32_t wrd) {
   uint32_t bout;
 
   palClearPad(GPIOD,11);            // bring CS low
-  wait()                            // wait TCSS (10ns min) before sending any data
-
-  for (int i; i < 32; i++) {
+//  wait()                            // wait TCSS (10ns min) before sending any data
+  int i = 0;
+  for (; i < 32; i++) {
     bout = wrd & 0x8000000;         // shift word and set pad D13 to the output bit 
     if (bout) palSetPad(GPIOD,13);  // bit = 1, pad high
     else palClearPad(GPIOD,13);     // bit = 0, pad low
-    wait()                          // wait TDS (10ns min)
+//    wait()                          // wait TDS (10ns min)
     palSetPad(GPIOD,12);            // bring clock pad D12 high for TCH 
-    wait()                          // wait TDH-TCH (10ns min)
+//    wait()                          // wait TDH-TCH (10ns min)
     wrd = wrd << 1;                 // shift the word so MSB is next bit
   }
 
-  wait()                            // wait TCSH (10ns min)
+//  wait()                            // wait TCSH (10ns min)
   palSetPad(GPIOD,11);              // bring CS high to end transmission
-  wait()                            // wait TCSW before beginning new word write (1 clock)
+//  wait()                            // wait TCSW before beginning new word write (1 clock)
 
   return 0;
 
@@ -105,12 +105,11 @@ static const SerialConfig serial_config =
  *
  */
 int main(void) {
-    uint32_t i = 0;
 
     halInit();
     chSysInit();
 
-    uint8_t my_string[10] = "Hello";
+    uint8_t my_string[] = "Hello";
 
     // set up the pads for the serial communication
     palSetPadMode(GPIOD, 10, PAL_MODE_INPUT_PULLDOWN);  // ANTFLAG
@@ -145,9 +144,9 @@ int main(void) {
     sdStart(&SD1, &serial_config); // default setup is 38400 8N1 for Chibios
 
     while (TRUE) {
-      sdWrite(&SD1,my_string,strlen(my_string));
-      sdWrite(&SD1,"\n\r",2);
-      sdWrite(&SD1,"Hello, world!\n\r",15);
+      sdWrite(&SD1,my_string,sizeof(my_string));
+      sdWrite(&SD1,(const uint8_t *)"\n\r",2);
+      sdWrite(&SD1,(const uint8_t *)"Hello, world!\n\r",15);
       chThdSleepMilliseconds(1000);
     }
 }

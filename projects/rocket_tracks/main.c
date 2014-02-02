@@ -69,7 +69,8 @@ static const GPTConfig gpt1cfg = {
 	1000000,
 //	10000000,
 //	motordrive
-	NULL
+	NULL,
+	0,
 };
 
 static const ADCConversionGroup adcgrp1cfg5 = {

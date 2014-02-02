@@ -20,5 +20,6 @@ PWMConfig pwmcfg = {
 				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
 				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
 		},
+		0,
 		0
 };

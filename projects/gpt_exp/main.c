@@ -44,8 +44,9 @@ static void gpt3cb(GPTDriver *gptp) {
  * GPT3 configuration.
  */
 static const GPTConfig gpt3cfg = {
-		10000,    /* 10kHz timer clock.*/
-		gpt3cb      /* Timer callback.*/  // NULL for no callback?
+		.frequency = 10000,    /* 10kHz timer clock.*/
+		.callback = gpt3cb,      /* Timer callback.*/  // NULL for no callback?
+		.dier = 0
 };
 
 static WORKING_AREA(waThread_25mhz, 64);
