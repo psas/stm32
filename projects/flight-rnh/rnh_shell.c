@@ -9,8 +9,9 @@
 #include "BQ24725.h"
 #include "rnh_shell.h"
 
-void cmd_bq_did(BaseSequentialStream *chp, int argc, char *argv[]){
-    (void)argv;
+#define UNUSED __attribute__((unused))
+
+void cmd_bq_did(BaseSequentialStream *chp, int argc, char *argv[] UNUSED){
     if (argc > 0) {
         chprintf(chp, "Usage: bq_did. Should return 0x8\n");
         return;
@@ -34,8 +35,7 @@ void cmd_bq_did(BaseSequentialStream *chp, int argc, char *argv[]){
     }
 }
 
-void cmd_bq_mid(BaseSequentialStream *chp, int argc, char *argv[]){
-    (void)argv;
+void cmd_bq_mid(BaseSequentialStream *chp, int argc, char *argv[] UNUSED){
     if (argc > 0) {
         chprintf(chp, "Usage: bq_mid. Should return 0x40\n");
         return;
@@ -69,7 +69,7 @@ void cmd_acok(BaseSequentialStream *chp, int argc, char *argv[]){
     }
 }
 
-void cmd_bq_charge(BaseSequentialStream *chp, int argc, char *argv[]){
+void cmd_bq_charge(BaseSequentialStream *chp, int argc UNUSED, char *argv[] UNUSED){
     BQ24725_charge_options BQ24725_rocket_init = {
                 .ACOK_deglitch_time = t150ms,
                 .WATCHDOG_timer = disabled,

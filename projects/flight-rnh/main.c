@@ -5,7 +5,8 @@
 #include "BQ24725.h"
 #include "KS8999.h"
 #include "RNH.h"
-#include "device_net.h"
+#include "net_addrs.h"
+#include "utils_sockets.h"
 #include "rnet_cmd_interp.h"
 
 #include "lwip/ip_addr.h"
@@ -13,20 +14,13 @@
 #include "lwipopts.h"
 #include "lwipthread.h"
 
+#define UNUSED __attribute__((unused))
+#define NORETURN __attribute__((noreturn))
+
 #include "chprintf.h"
 
-#define         RNET_A_IP_ADDR(p)         IP4_ADDR(p, 10, 0, 0,   5);
-#define         RNET_A_GATEWAY(p)         IP4_ADDR(p, 0,  0, 0,   0  );
-#define         RNET_A_NETMASK(p)         IP4_ADDR(p, 255, 255, 255, 0  );
-#define         RNET_A_IP_ADDR_STRING     "10.0.0.5"
-#define         RNET_A_LISTEN_PORT        36100
-#define         RNET_A_TX_PORT            36101
-#define         RNET_A_MAC_ADDRESS        {0xE6, 0x10, 0x20, 0x30, 0x40, 0xaa}
-
 static WORKING_AREA(led_area, 64);
-
-__attribute__((noreturn))
-static void led(void *arg __attribute__ ((unused))) {
+NORETURN static void led(void *arg UNUSED) {
     const int led_wait_time = 500;
 
     chRegSetThreadName("LED");
@@ -83,22 +77,9 @@ char PWR_STAT[]= "#POWR";
 
 
 
-msg_t ethernet_commands(void * arg __attribute__((unused))){
+msg_t ethernet_commands(void * arg UNUSED){
     BaseSequentialStream *chp = (BaseSequentialStream *)&SD1;
-    struct sockaddr_in rnh_in;
-    memset(&rnh_in, 0, sizeof(struct sockaddr_in));
-    rnh_in.sin_family = AF_INET,
-    rnh_in.sin_port = htons(RNET_A_LISTEN_PORT);
-    inet_aton(RNET_A_IP_ADDR_STRING, &rnh_in.sin_addr);
-
-    int s = socket(AF_INET,  SOCK_DGRAM, 0);
-    if(s < 0){
-        return -1;
-    }
-
-    if(bind(s, (struct sockaddr * )&rnh_in, sizeof(rnh_in)) < 0){
-        return -2;
-    }
+    int s = get_udp_socket(RNH_LISTEN_ADDR);
 
     char msg[50]; //TODO: non-arbitrary size
     memset(msg, 0, sizeof(msg));
@@ -154,20 +135,7 @@ void BQ24725_start(void){
 }
 
 void eth_start(void){
-    struct lwipthread_opts ip_opts;
-    struct ip_addr ip, gateway, netmask;
-    uint8_t RNET_macAddress[6] = RNET_A_MAC_ADDRESS;
-
-    RNET_A_IP_ADDR(&ip);
-    RNET_A_GATEWAY(&gateway);
-    RNET_A_NETMASK(&netmask);
-
-    ip_opts.macaddress = RNET_macAddress;
-    ip_opts.address    = ip.addr;
-    ip_opts.netmask    = netmask.addr;
-    ip_opts.gateway    = gateway.addr;
-
-    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, &ip_opts);
+    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, RNH_LWIP);
     chThdCreateStatic(wa_ethernet_commands , sizeof(wa_ethernet_commands) , NORMALPRIO , ethernet_commands, NULL);
 }
 
@@ -175,8 +143,7 @@ void sleep(void){
 
 }
 
-static void ACOK_cb(EXTDriver *extp __attribute__ ((unused)),
-                    expchannel_t channel __attribute__ ((unused))) {
+static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
 
     if(BQ24725_ACOK()){
         KS8999_enable(TRUE);
