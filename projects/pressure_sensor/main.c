@@ -178,7 +178,7 @@ int main(void) {
 	        {NULL, NULL}
 	};
 	usbSerialShellStart(commands);
-	chp = getActiveUsbSerialStream();
+	chp = getUsbStream();
 
 	iwdg_begin();
 

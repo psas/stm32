@@ -39,7 +39,7 @@ void mpl_read_handler(eventid_t id) {
     mpl3115a2_write_ctrl_1(mpl3115a2_driver.i2c_instance, reg);
 
 #ifdef	DEBUG_SENSOR_MPL
-	BaseSequentialStream *chp = getActiveUsbSerialStream();
+	BaseSequentialStream *chp = getUsbStream();
 	static uint16_t     count = 0;
 
     ++count;

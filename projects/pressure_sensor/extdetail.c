@@ -31,7 +31,7 @@ const EXTConfig extcfg = {
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
-				{EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOD, extdetail_adis_dio1},
+                {EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
 				{EXT_CH_MODE_DISABLED, NULL},
@@ -66,9 +66,8 @@ static void green_led_off(void *arg) {
  * Used for debugging
  */
 void extdetail_WKUP_button_handler(eventid_t id) {
-	BaseSequentialStream *chp = getActiveUsbSerialStream();
+	BaseSequentialStream *chp = getUsbStream();
 	chprintf(chp, "\r\nWKUP btn. eventid: %d\r\n", id);
-	chprintf(chp, "\r\ndebug_spi: %d\r\n", adis_driver.debug_spi_count);
 }
 
 /*! Triggered when the WKUP button is pressed or released. The LED is set to ON.
@@ -90,21 +89,6 @@ void extdetail_wkup_btn(EXTDriver *extp, expchannel_t channel) {
 
 	/* LED4 set to OFF after 500mS.*/
 	chVTSetI(&vt4, MS2ST(500), green_led_off, NULL);
-	chSysUnlockFromIsr();
-}
-
-/*!
- * External interrupt from ADIS
- *
- * @param extp
- * @param channel
- */
-void extdetail_adis_dio1(EXTDriver *extp, expchannel_t channel) {
-	(void)extp;
-	(void)channel;
-
-	chSysLockFromIsr();
-	chEvtBroadcastI(&adis_dio1_event);
 	chSysUnlockFromIsr();
 }
 

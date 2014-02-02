@@ -688,7 +688,7 @@ static void motordrive(GPTDriver *gptp) {
  */
 static void WKUP_button_handler(eventid_t id) {
 
-	BaseSequentialStream *chp = getActiveUsbSerialStream();
+	BaseSequentialStream *chp = getUsbStream();
 	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
 	chprintf(chp, "STM32_TIMCLK1 is: %d\r\n", STM32_TIMCLK1);
 }

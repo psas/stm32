@@ -33,7 +33,7 @@
 
 #ifdef DEBUG_SHELLCMD
 #include "usbdetail.h"
-#define SHELLDBG(format, ...) chprintf(getActiveUsbSerialStream(), format, ##__VA_ARGS__ )
+#define SHELLDBG(format, ...) chprintf(getUsbStream(), format, ##__VA_ARGS__ )
 #else
 #define SHELLDBG(...)
 #endif

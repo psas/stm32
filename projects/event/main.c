@@ -36,12 +36,12 @@ static void ext_cb(EXTDriver *extp, expchannel_t channel) {
 }
 
 static void button_handler(eventid_t id) {
-	BaseSequentialStream *chp = getActiveUsbSerialStream();
+	BaseSequentialStream *chp = getUsbStream();
 	chprintf(chp, "Button eventid: %d\r\n", id);
 }
 
 static void shell_handler(eventid_t id){
-    BaseSequentialStream *chp = getActiveUsbSerialStream();
+    BaseSequentialStream *chp = getUsbStream();
     chprintf(chp, "Shell eventid: %d\r\n", id);
 }
 

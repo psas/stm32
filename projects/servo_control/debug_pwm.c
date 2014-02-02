@@ -28,6 +28,7 @@
  * ==================== ********************************************************
  */
 
+#define UNUSED __attribute__((unused))
 
 //static WORKING_AREA(wa_watchdog_keeper, 128);
 static WORKING_AREA(wa_pwm_tester, 512);
@@ -35,10 +36,7 @@ static WORKING_AREA(wa_pwm_tester, 512);
 static int pwm_lo = 1420;
 static int pwm_hi = 1620;
 
-void cmd_mem(BaseSequentialStream *out, int _, char *__[]) {
-    (void)_;
-    (void)__;
-
+void cmd_mem(BaseSequentialStream *out, int _ UNUSED, char *__[] UNUSED) {
     size_t fragments, size;
 
     fragments = chHeapStatus(NULL, &size);
@@ -48,10 +46,7 @@ void cmd_mem(BaseSequentialStream *out, int _, char *__[]) {
 }
 
 
-void cmd_threads(BaseSequentialStream *out, int _, char *__[]) {
-    (void)_;
-    (void)__;
-
+void cmd_threads(BaseSequentialStream *out, int _ UNUSED, char *__[] UNUSED) {
     static const char *THREAD_STATES[] = {THD_STATE_NAMES};
     Thread *t;
 
@@ -104,11 +99,10 @@ void cmd_pwmlims(BaseSequentialStream *out, int argc, char* argv[]) {
  * Steps up and then down through servo positions.
  */
 
-static msg_t pwm_tester(void *_) {
-    (void)_;
+static msg_t pwm_tester(void *_ UNUSED) {
 
     chRegSetThreadName("pwmtest");
-    BaseSequentialStream *chp = getActiveUsbSerialStream();
+    BaseSequentialStream *chp = getUsbStream();
     chThdSleepMilliseconds(1000);
 
     while(1) {
@@ -136,35 +130,7 @@ static msg_t pwm_tester(void *_) {
     return -1;
 }
 
-
-/*
- * Watchdog Thread
- *
- * Keep the watchdog at bay - we power cycle if this thread doesn't run.
- */
-//static msg_t watchdog_keeper(void *_) {
-//    (void)_;
-//
-//    chRegSetThreadName("iwatchdog");
-//
-//    while (TRUE) {
-//        iwdg_lld_reload();
-//        chThdSleepMilliseconds(250);
-//    }
-//    return -1;
-//}
-
 void debug_pwm_start(void){
-    // start the watchdog timer
-//    iwdg_begin();
-//    chThdCreateStatic( wa_watchdog_keeper
-//                     , sizeof(wa_watchdog_keeper)
-//                     , NORMALPRIO
-//                     , watchdog_keeper
-//                     , NULL
-//                     );
-
-
     chThdCreateStatic( wa_pwm_tester
                      , sizeof(wa_pwm_tester)
                      , NORMALPRIO

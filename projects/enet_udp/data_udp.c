@@ -30,7 +30,7 @@ msg_t data_udp_send_thread(void *p __attribute__ ((unused))){
      */
 
     chRegSetThreadName("data_udp_send_thread");
-    BaseSequentialStream *chp = getActiveUsbSerialStream();
+    BaseSequentialStream *chp = getUsbStream();
     struct sockaddr_in self_addr;
     set_sockaddr(&self_addr, IP_DEVICE, DATA_UDP_TX_THREAD_PORT);
     int s = get_udp_socket((struct sockaddr*)&self_addr);
@@ -66,7 +66,7 @@ msg_t data_udp_receive_thread(void *p __attribute__ ((unused))) {
      */
 
     chRegSetThreadName("data_udp_receive_thread");
-    BaseSequentialStream *chp = getActiveUsbSerialStream();
+    BaseSequentialStream *chp = getUsbStream();
     struct sockaddr_in self_addr;
     set_sockaddr(&self_addr, IP_DEVICE, DATA_UDP_RX_THREAD_PORT);
     int s = get_udp_socket((struct sockaddr*)&self_addr);

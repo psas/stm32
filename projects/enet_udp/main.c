@@ -57,7 +57,7 @@ void main(void) {
 	        {NULL, NULL}
 	};
 	usbSerialShellStart(commands);
-	BaseSequentialStream * chp = getActiveUsbSerialStream();
+	BaseSequentialStream * chp = getUsbStream();
 
 	/* fill out lwipthread_opts with our address*/
     struct lwipthread_opts   ip_opts;
