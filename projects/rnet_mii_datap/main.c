@@ -1,28 +1,10 @@
-/*
-    ChibiOS/RT - Copyright (C) 2006,2007,2008,2009,2010,
-                 2011,2012 Giovanni Di Sirio.
 
-    This file is part of ChibiOS/RT.
-
-    ChibiOS/RT is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 3 of the License, or
-    (at your option) any later version.
-
-    ChibiOS/RT is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 #include <stdbool.h>
 #include <stdlib.h>
 #include "ch.h"
 #include "hal.h"
 
-#include <lwip/ip_addr.h>
+#include "lwip/ip_addr.h"
 
 #include "lwipopts.h"
 #include "lwipthread.h"
@@ -35,8 +17,7 @@
 
 // Local header files
 #include "data_udp.h"
-#include "device_net.h"
-#include "fc_net.h"
+#include "net_addrs.h"
 #include "cmddetail.h"
 
 #include "main.h"
@@ -101,11 +82,10 @@ static void led_init(void) {
     }
 }
 
-static WORKING_AREA(waThread_blinker, 64);
 /*! \brief Green LED blinker thread
  */
-static msg_t Thread_blinker(void *arg) {
-	(void)arg;
+static WORKING_AREA(waThread_blinker, 64);
+static msg_t Thread_blinker(void *arg __attribute__((unused))) {
 	chRegSetThreadName("blinker");
         chThdSleepMilliseconds(4000);
         debug_msg_lwip("blinky\r\n");
@@ -115,30 +95,6 @@ static msg_t Thread_blinker(void *arg) {
 	}
 	return -1;
 }
-
-//static WORKING_AREA(waThread_25mhz, 64);
-///*! \brief 25 Mhz output clock hack
-// */
-//static msg_t Thread_25mhz(void *arg) {
-//	(void)arg;
-//
-//	uint32_t i = 0;
-//	while(TRUE) {
-//		palClearPad(GPIOC, GPIO_C9_KSZ_25MHZ);
-//
-//		for(i=0; i<20; ++i) {
-//			asm volatile("mov r0, r0");
-//			asm volatile("mov r0, r0");
-//		}
-//		palSetPad(GPIOC, GPIO_C9_KSZ_25MHZ);
-//		for(i=0; i<20; ++i) {
-//			asm volatile("mov r0, r0");
-//			asm volatile("mov r0, r0");
-//		}
-//	}
-//	return -1;
-//}
-
 
 void debug_msg_lwip(char* msg) {
     BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
@@ -177,10 +133,8 @@ void init_rnet(void) {
 /*
  * Application entry point.
  */
-int main(void) {
+void main(void) {
 	static Thread            *shelltp       = NULL;
-	struct lwipthread_opts   ip_opts;
-
 	/*
 	 * System initializations.
 	 * - HAL initialization, this also initializes the configured device drivers
@@ -191,19 +145,8 @@ int main(void) {
 	halInit();
 	chSysInit();
 
-	/*!
-		 * GPIO Pins for generating pulses at data input detect and data output send.
-		 * Used for measuring latency timing of data
-		 *
-		 * \sa board.h
-		 */
-//		palClearPad(  TIMEOUTPUT_PORT, TIMEOUTPUT_PIN);
-//		palSetPadMode(TIMEOUTPUT_PORT, TIMEOUTPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL);
-//		palSetPad(    TIMEINPUT_PORT, TIMEINPUT_PIN);
-//		palSetPadMode(TIMEINPUT_PORT, TIMEINPUT_PIN, PAL_MODE_OUTPUT_PUSHPULL );
-
 	led_init();
-        init_rnet();
+    init_rnet();
 
 	// start the serial port
 	sdStart(&SD1, NULL);
@@ -214,20 +157,8 @@ int main(void) {
 	shellInit();
 
 	chThdCreateStatic(waThread_blinker  , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
-	//chThdCreateStatic(waThread_25mhz    , sizeof(waThread_25mhz)            , NORMALPRIO    , Thread_25mhz           , NULL);
 
-	static       uint8_t      RNET_macAddress[6]           = RNET_A_MAC_ADDRESS;
-	struct       ip_addr      ip, gateway, netmask;
-	RNET_A_IP_ADDR(&ip);
-	RNET_A_GATEWAY(&gateway);
-	RNET_A_NETMASK(&netmask);
-
-	ip_opts.macaddress = RNET_macAddress;
-	ip_opts.address    = ip.addr;
-	ip_opts.netmask    = netmask.addr;
-	ip_opts.gateway    = gateway.addr;
-
-	chThdCreateStatic(wa_lwip_thread            , sizeof(wa_lwip_thread)            , NORMALPRIO + 2, lwip_thread            , &ip_opts);
+	chThdCreateStatic(wa_lwip_thread            , sizeof(wa_lwip_thread)            , NORMALPRIO + 2, lwip_thread            , RNH_LWIP);
 	chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
 	chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
 
@@ -246,7 +177,5 @@ int main(void) {
 		}
 		chThdSleepMilliseconds(1000);
 	}
-
-	exit(0);
 }
 
