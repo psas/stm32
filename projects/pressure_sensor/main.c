@@ -1,21 +1,4 @@
-/*! \file main.c
- *
- * Development for MPU9150 on ChibiOS
- *
- * MPU is an i2c device
- *
- * Includes ADIS SPI connections and development
- *
- * This implementation is specific to the Olimex stm32-e407 board.
- */
 
-
-/*!
- * \defgroup mainapp Application
- * @{
- */
-
-#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 
@@ -32,11 +15,7 @@
 
 #include "MPL3115A2.h"
 
-#include "main.h"
-#include "board.h"
 
-//#include "lwipopts.h"
-//#include "lwipthread.h"
 
 BaseSequentialStream *chp = NULL;
 
@@ -120,28 +99,7 @@ static msg_t Thread_mpl3115a2(void *arg) {
 	return -1;
 }
 
-static WORKING_AREA(waThread_indwatchdog, 64);
-/*! \brief  Watchdog thread
- */
-static msg_t Thread_indwatchdog(void *arg) {
-	(void)arg;
-
-	chRegSetThreadName("iwatchdog");
-	while (TRUE) {
-		iwdg_lld_reload();
-		chThdSleepMilliseconds(250);
-	}
-	return -1;
-}
-
-
-
 int main(void) {
-	static const evhandler_t evhndl_main[]       = {
-			extdetail_WKUP_button_handler
-	};
-	struct EventListener     el0;
-
 	/*
 	 * System initializations.
 	 * - HAL initialization, this also initializes the configured device drivers
@@ -180,24 +138,17 @@ int main(void) {
 	usbSerialShellStart(commands);
 	chp = getUsbStream();
 
-	iwdg_begin();
-
-	//spiStart(&SPID1, &adis_spicfg);       /* Set transfer parameters.  */
 
 	mpl3115a2_start(&I2CD2);
 	i2cStart(mpl3115a2_driver.i2c_instance, &mpl3115a2_config);
 	chThdSleepMilliseconds(1000);
 	mpl3115a2_init(&I2CD2);
-	/*! Activates the EXT driver 1. */
-	//extStart(&EXTD1, &extcfg);
 
 	chThdCreateStatic(waThread_blinker,      sizeof(waThread_blinker),      NORMALPRIO, Thread_blinker,      NULL);
-	chThdCreateStatic(waThread_indwatchdog,  sizeof(waThread_indwatchdog),  NORMALPRIO, Thread_indwatchdog,  NULL);
 	chThdCreateStatic(waThread_mpl3115a2,      sizeof(waThread_mpl3115a2),      NORMALPRIO, Thread_mpl3115a2,      NULL);
 
-	chEvtRegister(&extdetail_wkup_event, &el0, 0);
 	while (TRUE) {
-		chEvtDispatch(evhndl_main, chEvtWaitOneTimeout((eventmask_t)1, MS2ST(500)));
+		chThdSleep(TIME_INFINITE);
 	}
 }
 
