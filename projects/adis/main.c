@@ -14,6 +14,7 @@
 #include "lwipthread.h"
 
 #include "utils_sockets.h"
+#include "utils_led.h"
 #include "net_addrs.h"
 
 #include "ADIS16405.h"
@@ -63,16 +64,15 @@ msg_t led(void * arg __attribute__((unused))) {
     palClearPad(GPIOF, GPIOF_LED_GREEN);
     palClearPad(GPIOF, GPIOF_LED_BLUE);
 
-    while(1){
-        palTogglePad(GPIOC, GPIOC_LED);
-        chThdSleepMilliseconds(250);
-    }
     return -1;
 }
 
 void main(void){
 	halInit();
 	chSysInit();
+
+	led_init(&e407_led_cfg);
+
     chThdCreateStatic(wa_led, sizeof(wa_led), NORMALPRIO, led, NULL);
 
     /* Start lwip */

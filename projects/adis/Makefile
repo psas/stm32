@@ -88,7 +88,9 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/ADIS16405.c \
        main.c \
        $(PSAS_NET)/utils_sockets.c \
-       $(PSAS_NET)/net_addrs.c 
+       $(PSAS_NET)/net_addrs.c \
+       $(PSAS_UTIL)/utils_led.c
+       
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -122,7 +124,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(CHIBIOS)/os/various \
          $(PSAS_COMMON) \
          $(PSAS_DEVICES)/include \
-         $(PSAS_NET)
+         $(PSAS_NET) $(PSAS_UTIL)/include
 
 #
 # Project, sources and paths
