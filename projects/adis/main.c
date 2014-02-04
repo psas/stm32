@@ -54,26 +54,22 @@ static void adis_drdy_handler(eventid_t id __attribute__((unused))){
     palClearPad(GPIOF, GPIOF_LED_BLUE);
 }
 
-/* Diagnotic led blinking. If it stops things dun goofed */
-WORKING_AREA(wa_led, THD_WA_SIZE(64));
-msg_t led(void * arg __attribute__((unused))) {
-    palSetPadMode(GPIOF, GPIOF_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
-    palSetPadMode(GPIOF, GPIOF_LED_GREEN, PAL_MODE_OUTPUT_PUSHPULL);
-    palSetPadMode(GPIOF, GPIOF_LED_BLUE, PAL_MODE_OUTPUT_PUSHPULL);
-    palClearPad(GPIOF, GPIOF_LED_RED);
-    palClearPad(GPIOF, GPIOF_LED_GREEN);
-    palClearPad(GPIOF, GPIOF_LED_BLUE);
-
-    return -1;
-}
-
 void main(void){
 	halInit();
 	chSysInit();
 
-	led_init(&e407_led_cfg);
-
-    chThdCreateStatic(wa_led, sizeof(wa_led), NORMALPRIO, led, NULL);
+	static struct led_config led_cfg = {
+	        .cycle_ms = 500,
+	        .start_ms = 0,
+	        .led = {
+	                {GPIOC, GPIOC_LED},
+	                {GPIOF, GPIOF_LED_RED},
+	                {GPIOF, GPIOF_LED_GREEN},
+	                {GPIOF, GPIOF_LED_BLUE},
+	                {0, 0}
+	        }
+	};
+	led_init(&led_cfg);
 
     /* Start lwip */
     chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, SENSOR_LWIP);
