@@ -13,6 +13,8 @@ NORETURN static void led(void * arg) {
     /* Turn off leds, also count them */
     int num_leds = 0;
     for(; cfg->led[num_leds].port == 0 || cfg->led[num_leds].pad == 0; ++num_leds){
+        // FIXME: they're not all push-pull are they?
+        palSetPadMode(cfg->led[num_leds].port, cfg->led[num_leds].pad, PAL_MODE_OUTPUT_PUSHPULL);
         palClearPad(cfg->led[num_leds].port, cfg->led[num_leds].pad);
     }
 
