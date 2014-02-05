@@ -28,8 +28,10 @@
 #include "hal.h"
 #include "lwip/ip_addr.h"
 #include "lwip/sockets.h"
+#include "chprintf.h"
 
 // PSAS
+#include "usbdetail.h"
 #include "net_addrs.h"
 #include "utils_sockets.h"
 #include "psas_packet.h"
@@ -87,26 +89,57 @@ pwmcnt_t pwm_us_to_ticks(uint32_t us) {
  */
 WORKING_AREA(wa_pwm_thread, 1024);
 msg_t pwm_thread(void * u UNUSED) {
-    chRegSetThreadName("data_udp_receive_thread");
+    chRegSetThreadName("pwm");
+
+//    BaseSequentialStream * chp = getUsbStream();
+
     RCOutput       rc_packet;
     char data[sizeof(RCOutput)];
+
+    const int pwm_lo = 1200;
+    const int pwm_hi = 1800;
 
     int socket = get_udp_socket(ROLL_ADDR);
     if(socket < 0){
         return -1;
     }
 
+//    chprintf(chp, "starting \r\n");
+    pwmcnt_t ticks = INIT_PWM_PULSE_WIDTH_TICKS;
+
+    uint16_t prev_width =1500;
     while(TRUE){
         //fixme: throw away anything left
         read(socket, data, sizeof(data));
         memcpy(&rc_packet, data, sizeof(RCOutput));
+//        chThdSleepMilliseconds(400);
+//        rc_packet.u16ServoPulseWidthBin14 = 1500;
+//        rc_packet.u8ServoDisableFlag = FALSE;
 
-        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
-            pwmcnt_t ticks = pwm_us_to_ticks(rc_packet.u16ServoPulseWidthBin14);
+//        chprintf(chp, "Got data :%d\r\n",rc_packet.u16ServoPulseWidthBin14 );
+
+//        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
+            uint16_t width = rc_packet.u16ServoPulseWidthBin14;
+
+            if(width > prev_width + 3){
+                width = prev_width + 3;
+            }else if(width < prev_width - 3){
+                width = prev_width - 3;
+            }
+            prev_width = width;
+
+            if(width < pwm_lo){
+                ticks =  pwm_us_to_ticks(pwm_lo);
+            } else if (width > pwm_hi){
+                ticks =  pwm_us_to_ticks(pwm_hi);
+            } else {
+                ticks = pwm_us_to_ticks(width);
+            }
+
             pwmEnableChannel(&PWMD4, 3, ticks);
-        } else {
-            pwmDisableChannel(&PWMD4, 3);
-        }
+//        } else {
+//            pwmDisableChannel(&PWMD4, 3);
+//        }
 
     }
 
@@ -133,7 +166,7 @@ void pwm_start() {
     palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));
     pwmStart(&PWMD4, &pwmcfg);
     pwmEnableChannel(&PWMD4, 3, INIT_PWM_PULSE_WIDTH_TICKS);
-    pwmDisableChannel(&PWMD4, 3);
+//    pwmDisableChannel(&PWMD4, 3);
 
     chThdCreateStatic( wa_pwm_thread
                      , sizeof(wa_pwm_thread)

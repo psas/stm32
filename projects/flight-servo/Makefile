@@ -94,6 +94,7 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/usbdetail.c \
        $(PSAS_NET)/net_addrs.c \
        $(PSAS_NET)/utils_sockets.c \
+	   $(PSAS_UTIL)/utils_led.c \
        servo_control.c \
        launch_detect.c \
        debug_pwm.c \
@@ -129,7 +130,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_DEVICES)/include $(PSAS_NET)
+         $(PSAS_DEVICES)/include $(PSAS_NET) $(PSAS_UTIL)/include
 
 #
 # Project, sources and paths

@@ -87,6 +87,9 @@ bool get_launch_detected(void) {
 }
 
 void launch_detect_init() {
+
+    chEvtInit(&launch_detect_event);
+
     // setup rising and falling external interrupts on PD11 to trigger the launch_detect_isr
     // should be static because extStart doesn't deep copy
     static const EXTConfig extcfg =
@@ -127,13 +130,10 @@ void launch_detect_init() {
         launch_detected = false;
     }
 
-
     ld_socket = get_udp_socket(TEATHER_ADDR);
     connect(ld_socket, FC_ADDR, sizeof(struct sockaddr));
 
     handler(0); //sends initial launch status
-
-    chEvtInit(&launch_detect_event);
 
     chThdCreateStatic( wa_dispatcher
                      , sizeof(wa_dispatcher)

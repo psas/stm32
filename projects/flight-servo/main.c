@@ -8,11 +8,15 @@
 #include "ch.h"
 #include "hal.h"
 #include "lwip/ip_addr.h"
+#include "lwip/inet.h"
 #include "lwipopts.h"
 #include "lwipthread.h"
+#include "chprintf.h"
 
 // PSAS common
 #include "net_addrs.h"
+#include "usbdetail.h"
+#include "utils_led.h"
 
 // servo_control
 #include "launch_detect.h"
@@ -24,41 +28,12 @@
 #include "debug_pwm.h"
 #endif
 
-#define UNUSED __attribute__((unused))
-/*
- * LED Blinker Thread
- *
- * This thread blinks LEDs so we can tell that we have not halted as long as the
- * LEDs are still blinking.
- */
-
-#define GPIOF_GREEN_LED             2
-#define GPIOF_RED_LED               3
-#define GPIOF_BLUE_LED              14
-
-static WORKING_AREA(wa_led, 128);
-
-static msg_t led(void * u UNUSED) {
-    chRegSetThreadName("blinker");
-
-    while (TRUE) {
-        palTogglePad(GPIOC, GPIOC_LED);
-        chThdSleepMilliseconds(500);
-    }
-    return -1;
-}
-
-static void led_init(void) {
-    palSetPad(GPIOC, GPIOC_LED);
-    chThdCreateStatic(wa_led, sizeof(wa_led), NORMALPRIO, led, NULL);
-}
 
 void main(void) {
     /* initialize HAL */
     halInit();
     chSysInit();
-    led_init();
-
+    led_init(&e407_led_cfg);
 
     chThdCreateStatic( wa_lwip_thread
                      , sizeof(wa_lwip_thread)
@@ -70,7 +45,6 @@ void main(void) {
     // activate PWM output
     pwm_start();
 #if DEBUG_PWM
-    // Starts usb-serial terminal, pwm_tester thread
     debug_pwm_start();
 #endif
     // initialize launch detection subsystem
