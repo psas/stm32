@@ -5,10 +5,10 @@ LDFLAGS+=
 
 .PHONY: clean
 
-all: udp_packet_sender
+all: servo_test
 
-udp_packet_sender: udp_packet_sender.o 
+servo_test: servo_test.o
 
 clean:
-	$(RM) udp_packet_sender
+	$(RM) servo_test servo_test.o
 
