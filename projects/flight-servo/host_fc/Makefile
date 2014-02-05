@@ -1,13 +1,13 @@
 
 CC=gcc
-CFLAGS += -I.. -lpthread -g
-LDFLAGS+= -lpthread
+CFLAGS += -I.. -g 
+LDFLAGS+= 
 
 .PHONY: clean
 
 all: udp_packet_sender
 
-udp_packet_sender: udp_packet_sender.c
+udp_packet_sender: udp_packet_sender.o 
 
 clean:
 	$(RM) udp_packet_sender
