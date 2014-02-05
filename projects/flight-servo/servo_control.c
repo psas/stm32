@@ -72,62 +72,53 @@ uint32_t pwm_get_period_ms() {
  * Convert from microseconds to PWM ticks (1 second = PWM_FREQ ticks)
  */
 pwmcnt_t pwm_us_to_ticks(uint32_t us) {
-    //fixme: numerical stability of doubles
-    double   ticks_per_us_quot;
-    uint32_t ticks_per_us;
-
-    ticks_per_us_quot = INIT_PWM_FREQ/1e6;
-    ticks_per_us      = (pwmcnt_t) ticks_per_us_quot;
-
+    uint32_t ticks_per_us = INIT_PWM_FREQ / 1000000;
     return (pwmcnt_t) (us * ticks_per_us);
 }
-
 
 /*
  * PWM control thread - sets up a listen socket and then sets the pwm width
  * according to the data received.
  */
 WORKING_AREA(wa_pwm_thread, 1024);
-msg_t pwm_thread(void * u UNUSED) {
+static msg_t pwm_thread(void * u UNUSED) {
     chRegSetThreadName("pwm");
-
-//    BaseSequentialStream * chp = getUsbStream();
 
     RCOutput       rc_packet;
     char data[sizeof(RCOutput)];
 
     const int pwm_lo = 1200;
     const int pwm_hi = 1800;
+    const int pwm_step = 3;
 
     int socket = get_udp_socket(ROLL_ADDR);
     if(socket < 0){
         return -1;
     }
 
-//    chprintf(chp, "starting \r\n");
-    pwmcnt_t ticks = INIT_PWM_PULSE_WIDTH_TICKS;
+    pwmcnt_t ticks;
+    uint16_t prev_width = 1500;
 
-    uint16_t prev_width =1500;
     while(TRUE){
         //fixme: throw away anything left
         read(socket, data, sizeof(data));
         memcpy(&rc_packet, data, sizeof(RCOutput));
-//        chThdSleepMilliseconds(400);
-//        rc_packet.u16ServoPulseWidthBin14 = 1500;
-//        rc_packet.u8ServoDisableFlag = FALSE;
 
-//        chprintf(chp, "Got data :%d\r\n",rc_packet.u16ServoPulseWidthBin14 );
-
+        // fixme: once the RNH power issue is fixed servo control can respect
+        // the disable flag
 //        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
             uint16_t width = rc_packet.u16ServoPulseWidthBin14;
 
-            if(width > prev_width + 3){
-                width = prev_width + 3;
-            }else if(width < prev_width - 3){
-                width = prev_width - 3;
+            /* Limit the maximum rate the servo can turn */
+            // fixme: should be a lowpass filter
+            if(width > prev_width + pwm_step){
+                width = prev_width + pwm_step;
+            }else if(width < prev_width - pwm_step){
+                width = prev_width - pwm_step;
             }
             prev_width = width;
 
+            /* Limit the maximum bounds the servo can turn to */
             if(width < pwm_lo){
                 ticks =  pwm_us_to_ticks(pwm_lo);
             } else if (width > pwm_hi){
@@ -136,13 +127,17 @@ msg_t pwm_thread(void * u UNUSED) {
                 ticks = pwm_us_to_ticks(width);
             }
 
+            /* fixme: if the servo was not set to the requested position
+             * because of lowpass or stops, respond with an error indicating
+             * the actual position.
+             */
+
+            /* Set the position */
             pwmEnableChannel(&PWMD4, 3, ticks);
 //        } else {
 //            pwmDisableChannel(&PWMD4, 3);
 //        }
-
     }
-
     return -1;
 }
 
@@ -165,8 +160,11 @@ void pwm_start() {
 
     palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));
     pwmStart(&PWMD4, &pwmcfg);
+    // Channel is enabled here to reduce inrush current of the servo turning
+    // on from browning out the RNH when the flight computer is on.
+    // Once the RNH is fixed the channel can probably stay off until asked
+    // over ethernet.
     pwmEnableChannel(&PWMD4, 3, INIT_PWM_PULSE_WIDTH_TICKS);
-//    pwmDisableChannel(&PWMD4, 3);
 
     chThdCreateStatic( wa_pwm_thread
                      , sizeof(wa_pwm_thread)

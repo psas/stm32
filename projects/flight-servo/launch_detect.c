@@ -19,7 +19,7 @@
 
 #define LD_PORT  GPIOD    // launch detect pin port
 #define LD_PIN   11       // launch detect pin
-#define LD_LEVEL PAL_HIGH // active level (i.e. active high or low?)
+#define LD_LEVEL PAL_HIGH // active level (i.e. active high or low?) fixme
 
 static bool launch_detected; // Changed in isr, launch_detect_init
 

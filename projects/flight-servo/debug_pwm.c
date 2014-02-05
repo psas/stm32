@@ -17,7 +17,6 @@
 
 #define UNUSED __attribute__((unused))
 
-//static WORKING_AREA(wa_watchdog_keeper, 128);
 static WORKING_AREA(wa_pwm_tester, 512);
 
 static int pwm_lo = 1420;
