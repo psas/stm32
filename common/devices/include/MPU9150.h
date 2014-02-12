@@ -8,39 +8,13 @@
  *
  */
 
-/*! \addtogroup mpu9150
- * @{
- */
-
-
-
-/*
- * Header Boilerplate
- * ================== **********************************************************
- */
-
 #ifndef _MPU9150_H
 #define _MPU9150_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-
-/*
- * Inclusions
- * ========== ******************************************************************
- */
 
 #include "ch.h"
 #include "hal.h"
 
-
-/*
- * Constant Definitions
- * ==================== ********************************************************
- */
+#include "utils-hal.h"
 
 #if !defined(DEBUG_MPU9150) || defined(__DOXYGEN__)
 #define 	DEBUG_MPU9150                   1
@@ -68,18 +42,9 @@ typedef     uint8_t                               mpu9150_reg_data;
 #define     MPU9150_PM1_RESET                     ((mpu9150_reg_data)(1<<7))
 #define     MPU9150_INT_EN_DATA_RD_EN             ((mpu9150_reg_data)(1<<0))
 
-#if DEBUG_MPU9150
 
-/* see hal/include/i2c.h */
-typedef struct i2c_error_info {
-    const char* err_string;
-    int         error_number;
-} i2c_error_info;
-
-const char* i2c_errno_str(int32_t err) ;
-
-#endif
-
+#define MPU9150_a_g_ADDR 0x68;    // See page 8 , MPU9150 Register Map and Descriptions r4.0
+#define MPU9150_magn_ADDR 0x0C;    // See page 28, MPU9150 Product Specification r4.0
 
 /*! \typedef mpu9150_magn_regaddr
  * MPU Magnetometer addresses
@@ -292,32 +257,22 @@ typedef struct MPU9150_read_data MPU9150_read_data;
  * Configuration for the MPU IMU connections
  */
 typedef struct {
-	/*! \brief The I2C SDA port */
-	ioportid_t               i2c_sda_port;
-	/*! \brief The I2C SDA pad */
-	uint16_t                 i2c_sda_pad;
-	/*! \brief The I2C SCL port */
-	ioportid_t               i2c_scl_port;
-	/*! \brief The I2C SCL pad */
-	uint16_t                 i2c_scl_pad;
-	/*! \brief The INT port */
-	ioportid_t               int_port;
-	/*! \brief The INT pad number. */
-	uint16_t                 int_pad;
-} mpu9150_connect;
+    struct pin i2c_sda;
+    struct pin i2c_scl;
+    struct pin interrupt;
+    I2CDriver * I2CD;
+} MPU9150_config;
 
 extern       EventSource               mpu9150_data_event;
 
 extern const I2CConfig                 si_i2c_config;
-extern const mpu9150_connect           si_i2c_connections ;
+extern const MPU9150_config           si_i2c_connections ;
 
 extern       MPU9150_read_data         mpu9150_current_read;
 
 extern       EventSource               mpu9150_int_event;
 
 extern       MPU9150_Driver            mpu9150_driver;
-
-extern const char   mpuid[4];
 
 void         mpu9150_start(I2CDriver* i2c) ;
 void         mpu9150_reset(I2CDriver* i2cptr) ;
