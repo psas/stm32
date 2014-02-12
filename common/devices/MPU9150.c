@@ -16,83 +16,75 @@
 
 #include "MPU9150.h"
 
+static I2CDriver *I2CD = NULL;
 
-const char               mpuid[(sizeof("MPU9")-1)]  = "MPU9";
+MPU9150_Driver mpu9150_driver;
+MPU9150_read_data mpu9150_current_read;
 
-MPU9150_Driver           mpu9150_driver;
-MPU9150_read_data        mpu9150_current_read;
+static EventSource mpu9150_interrupt;
+EventSource mpu9150_data_ready;
 
-EventSource              mpu9150_int_event;
-EventSource              mpu9150_data_event;
+static const systime_t mpu9150_i2c_timeout = MS2ST(400);
 
-const       systime_t    mpu9150_i2c_timeout        = MS2ST(400);
-const       uint8_t      mpu9150_i2c_a_g_addr       = 0x68;    // See page 8 , MPU9150 Register Map and Descriptions r4.0
-const       uint8_t      mpu9150_i2c_magn_addr      = 0x0C;    // See page 28, MPU9150 Product Specification r4.0
-
-#if DEBUG_MPU9150 || defined(__DOXYGEN__)
-	static i2c_error_info i2c_debug_errors[] = {
-			{"I2C_NO_ERROR    ",   0x00},
-			{"I2C_BUS_ERROR   ",   0x01},
-			{"I2C_ARBIT_LOST  ",   0x02},
-			{"I2C_ACK_FAIL    ",   0x04},
-			{"I2CD_ACK_FAILURE",   0x04},
-			{"I2CD_OVERRUN    ",   0x08},
-			{"I2CD_PEC_ERROR  ",   0x10},
-			{"I2CD_TIMEOUT    ",   0x20},
-			{"I2CD_SMB_ALERT  ",   0x40}
-	};
-
-	const char* i2c_errno_str(int32_t err) {
-		uint8_t count_errors = sizeof(i2c_debug_errors)/sizeof(i2c_error_info);
-		uint8_t i            = 0;
-
-		for(i=0; i<count_errors; ++i) {
-			if(i2c_debug_errors[i].error_number == err) {
-				return i2c_debug_errors[i].err_string;
-			}
-		}
-		return "I2C Error Unknown";
-	}
-#endif
-
-static void MPU9150_get(I2CDriver* i2cptr, mpu9150_a_g_regaddr ra, mpu9150_reg_data* d) {
+static void MPU9150_get(mpu9150_a_g_regaddr ra, mpu9150_reg_data* d) {
 	msg_t status = RDY_OK;
 
 	mpu9150_driver.txbuf[0] = ra;
-	i2cAcquireBus(i2cptr);
-	status = i2cMasterTransmitTimeout(i2cptr, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 1, mpu9150_driver.rxbuf, 1, mpu9150_i2c_timeout);
-	i2cReleaseBus(i2cptr);
+	i2cAcquireBus(I2CD);
+	status = i2cMasterTransmitTimeout(I2CD, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 1, mpu9150_driver.rxbuf, 1, mpu9150_i2c_timeout);
+	i2cReleaseBus(I2CD);
 	if (status != RDY_OK){
-		mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+		mpu9150_driver.i2c_errors = i2cGetErrors(I2CD);
 	}
 	*d = mpu9150_driver.rxbuf[0];
 
     if (status != RDY_OK){
-        mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+        mpu9150_driver.i2c_errors = i2cGetErrors(I2CD);
     }
 }
 
-static void MPU9150_set(I2CDriver* i2cptr, mpu9150_a_g_regaddr ra, mpu9150_reg_data d) {
+static void MPU9150_set(mpu9150_a_g_regaddr ra, mpu9150_reg_data d) {
 	msg_t status = RDY_OK;
 
 	mpu9150_driver.txbuf[0] = ra;
 	mpu9150_driver.txbuf[1] = d;
-	i2cAcquireBus(i2cptr);
-	status = i2cMasterTransmitTimeout(i2cptr, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 2, mpu9150_driver.rxbuf, 0, mpu9150_i2c_timeout);
-	i2cReleaseBus(i2cptr);
+	i2cAcquireBus(I2CD);
+	status = i2cMasterTransmitTimeout(I2CD, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 2, mpu9150_driver.rxbuf, 0, mpu9150_i2c_timeout);
+	i2cReleaseBus(I2CD);
     if (status != RDY_OK){
-        mpu9150_driver.i2c_errors = i2cGetErrors(i2cptr);
+        mpu9150_driver.i2c_errors = i2cGetErrors(I2CD);
     }
 }
 
-	return status;
+static void mpu_get_all_sensors(eventid_t u){
+    i2cMasterTransmitTimeout();
+    chEvtBroadcast(&adis_data_ready);
 }
+
+static msg_t mpu_read_thd(void * arg){
+    chRegSetThreadName("MPU9150");
+
+    struct EventListener listener;
+    static const evhandler_t handlers[] = {
+            mpu_get_all_sensors
+    };
+    chEvtRegister(&mpu9150_interrupt, &listener, 0);
+
+    while (TRUE) {
+        chEvtDispatch(handlers, chEvtWaitOne(ALL_EVENTS));
+    }
+
+    return -1;
+}
+
 
 /*! \brief Initialize MPU9150 driver
  *
  */
-void mpu9150_start(I2CDriver* i2c) {
+void mpu9150_start(MPU9150_config  *config) {
 	uint8_t     i              = 0;
+
+	I2CD = config->I2CD;
 
 	mpu9150_driver.i2c_errors   = 0;
 	mpu9150_driver.i2c_instance = i2c;
@@ -113,51 +105,50 @@ void mpu9150_start(I2CDriver* i2c) {
 	chEvtInit(&mpu9150_int_event);
 }
 
-void mpu9150_reset(I2CDriver* i2cptr) {
+void mpu9150_reset(void) {
 	/*! Turn on power */
-	MPU9150_set(i2cptr, A_G_PWR_MGMT_1, MPU9150_PM1_RESET);
-
+	MPU9150_set(I2CD, A_G_PWR_MGMT_1, MPU9150_PM1_RESET);
 	chThdSleepMilliseconds(200);  // wait for device reset
-	MPU9150_set(i2cptr, A_G_SIGNAL_PATH_RESET, 0b111);
 
+	MPU9150_set(I2CD, A_G_SIGNAL_PATH_RESET, 0b111);
 	chThdSleepMilliseconds(200);  // wait for signal path reset
 }
 
-void MPU9150_set_pm1(I2CDriver* i2cptr, mpu9150_reg_data d) {
+void MPU9150_set_pm1(mpu9150_reg_data d) {
 	/*! Turn on power */
-    MPU9150_set(i2cptr, A_G_PWR_MGMT_1, &d);
+    MPU9150_set(A_G_PWR_MGMT_1, &d);
 }
 
-void MPU9150_set_pin_cfg(I2CDriver* i2cptr, mpu9150_reg_data d) {
-	MPU9150_set(i2cptr, A_G_INT_PIN_CFG, &d);
+void MPU9150_set_pin_cfg(mpu9150_reg_data d) {
+	MPU9150_set(A_G_INT_PIN_CFG, &d);
 }
 
-void MPU9150_set_int_enable(I2CDriver* i2cptr, mpu9150_reg_data d) {
-	MPU9150_set(i2cptr, A_G_INT_ENABLE, &d);
+void MPU9150_set_int_enable(mpu9150_reg_data d) {
+	MPU9150_set(A_G_INT_ENABLE, &d);
 }
 
-void MPU9150_set_accel_config(I2CDriver* i2cptr, mpu9150_reg_data d) {
-	MPU9150_set(i2cptr, A_G_ACCEL_CONFIG, &d);
+void MPU9150_set_accel_config(mpu9150_reg_data d) {
+	MPU9150_set(A_G_ACCEL_CONFIG, &d);
 }
 
-void MPU9150_set_gyro_sample_rate_div(I2CDriver* i2cptr, mpu9150_reg_data d) {
-	MPU9150_set(i2cptr, A_G_SMPLRT_DIV, &d);
+void MPU9150_set_gyro_sample_rate_div(mpu9150_reg_data d) {
+	MPU9150_set(A_G_SMPLRT_DIV, &d);
 }
 
-void MPU9150_set_gyro_config(I2CDriver* i2cptr, mpu9150_reg_data d) {
-	MPU9150_set(i2cptr, A_G_GYRO_CONFIG, &d);
+void MPU9150_set_gyro_config(mpu9150_reg_data d) {
+	MPU9150_set(A_G_GYRO_CONFIG, &d);
 }
 
-void MPU9150_set_fifo_en(I2CDriver* i2cptr, mpu9150_reg_data d) {
-	MPU9150_set(i2cptr, A_G_FIFO_EN, &d);
+void MPU9150_set_fifo_en(mpu9150_reg_data d) {
+	MPU9150_set(A_G_FIFO_EN, &d);
 }
 
 /*! \brief read the accel-gyro id
  *
  */
-void mpu9150_a_g_read_id(I2CDriver* i2cptr) {
+void mpu9150_a_g_read_id(void) {
     mpu9150_reg_data d;
-	MPU9150_get(i2cptr, A_G_WHO_AM_I, &d);
+	MPU9150_get(A_G_WHO_AM_I, &d);
 }
 
 /*! \brief Convert register value to degrees C
@@ -172,15 +163,15 @@ int16_t mpu9150_temp_to_dC(int16_t raw_temp) {
 /*! \brief read the temperature register
  *
  */
-int16_t mpu9150_a_g_read_temperature(I2CDriver* i2cptr) {
+int16_t mpu9150_a_g_read_temperature(void) {
     mpu9150_reg_data d;
 
 	int16_t      raw_temp = 0;
 
-	MPU9150_get(i2cptr,A_G_TEMP_OUT_H, &d);
+	MPU9150_get(A_G_TEMP_OUT_H, &d);
 	raw_temp = mpu9150_driver.rxbuf[0] << 8;
 
-    MPU9150_get(i2cptr, A_G_TEMP_OUT_L, &d);
+    MPU9150_get(A_G_TEMP_OUT_L, &d);
 	raw_temp = raw_temp | mpu9150_driver.rxbuf[0];
 
 	return raw_temp;
@@ -190,23 +181,23 @@ int16_t mpu9150_a_g_read_temperature(I2CDriver* i2cptr) {
  *
  * Clears interrupt bits
  */
-void mpu9150_a_g_read_int_status(I2CDriver* i2cptr) {
+void mpu9150_a_g_read_int_status(void) {
     mpu9150_reg_data d;
-    MPU9150_get(i2cptr, A_G_INT_STATUS, &d);
+    MPU9150_get(A_G_INT_STATUS, &d);
 }
 
 /*! \brief read the accel-gyro fifo count
  *
  */
-uint16_t mpu9150_a_g_fifo_cnt(I2CDriver* i2cptr) {
+uint16_t mpu9150_a_g_fifo_cnt(void) {
     mpu9150_reg_data d;
 	uint16_t fifo_count = 0;
 
-    MPU9150_get(i2cptr, A_G_FIFO_COUNTH, &d);
-	fifo_count          = mpu9150_driver.rxbuf[0] << 8;
+    MPU9150_get(A_G_FIFO_COUNTH, &d);
+	fifo_count = mpu9150_driver.rxbuf[0] << 8;
 
-    MPU9150_get(i2cptr, A_G_FIFO_COUNTL, &d);
-	fifo_count          = fifo_count | (mpu9150_driver.rxbuf[0] << 8);
+    MPU9150_get(A_G_FIFO_COUNTL, &d);
+	fifo_count = fifo_count | (mpu9150_driver.rxbuf[0] << 8);
 
 	return fifo_count;
 }
@@ -214,51 +205,50 @@ uint16_t mpu9150_a_g_fifo_cnt(I2CDriver* i2cptr) {
 /*! \brief read the accel x,y,z
  *
  */
-void mpu9150_a_read_x_y_z(I2CDriver* i2cptr, MPU9150_accel_data* d) {
+void mpu9150_a_read_x_y_z(MPU9150_accel_data* d) {
 	mpu9150_reg_data rdata = 0;
 
-	MPU9150_get(i2cptr, A_G_ACCEL_XOUT_H, &rdata);
-	d->x            = rdata << 8;
-	MPU9150_get(i2cptr, A_G_ACCEL_XOUT_L, &rdata);
-	d->x            = (d->x | rdata);
-	MPU9150_get(i2cptr, A_G_ACCEL_YOUT_H, &rdata);
-	d->y            = rdata << 8;
-	MPU9150_get(i2cptr, A_G_ACCEL_YOUT_L, &rdata);
-	d->y            = (d->y | rdata);
-	MPU9150_get(i2cptr, A_G_ACCEL_ZOUT_H, &rdata);
-	d->z            = rdata << 8;
-	MPU9150_get(i2cptr, A_G_ACCEL_ZOUT_L, &rdata);
-	d->z            = (d->z | rdata);
+	MPU9150_get(A_G_ACCEL_XOUT_H, &rdata);
+	d->x = rdata << 8;
+	MPU9150_get(A_G_ACCEL_XOUT_L, &rdata);
+	d->x = (d->x | rdata);
+	MPU9150_get(A_G_ACCEL_YOUT_H, &rdata);
+	d->y = rdata << 8;
+	MPU9150_get(A_G_ACCEL_YOUT_L, &rdata);
+	d->y = (d->y | rdata);
+	MPU9150_get(A_G_ACCEL_ZOUT_H, &rdata);
+	d->z = rdata << 8;
+	MPU9150_get(A_G_ACCEL_ZOUT_L, &rdata);
+	d->z = (d->z | rdata);
 }
 
 /*! \brief read the gyro x,y,z
  *
  */
-void mpu9150_g_read_x_y_z(I2CDriver* i2cptr, MPU9150_gyro_data* d) {
+void mpu9150_g_read_x_y_z(MPU9150_gyro_data* d) {
 
 	mpu9150_reg_data rdata = 0;
 
-	MPU9150_get(i2cptr, A_G_GYRO_XOUT_H, &rdata);
+	MPU9150_get(A_G_GYRO_XOUT_H, &rdata);
 	d->x            = rdata << 8;
-	MPU9150_get(i2cptr, A_G_GYRO_XOUT_L, &rdata);
+	MPU9150_get(A_G_GYRO_XOUT_L, &rdata);
 	d->x            = (d->x | rdata);
-	MPU9150_get(i2cptr, A_G_GYRO_YOUT_H, &rdata);
+	MPU9150_get(A_G_GYRO_YOUT_H, &rdata);
 	d->y            = rdata << 8;
-	MPU9150_get(i2cptr, A_G_GYRO_YOUT_L, &rdata);
-	d->y            = (d->y | rdata);
-	MPU9150_get(i2cptr, A_G_GYRO_ZOUT_H, &rdata);
-	d->z            = rdata << 8;
-	MPU9150_get(i2cptr, A_G_GYRO_ZOUT_L, &rdata);
-	d->z            = (d->z | rdata);
+	MPU9150_get(A_G_GYRO_YOUT_L, &rdata);
+	d->y = (d->y | rdata);
+	MPU9150_get(A_G_GYRO_ZOUT_H, &rdata);
+	d->z = rdata << 8;
+	MPU9150_get(A_G_GYRO_ZOUT_L, &rdata);
+	d->z = (d->z | rdata);
 }
 
 /*! \read the magnetometer AK8975C id
  *
  */
-void mpu9150_magn_read_id(I2CDriver* i2cptr) {
+void mpu9150_magn_read_id(void) {
     mpu9150_reg_data d;
-	msg_t status = RDY_OK;
-	MPU9150_get(i2cptr, MAGN_DEVICE_ID, &d);
+	MPU9150_get(MAGN_DEVICE_ID, &d);
 }
 
 //! @}
