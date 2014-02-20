@@ -95,10 +95,12 @@ CSRC = $(PORTSRC) \
         main.c \
         rnh_shell.c \
         KS8999.c \
-        BQ24725.c \
+       $(PSAS_DEVICES)/BQ24725.c \
         RNH.c \
        $(PSAS_NET)/net_addrs.c \
-       $(PSAS_NET)/utils_sockets.c\
+       $(PSAS_UTIL)/utils_sockets.c\
+       $(PSAS_UTIL)/utils-hal.c \
+	   $(PSAS_UTIL)/utils_led.c \
        $(PSAS_NET)/rnet_cmd_interp.c
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -130,7 +132,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_DEVICES)/include \
+         $(PSAS_DEVICES)/include $(PSAS_DEVICES) $(PSAS_UTIL)/include\
          $(PSAS_NET) \
          $(CONF)         
 #
