@@ -7,6 +7,8 @@
 #ifndef BQ24725_H_
 #define BQ24725_H_
 
+#include "hal.h"
+#include "utils-hal.h"
 
 #define BQ24725_ADDR	0b0001001
 
@@ -74,9 +76,17 @@ typedef struct BQ24725_charge_options{
 
 extern const BQ24725_charge_options BQ24725_charge_options_POR_default;
 
+struct BQ24725Config {
+    struct pin ACOK;
+    extcallback_t ACOK_cb;
+    I2CDriver *I2CD;
+    //TODO: i2c pins
+};
+
 inline uint16_t form_options_data(BQ24725_charge_options * opts);
 inline void form_options_struct(uint16_t data, BQ24725_charge_options* opt);
 
+void BQ24725_init(struct BQ24725Config * conf);
 int BQ24725_GetDeviceID(uint16_t* data);
 int BQ24725_GetManufactureID(uint16_t* data);
 int BQ24725_GetChargeCurrent(uint16_t* data);
