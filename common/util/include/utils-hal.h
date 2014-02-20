@@ -6,4 +6,7 @@ struct pin {
     uint16_t pad;
 };
 
+void extUtilsStart(void);
+void extAddCallback(struct pin * pin, uint32_t mode, extcallback_t cb);
+
 #endif /* UTILS_HAL_H_ */
