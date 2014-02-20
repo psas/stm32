@@ -1,3 +1,6 @@
+#include "hal.h"
+#include "utils-hal.h"
+
 #if DEBUG_MPU9150
 
 /* see hal/include/i2c.h */
@@ -35,3 +38,56 @@ const char* i2c_errno_str(int32_t err) ;
         return "I2C Error Unknown";
     }
 #endif
+
+
+static EXTConfig extconfig;
+//TODO: Ideally should have an EXTDriver as an argument, but there's no good
+//      way to dynamically have an EXTConfig for each one.
+void extAddCallback(struct pin * pin, uint32_t mode, extcallback_t cb){
+    EXTDriver *EXTD = &EXTD1;
+
+    //If an extconfig already exists, copy it over to our struct
+    if(EXTD->config != NULL && EXTD->config != &extconfig){
+        int i;
+        for(i = 0; i < EXT_MAX_CHANNELS; ++i){
+            extconfig.channels[i].cb = EXTD->config->channels[i].cb;
+            extconfig.channels[i].mode = EXTD->config->channels[i].mode;
+        }
+    }
+
+    uint32_t CHANNEL_MODE = 0;
+    if(pin->port == GPIOA){
+        CHANNEL_MODE = EXT_MODE_GPIOA;
+    } else if(pin->port == GPIOB){
+        CHANNEL_MODE = EXT_MODE_GPIOB;
+    } else if(pin->port == GPIOC){
+        CHANNEL_MODE = EXT_MODE_GPIOC;
+    } else if(pin->port == GPIOD){
+        CHANNEL_MODE = EXT_MODE_GPIOD;
+    } else if(pin->port == GPIOE){
+        CHANNEL_MODE = EXT_MODE_GPIOE;
+    } else if(pin->port == GPIOF){
+        CHANNEL_MODE = EXT_MODE_GPIOF;
+    } else if(pin->port == GPIOG){
+        CHANNEL_MODE = EXT_MODE_GPIOG;
+    } else if(pin->port == GPIOH){
+        CHANNEL_MODE = EXT_MODE_GPIOH;
+    } else if(pin->port == GPIOI){
+        CHANNEL_MODE = EXT_MODE_GPIOI;
+    }
+
+    //TODO: warn if overwriting?
+    extconfig.channels[pin->pad].cb = cb;
+    extconfig.channels[pin->pad].mode = (mode & ~EXT_MODE_GPIO_MASK) | CHANNEL_MODE;
+
+
+    if(EXTD->state == EXT_ACTIVE && (mode & EXT_CH_MODE_AUTOSTART)){
+        extChannelEnable(EXTD, pin->pad);
+    }
+}
+
+//fixme: This is kind of a cheesey way of doing this, but doing it better
+//       will probably only happen when extAddCallback's todo is fixed.
+void extUtilsStart(void){
+    extStart(&EXTD1, &extconfig);
+}
