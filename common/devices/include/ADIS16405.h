@@ -18,6 +18,8 @@ extern "C" {
 #include "ch.h"
 #include "hal.h"
 
+#include "utils_hal.h"
+
 #if !defined(ADIS_DEBUG) || defined(__DOXYGEN__)
 #define 	ADIS_DEBUG                   0
 #endif

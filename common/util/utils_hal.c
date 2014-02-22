@@ -43,7 +43,7 @@ const char* i2c_errno_str(int32_t err) ;
 static EXTConfig extconfig;
 //TODO: Ideally should have an EXTDriver as an argument, but there's no good
 //      way to dynamically have an EXTConfig for each one.
-void extAddCallback(struct pin * pin, uint32_t mode, extcallback_t cb){
+void extAddCallback(const struct pin * pin, uint32_t mode, extcallback_t cb){
     EXTDriver *EXTD = &EXTD1;
 
     //If an extconfig already exists, copy it over to our struct
