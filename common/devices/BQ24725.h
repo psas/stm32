@@ -8,7 +8,7 @@
 #define BQ24725_H_
 
 #include "hal.h"
-#include "utils-hal.h"
+#include "utils_hal.h"
 
 #define BQ24725_ADDR	0b0001001
 

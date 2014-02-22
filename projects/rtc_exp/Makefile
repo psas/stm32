@@ -90,7 +90,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/various/chrtclib.c \
        $(PSAS_DEVICES)/iwdg_lld.c \
-       $(PSAS_DEVICES)/usbdetail.c \
+       $(PSAS_UTIL)/usbdetail.c \
        $(PSAS_DEVICES)/psas_rtc.c \
        ./shell_cmd/cmddetail.c \
        main.c
@@ -124,10 +124,10 @@ ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
-	 $(LWINC)\
+		 $(LWINC)\
          $(CHIBIOS)/os/various \
-	 $(PSAS_NET) \
-         $(PSAS_DEVICES)/include \
+         $(PSAS_NET) \
+         $(PSAS_DEVICES)/include $(PSAS_UTIL)/include \
           ./data_udp
 
 #
