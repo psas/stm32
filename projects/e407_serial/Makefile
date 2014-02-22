@@ -96,7 +96,8 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/iwdg_lld.c \
        ./data_udp/data_udp.c \
        cmddetail.c \
-	main.c
+       $(PSAS_UTIL)/utils_shell.c \
+       main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -128,7 +129,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_DEVICES)/include \
+         $(PSAS_DEVICES)/include $(PSAS_UTIL)/include \
           ./data_udp
 
 #

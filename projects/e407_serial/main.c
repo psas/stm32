@@ -34,6 +34,8 @@
 
 #include "device_net.h"
 #include "fc_net.h"
+#include "utils_shell.h"
+
 
 #include "main.h"
 
