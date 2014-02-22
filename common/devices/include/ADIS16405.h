@@ -110,28 +110,24 @@ typedef struct ADIS16405_burst_data {
  * Configuration for the ADIS connections
  */
 
-struct pin {
-    ioportid_t port;
-    uint16_t pad;
-};
-
 typedef struct {
 	struct pin spi_sck;  /*! \brief The SPI SCK wire */
 	struct pin spi_miso; /*! \brief The SPI MISO wire */
 	struct pin spi_mosi; /*! \brief The SPI MOSI wire */
 	struct pin spi_cs;   /*! \brief The SPI CS wire */
-	struct pin reset;    /*! \brief The reset line */
-	struct pin dio1;     /*! \brief The DIO1 port */
-	struct pin dio2;     /*! \brief The DIO2 port */
-	struct pin dio3;     /*! \brief The DIO3 port */
-	struct pin dio4;     /*! \brief The DIO4 port */
-} adis_pins;
+	SPIDriver *SPID;     /*! \brief the SPI driver */
+	struct pin reset;    /*! \brief The reset wire */
+	struct pin dio1;     /*! \brief The DIO1 wire */
+	struct pin dio2;     /*! \brief The DIO2 wire */
+	struct pin dio3;     /*! \brief The DIO3 wire */
+	struct pin dio4;     /*! \brief The DIO4 wire */
+} ADIS16405Config;
 
-extern const adis_pins adis_olimex_e407;
+extern const ADIS16405Config adis_olimex_e407;
 
-extern EventSource adis_data_ready;
+extern EventSource ADIS16405_data_ready;
 
-void adis_init(const adis_pins * pins);
+void adis_init(const ADIS16405Config * conf);
 uint16_t adis_get(adis_regaddr addr);
 void adis_set(adis_regaddr addr, uint16_t value);
 void adis_get_data(ADIS16405_burst_data * data);

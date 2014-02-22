@@ -89,7 +89,7 @@ void main(void){
     static const evhandler_t evhndl[] = {
             adis_drdy_handler
     };
-    chEvtRegister(&adis_data_ready, &drdy, 0);
+    chEvtRegister(&ADIS16405_data_ready, &drdy, 0);
 	while(TRUE){
         chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}
