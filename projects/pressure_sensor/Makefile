@@ -93,8 +93,9 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/iwdg_lld.c \
        $(PSAS_DEVICES)/ADIS16405.c \
        $(PSAS_DEVICES)/MPL3115A2.c \
-       $(PSAS_DEVICES)/usbdetail.c \
-       cmddetail.c \
+       $(PSAS_UTIL)/usbdetail.c \
+       $(PSAS_UTIL)/utils_hal.c \
+	   cmddetail.c \
        extdetail.c \
        main.c
 
@@ -129,7 +130,7 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
          $(LWINC)\
-         $(PSAS_DEVICES)/include \
+         $(PSAS_DEVICES)/include $(PSAS_UTIL)/include\
 
 #
 # Project, sources and paths
