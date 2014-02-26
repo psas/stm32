@@ -44,9 +44,12 @@
  * ==================== ********************************************************
  */
 
-#define         INIT_PWM_FREQ                  6000000
-#define         INIT_PWM_PERIOD_TICKS           ((pwmcnt_t) 20000)
-#define         INIT_PWM_PULSE_WIDTH_TICKS      ((pwmcnt_t) 9000)
+#define INIT_PWM_FREQ              6000000
+#define INIT_PWM_PERIOD_TICKS      ((pwmcnt_t) 20000)
+#define INIT_PWM_PULSE_WIDTH_TICKS ((pwmcnt_t) 9000)
+
+#define COMMAND_MAILBOX_SIZE 8
+#define COMMAND_MOVING_AVERAGE_SAMPLES 10
 
 // This enum corresponds to the PWM bisable bit in the message received from the
 // flight computer. Since it's a _disable_ bit, when it is zero then the PWM is
@@ -55,6 +58,19 @@ enum {
     PWM_ENABLE = 0,
     PWM_DISABLE
 };
+
+/*
+ * Global Variables
+ * ================ ***********************************************************
+ */
+
+static struct VirtualTimer servo_output_timer;
+
+// This mailbox is how the thread that receives servo position commands from the
+// flight computer sends them to the thread that actually sets PWM output.
+static msg_t servo_command_buffer[COMMAND_MAILBOX_SIZE];
+static MAILBOX_DECL(servo_commands, servo_command_buffer, COMMAND_MAILBOX_SIZE);
+
 
 
 void pwm_set_pulse_width_ticks(uint32_t ticks){
@@ -76,28 +92,59 @@ pwmcnt_t pwm_us_to_ticks(uint32_t us) {
     return (pwmcnt_t) (us * ticks_per_us);
 }
 
+
+static void set_pwm_position(void* u UNUSED) {
+    chVTSetI(&servo_output_timer, MS2ST(1), set_pwm_position, 0);
+
+    static uint16_t command_history[COMMAND_MOVING_AVERAGE_SAMPLES] = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+
+    msg_t new_position;
+    if (chMBFetchI(&servo_commands, &new_position) == RDY_TIMEOUT) {
+        return;
+    }
+
+    int i;
+    // shift values towards the end of the array
+    for (i = COMMAND_MOVING_AVERAGE_SAMPLES - 1; i > 0; i--) {
+        command_history[i] = command_history[i-1];
+    }
+    command_history[i] = (uint16_t) new_position;
+
+    uint32_t sum = 0;
+    for (i = 0; i < COMMAND_MOVING_AVERAGE_SAMPLES; i++) {
+        sum += command_history[i];
+    }
+    uint32_t output_pos = sum / COMMAND_MOVING_AVERAGE_SAMPLES;
+
+    if (output_pos < PWM_LO) {
+        output_pos = PWM_LO;
+    } else if (output_pos > PWM_HI) {
+        output_pos = PWM_HI;
+    }
+
+    pwmEnableChannelI(&PWMD4, 3, pwm_us_to_ticks(output_pos));
+}
+
+
+WORKING_AREA(wa_listener_thread, 1024);
+
 /*
- * PWM control thread - sets up a listen socket and then sets the pwm width
- * according to the data received.
+ * Command listener - sets up a listen socket to receive servo position commands
+ * from the flight computer, then posts them to the PWM control thread's
+ * mailbox.
  */
-WORKING_AREA(wa_pwm_thread, 1024);
-static msg_t pwm_thread(void * u UNUSED) {
-    chRegSetThreadName("pwm");
+static msg_t listener_thread(void* u UNUSED) {
+    chRegSetThreadName("command_listener");
 
     RCOutput       rc_packet;
     char data[sizeof(RCOutput)];
-
-    const int pwm_lo = 1200;
-    const int pwm_hi = 1800;
-    const int pwm_step = 3;
 
     int socket = get_udp_socket(ROLL_ADDR);
     if(socket < 0){
         return -1;
     }
-
-    pwmcnt_t ticks;
-    uint16_t prev_width = 1500;
 
     while(TRUE){
         //fixme: throw away anything left
@@ -109,31 +156,8 @@ static msg_t pwm_thread(void * u UNUSED) {
 //        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
             uint16_t width = rc_packet.u16ServoPulseWidthBin14;
 
-            /* Limit the maximum rate the servo can turn */
-            // fixme: should be a lowpass filter
-            if(width > prev_width + pwm_step){
-                width = prev_width + pwm_step;
-            }else if(width < prev_width - pwm_step){
-                width = prev_width - pwm_step;
-            }
-            prev_width = width;
+            chMBPost(&servo_commands, (msg_t) width, TIME_IMMEDIATE);
 
-            /* Limit the maximum bounds the servo can turn to */
-            if(width < pwm_lo){
-                ticks =  pwm_us_to_ticks(pwm_lo);
-            } else if (width > pwm_hi){
-                ticks =  pwm_us_to_ticks(pwm_hi);
-            } else {
-                ticks = pwm_us_to_ticks(width);
-            }
-
-            /* fixme: if the servo was not set to the requested position
-             * because of lowpass or stops, respond with an error indicating
-             * the actual position.
-             */
-
-            /* Set the position */
-            pwmEnableChannel(&PWMD4, 3, ticks);
 //        } else {
 //            pwmDisableChannel(&PWMD4, 3);
 //        }
@@ -157,7 +181,6 @@ void pwm_start() {
         .cr2 = 0
     };
 
-
     palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));
     pwmStart(&PWMD4, &pwmcfg);
     // Channel is enabled here to reduce inrush current of the servo turning
@@ -166,10 +189,12 @@ void pwm_start() {
     // over ethernet.
     pwmEnableChannel(&PWMD4, 3, INIT_PWM_PULSE_WIDTH_TICKS);
 
-    chThdCreateStatic( wa_pwm_thread
-                     , sizeof(wa_pwm_thread)
+    chThdCreateStatic( wa_listener_thread
+                     , sizeof(wa_listener_thread)
                      , NORMALPRIO
-                     , pwm_thread
+                     , listener_thread
                      , NULL
                      );
+
+    chVTSetI(&servo_output_timer, MS2ST(1), set_pwm_position, 0);
 }
