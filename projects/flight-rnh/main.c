@@ -1,24 +1,24 @@
 #include <string.h>
 #include "ch.h"
 #include "hal.h"
-#include "rnh_shell.h"
-#include "BQ24725.h"
-#include "KS8999.h"
-#include "RNH.h"
-#include "net_addrs.h"
-#include "utils_sockets.h"
-#include "utils_led.h"
-#include "rnet_cmd_interp.h"
+#include "chprintf.h"
 
 #include "lwip/ip_addr.h"
 #include "lwip/sockets.h"
 #include "lwipopts.h"
 #include "lwipthread.h"
 
-#define UNUSED __attribute__((unused))
-#define NORETURN __attribute__((noreturn))
+#include "net_addrs.h"
+#include "utils_sockets.h"
+#include "utils_led.h"
+#include "rnet_cmd_interp.h"
+#include "BQ24725.h"
 
-#include "chprintf.h"
+#include "rnh_shell.h"
+#include "KS8999.h"
+#include "RNH.h"
+
+#define UNUSED __attribute__((unused))
 
 #define ETHERNET_COMMANDS_STACK_SIZE      1024
 WORKING_AREA(wa_ethernet_commands, ETHERNET_COMMANDS_STACK_SIZE);
