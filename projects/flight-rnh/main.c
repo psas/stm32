@@ -102,14 +102,26 @@ void sleep(void){
 
 }
 
-static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
+static void bqst(eventid_t id UNUSED){
+    BQ24725_start();
+}
 
+static EventSource bqst_event;
+
+static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
     if(BQ24725_ACOK()){
-        BQ24725_start();
-        KS8999_enable(TRUE);
+
+        palClearPad(GPIOD, GPIO_D11_RGB_B);
+        chSysLockFromIsr();
+        chEvtBroadcastI(&bqst_event);
+        chSysUnlockFromIsr();
+        //if low power mode is set
+//        KS8999_enable(TRUE);
     }else{
-        RNH_power(RNH_PORT_ALL, RNH_PORT_OFF);
-        KS8999_enable(FALSE);
+        palSetPad(GPIOD, GPIO_D11_RGB_B);
+        //if low power mode is set
+//        RNH_power(RNH_PORT_ALL, RNH_PORT_OFF);
+//        KS8999_enable(FALSE);
     }
 }
 
@@ -117,26 +129,30 @@ void main(void) {
     halInit();
     chSysInit();
     led_init(&rnh_led_cfg); //diagnostic LED blinker
-
-    //Init hardware
-
+    chEvtInit(&bqst_event);
+    struct EventListener el0;
+    chEvtRegister(&bqst_event, &el0, 0);
+//    //Init hardware
     struct BQ24725Config BQConf = {
             .ACOK = {GPIOD, GPIO_D0_BQ24_ACOK},
             .ACOK_cb = ACOK_cb,
             .I2CD = &I2CD1
     };
     BQ24725_init(&BQConf);
+
     if(BQ24725_ACOK()){
+        palClearPad(GPIOD, GPIO_D11_RGB_B);
         BQ24725_start();
     }
-
-
     KS8999_init();
     eth_start();
 
+    const evhandler_t evhndl[] = {
+        bqst
+    };
     //main should never return
+    rnh_shell_start();
     while (TRUE) {
-        rnh_shell_start();
-        chThdSleep(1);
+        chEvtDispatch(evhndl, chEvtWaitAll(ALL_EVENTS));
     }
 }
