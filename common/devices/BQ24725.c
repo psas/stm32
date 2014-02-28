@@ -184,9 +184,6 @@ int BQ24725_SetChargeOption(BQ24725_charge_options * option){
 }
 
 int BQ24725_ACOK(void){
-    if(initialized == false)
-        BQ24725_init(NULL);
-
 	return palReadPad(CONF->ACOK.port, CONF->ACOK.pad);
 }
 
