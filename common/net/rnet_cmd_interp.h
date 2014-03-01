@@ -15,6 +15,7 @@
  * You probably wont need to create one of these.
  */
 struct RCICmdData{
+    const char * cmd_name;  // Name of the command
     char * cmd_data;        // Data segment of a received command
     int cmd_len;            // Length of valid cmd_data
 
