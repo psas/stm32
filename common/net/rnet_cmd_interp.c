@@ -19,7 +19,18 @@ static void handle_command(struct RCICmdData * data, struct RCICommand * cmd){
     for(;cmd->name != NULL; ++cmd){
         rclen = strlen(cmd->name);
         if(COMPARE_BUFFER_TO_CMD(data->cmd_data, data->cmd_len, cmd->name, rclen)){
-            cmd->function(data, cmd->user_data);
+            //remove rci command from cmd_data and place it in cmd_name
+            data->cmd_name = cmd->name;
+            data->cmd_len -= rclen;
+            if(data->cmd_len > rclen){
+                data->cmd_data += rclen;
+            }else{
+                data->cmd_data = NULL;
+            }
+            //call the callback
+            if(cmd->function){
+                cmd->function(data, cmd->user_data);
+            }
             break;
         }
     }
