@@ -20,59 +20,52 @@
 
 #define UNUSED __attribute__((unused))
 
-#define ETHERNET_COMMANDS_STACK_SIZE      1024
-WORKING_AREA(wa_ethernet_commands, ETHERNET_COMMANDS_STACK_SIZE);
+static const char ARM[]     = "#YOLO";
+static const char SAFE[]    = "#SAFE";
+static const char PORT_ON[]  = "#ON_P";
+static const char PORT_OFF[] = "#FF_P";
+static const char VERSION[] = "#VERS";
+static const char TIME[]    = "#TIME";
+static const char PWR_STAT[]= "#POWR";
 
-char ARM[]     = "#YOLO";
-char SAFE[]    = "#SAFE";
-char PIN_ON[]  = "#ON_P";
-char PIN_OFF[] = "#FF_P";
-char VERSION[] = "#VERS";
-char TIME[]    = "#TIME";
-char PWR_STAT[]= "#POWR";
-
-#define COMPARE_BUFFER_TO_CMD(a, b, len)\
-    !strncmp((char*)a, b, sizeof(b) > len? len: sizeof(b))
-
-
-
-msg_t ethernet_commands(void * arg UNUSED){
-    BaseSequentialStream *chp = (BaseSequentialStream *)&SD1;
-    int s = get_udp_socket(RNH_LISTEN_ADDR);
-
-    char msg[50]; //TODO: non-arbitrary size
-    memset(msg, 0, sizeof(msg));
-    int ret;
-    unsigned int len;
-    while(TRUE) {
-        ret = recv(s, msg, sizeof(msg), 0);
-        if(ret < 0){
-            return -3;
-        }
-        len=ret;
-
-        if(COMPARE_BUFFER_TO_CMD(msg, ARM, len)){
-
-        } else if(COMPARE_BUFFER_TO_CMD(msg, SAFE, len)){
-
-        } else if(COMPARE_BUFFER_TO_CMD(msg, PIN_ON, 4)){
-            chprintf(chp, "port: %d on\r\n", msg[5]);
-            int port_mask = msg[5];
-            RNH_power(port_mask, RNH_PORT_ON);
-        } else if(COMPARE_BUFFER_TO_CMD(msg, PIN_OFF, 4)){
-            chprintf(chp, "port: %d off \r\n", msg[5]);
-            int port_mask = msg[5];
-            RNH_power(port_mask, RNH_PORT_OFF);
-        } else if(COMPARE_BUFFER_TO_CMD(msg, VERSION, len)){
-
-        } else if(COMPARE_BUFFER_TO_CMD(msg, TIME, len)){
-
-        } else if(COMPARE_BUFFER_TO_CMD(msg, PWR_STAT, len)){
-
-        }
+void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
+    if(!rci_data->cmd_len){
+        return; //fixme return Error
     }
-    return 0;
+    int port_mask = rci_data->cmd_data[0];
+
+    RNH_action action;
+    if(!strncmp(PORT_ON, rci_data->cmd_name, sizeof(PORT_ON))){
+        action = RNH_PORT_ON;
+    }else{
+        action = RNH_PORT_OFF;
+    }
+
+    RNH_power(port_mask, action);
 }
+
+
+
+
+void eth_start(void){
+    static struct RCICommand cmds[] = {
+            {PORT_ON, cmd_port, NULL},
+            {PORT_OFF, cmd_port, NULL},
+            {NULL, NULL, NULL}
+    };
+
+    static struct RCIConfig conf;
+    conf.address = RNH_LISTEN_ADDR;
+    conf.commands = cmds;
+
+    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, RNH_LWIP);
+    RCICreate(&conf);
+}
+
+void sleep(void){
+
+}
+
 
 void BQ24725_start(void){
     BQ24725_charge_options BQ24725_rocket_init = {
@@ -93,15 +86,6 @@ void BQ24725_start(void){
             BQ24725_SetChargeOption(&BQ24725_rocket_init);
 }
 
-void eth_start(void){
-    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, RNH_LWIP);
-    chThdCreateStatic(wa_ethernet_commands , sizeof(wa_ethernet_commands) , NORMALPRIO , ethernet_commands, NULL);
-}
-
-void sleep(void){
-
-}
-
 static void bqst(eventid_t id UNUSED){
     BQ24725_start();
 }
@@ -120,7 +104,7 @@ static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
     }else{
         palSetPad(GPIOD, GPIO_D11_RGB_B);
         //if low power mode is set
-//        RNH_power(RNH_PORT_ALL, RNH_PORT_OFF);
+//        sleep();
 //        KS8999_enable(FALSE);
     }
 }
