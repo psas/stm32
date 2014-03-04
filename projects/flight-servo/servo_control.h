@@ -50,7 +50,7 @@
 // Maximum allowable oscillation frequency. We prevent the servo from changing
 // direction any faster than this.
 #define PWM_MAX_OSCILLATION_FREQ 50
-#define PWM_MIN_DIRECTION_CHANGE_PERIOD (1000000 / PWM_MAX_OSCILLATION_FREQ)
+#define PWM_MIN_DIRECTION_CHANGE_PERIOD (1000 / PWM_MAX_OSCILLATION_FREQ)
 
 
 
