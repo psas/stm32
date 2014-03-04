@@ -21,6 +21,7 @@
 
 // stdlib
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 // ChibiOs
@@ -48,8 +49,7 @@
 #define INIT_PWM_PERIOD_TICKS      ((pwmcnt_t) 20000)
 #define INIT_PWM_PULSE_WIDTH_TICKS ((pwmcnt_t) 9000)
 
-#define COMMAND_MAILBOX_SIZE 8
-#define COMMAND_MOVING_AVERAGE_SAMPLES 10
+#define POSITION_MAILBOX_SIZE 8
 
 // This enum corresponds to the PWM bisable bit in the message received from the
 // flight computer. Since it's a _disable_ bit, when it is zero then the PWM is
@@ -68,8 +68,8 @@ static struct VirtualTimer servo_output_timer;
 
 // This mailbox is how the thread that receives servo position commands from the
 // flight computer sends them to the thread that actually sets PWM output.
-static msg_t servo_command_buffer[COMMAND_MAILBOX_SIZE];
-static MAILBOX_DECL(servo_commands, servo_command_buffer, COMMAND_MAILBOX_SIZE);
+static msg_t servo_position_buffer[POSITION_MAILBOX_SIZE];
+static MAILBOX_DECL(servo_positions, servo_position_buffer, POSITION_MAILBOX_SIZE);
 
 
 
@@ -96,35 +96,57 @@ pwmcnt_t pwm_us_to_ticks(uint32_t us) {
 static void set_pwm_position(void* u UNUSED) {
     chVTSetI(&servo_output_timer, MS2ST(1), set_pwm_position, 0);
 
-    static uint16_t command_history[COMMAND_MOVING_AVERAGE_SAMPLES] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
+    static int16_t last_difference = 0;
+    static uint16_t last_position = 1500;
+    static uint64_t ticks = 0;
+    static uint64_t last_direction_change_tick = 0;
 
-    msg_t new_position;
-    if (chMBFetchI(&servo_commands, &new_position) == RDY_TIMEOUT) {
+    ticks++;
+
+    msg_t new_msg;
+    if (chMBFetchI(&servo_positions, &new_msg) == RDY_TIMEOUT) {
+        // if nobody sent a position to our mailbox, we have nothing to do
         return;
     }
 
-    int i;
-    // shift values towards the end of the array
-    for (i = COMMAND_MOVING_AVERAGE_SAMPLES - 1; i > 0; i--) {
-        command_history[i] = command_history[i-1];
-    }
-    command_history[i] = (uint16_t) new_position;
+    uint16_t desired_position = (uint16_t) new_msg;
+    uint16_t output = desired_position;
 
-    uint32_t sum = 0;
-    for (i = 0; i < COMMAND_MOVING_AVERAGE_SAMPLES; i++) {
-        sum += command_history[i];
-    }
-    uint32_t output_pos = sum / COMMAND_MOVING_AVERAGE_SAMPLES;
+    int16_t difference = desired_position - last_position;
 
-    if (output_pos < PWM_LO) {
-        output_pos = PWM_LO;
-    } else if (output_pos > PWM_HI) {
-        output_pos = PWM_HI;
+    // limit rate
+    if (abs(difference) > PWM_MAX_RATE) {
+        if (difference < 0) {
+            output = last_position - PWM_MAX_RATE;
+        } else {
+            output = last_position + PWM_MAX_RATE;
+        }
     }
 
-    pwmEnableChannelI(&PWMD4, 3, pwm_us_to_ticks(output_pos));
+    // limit oscillation frequency
+    if ((difference > 0 && last_difference <= 0)
+        || (difference < 0 && last_difference >= 0)) {
+        uint64_t elapsed = ticks - last_direction_change_tick;
+        if (elapsed < PWM_MIN_DIRECTION_CHANGE_PERIOD) {
+            // changed direction too recently; not allowed to change again yet
+            output = last_position;
+        } else {
+            last_direction_change_tick = ticks;
+        }
+    }
+
+    // hard limits
+    if (output < PWM_LO) {
+        output = PWM_LO;
+    } else if (output > PWM_HI) {
+        output = PWM_HI;
+    }
+
+    last_difference = output - last_position;
+    if (last_difference != 0) {
+        pwmEnableChannelI(&PWMD4, 3, pwm_us_to_ticks(output));
+    }
+    last_position = output;
 }
 
 
@@ -156,7 +178,7 @@ static msg_t listener_thread(void* u UNUSED) {
 //        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
             uint16_t width = rc_packet.u16ServoPulseWidthBin14;
 
-            chMBPost(&servo_commands, (msg_t) width, TIME_IMMEDIATE);
+            chMBPost(&servo_positions, (msg_t) width, TIME_IMMEDIATE);
 
 //        } else {
 //            pwmDisableChannel(&PWMD4, 3);
