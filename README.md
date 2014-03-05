@@ -1,12 +1,4 @@
 
-
-Fri November 15 2013 
-We are preparing to switch compilers and remove the old compiler binary from the repo. This will
-make it much smaller but since history will be rewritten, all changes need to be committed before
-this happens. 
-
---------------------
-
 This repo is for firmware, OS, and application code for the STM32F4xx series of microcontrollers used on the PSAS AV3 avionics system.
 
 To initialize the ChibiOS submodule run:
