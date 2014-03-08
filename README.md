@@ -55,14 +55,23 @@ If it's been a while since you've updated ChibiOS you'll need to re-sync it as i
         - PSAS Rocketnet Hub
 
 ## TOOLCHAIN SETUP
-    - Version of OpenOCD  as of: Tue 04 March 2014 21:03:16 (PST)
-        - openocd v0.7.0
-    - Version of GNU cross compiler
-    - How to set up toolchain
-    - Programmers used for JTAG 
-    - Debugging flow with GDB
-        - make targets?
-    - We will maintain toolchain in /usr/local not /opt or wherever,.. Sorry 
-
-
-
+#### Debugger
+(OpenOCD)[http://openocd.sourceforge.net/] is the tool we use to communicate, flash, and debug the microcontroller via JTAG.
+  - Version v0.7.0 as of March 2014
+  - Instillation instructions:
+    - The Debian and Ubuntu v0.7.0 packages now have the correct build flags so it's as simple as
+      - sudo apt-get install openocd
+    - For other systems, or if you are building it yourself, ensure that it's built with --enable-ft2232\_libftdi --enable-stlink
+  - udev rules
+    - To use OpenOCD without sudo, move 99-psas-jtag.rules in common/ to /etc/udev/rules.d/ and the run sudo udevadm control --restart.
+      Alternativly some versions of OpenOCD ship with a more complete udev rule set in /usr/share/openocd/contrib/
+#### Compiler
+(GNU Tools for ARM Embedded Processors)[https://launchpad.net/gcc-arm-embedded]
+  - Version 4.8 as of March 2014
+  - Instillation instructions:
+    - The prefered way is to use the provided (PPA)[https://launchpad.net/~terry.guo/+archive/gcc-arm-embedded]
+#### Other
+ - Programmers used for JTAG
+   - Olimex-arm-usb-ocd and STLinkV2 are what we currently use, but any supported by OpenOCD should work
+ - Debugging flow with GDB
+   - make targets?
