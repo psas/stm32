@@ -12,6 +12,8 @@ static uint32_t power[NUM_PORT] =
      GPIO_E2_NODE3_N_EN, GPIO_E3_NODE4_N_EN, GPIO_E4_NC,
      GPIO_E5_NODE6_N_EN, GPIO_E6_NODE7_N_EN};
 
+//todo: interrupt on faults?
+
 static uint32_t fault[NUM_PORT] =
     {GPIO_E12_NC, GPIO_E8_NODE1_N_FLT, GPIO_E9_NODE2_N_FLT,
      GPIO_E10_NODE3_N_FLT, GPIO_E11_NODE4_N_FLT, GPIO_E12_NC,
@@ -46,20 +48,27 @@ RNH_port RNH_power(RNH_port port, RNH_action action){
             switch(action){
             case RNH_PORT_ON:
                 palClearPad(GPIOE, power[i]);
+                if(palReadPad(GPIOE, power[i])){
+                    return_port |= 1<<i;
+                }
                 break;
             case RNH_PORT_OFF:
                 palSetPad(GPIOE, power[i]);
+                if(palReadPad(GPIOE, power[i])){
+                    return_port |= 1<<i;
+                }
                 break;
             case RNH_PORT_FAULT:
                 if(palReadPad(GPIOE, fault[i])){
-                    return_port |= 1<<i; //FIXME
+                    return_port |= 1<<i;
                 }
                 break;
             case RNH_PORT_STATUS:
             default:
                 if(palReadPad(GPIOE, power[i])){
-                    return_port |= 1<<i; //FIXME
+                    return_port |= 1<<i;
                 }
+                break;
             }
 
         }
