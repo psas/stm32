@@ -55,7 +55,7 @@ If it's been a while since you've updated ChibiOS you'll need to re-sync it as i
 
 ## TOOLCHAIN SETUP
 #### Debugger
-(OpenOCD)[http://openocd.sourceforge.net/] is the tool we use to communicate, flash, and debug the microcontroller via JTAG.
+[OpenOCD](http://openocd.sourceforge.net/) is the tool we use to communicate, flash, and debug the microcontroller via JTAG.
   - Version v0.7.0 as of March 2014
   - Instillation instructions:
     - The Debian and Ubuntu v0.7.0 packages now have the correct build flags so it's as simple as
@@ -66,10 +66,10 @@ If it's been a while since you've updated ChibiOS you'll need to re-sync it as i
       Alternativly some versions of OpenOCD ship with a more complete udev rule set in /usr/share/openocd/contrib/
 
 #### Compiler
-(GNU Tools for ARM Embedded Processors)[https://launchpad.net/gcc-arm-embedded]
+[GNU Tools for ARM Embedded Processors](https://launchpad.net/gcc-arm-embedded)
   - Version 4.8 as of March 2014
   - Instillation instructions:
-    - The prefered way is to use the provided (PPA)[https://launchpad.net/~terry.guo/+archive/gcc-arm-embedded]
+    - The prefered way is to use the provided [PPA](https://launchpad.net/~terry.guo/+archive/gcc-arm-embedded)
 
 #### Other
  - Programmers used for JTAG
