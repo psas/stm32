@@ -22,8 +22,7 @@
 
 static const char ARM[]     = "#YOLO";
 static const char SAFE[]    = "#SAFE";
-static const char PORT_ON[]  = "#ON_P";
-static const char PORT_OFF[] = "#FF_P";
+static const char PORT[]    = "#PORT";
 static const char VERSION[] = "#VERS";
 static const char TIME[]    = "#TIME";
 static const char PWR_STAT[]= "#POWR";
@@ -32,25 +31,16 @@ void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
     if(!rci_data->cmd_len){
         return; //fixme return Error
     }
-    int port_mask = rci_data->cmd_data[0];
+    RNH_action action = rci_data->cmd_data[0];
+    int port_mask = rci_data->cmd_data[1];
 
-    RNH_action action;
-    if(!strncmp(PORT_ON, rci_data->cmd_name, sizeof(PORT_ON))){
-        action = RNH_PORT_ON;
-    }else{
-        action = RNH_PORT_OFF;
-    }
-
-    RNH_power(port_mask, action);
+    rci_data->return_data[0] = RNH_power(port_mask, action);
+    rci_data->return_len = 1;
 }
-
-
-
 
 void eth_start(void){
     static struct RCICommand cmds[] = {
-            {PORT_ON, cmd_port, NULL},
-            {PORT_OFF, cmd_port, NULL},
+            {PORT, cmd_port, NULL},
             {NULL, NULL, NULL}
     };
 
