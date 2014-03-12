@@ -1,4 +1,3 @@
-
 This repo is for firmware, OS, and application code for the STM32F4xx series of microcontrollers used on the PSAS AV3 avionics system.
 
 To initialize the ChibiOS submodule run:
@@ -65,11 +64,13 @@ If it's been a while since you've updated ChibiOS you'll need to re-sync it as i
   - udev rules
     - To use OpenOCD without sudo, move 99-psas-jtag.rules in common/ to /etc/udev/rules.d/ and the run sudo udevadm control --restart.
       Alternativly some versions of OpenOCD ship with a more complete udev rule set in /usr/share/openocd/contrib/
+
 #### Compiler
 (GNU Tools for ARM Embedded Processors)[https://launchpad.net/gcc-arm-embedded]
   - Version 4.8 as of March 2014
   - Instillation instructions:
     - The prefered way is to use the provided (PPA)[https://launchpad.net/~terry.guo/+archive/gcc-arm-embedded]
+
 #### Other
  - Programmers used for JTAG
    - Olimex-arm-usb-ocd and STLinkV2 are what we currently use, but any supported by OpenOCD should work
