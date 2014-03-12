@@ -140,7 +140,7 @@
 #define GPIO_E4_NC                    4
 #define GPIO_E5_NODE6_N_EN            5
 #define GPIO_E6_NODE7_N_EN            6
-#define GPIO_E7_NC                    7
+#define GPIO_E7_NODE8_N_EN            7
 #define GPIO_E8_NODE1_N_FLT           8 
 #define GPIO_E9_NODE2_N_FLT           9
 #define GPIO_E10_NODE3_N_FLT          10
@@ -148,7 +148,7 @@
 #define GPIO_E12_NC                   12
 #define GPIO_E13_NODE6_N_FLT          13
 #define GPIO_E14_NODE7_N_FLT          14
-#define GPIO_E15_NC                   15
+#define GPIO_E15_NODE8_N_FLT          15
 
 #define GPIOF_PIN0                  0
 #define GPIOF_PIN1                  1
@@ -681,7 +681,7 @@
                                      PIN_MODE_INPUT (GPIO_E4_NC           ) |\
                                      PIN_MODE_OUTPUT(GPIO_E5_NODE6_N_EN   ) |\
                                      PIN_MODE_OUTPUT(GPIO_E6_NODE7_N_EN   ) |\
-                                     PIN_MODE_INPUT (GPIO_E7_NC           ) |\
+                                     PIN_MODE_INPUT (GPIO_E7_NODE8_N_EN   ) |\
                                      PIN_MODE_INPUT (GPIO_E8_NODE1_N_FLT  ) |\
                                      PIN_MODE_INPUT (GPIO_E9_NODE2_N_FLT  ) |\
                                      PIN_MODE_INPUT (GPIO_E10_NODE3_N_FLT ) |\
@@ -689,7 +689,7 @@
                                      PIN_MODE_INPUT (GPIO_E12_NC          ) |\
                                      PIN_MODE_INPUT (GPIO_E13_NODE6_N_FLT ) |\
                                      PIN_MODE_INPUT (GPIO_E14_NODE7_N_FLT ) |\
-                                     PIN_MODE_INPUT (GPIO_E15_NC          ))  
+                                     PIN_MODE_INPUT (GPIO_E15_NODE8_N_FLT ))
 
 #define VAL_GPIOE_OTYPER            (PIN_OTYPE_PUSHPULL(GPIO_E0_NODE1_N_EN   ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_E1_NODE2_N_EN   ) |\
@@ -698,7 +698,7 @@
                                      PIN_OTYPE_PUSHPULL(GPIO_E4_NC           ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_E5_NODE6_N_EN   ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_E6_NODE7_N_EN   ) |\
-                                     PIN_OTYPE_PUSHPULL(GPIO_E7_NC           ) |\
+                                     PIN_OTYPE_PUSHPULL(GPIO_E7_NODE8_N_EN   ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_E8_NODE1_N_FLT  ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_E9_NODE2_N_FLT  ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_E10_NODE3_N_FLT ) |\
@@ -706,7 +706,7 @@
                                      PIN_OTYPE_PUSHPULL(GPIO_E12_NC          ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_E13_NODE6_N_FLT ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_E14_NODE7_N_FLT ) |\
-                                     PIN_OTYPE_PUSHPULL(GPIO_E15_NC          ))  
+                                     PIN_OTYPE_PUSHPULL(GPIO_E15_NODE8_N_FLT ))
 
 #define VAL_GPIOE_OSPEEDR           (PIN_OSPEED_100M   (GPIO_E0_NODE1_N_EN   ) |\
                                      PIN_OSPEED_100M   (GPIO_E1_NODE2_N_EN   ) |\
@@ -715,7 +715,7 @@
                                      PIN_OSPEED_100M   (GPIO_E4_NC           ) |\
                                      PIN_OSPEED_100M   (GPIO_E5_NODE6_N_EN   ) |\
                                      PIN_OSPEED_100M   (GPIO_E6_NODE7_N_EN   ) |\
-                                     PIN_OSPEED_100M   (GPIO_E7_NC           ) |\
+                                     PIN_OSPEED_100M   (GPIO_E7_NODE8_N_EN   ) |\
                                      PIN_OSPEED_100M   (GPIO_E8_NODE1_N_FLT  ) |\
                                      PIN_OSPEED_100M   (GPIO_E9_NODE2_N_FLT  ) |\
                                      PIN_OSPEED_100M   (GPIO_E10_NODE3_N_FLT ) |\
@@ -723,7 +723,7 @@
                                      PIN_OSPEED_100M   (GPIO_E12_NC          ) |\
                                      PIN_OSPEED_100M   (GPIO_E13_NODE6_N_FLT ) |\
                                      PIN_OSPEED_100M   (GPIO_E14_NODE7_N_FLT ) |\
-                                     PIN_OSPEED_100M   (GPIO_E15_NC          ))  
+                                     PIN_OSPEED_100M   (GPIO_E15_NODE8_N_FLT ))
 
 #define VAL_GPIOE_PUPDR             (PIN_PUPDR_FLOATING  (GPIO_E0_NODE1_N_EN   ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E1_NODE2_N_EN   ) |\
@@ -732,7 +732,7 @@
                                      PIN_PUPDR_PULLDOWN  (GPIO_E4_NC           ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E5_NODE6_N_EN   ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E6_NODE7_N_EN   ) |\
-                                     PIN_PUPDR_PULLDOWN  (GPIO_E7_NC           ) |\
+                                     PIN_PUPDR_PULLDOWN  (GPIO_E7_NODE8_N_EN   ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E8_NODE1_N_FLT  ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E9_NODE2_N_FLT  ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E10_NODE3_N_FLT ) |\
@@ -740,7 +740,7 @@
                                      PIN_PUPDR_PULLDOWN  (GPIO_E12_NC          ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E13_NODE6_N_FLT ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E14_NODE7_N_FLT ) |\
-                                     PIN_PUPDR_PULLDOWN  (GPIO_E15_NC          ))  
+                                     PIN_PUPDR_PULLDOWN  (GPIO_E15_NODE8_N_FLT ))
 
 #define VAL_GPIOE_ODR               (PIN_ODR_HIGH      (GPIO_E0_NODE1_N_EN   ) |\
                                      PIN_ODR_HIGH      (GPIO_E1_NODE2_N_EN   ) |\
@@ -749,7 +749,7 @@
                                      PIN_ODR_HIGH      (GPIO_E4_NC           ) |\
                                      PIN_ODR_HIGH      (GPIO_E5_NODE6_N_EN   ) |\
                                      PIN_ODR_HIGH      (GPIO_E6_NODE7_N_EN   ) |\
-                                     PIN_ODR_HIGH      (GPIO_E7_NC           ) |\
+                                     PIN_ODR_HIGH      (GPIO_E7_NODE8_N_EN   ) |\
                                      PIN_ODR_HIGH      (GPIO_E8_NODE1_N_FLT  ) |\
                                      PIN_ODR_HIGH      (GPIO_E9_NODE2_N_FLT  ) |\
                                      PIN_ODR_HIGH      (GPIO_E10_NODE3_N_FLT ) |\
@@ -757,7 +757,7 @@
                                      PIN_ODR_HIGH      (GPIO_E12_NC          ) |\
                                      PIN_ODR_HIGH      (GPIO_E13_NODE6_N_FLT ) |\
                                      PIN_ODR_HIGH      (GPIO_E14_NODE7_N_FLT ) |\
-                                     PIN_ODR_HIGH      (GPIO_E15_NC          ))  
+                                     PIN_ODR_HIGH      (GPIO_E15_NODE8_N_FLT ))
 
 #define VAL_GPIOE_AFRL              (PIN_AFIO_AF       (GPIO_E0_NODE1_N_EN  , 0 ) |\
                                      PIN_AFIO_AF       (GPIO_E1_NODE2_N_EN  , 0 ) |\
@@ -766,7 +766,7 @@
                                      PIN_AFIO_AF       (GPIO_E4_NC          , 0 ) |\
                                      PIN_AFIO_AF       (GPIO_E5_NODE6_N_EN  , 0 ) |\
                                      PIN_AFIO_AF       (GPIO_E6_NODE7_N_EN  , 0 ) |\
-                                     PIN_AFIO_AF       (GPIO_E7_NC          , 0 )) 
+                                     PIN_AFIO_AF       (GPIO_E7_NODE8_N_EN  , 0 ))
 
 #define VAL_GPIOE_AFRH              (PIN_AFIO_AF       (GPIO_E8_NODE1_N_FLT , 0 ) |\
                                      PIN_AFIO_AF       (GPIO_E9_NODE2_N_FLT , 0 ) |\
@@ -775,7 +775,7 @@
                                      PIN_AFIO_AF       (GPIO_E12_NC         , 0 ) |\
                                      PIN_AFIO_AF       (GPIO_E13_NODE6_N_FLT, 0 ) |\
                                      PIN_AFIO_AF       (GPIO_E14_NODE7_N_FLT, 0 ) |\
-                                     PIN_AFIO_AF       (GPIO_E15_NC         , 0 ))  
+                                     PIN_AFIO_AF       (GPIO_E15_NODE8_N_FLT, 0 ))
 
 /*
  * GPIOF setup:
