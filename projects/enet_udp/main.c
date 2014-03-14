@@ -19,10 +19,9 @@
 #include "lwip/ip_addr.h"
 
 #include "utils_sockets.h"
+#include "utils_shell.h"
 #include "usbdetail.h"
-#include "cmddetail.h"
 #include "data_udp.h"
-
 
 
 static WORKING_AREA(waThread_blinker, 64);
