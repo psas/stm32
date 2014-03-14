@@ -101,6 +101,7 @@ CSRC = $(PORTSRC) \
        $(PSAS_UTIL)/utils_sockets.c\
        $(PSAS_UTIL)/utils_hal.c \
 	   $(PSAS_UTIL)/utils_led.c \
+       $(PSAS_UTIL)/utils_rtc.c \
        $(PSAS_NET)/rnet_cmd_interp.c
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

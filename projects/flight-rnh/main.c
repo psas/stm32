@@ -11,6 +11,7 @@
 #include "net_addrs.h"
 #include "utils_sockets.h"
 #include "utils_led.h"
+#include "utils_rtc.h"
 #include "rnet_cmd_interp.h"
 #include "BQ24725.h"
 
@@ -28,7 +29,7 @@ static const char TIME[]    = "#TIME";
 static const char PWR_STAT[]= "#POWR";
 
 void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
-    if(!rci_data->cmd_len){
+    if(rci_data->cmd_len < 2){
         return; //fixme return Error
     }
     RNH_action action = rci_data->cmd_data[0];
@@ -38,8 +39,27 @@ void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
     rci_data->return_len = 1;
 }
 
+void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
+    RTCTime timespec;
+    rtcGetTime(&RTCD1, &timespec);
+
+    uint64_t time_ns = rtc_to_ns(&timespec);
+
+    rci_data->return_data[0] = time_ns & (0xFF << 7) >> 7;
+    rci_data->return_data[1] = time_ns & (0xFF << 6) >> 6;
+    rci_data->return_data[2] = time_ns & (0xFF << 5) >> 5;
+    rci_data->return_data[3] = time_ns & (0xFF << 4) >> 4;
+    rci_data->return_data[4] = time_ns & (0xFF << 3) >> 3;
+    rci_data->return_data[5] = time_ns & (0xFF << 2) >> 2;
+    rci_data->return_data[6] = time_ns & (0xFF << 1) >> 1;
+    rci_data->return_data[7] = time_ns & (0xFF << 0) >> 0;
+
+    rci_data->return_len = 8;
+}
+
 void eth_start(void){
     static struct RCICommand cmds[] = {
+            {TIME, cmd_time, NULL},
             {PORT, cmd_port, NULL},
             {NULL, NULL, NULL}
     };
