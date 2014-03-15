@@ -175,12 +175,7 @@ int main(void) {
     // MPU 6 axis IMU sensor
     chThdCreateStatic(waThread_mpu9150_int      , sizeof(waThread_mpu9150_int)      , NORMALPRIO    , Thread_mpu9150_int     , NULL);
 
-    /* SPI ADIS - As of: Mon 18 November 2013 11:11:42 (PST) Unavailable for testing. */
-    //chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
-    //chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
-
-
-     chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, SENSOR_LWIP);
+    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, SENSOR_LWIP);
     /*    chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
      *    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
      */
