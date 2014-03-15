@@ -1,0 +1,13 @@
+language: c
+install: make get-deps
+script : cd projects && make
+
+notifications:
+  irc:
+    channels: "irc.psas.pdx.edu#psas"
+    template:
+      - "%{repository}@%{branch}: %{message} (%{build_url})"
+    on_success: change
+    on_failure: change
+    use_notice: true
+  email: false
