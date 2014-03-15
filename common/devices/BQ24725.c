@@ -14,7 +14,7 @@
 #include "BQ24725.h"
 
 static I2CDriver *I2CD;
-struct BQ24725Config * CONF;
+static struct BQ24725Config * CONF;
 static bool initialized = false;
 static const systime_t I2C_TIMEOUT = MS2ST(400);
 
@@ -62,10 +62,9 @@ void BQ24725_init(struct BQ24725Config * conf){
         return;
 
     if(!conf){
-        CONF = &RNH_BQConfig;
-    }else{
-        CONF = conf;
+        return;
     }
+    CONF = conf;
 
     //todo: set I2C pins
     static const I2CConfig i2cfg = {
@@ -87,7 +86,7 @@ void BQ24725_init(struct BQ24725Config * conf){
 //todo: form options data/struct
 static int BQ24725_Get(uint8_t register_id, uint16_t* data){
     if(initialized == false)
-        BQ24725_init(NULL);
+        return -1;
 
     uint8_t tx[1] = {register_id};
     uint8_t rx[2];
@@ -115,7 +114,7 @@ static int BQ24725_Get(uint8_t register_id, uint16_t* data){
 
 static int BQ24725_Set(uint8_t register_id, uint16_t data){
     if(initialized == false)
-    	BQ24725_init(NULL);
+    	return -1;
 
     uint8_t tx[3] = {register_id, LOWDATA_BYTE(data), HIGHDATA_BYTE(data)};
     i2cflags_t errors;
