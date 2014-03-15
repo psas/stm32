@@ -7,6 +7,7 @@
 #include "shell.h"
 #include "KS8999.h"
 #include "BQ24725.h"
+#include "BQ3060.h"
 #include "rnh_shell.h"
 
 #define UNUSED __attribute__((unused))
@@ -49,6 +50,87 @@ void cmd_bq_mid(BaseSequentialStream *chp, int argc, char *argv[] UNUSED){
         chprintf(chp, "GOT SOMETHING COOL: 0x%x\n", data);
     }
 }
+
+void cmd_3060_did(BaseSequentialStream *chp, int argc, char *argv[] UNUSED){
+    if (argc > 0) {
+        chprintf(chp, "Usage: bq_mid. Should return 0x40\n");
+        return;
+    }
+    uint16_t data;
+    int err = BQ3060_Get(0x1c, &data);
+    if(err){
+        chprintf(chp, "GOT SOMETHING BAD: 0x%x\n", err);
+    }
+    else{
+        chprintf(chp, "GOT SOMETHING COOL: 0x%x\n", data);
+    }
+}
+
+void cmd_3060_safety(BaseSequentialStream *chp, int argc, char *argv[] UNUSED){
+    if (argc > 0) {
+        chprintf(chp, "Usage: bq_mid. Should return 0x40\n");
+        return;
+    }
+    uint16_t data;
+    int err = BQ3060_Get(0x50, &data);
+    if(err){
+        chprintf(chp, "GOT SOMETHING BAD: 0x%x\n", err);
+    }
+    else{
+        chprintf(chp, "SA:0x%x ", data);
+    }
+    err = BQ3060_Get(0x51, &data);
+    if(err){
+        chprintf(chp, "GOT SOMETHING BAD: 0x%x\n", err);
+    }
+    else{
+        chprintf(chp, "SS:0x%x ", data);
+    }
+    err = BQ3060_Get(0x52, &data);
+    if(err){
+        chprintf(chp, "GOT SOMETHING BAD: 0x%x\n", err);
+    }
+    else{
+        chprintf(chp, "PFA:0x%x ", data);
+    }
+    err = BQ3060_Get(0x53, &data);
+    if(err){
+        chprintf(chp, "GOT SOMETHING BAD: 0x%x\n", err);
+    }
+    else{
+        chprintf(chp, "PFS:0x%x\n", data);
+    }
+}
+
+void cmd_3060_temp(BaseSequentialStream *chp, int argc, char *argv[] UNUSED){
+    if (argc > 0) {
+        chprintf(chp, "Usage: bq_mid. Should return 0x40\n");
+        return;
+    }
+    uint16_t data;
+    int err = BQ3060_Get(0x08, &data);
+    if(err){
+        chprintf(chp, "GOT SOMETHING BAD: 0x%x\n", err);
+    }
+    else{
+        chprintf(chp, "temp:%dk/10 ", data);
+    }
+    err = BQ3060_Get(0x5e, &data);
+    if(err){
+        chprintf(chp, "GOT SOMETHING BAD: 0x%x\n", err);
+    }
+    else{
+        chprintf(chp, "pack1:%dk/10 ", data);
+    }
+    err = BQ3060_Get(0x5f, &data);
+    if(err){
+        chprintf(chp, "GOT SOMETHING BAD: 0x%x\n", err);
+    }
+    else{
+        chprintf(chp, "pack2:%dk/10\n", data);
+    }
+}
+
 
 void cmd_acok(BaseSequentialStream *chp, int argc, char *argv[]){
     (void)argv;
@@ -294,6 +376,9 @@ void rnh_shell_start(void){
             {"threads", cmd_threads},
             {"bq_did", cmd_bq_did},
             {"bq_mid", cmd_bq_mid},
+            {"3060_did", cmd_3060_did},
+            {"3060_s", cmd_3060_safety},
+            {"3060_temp", cmd_3060_temp},
             {"acok", cmd_acok},
             {"charge", cmd_bq_charge},
             {"pwr", cmd_power},

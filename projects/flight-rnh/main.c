@@ -14,6 +14,7 @@
 #include "utils_rtc.h"
 #include "rnet_cmd_interp.h"
 #include "BQ24725.h"
+#include "BQ3060.h"
 
 #include "rnh_shell.h"
 #include "KS8999.h"
@@ -123,17 +124,23 @@ void main(void) {
     halInit();
     chSysInit();
     led_init(&rnh_led_cfg); //diagnostic LED blinker
+
+    //Set up events
     chEvtInit(&bqst_event);
     struct EventListener el0;
     chEvtRegister(&bqst_event, &el0, 0);
-//    //Init hardware
+    const evhandler_t evhndl[] = {
+        bqst
+    };
+
+    //Init hardware
     struct BQ24725Config BQConf = {
             .ACOK = {GPIOD, GPIO_D0_BQ24_ACOK},
             .ACOK_cb = ACOK_cb,
             .I2CD = &I2CD1
     };
     BQ24725_init(&BQConf);
-
+    BQ3060_init(&rnh3060conf);
     if(BQ24725_ACOK()){
         palClearPad(GPIOD, GPIO_D11_RGB_B);
         BQ24725_start();
@@ -141,10 +148,6 @@ void main(void) {
     KS8999_init();
     eth_start();
 
-    const evhandler_t evhndl[] = {
-        bqst
-    };
-    //main should never return
     rnh_shell_start();
     while (TRUE) {
         chEvtDispatch(evhndl, chEvtWaitAll(ALL_EVENTS));
