@@ -79,4 +79,4 @@ If it's been a while since you've updated ChibiOS you'll need to re-sync it as i
  - Programmers used for JTAG
    - Olimex-arm-usb-ocd and STLinkV2 are what we currently use, but any supported by OpenOCD should work
  - Debugging flow with GDB
-   - make targets?
+   - make gdb will start gdb and connect it to openocd. make gdb_stl if you're using the StlinkV2 debugger.
