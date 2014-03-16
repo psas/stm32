@@ -18,33 +18,68 @@
 
 #define UNUSED __attribute__((unused))
 
-MPU9150_Driver mpu9150_driver;
+static I2CDriver *I2CD;
+static int initialized;
 MPU9150_read_data mpu9150_current_read;
 
-static EventSource mpu9150_interrupt;
-EventSource mpu9150_data_ready;
+static EventSource drdy_interrupt;
+EventSource MPU9150_data_ready;
 
-static const systime_t mpu9150_i2c_timeout = MS2ST(400);
+static const systime_t I2C_TIMEOUT = MS2ST(400);
 
-static void MPU9150_get(mpu9150_a_g_regaddr ra, mpu9150_reg_data* d) {
-	msg_t status = RDY_OK;
+int MPU9150_Get(uint8_t register_id, uint8_t* data){
+    if(initialized == false)
+        return -1;
 
-	mpu9150_driver.txbuf[0] = ra;
-	i2cAcquireBus(I2CD);
-	status = i2cMasterTransmitTimeout(I2CD, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 1, mpu9150_driver.rxbuf, 1, mpu9150_i2c_timeout);
-	i2cReleaseBus(I2CD);
-	if (status != RDY_OK){
-		mpu9150_driver.i2c_errors = i2cGetErrors(I2CD);
-	}
-	*d = mpu9150_driver.rxbuf[0];
-
-    if (status != RDY_OK){
-        mpu9150_driver.i2c_errors = i2cGetErrors(I2CD);
+    uint8_t tx[1] = {register_id};
+    uint8_t rx[1];
+    i2cflags_t errors;
+    i2cAcquireBus(I2CD);
+    msg_t status = i2cMasterTransmitTimeout(I2CD,  MPU9150_a_g_ADDR, tx, sizeof(tx), rx, sizeof(rx), I2C_TIMEOUT);
+    switch(status){
+    case RDY_OK:
+        i2cReleaseBus(I2CD);
+        break;
+    case RDY_RESET:
+        errors = i2cGetErrors(I2CD);
+        i2cReleaseBus(I2CD);
+        return errors;
+    case RDY_TIMEOUT:
+        i2cReleaseBus(I2CD);
+        return RDY_TIMEOUT;
+    default:
+        i2cReleaseBus(I2CD);
     }
+
+    *data = rx[0];
+    return RDY_OK;
+}
+int MPU9150_Set(uint8_t register_id, uint8_t data){
+    if(initialized == false)
+        return -1;
+
+    uint8_t tx[3] = {register_id, data};
+    i2cflags_t errors;
+    i2cAcquireBus(I2CD);
+    msg_t status = i2cMasterTransmitTimeout(I2CD, MPU9150_a_g_ADDR, tx, sizeof(tx), NULL, 0, I2C_TIMEOUT);
+    switch(status){
+    case RDY_OK:
+        i2cReleaseBus(I2CD);
+        break;
+    case RDY_RESET:
+        errors = i2cGetErrors(I2CD);
+        i2cReleaseBus(I2CD);
+        return errors;
+    case RDY_TIMEOUT:
+        i2cReleaseBus(I2CD);
+        return RDY_TIMEOUT;
+    default:
+        i2cReleaseBus(I2CD);
+    }
+
+    return RDY_OK;
 }
 
-static void MPU9150_set(mpu9150_a_g_regaddr ra, mpu9150_reg_data d) {
-	msg_t status = RDY_OK;
 
 static void on_drdy(EXTDriver *extp UNUSED, expchannel_t channel UNUSED){
     chSysLockFromIsr();
