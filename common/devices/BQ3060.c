@@ -19,15 +19,17 @@ void BQ3060_init(struct BQ3060Config * conf){
         return;
     }
     CONF = conf;
+    I2CD = CONF->I2CD;
 
     //todo: set I2C pins
-//    static const I2CConfig i2cfg = {
-//        OPMODE_SMBUS_HOST,
-//        100000,
-//        STD_DUTY_CYCLE,
-//    };
-    I2CD = CONF->I2CD;
-//    i2cStart(I2CD, &i2cfg);
+    static const I2CConfig i2cfg = {
+        OPMODE_SMBUS_HOST,
+        100000,
+        STD_DUTY_CYCLE,
+    };
+    if(I2CD->state == I2C_STOP){
+        i2cStart(I2CD, &i2cfg);
+    }
 
     initialized = true;
 }
