@@ -12,7 +12,7 @@ struct BQ3060Config rnh3060conf = {
 static struct BQ3060Config * CONF;
 static bool initialized = false;
 static I2CDriver *I2CD;
-static const systime_t I2C_TIMEOUT = MS2ST(4000);
+static const systime_t I2C_TIMEOUT = MS2ST(400);
 
 void BQ3060_init(struct BQ3060Config * conf){
     if(!conf){
