@@ -14,7 +14,7 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "utils-hal.h"
+#include "utils_hal.h"
 
 #if !defined(DEBUG_MPU9150) || defined(__DOXYGEN__)
 #define 	DEBUG_MPU9150                   1
@@ -43,8 +43,8 @@ typedef     uint8_t                               mpu9150_reg_data;
 #define     MPU9150_INT_EN_DATA_RD_EN             ((mpu9150_reg_data)(1<<0))
 
 
-#define MPU9150_a_g_ADDR 0x68;    // See page 8 , MPU9150 Register Map and Descriptions r4.0
-#define MPU9150_magn_ADDR 0x0C;    // See page 28, MPU9150 Product Specification r4.0
+#define MPU9150_a_g_ADDR 0x68    // See page 8 , MPU9150 Register Map and Descriptions r4.0
+#define MPU9150_magn_ADDR 0x0C    // See page 28, MPU9150 Product Specification r4.0
 
 /*! \typedef mpu9150_magn_regaddr
  * MPU Magnetometer addresses
@@ -206,19 +206,6 @@ typedef enum mpu9150_gyro_scale {
 	MPU9150_G_SCALE_pm2000  = (0b11 << 3) //!< MPU9150_G_SCALE_pm2000
 } mpu9150_gyro_scale;
 
-
-/*! \typedef Structure for keeping track of an MPU9150 transaction
- *
- *
- */
-typedef struct mpu9150_driver {
-	i2cflags_t         i2c_errors;
-	I2CDriver*         i2c_instance;                 /*! which stm32f407 I2C instance to use (there are 3)       */
-	mpu9150_i2c_data   txbuf[MPU9150_MAX_TX_BUFFER]; /*! Transmit buffer                                         */
-	mpu9150_i2c_data   rxbuf[MPU9150_MAX_RX_BUFFER]; /*! Receive buffer                                          */
-} MPU9150_Driver;
-
-
 /*! \typedef Structure for accelerometer data
  *
  *
@@ -263,16 +250,9 @@ typedef struct {
     I2CDriver * I2CD;
 } MPU9150_config;
 
-extern       EventSource               mpu9150_data_event;
+extern const MPU9150_config si_i2c_connections ;
 
-extern const I2CConfig                 si_i2c_config;
-extern const MPU9150_config           si_i2c_connections ;
-
-extern       MPU9150_read_data         mpu9150_current_read;
-
-extern       EventSource               mpu9150_int_event;
-
-extern       MPU9150_Driver            mpu9150_driver;
+extern EventSource mpu9150_data_event;
 
 void         mpu9150_start(I2CDriver* i2c) ;
 void         mpu9150_reset(I2CDriver* i2cptr) ;
