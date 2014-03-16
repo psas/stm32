@@ -8,17 +8,12 @@
 
 #include "ch.h"
 #include "hal.h"
-
-// FIXME: Common pin struct, this conflicts with what is in ADIS16405
-struct led_pin {
-    ioportid_t port;
-    uint16_t pad;
-};
+#include "utils_hal.h"
 
 struct led_config {
     systime_t cycle_ms;   // Main sequence led toggle time
     systime_t start_ms;   // Start pattern duration
-    struct led_pin led[]; // struct pin {0, 0} terminated list of led pins
+    struct pin led[]; // struct pin {0, 0} terminated list of led pins
 };
 
 
