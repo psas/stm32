@@ -8,6 +8,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "utils_hal.h"
+
 #include "usbdetail.h"
 #include "chprintf.h"
 #include "extdetail.h"
