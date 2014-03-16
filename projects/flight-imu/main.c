@@ -1,24 +1,14 @@
-/*! \file main.c
- *
+/*
+ * Flight Application IMU
  * This is specific to the Olimex stm32-e407 board modified for flight with IMU sensors.
- *
  */
 
-/*!
- * \defgroup mainapp flight-imu Flight Application IMU
- * @{
- */
-
-#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 
 #include "ch.h"
 #include "hal.h"
-#include "chprintf.h"
-#include "shell.h"
 
-#include "board.h"
 #include "lwip/ip_addr.h"
 #include "lwipopts.h"
 #include "lwipthread.h"
@@ -30,11 +20,9 @@
 
 #include "net_addrs.h"
 #include "utils_sockets.h"
+#include "utils_led.h"
 
-#include "iwdg_lld.h"
 #include "usbdetail.h"
-#include "extdetail.h"
-#include "cmddetail.h"
 
 #include "sensor_mpl.h"
 #include "sensor_mpu.h"
@@ -46,8 +34,6 @@
 
 #include "main.h"
 
-static const int    FLIGHT_IMU_WATCHDOG_MS = 250;
-
 static const ShellCommand commands[] = {
     {"tree",        cmd_tree},
     {"sdchalt",     cmd_sdchalt},
@@ -55,16 +41,6 @@ static const ShellCommand commands[] = {
     {"mem",         cmd_mem},
     {"threads",     cmd_threads},
     {NULL,          NULL}
-};
-
-/*! configure the i2c module on stm32
- *
- */
-const I2CConfig IMU_I2C_Config = {
-    OPMODE_I2C,
-    400000,                // i2c clock speed. Test at 400000 when r=4.7k
-    FAST_DUTY_CYCLE_2,
-    // STD_DUTY_CYCLE,
 };
 
 /*! \typedef mpu9150_config
@@ -79,33 +55,6 @@ const mpu9150_connect mpu9150_connections = {
     GPIOF,                // interrupt port
     13,                   // interrupt pad;
 };
-
-static WORKING_AREA(waThread_blinker, 64);
-/*! \brief Green LED blinker thread
-*/
-static msg_t Thread_blinker(void *arg) {
-    (void)arg;
-    chRegSetThreadName("blinker");
-    while (TRUE) {
-        palTogglePad(GPIOC, GPIOC_LED);
-        chThdSleepMilliseconds(fs_ready ? 125 : 500);
-    }
-    return -1;
-}
-
-static WORKING_AREA(waThread_indwatchdog, 64);
-/*! \brief  Watchdog thread
-*/
-static msg_t Thread_indwatchdog(void *arg) {
-    (void)arg;
-
-    chRegSetThreadName("iwatchdog");
-    while (TRUE) {
-        iwdg_lld_reload();
-        chThdSleepMilliseconds(FLIGHT_IMU_WATCHDOG_MS);
-    }
-    return -1;
-}
 
 int main(void) {
     static const evhandler_t evhndl_main[]  = {
@@ -125,6 +74,7 @@ int main(void) {
      */
     halInit();
     chSysInit();
+    led_init(&e407_led_cfg); //diagnostics
 
     psas_rtc_lld_init();
 
@@ -143,8 +93,6 @@ int main(void) {
 
     usbSerialShellStart(commands);
 
-    //adis_init();
-    //adis_reset();
 
     mpu9150_start(&I2CD2);
     mpl3115a2_start(&I2CD2);
@@ -158,16 +106,6 @@ int main(void) {
             PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
 
     palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
-
-    // the mpu and the mpl sensor share the same I2C instance
-    i2cStart(mpu9150_driver.i2c_instance, &IMU_I2C_Config);
-
-    // Activates the EXT driver
-    extStart(&EXTD1, &extcfg);
-
-    // Maintenance threads
-    chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
-    chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
 
     // MPL pressure sensor
     chThdCreateStatic(waThread_mpl_int_1        , sizeof(waThread_mpl_int_1)        , NORMALPRIO    , Thread_mpl_int_1       , NULL);
