@@ -14,6 +14,8 @@
 
 #include "MPL3115A2.h"
 
+#define UNUSED __attribute__((unused))
+
 MPL3115A2_Driver           mpl3115a2_driver;
 EventSource                mpl3115a2_int_event;
 EventSource                mpl3115a2_data_event;
@@ -85,6 +87,12 @@ static msg_t mpl3115A2_write_register(I2CDriver* i2cptr, MPL3115A2_regaddr ra, m
     return status;
 }
 
+static void on_drdy(EXTDriver *extp UNUSED, expchannel_t channel UNUSED){
+    chSysLockFromIsr();
+    chEvtBroadcastI(&mpl3115a2_int_event);
+    chSysUnlockFromIsr();
+}
+
 void mpl3115a2_start(I2CDriver* i2c) {
     uint8_t         i = 0;
 
@@ -101,6 +109,13 @@ void mpl3115a2_start(I2CDriver* i2c) {
 
     chEvtInit(&mpl3115a2_data_event);
     chEvtInit(&mpl3115a2_int_event);
+
+    struct pin drdy = {
+            .port =GPIOF,
+            .pad = GPIOF_PIN13
+    };
+    extAddCallback(&drdy, EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, on_drdy);
+
 }
 //
 //static void mpl3115a2_reset(I2CDriver* i2c) {
