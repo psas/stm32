@@ -65,6 +65,7 @@ void BQ24725_init(struct BQ24725Config * conf){
         return;
     }
     CONF = conf;
+    I2CD = CONF->I2CD;
 
     //todo: set I2C pins
     static const I2CConfig i2cfg = {
@@ -72,8 +73,9 @@ void BQ24725_init(struct BQ24725Config * conf){
         100000,
         STD_DUTY_CYCLE,
     };
-    I2CD = CONF->I2CD;
-    i2cStart(I2CD, &i2cfg);
+    if(I2CD->state == I2C_STOP){
+        i2cStart(I2CD, &i2cfg);
+    }
 
     palSetPadMode(CONF->ACOK.port, CONF->ACOK.pad, PAL_MODE_INPUT_PULLDOWN | PAL_STM32_OSPEED_HIGHEST);
     extAddCallback(&(CONF->ACOK), EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART, CONF->ACOK_cb);
