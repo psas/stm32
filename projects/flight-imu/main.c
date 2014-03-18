@@ -24,9 +24,6 @@
 
 #include "usbdetail.h"
 
-#include "sensor_mpl.h"
-#include "sensor_mpu.h"
-
 #include "data_udp.h"
 #include "psas_rtc.h"
 #include "psas_sdclog.h"
@@ -57,62 +54,32 @@ const mpu9150_connect mpu9150_connections = {
 };
 
 int main(void) {
+    /* Initialize system */
+    halInit();
+    chSysInit();
+    led_init(&e407_led_cfg); //diagnostics
+
+    /* Start the RTC */
+    psas_rtc_lld_init();
+    psas_rtc_set_fc_boot_mark(&RTCD1); 
+
+
+    /* Start SD Card logging */
     static const evhandler_t evhndl_main[]  = {
         sdc_insert_handler,
         sdc_remove_handler
     };
     struct EventListener     el0, el1;
-
-    //struct lwipthread_opts   ip_opts;
-
-    /*
-     * System initializations.
-     * - HAL initialization, this also initializes the configured device drivers
-     *   and performs the board-specific initializations.
-     * - Kernel initialization, the main() function becomes a thread and the
-     *   RTOS is active.
-     */
-    halInit();
-    chSysInit();
-    led_init(&e407_led_cfg); //diagnostics
-
-    psas_rtc_lld_init();
-
-    psas_rtc_set_fc_boot_mark(&RTCD1); 
-
-    /*
-     * Activates the serial driver 6 and SDC driver 1 using default
-     * configuration.
-     */
+    chEvtRegister(&sdc_inserted_event,   &el0, 0);
+    chEvtRegister(&sdc_removed_event,    &el1, 1);
+    /* Activates SDC driver 1 using default configuration */
     sdcStart(&SDCD1, NULL);
-
-    /*
-     * Activates the card insertion monitor.
-     */
+    /* Activates the card insertion monitor */
     sdc_tmr_init(&SDCD1);
+    //chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
 
-    usbSerialShellStart(commands);
 
-
-    mpu9150_start(&I2CD2);
-    mpl3115a2_start(&I2CD2);
-
-    /*
-     * I2C2 I/O pins setup
-     */
-    palSetPadMode(mpu9150_connections.i2c_sda_port , mpu9150_connections.i2c_sda_pad,
-            PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST |PAL_STM32_PUDR_FLOATING );
-    palSetPadMode(mpu9150_connections.i2c_scl_port, mpu9150_connections.i2c_scl_pad,
-            PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
-
-    palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
-
-    // MPL pressure sensor
-    chThdCreateStatic(waThread_mpl_int_1        , sizeof(waThread_mpl_int_1)        , NORMALPRIO    , Thread_mpl_int_1       , NULL);
-
-    // MPU 6 axis IMU sensor
-    chThdCreateStatic(waThread_mpu9150_int      , sizeof(waThread_mpu9150_int)      , NORMALPRIO    , Thread_mpu9150_int     , NULL);
-
+    /* Start RocketNet Communication */
     chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, SENSOR_LWIP);
     /*    chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
      *    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
@@ -123,6 +90,7 @@ int main(void) {
     chEvtRegister(&sdc_inserted_event,   &el0, 0);
     chEvtRegister(&sdc_removed_event,    &el1, 1);
 
+    usbSerialShellStart(commands);
     // It is possible the card is already inserted. Check now by calling insert handler directly.
     sdc_insert_handler(0);
 
@@ -131,4 +99,3 @@ int main(void) {
     }
 }
 
-//! @}
