@@ -111,9 +111,15 @@ static msg_t read_thd(void * arg){
 /*! \brief Initialize MPU9150 driver
  *
  */
-void MPU9150_init(MPU9150_config  *config) {
+void MPU9150_init(MPU9150Config  *conf) {
+//TODO: If I2C is active, check if config is correct
 
-    I2CD = config->I2CD;
+    I2CD = conf->I2CD;
+
+    palSetPadMode(conf->sda.port, conf->sda.pad, PAL_MODE_ALTERNATE(4)
+            | PAL_STM32_OTYPE_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST |PAL_STM32_PUDR_FLOATING );
+    palSetPadMode(conf->scl.port, conf->scl.pad, PAL_MODE_ALTERNATE(4)
+            | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
 
     static const I2CConfig i2cfg = {
         OPMODE_I2C,
@@ -125,13 +131,14 @@ void MPU9150_init(MPU9150_config  *config) {
     }
 
 	chEvtInit(&MPU9150_data_ready);
-	chEvtinit(&drdy_interrupt);
+	chEvtinit(&interrupt);
 
-    struct pin drdy = {
-            .port =GPIOF,
-            .pad = GPIOF_PIN12
-    };
-    extAddCallback(&drdy, EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, on_drdy);
+    extAddCallback(conf->interrupt, EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, on_interrupt);
+    extUtilsStart();
+
+    chThdCreateStatic(wa_read, sizeof(wa_read), NORMALPRIO, read_thd, NULL);
+
+    initialized = true;
 }
 
 void mpu9150_reset(void) {
