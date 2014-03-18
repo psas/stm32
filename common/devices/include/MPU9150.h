@@ -20,12 +20,6 @@
 #define 	DEBUG_MPU9150                   1
 #endif
 
-typedef     uint8_t                               mpu9150_i2c_data;
-typedef     uint8_t                               mpu9150_reg_data;
-
-#define     MPU9150_MAX_TX_BUFFER                 50
-#define     MPU9150_MAX_RX_BUFFER                 50
-
 /*! register 55 INT pin/Bypass */
 #define     MPU9150_CLKOUT_EN                     ((mpu9150_reg_data)(1<<0))
 #define     MPU9150_I2C_BYPASS                    ((mpu9150_reg_data)(1<<1))
@@ -244,13 +238,12 @@ typedef struct MPU9150_read_data MPU9150_read_data;
  * Configuration for the MPU IMU connections
  */
 typedef struct {
-    struct pin i2c_sda;
-    struct pin i2c_scl;
+    struct pin sda;
+    struct pin scl;
     struct pin interrupt;
     I2CDriver * I2CD;
-} MPU9150_config;
+} MPU9150Config;
 
-extern const MPU9150_config si_i2c_connections ;
 
 extern EventSource mpu9150_data_event;
 
