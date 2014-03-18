@@ -31,7 +31,7 @@ int MPU9150_Get(uint8_t register_id, uint8_t* data){
     if(initialized == false)
         return -1;
 
-    uint8_t tx[1] = {register_id};
+    uint8_t tx[] = {register_id};
     uint8_t rx[1];
     i2cflags_t errors;
     i2cAcquireBus(I2CD);
@@ -58,7 +58,7 @@ int MPU9150_Set(uint8_t register_id, uint8_t data){
     if(initialized == false)
         return -1;
 
-    uint8_t tx[3] = {register_id, data};
+    uint8_t tx[] = {register_id, data};
     i2cflags_t errors;
     i2cAcquireBus(I2CD);
     msg_t status = i2cMasterTransmitTimeout(I2CD, MPU9150_a_g_ADDR, tx, sizeof(tx), NULL, 0, I2C_TIMEOUT);
