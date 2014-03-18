@@ -22,7 +22,6 @@
 
 #include "usbdetail.h"
 
-#include "data_udp.h"
 #include "psas_rtc.h"
 #include "psas_sdclog.h"
 #include "sdcdetail.h"
@@ -100,21 +99,16 @@ int main(void) {
     psas_rtc_lld_init();
     psas_rtc_set_fc_boot_mark(&RTCD1); 
 
-
     /* Start SD Card logging */
-    static const evhandler_t evhndl_main[]  = {
-        sdc_insert_handler,
-        sdc_remove_handler
-    };
-    struct EventListener     el0, el1;
-    chEvtRegister(&sdc_inserted_event,   &el0, 0);
-    chEvtRegister(&sdc_removed_event,    &el1, 1);
-    /* Activates SDC driver 1 using default configuration */
-    sdcStart(&SDCD1, NULL);
-    /* Activates the card insertion monitor */
-    sdc_tmr_init(&SDCD1);
+    sdcStart(&SDCD1, NULL); // Activates SDC driver 1 using default configuration
+    sdc_tmr_init(&SDCD1); // Activates the card insertion monitor
     //chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
+    // It is possible the card is already inserted. Check now by calling insert handler directly.
+    sdc_insert_handler(0);
 
+    /* Initialize sensors */
+    MPU9150_init(&mpuconf);
+    adis_init(&adis_olimex_e407);
 
     /* Start RocketNet Communication */
     chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, SENSOR_LWIP);
