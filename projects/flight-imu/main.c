@@ -9,13 +9,11 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "lwip/ip_addr.h"
-#include "lwipopts.h"
 #include "lwipthread.h"
 #include "ff.h"
 
-#include "MPU9150.h"
 #include "ADIS16405.h"
+#include "MPU9150.h"
 #include "MPL3115A2.h"
 
 #include "net_addrs.h"
@@ -44,13 +42,11 @@ static const ShellCommand commands[] = {
  *
  * Configuration for the MPU IMU connections
  */
-const mpu9150_connect mpu9150_connections = {
-    GPIOF,                // i2c sda port
-    0,                    // i2c_sda_pad
-    GPIOF,                // i2c_scl_port
-    1,                    // i2c scl pad
-    GPIOF,                // interrupt port
-    13,                   // interrupt pad;
+const MPU9150Config mpuconf = {
+    .sda = {GPIOF, 0},
+    .scl = {GPIOF, 1},
+    .interrupt = {GPIOF, 13},
+    .I2CD = &I2CD2
 };
 
 int main(void) {
@@ -85,10 +81,8 @@ int main(void) {
      *    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
      */
 
-    //chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
-
-    chEvtRegister(&sdc_inserted_event,   &el0, 0);
-    chEvtRegister(&sdc_removed_event,    &el1, 1);
+    MPU9150_init(&mpuconf);
+    adis_init(&adis_olimex_e407);
 
     usbSerialShellStart(commands);
     // It is possible the card is already inserted. Check now by calling insert handler directly.
