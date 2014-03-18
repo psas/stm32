@@ -18,14 +18,13 @@
 
 #define UNUSED __attribute__((unused))
 
-static I2CDriver *I2CD;
+
 static int initialized;
-MPU9150_read_data mpu9150_current_read;
-
-static EventSource drdy_interrupt;
-EventSource MPU9150_data_ready;
-
+static I2CDriver *I2CD;
 static const systime_t I2C_TIMEOUT = MS2ST(400);
+static EventSource interrupt;
+
+EventSource MPU9150_data_ready;
 
 int MPU9150_Get(uint8_t register_id, uint8_t* data){
     if(initialized == false)
@@ -81,9 +80,9 @@ int MPU9150_Set(uint8_t register_id, uint8_t data){
 }
 
 
-static void on_drdy(EXTDriver *extp UNUSED, expchannel_t channel UNUSED){
+static void on_interrupt(EXTDriver *extp UNUSED, expchannel_t channel UNUSED){
     chSysLockFromIsr();
-    chEvtBroadcastI(&drdy_interrupt);
+    chEvtBroadcastI(&interrupt);
     chSysUnlockFromIsr();
 }
 
@@ -92,14 +91,15 @@ static void get_all_sensors(eventid_t u){
     chEvtBroadcast(&MPU9150_data_ready);
 }
 
-static msg_t read_thd(void * arg){
+static WORKING_AREA(wa_read, 128);
+static msg_t read_thd(void * arg UNUSED){
     chRegSetThreadName("MPU9150");
 
     struct EventListener listener;
     static const evhandler_t handlers[] = {
             get_all_sensors
     };
-    chEvtRegister(&drdy_interrupt, &listener, 0);
+    chEvtRegister(&interrupt, &listener, 0);
 
     while (TRUE) {
         chEvtDispatch(handlers, chEvtWaitOne(ALL_EVENTS));
