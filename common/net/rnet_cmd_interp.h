@@ -38,7 +38,7 @@ struct RCICommand{
 
 /* Configuration for the RCI */
 struct RCIConfig{
-    struct sockaddr *address;          // address of the port to listen on
+    const struct sockaddr *address;          // address of the port to listen on
     struct RCICommand *commands; // list of commands
 };
 

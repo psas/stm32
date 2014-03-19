@@ -24,7 +24,7 @@ void set_sockaddr(struct sockaddr_in * addr, const char * ip, int port){
 }
 
 
-int get_udp_socket(struct sockaddr *addr){
+int get_udp_socket(const struct sockaddr *addr){
     //Create the socket
     int s = socket(AF_INET,  SOCK_DGRAM, 0);
     if(s < 0){
