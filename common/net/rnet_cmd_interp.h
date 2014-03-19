@@ -16,14 +16,11 @@
  */
 struct RCICmdData{
     const char * cmd_name;  // Name of the command
-    char * cmd_data;        // Data segment of a received command
+    const char * cmd_data;        // Data segment of a received command
     int cmd_len;            // Length of valid cmd_data
 
     char * return_data;     // Output. Place data here to send to addr in from
     int return_len;         // length of data in return_data. Max length TODO
-
-    struct sockaddr * from; // Address the command was sent from
-    socklen_t fromlen;      // Size of the address
 };
 
 /* RCI command handler function type*/
