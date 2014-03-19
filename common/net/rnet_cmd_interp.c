@@ -75,7 +75,22 @@ static msg_t rci_thread(void *p){
 }
 
 void RCICreate(struct RCIConfig * conf){
-    //todo: check if lwip is up.
+    if(!conf){
+        return;
+    }
+
+    /* Check if LWIP has been started */
+    Thread * thd = chRegFirstThread();
+    while(thd){
+        if(!strcmp("lwipthread", thd->p_name)){
+            break;
+        }
+        thd = chRegNextThread(thd);
+    }
+    if(!thd){
+        return;
+    }
+
     chThdCreateStatic(wa_rci, sizeof(wa_rci), NORMALPRIO, rci_thread, (void *)conf);
 }
 
