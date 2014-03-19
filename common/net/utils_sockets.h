@@ -14,7 +14,7 @@
 void set_lwipthread_opts(struct lwipthread_opts * ip_opts,
     const char * ip, const char * netmask, const char * gateway, uint8_t * mac);
 void set_sockaddr(struct sockaddr_in * addr, const char * ip, int port);
-int get_udp_socket(struct sockaddr *addr);
+int get_udp_socket(const struct sockaddr *addr);
 
 #endif
 
