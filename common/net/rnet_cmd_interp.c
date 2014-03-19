@@ -1,4 +1,3 @@
-
 #include <string.h>
 
 #include "ch.h"
@@ -9,8 +8,6 @@
 #include "rnet_cmd_interp.h"
 
 #define ETH_MTU 1500
-static char rx_buf[ETH_MTU];
-static char tx_buf[ETH_MTU];
 
 #define COMPARE_BUFFER_TO_CMD(a, alen, b, blen)\
     !strncmp(((char*)a), (b), blen > alen? blen: alen)
@@ -37,8 +34,7 @@ static void handle_command(struct RCICmdData * data, struct RCICommand * cmd){
     }
 }
 
-
-WORKING_AREA(wa_rci, THD_WA_SIZE(2048)); //fixme: magic numbers
+WORKING_AREA(wa_rci, THD_WA_SIZE(2048 + ETH_MTU*2)); //fixme: magic numbers
 static msg_t rci_thread(void *p){
     chRegSetThreadName("RCI");
 
@@ -48,7 +44,10 @@ static msg_t rci_thread(void *p){
     struct sockaddr from;
     socklen_t fromlen;
 
+    char rx_buf[ETH_MTU];
+    char tx_buf[ETH_MTU];
     struct RCICmdData data = {
+        .cmd_name = NULL,
         .cmd_data = rx_buf,
         .cmd_len = 0,
         .return_data = tx_buf,
