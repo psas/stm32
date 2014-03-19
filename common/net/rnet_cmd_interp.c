@@ -7,7 +7,6 @@
 
 #include "rnet_cmd_interp.h"
 
-#define ETH_MTU 1500
 
 #define COMPARE_BUFFER_TO_CMD(a, alen, b, blen)\
     !strncmp(((char*)a), (b), blen > alen? blen: alen)
