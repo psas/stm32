@@ -56,21 +56,30 @@ static msg_t rci_thread(void *p){
         .from = &from,
         .fromlen = 0
     };
-    //todo: restart sockets if they break
+
+    if(socket < 0){
+        return -1;
+    }
+
     while(TRUE) {
+        //recvfrom because we might return data
         len = recvfrom(socket, rx_buf, sizeof(rx_buf), 0, &from, &fromlen);
-        if(len< 0){
+        if(len < 0){
             break;
         }
+
         data.cmd_len = len;
         data.fromlen = fromlen;
         handle_command(&data, conf->commands);
+
+        //if there's data to return, return it to the address it came from
         if(data.return_len > 0){
-            sendto(socket, data.return_data, data.return_len, 0, &from, fromlen);
+            if(sendto(socket, data.return_data, data.return_len, 0, &from, fromlen) < 0){
+                break;
+            }
         }
         data.return_len=0;
     }
-
     return -1;
 }
 
