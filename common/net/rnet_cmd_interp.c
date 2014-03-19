@@ -8,8 +8,9 @@
 
 #include "rnet_cmd_interp.h"
 
-static char rx_buf[500]; //fixme: this should be size of packet, 1400? also should be considered in the thread size magic number
-static char tx_buf[500];
+#define ETH_MTU 1500
+static char rx_buf[ETH_MTU];
+static char tx_buf[ETH_MTU];
 
 #define COMPARE_BUFFER_TO_CMD(a, alen, b, blen)\
     !strncmp(((char*)a), (b), blen > alen? blen: alen)
