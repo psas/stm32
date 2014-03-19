@@ -40,8 +40,9 @@ static void handle_command(struct RCICmdData * data, struct RCICommand * cmd){
 
 WORKING_AREA(wa_rci, THD_WA_SIZE(2048)); //fixme: magic numbers
 static msg_t rci_thread(void *p){
-    struct RCIConfig * conf = (struct RCIConfig *)p;
+    chRegSetThreadName("RCI");
 
+    struct RCIConfig * conf = (struct RCIConfig *)p;
     int socket = get_udp_socket(conf->address);
     int len;
     struct sockaddr from;
