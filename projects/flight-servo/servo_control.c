@@ -94,7 +94,9 @@ pwmcnt_t pwm_us_to_ticks(uint32_t us) {
 
 
 static void set_pwm_position(void* u UNUSED) {
+    chSysLockFromIsr();
     chVTSetI(&servo_output_timer, MS2ST(1), set_pwm_position, 0);
+    chSysUnlockFromIsr();
 
     static int16_t last_difference = 0;
     static uint16_t last_position = 1500;
@@ -103,8 +105,11 @@ static void set_pwm_position(void* u UNUSED) {
 
     ticks++;
 
-    msg_t new_msg;
-    if (chMBFetchI(&servo_positions, &new_msg) == RDY_TIMEOUT) {
+    msg_t new_msg, fetch_status;
+    chSysLockFromIsr();
+    fetch_status = chMBFetchI(&servo_positions, &new_msg);
+    chSysUnlockFromIsr();
+    if (fetch_status == RDY_TIMEOUT) {
         // if nobody sent a position to our mailbox, we have nothing to do
         return;
     }
@@ -168,6 +173,46 @@ static msg_t listener_thread(void* u UNUSED) {
         return -1;
     }
 
+#if DEBUG_PWM
+    int16_t ticks = 0;
+    while (TRUE) {
+        int16_t pos = 0;
+
+        // calculate pos
+        if (ticks < 10000) {
+            // move from center out to either side and back over two seconds
+            int16_t offset = 500 - abs(500 - (ticks % 1000));
+            if (ticks % 2000 < 1000) {
+                pos = PWM_CENTER + offset;
+            } else {
+                pos = PWM_CENTER - offset;
+            }
+        } else if (ticks < 20000) {
+            // test speed controls by moving servo as fast as possible
+            if (ticks % 2000 < 1000) {
+                pos = 1000;
+            } else {
+                pos = 2000;
+            }
+        } else if (ticks < 30000) {
+            // test oscillation controls by oscillating between center +2 and
+            // center -2 every millisecond
+            if (ticks & 1) {
+                pos = PWM_CENTER + 2;
+            } else {
+                pos = PWM_CENTER - 2;
+            }
+        } else {
+            ticks = -1;
+        }
+
+        // set pos
+        chMBPost(&servo_positions, (msg_t) pos, TIME_IMMEDIATE);
+
+        ticks++;
+        chThdSleepMilliseconds(1);
+    }
+#else
     while(TRUE){
         //fixme: throw away anything left
         read(socket, data, sizeof(data));
@@ -184,6 +229,8 @@ static msg_t listener_thread(void* u UNUSED) {
 //            pwmDisableChannel(&PWMD4, 3);
 //        }
     }
+#endif
+
     return -1;
 }
 
@@ -218,5 +265,5 @@ void pwm_start() {
                      , NULL
                      );
 
-    chVTSetI(&servo_output_timer, MS2ST(1), set_pwm_position, 0);
+    chVTSet(&servo_output_timer, MS2ST(1), set_pwm_position, 0);
 }
