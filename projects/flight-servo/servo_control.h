@@ -27,7 +27,7 @@
  * JS DS8717 Servo
  * http://www.servodatabase.com/servo/jr/ds8717
  *
- * Pulse widths range from 1000 uS to 2000 uS
+ * Pulse widths range from 1100 uS to 1900 uS
  * Hard stops on mechanism define this range. Center 1500uS pw.
  *
  */
@@ -40,8 +40,9 @@
 #define PWM_CENTER 1500
 
 // Absolute position limits, in microseconds (us).
-#define PWM_LO 1300
-#define PWM_HI 1700
+// Verified empirically by DLP, K, and Dave 3/25/14
+#define PWM_LO 1100
+#define PWM_HI 1900
 
 // Slew rate limit, in microseconds/millisecond. This limit corresponds to being
 // able to go from center to far mechanical limit in 100 ms.

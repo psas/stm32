@@ -2,21 +2,9 @@
  * Manage the pwm for the servo. We are using the JS DS8717 Servo. Details here:
  * http://www.servodatabase.com/servo/jr/ds8717
  *
- * The pulse widths on our servo range from 333 us to 1520 us.
- * The usable roll control range on our servo is between 1000 us to 2000 us,
- * with the center sensibly at 1500 us.
- * FIXME: is it really? I found *three* different definitions of the servo
- * range:
- *   1). Comments near the top of this file said "from 333 us to 1520 us" (right
- *       after a link to the servo's datasheet).
- *   2). Comments near the top of this file's header said that "for testing
- *       only" the range is "from 900 us to 2100 us".
- *   3). Comments also in the header, but after those referenced in 2 define the
- *       range to be 1000 us to 2000us, and claims these are enforced by
- *       mechanical stops, so that's what I took.
+ * See this file's corresponding header file for more information on servo
+ * limits.
  *
- * Attempt to standardize units on 'ticks' of PWM module. One PWM clock is one
- * 'tick'.
  */
 
 // stdlib
@@ -176,7 +164,7 @@ static msg_t listener_thread(void* u UNUSED) {
 #if DEBUG_PWM
     int16_t ticks = 0;
     while (TRUE) {
-        int16_t pos = 0;
+        int16_t pos = PWM_CENTER;
 
         // calculate pos
         if (ticks < 10000) {
@@ -193,14 +181,6 @@ static msg_t listener_thread(void* u UNUSED) {
                 pos = 1000;
             } else {
                 pos = 2000;
-            }
-        } else if (ticks < 30000) {
-            // test oscillation controls by oscillating between center +2 and
-            // center -2 every millisecond
-            if (ticks & 1) {
-                pos = PWM_CENTER + 2;
-            } else {
-                pos = PWM_CENTER - 2;
             }
         } else {
             ticks = -1;
