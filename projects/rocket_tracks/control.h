@@ -12,18 +12,27 @@
 #include "ch.h"
 #include "hal.h"
 
+#define LAT_AXIS_LENGTH						//TODO measure length to payload COM
+#define VERT_AXIS_MOTOR_LENGTH				//TODO measure length to lat axis motor from vert axis spindle
+#define MOTOR_I								//TODO calculate motor COM moment of inertia
+#define MASS								//TODO measure mass of payload
+#define MASS_I								//TODO calculate payload COM moment of inertia
+
 typedef struct {
+
+	// Mode and lockout variables
 	uint8_t U8FreezeAxis;
 	uint8_t U8PosnVelMode;
 	uint8_t U8DriveIsInterlocked;
 	uint8_t U8PositionNeutral;
 	uint8_t U8VelocityNeutral;
 
-	adcsample_t U16InputADC;
-	adcsample_t U16FeedbackADC;
-	adcsample_t U16FeedbackADCPrevious;
 
-	int16_t S16OutputCommand;
+//	adcsample_t U16InputADC;
+	axissample_t U16FeedbackADC;
+	axissample_t U16FeedbackADCPrevious;
+
+	int16_t S16OutputCommand;				//PWM on-time
 
 	int16_t S16PositionDesired;
 	int16_t S16PositionActual;
@@ -31,33 +40,33 @@ typedef struct {
 
 	uint16_t S16PositionErrorPrevious;
 
-	int32_t S32PositionPTerm;
-	int32_t S32PositionITerm;
-	int32_t S32PositionDTerm;
+	uint16_t U16MomentofInertia;			//Axis moment of inertia
+
+	int32_t S32PositionPTerm;				//Proportional Feedback
+	int32_t S32PositionITerm;				//Integral Feedback
+	int32_t S32PositionDTerm;				//Derivative Feedback
 	int32_t S32PositionIAccumulator;
 
-	uint16_t U16PositionPGain;
-	uint16_t U16PositionIGain;
-	uint16_t U16PositionDGain;
+	uint16_t U16PositionPGain;				//Proportional Gain
+	uint16_t U16PositionIGain;				//Integral Gain
+	uint16_t U16PositionDGain;				//Derivative Gain
+
+	// Axis Position Stop Limits
 	uint16_t U16LowPosnLimit;
 	uint16_t U16HighPosnLimit;
-	uint16_t U16CommandLimit;
 
-	int32_t S32PositionDesiredAccumulator;
+	uint16_t U16CommandLimit;				//PWM on-time high limit
+
+	//
+	int32_t S32PositionDesiredAccumulator;	//
 	int16_t S16VelocityDesired;
 	int16_t S16VelocityActual;
 	int16_t S16VelocityError;
 
-	int32_t S32VelocityPTerm;
-	int32_t S32VelocityITerm;
-	int32_t S32VelocityIAccumulator;
-
-	uint16_t U16VelocityPGain;
-	uint16_t U16VelocityIGain;
-	uint16_t U16VelocityDGain;
-
 }CONTROL_AXIS_STRUCT;
 
 void controlLoop(CONTROL_AXIS_STRUCT * ptr);
+void vertGains(CONTROL_AXIS_STRUCT * ptr);
+void latGains(CONTROL_AXIS_STRUCT * ptr);
 
 #endif

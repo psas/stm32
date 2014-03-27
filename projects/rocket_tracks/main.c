@@ -27,9 +27,15 @@
 #include "ch.h"
 #include "hal.h"
 
-//#include "usb_cdc.h"
 #include "chprintf.h"
 #include "shell.h"
+
+#include "lwipthread.h"
+#include "lwip/ip_addr.h"
+
+#include "utils_sockets.h"
+#include "cmddetail.h"
+#include "enet_api.h"
 
 #include "usbdetail.h"
 #include "pwmdetail.h"
@@ -37,40 +43,25 @@
 #include "main.h"
 #include "control.h"
 
-#define VERTICAL_COMMAND_LIMIT		300
-#define LATERAL_COMMAND_LIMIT		250
-
-#define LED_OFF						0
-#define LED_ON						1
-#define LED_BLINK					2
-
-/* Total number of feedback channels to be sampled by a single ADC operation.*/
-#define ADC_GRP1_NUM_CHANNELS   1
-/* Depth of the conversion buffer, channels are sampled once each.*/
-#define ADC_GRP1_BUF_DEPTH      1
-/* Total number of input channels to be sampled by a single ADC operation.*/
-#define ADC_GRP2_NUM_CHANNELS   2
-/* Depth of the conversion buffer, input channels are sampled once each.*/
-#define ADC_GRP2_BUF_DEPTH      1
-
-
-static void adccb1(ADCDriver *adcp, adcsample_t *buffer, size_t n);
-static void adccb2(ADCDriver *adcp, adcsample_t *buffer, size_t n);
-static void adccb3(ADCDriver *adcp, adcsample_t *buffer, size_t n);
-void DisplayData(BaseSequentialStream *chp, CONTROL_AXIS_STRUCT *axis_p);
-static void ControlAxis(CONTROL_AXIS_STRUCT *ptr, adcsample_t sample, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN);
-static void motordrive(GPTDriver *gptp);
-static void processLeds(void);
-uint32_t microsecondsToPWMTicks(const uint32_t microseconds);
-//uint32_t nanosecondsToPWMTicks(const uint32_t nanoseconds);
-uint32_t pwmGetPclk(void);
-
 static const GPTConfig gpt1cfg = {
 	1000000,
 //	10000000,
 //	motordrive
 	NULL,
 	0,
+};
+
+/*
+ * SPI1 configuration structure.
+ * Speed 5.25MHz, CPHA=1, CPOL=1, 8bits frames, MSb transmitted first.
+ * The slave select line is the pin GPIOC_CS_SPI on the port GPIOA.
+ */
+static const SPIConfig spi1cfg = {
+  spicb,
+  /* HW dependent part.*/
+  GPIOA,
+  GPIOA_CS_SPI,
+  SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_CPOL | SPI_CR1_CPHA
 };
 
 static const ADCConversionGroup adcgrp1cfg5 = {
@@ -142,39 +133,6 @@ static uint8_t U8VertLedState = LED_BLINK;
 static uint8_t U8LatLedState = LED_BLINK;
 CONTROL_AXIS_STRUCT vertAxisStruct, latAxisStruct;
 
-
-/* Olimex stm32-e407 board */
-
-static EventSource wkup_event;
-
-/*! \sa HAL_USE_EXT in hal_conf.h
- */
-static void green_led_off(void *arg) {
-
-  (void)arg;
-  palSetPad(GPIOC, GPIOC_LED);
-}
-
-/* Triggered when the WKUP button is pressed or released. The LED is set to ON.*/
-
-/* Challenge: Add de-bouncing */
-static void extcb1(EXTDriver *extp, expchannel_t channel) {
-  static VirtualTimer vt4;
-
-  (void)extp;
-  (void)channel;
-
-  palClearPad(GPIOC, GPIOC_LED);
-  chSysLockFromIsr();
-  chEvtBroadcastI(&wkup_event);
-
-  if (chVTIsArmedI(&vt4))
-    chVTResetI(&vt4);
-
-  /* LED4 set to OFF after 500mS.*/
-  chVTSetI(&vt4, MS2ST(500), green_led_off, NULL);
-  chSysUnlockFromIsr();
-}
 
 static const EXTConfig extcfg = {
   {
@@ -338,8 +296,6 @@ static void cmd_enable(BaseSequentialStream *chp, int argc, char *argv[]) {
  *****************************************************************************/
 static void cmd_freeze(BaseSequentialStream *chp, int argc, char *argv[]) {
 
-//CONTROL_AXIS_STRUCT *axis_p = NULL;
-
 	(void)argv;
 	if (argc > 1) {
 		chprintf(chp, "Usage: Freeze\r\n");
@@ -376,8 +332,6 @@ static void cmd_freeze(BaseSequentialStream *chp, int argc, char *argv[]) {
  *
  *****************************************************************************/
 static void cmd_unfreeze(BaseSequentialStream *chp, int argc, char *argv[]) {
-
-//CONTROL_AXIS_STRUCT *axis_p = NULL;
 
 	(void)argv;
 	if (argc > 1) {
@@ -452,7 +406,7 @@ static void cmd_mode(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 /******************************************************************************
- * Function name:	cmd_stop
+ * Function name:	cmd_gain
  *
  * Description:		Displays/modifies PID feedback coefficients
  *
@@ -515,29 +469,8 @@ CONTROL_AXIS_STRUCT *axis_p = NULL;
 	}
 }
 
-
-//static void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
-//	static const char *states[] = {THD_STATE_NAMES};
-//	Thread *tp;
-//
-//	(void)argv;
-//	if (argc > 0) {
-//		chprintf(chp, "Usage: threads\r\n");
-//		return;
-//	}
-//	chprintf(chp, "    addr    stack prio refs     state time\r\n");
-//	tp = chRegFirstThread();
-//	do {
-//		chprintf(chp, "%.8lx %.8lx %4lu %4lu %9s %lu\r\n",
-//			(uint32_t)tp, (uint32_t)tp->p_ctx.r13,
-//			(uint32_t)tp->p_prio, (uint32_t)(tp->p_refs - 1),
-//			states[tp->p_state], (uint32_t)tp->p_time);
-//		tp = chRegNextThread(tp);
-//	} while (tp != NULL);
-//}
-
 /*
- * Challenge: add additional command line functions
+ * Command Line Shell Functions
  */
 static const ShellCommand commands[] = {
 	{"mem", cmd_mem},
@@ -554,46 +487,14 @@ static const ShellCommand commands[] = {
 };
 
 /*
- * ADC1 end conversion callback.
- * The vertical axis control loop is run and PWM updated.
+ * SPI end transfer callback.
  */
-static void adccb1(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
+static void spicb(SPIDriver *spip) {
 
-	(void) buffer; (void) n;
-	/* Note, only in the ADC_COMPLETE state because the ADC driver fires an
-	 intermediate callback when the buffer is half full.*/
-	if (adcp->state == ADC_COMPLETE) {
-		ControlAxis(&vertAxisStruct, vertFeedbackSample[0], 1, 2);
-	}
-}
-
-/*
- * ADC2 end conversion callback.
- * The lateral axis control loop is run and PWM updated.
- */
-static void adccb2(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
-
-	(void) buffer; (void) n;
-	/* Note, only in the ADC_COMPLETE state because the ADC driver fires an
-	 intermediate callback when the buffer is half full.*/
-	if (adcp->state == ADC_COMPLETE) {
-		ControlAxis(&latAxisStruct, latFeedbackSample[0], 3, 4);
-	}
-}
-
-/*
- * ADC3 end conversion callback.
- * The input values are stored and feedback ADC's read.
- */
-static void adccb3(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
-
-	(void) buffer; (void) n;
-	/* Note, only in the ADC_COMPLETE state because the ADC driver fires an
-	 intermediate callback when the buffer is half full.*/
-	if (adcp->state == ADC_COMPLETE) {
-		latAxisStruct.U16InputADC = InputSamples[0];
-		vertAxisStruct.U16InputADC = InputSamples[1];
-	}
+  /* On transfer end just releases the slave select line.*/
+  chSysLockFromIsr();
+  spiUnselectI(spip);
+  chSysUnlockFromIsr();
 }
 
 /*
@@ -601,25 +502,36 @@ static void adccb3(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
  */
 static void motordrive(GPTDriver *gptp) {
 
+static axissample_t Samples[AXIS_ADC_COUNT];
+
 	(void) gptp;
 
 	U32DelayCount = 0;
 
 	chSysLockFromIsr();
 
-	// Read Input ADC's
-	adcStartConversionI(&ADCD3, &adcgrp2cfg, InputSamples, ADC_GRP2_BUF_DEPTH);
 	// Read Feedback ADC's
-	adcStartConversionI(&ADCD1, &adcgrp1cfg5, vertFeedbackSample, ADC_GRP1_BUF_DEPTH);
-	adcStartConversionI(&ADCD2, &adcgrp1cfg4, latFeedbackSample, ADC_GRP1_BUF_DEPTH);
+	ReadADCs(&Samples, AXIS_ADC_COUNT);
 
 	chSysUnlockFromIsr();
 
-//TODO undo the constant enable
+	//Calculate control feedback parameters
+	// Compute actual position
+	vertAxisStruct.S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + 2048;
+	latAxisStruct.S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + 2048;
+
+	//Calculate Gains
+	vertAxisStruct.U16MomentofInertia = vertInertia();
+	latGains(&latAxisStruct);
+	vertGains(&vertAxisStruct);
+
+	//Run Control Loops
+	ControlAxis(&latAxisStruct, latFeedbackSample[0], 3, 4);
+	ControlAxis(&vertAxisStruct, vertFeedbackSample[0], 1, 2);
+
+
 	// Read input switch positions
-//	U8EnableDriveSwitch = 1;
 	U8EnableDriveSwitch = palReadPad(GPIOD, GPIOD_PIN8); // PD8
-//	U8PosnVelModeSwitch = 1; // PD9
 	U8PosnVelModeSwitch = palReadPad(GPIOD, GPIOD_PIN9); // PD9
 
 	// Handle ENABLE on GMD and LEDs on GFE
@@ -698,10 +610,12 @@ static void WKUP_button_handler(eventid_t id) {
  * Application entry point.
  */
 int main(void) {
-	static const evhandler_t evhndl[] = {
-	WKUP_button_handler
-	};
-	struct EventListener el0;
+
+static const evhandler_t evhndl[] = {
+WKUP_button_handler
+};
+struct EventListener el0;
+
 	/*
 	* System initializations.
 	* - HAL initialization, this also initializes the configured device drivers
@@ -713,10 +627,29 @@ int main(void) {
 	halInit();
 	chSysInit();
 
-	/*
-	* Initialize event structures BEFORE using them
-	*/
-	chEvtInit(&wkup_event);
+	/* fill out lwipthread_opts with our address*/
+    struct lwipthread_opts   ip_opts;
+	uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
+	set_lwipthread_opts(&ip_opts, IP_MANUAL, "255.255.255.0", "192.168.1.1", macAddress);
+
+	//Create sockets
+	SendtoManualSocket();
+	SendtoSLASocket();
+	ReceiveSLASocket();
+	ReceiveManualSocket();
+
+	/* Start the lwip thread*/
+	chprintf(chp, "LWIP ");
+	chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2,
+	                    lwip_thread, &ip_opts);
+
+    //Receive thread
+    chprintf(chp, "rx ");
+    chThdCreateStatic(wa_rtx_controller_receive_thread, sizeof(wa_rtx_controller_receive_thread), RTX_CONTROLLER_RX_THD_PRIORITY,
+    		rtx_controller_receive_thread, NULL);
+
+    //Start SPI1 peripheral
+	spiStart(&SPID1, &spi1cfg);
 
     /*
     * Shell manager initialization.
@@ -820,19 +753,23 @@ int main(void) {
 		if(U32DelayCount++ > 2500){
 			motordrive(&GPTD1);
 		}
-	chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
+		chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
 	}
 }
 
-//void TrackUp() {
-//
-//	if(vertAxisStruct.S16PositionActual < 3800) {
-//		vertAxisStruct.S16PositionDesired = vertAxisStruct.S16PositionDesired + 10;
-//	}
-//	else {
-//
-//	}
-//}
+/******************************************************************************
+ * Function name:	ReadADCs
+ *
+ * Description:		Starts a SPI read transaction and reads 4 samples
+ *****************************************************************************/
+void ReadADCs(uint16_t * Samples, int Reads) {
+
+
+	spiSelectI(&SPID1);
+	spiStartReceiveI(&SPID1, Reads, Samples);
+	spiUnselectI(&SPID1);
+
+}
 
 /******************************************************************************
  * Function name:	ControlAxis

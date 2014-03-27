@@ -11,6 +11,7 @@
  * Date:		3/10/2012
  *****************************************************************************/
 #include <stdint.h>
+#include <math.h>
 #include "control.h"
 
 
@@ -20,69 +21,19 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	const uint16_t U16PosDesAccumMultiplyer = 2048;
 	const uint16_t U16PosDesAccumExponentialDivisor = 1024;
 	const uint16_t U16VelocityDeadband = 80;
-//	const uint16_t U16PosDesAccumMultiplyer = 512;
-//	const uint16_t U16PosDesAccumExponentialDivisor = 256;
-//	const uint16_t U16VelocityDeadband = 20;
 
 	// ************* Position Loop *************
+
+	// Compute Desired Position
+	//ptr->S16PositionDesired
 
 	// Compute actual position
 	ptr->S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + 2048;
 
-	// Check position (1) / velocity (0) mode
-	if(ptr->U8PosnVelMode > 0)
-	{
-		// Compute desired position directly from input if axis not frozen
-		if(!ptr->U8FreezeAxis) {
-			ptr->S16PositionDesired = (adcsample_t)ptr->U16InputADC + 2048;
-		}
-		// Initialize accum to present position
-		ptr->S32PositionDesiredAccumulator = ptr->S16PositionActual * U16PosDesAccumMultiplyer;
-	}else
-	{
-		// Compute desired velocity with deadband
-//		ptr->S16VelocityDesired = (adcsample_t)ptr->U16InputADC + 2048;
-		ptr->S16VelocityDesired = (adcsample_t)ptr->U16InputADC - 2048;
-		if(ptr->S16VelocityDesired > U16VelocityDeadband) {
-			ptr->S16VelocityDesired -= U16VelocityDeadband;
-		}
-		else if(ptr->S16VelocityDesired < -U16VelocityDeadband) {
-			ptr->S16VelocityDesired += U16VelocityDeadband;
-		}
-		else {
-			ptr->S16VelocityDesired = 0;
-		}
-
-		// Compute desired position (with exponential) from lever integration and saturate
-		ptr->S32PositionDesiredAccumulator += ptr->S16VelocityDesired;
-		if(ptr->S16VelocityDesired > 0){
-			ptr->S32PositionDesiredAccumulator +=
-					(ptr->S16VelocityDesired * ptr->S16VelocityDesired) /
-					U16PosDesAccumExponentialDivisor;
-		}else{
-			ptr->S32PositionDesiredAccumulator -=
-					(ptr->S16VelocityDesired * ptr->S16VelocityDesired) /
-					U16PosDesAccumExponentialDivisor;
-		}
-		if(ptr->S32PositionDesiredAccumulator >
-				(ptr->U16HighPosnLimit) * U16PosDesAccumMultiplyer)
-//				(ptr->U16HighPosnLimit-2048) * U16PosDesAccumMultiplyer)
-		{
-			ptr->S32PositionDesiredAccumulator =
-				(ptr->U16HighPosnLimit) * U16PosDesAccumMultiplyer;
-//				(ptr->U16HighPosnLimit-2048) * U16PosDesAccumMultiplyer;
-		}
-		else if(ptr->S32PositionDesiredAccumulator <
-				(ptr->U16LowPosnLimit) * (int16_t)U16PosDesAccumMultiplyer)
-//				(ptr->U16LowPosnLimit-2048) * (int16_t)U16PosDesAccumMultiplyer)
-		{
-			ptr->S32PositionDesiredAccumulator =
-					(ptr->U16LowPosnLimit) * (int16_t)U16PosDesAccumMultiplyer;
-//					(ptr->U16LowPosnLimit-2048) * (int16_t)U16PosDesAccumMultiplyer;
-		}
-
-		ptr->S16PositionDesired = ptr->S32PositionDesiredAccumulator / U16PosDesAccumMultiplyer;
-	}
+	//Calculate Gains
+	vertAxisStruct.U16MomentofInertia = vertInertia();
+	latGains(&latAxisStruct);
+	vertGains(&vertAxisStruct);
 
 	// Compute position error Negative to deal with potentiometer direction
 	ptr->S16PositionError = -(ptr->S16PositionDesired - ptr->S16PositionActual);
@@ -141,46 +92,33 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 		ptr->S16OutputCommand = 0;
 	}
 
-
-	// Preset neutral flags to not-neutral
-	ptr->U8PositionNeutral = 0;
-	ptr->U8VelocityNeutral = 0;
-
-	// If in position mode and position error is low
-	if(ptr->U8PosnVelMode > 0)
-	{
-		if( (ptr->S16PositionError < 40) && (ptr->S16PositionError > -40) )
-		{
-			ptr->U8PositionNeutral = 1;
-		}
-	}else{ // If in velocity mode and velocity command is neutral
-		if( (ptr->S16VelocityDesired == 0) && (ptr->S16PositionError < 40) &&
-				(ptr->S16PositionError > -40) )
-		{
-			ptr->U8VelocityNeutral = 1;
-		}
-	}
-
-
-	// If drive is locked out
-	if(ptr->U8DriveIsInterlocked > 0){
-		// Command OFF
-		ptr->S16OutputCommand = 0;
-
-		// Initialize accum to present position
-		ptr->S32PositionDesiredAccumulator = ptr->S16PositionActual * U16PosDesAccumMultiplyer;
-
-		// Reset PI integrator
-		ptr->S32PositionIAccumulator = 0;
-
-		// If position or velocity error is low
-		if( (ptr->U8PositionNeutral > 0) | (ptr->U8VelocityNeutral > 0) )
-		{
-			// Remove interlock
-			ptr->U8DriveIsInterlocked = 0;
-		}
-	} // End if(ptr->U8DriveIsInterlocked > 0)
-
 } // End void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 
+float vertInertia() {
 
+	//TODO calculate vertical axis moment of inertia
+}
+
+void vertGains() {
+
+	//TODO calculate P gain
+	vertAxisStruct.U16PositionPGain;
+
+	//TODO calculate I gain
+	vertAxisStruct.U16PositionIGain;
+
+	//TODO calculate D gain
+	vertAxisStruct.U16PositionDGain;
+}
+
+void latGains() {
+
+	//TODO calculate P gain
+	latAxisStruct.U16PositionPGain;
+
+	//TODO calculate I gain
+	latAxisStruct.U16PositionIGain;
+
+	//TODO calculate D gain
+	latAxisStruct.U16PositionDGain;
+}
