@@ -14,25 +14,10 @@ static bool initialized = false;
 static I2CDriver *I2CD;
 static const systime_t I2C_TIMEOUT = MS2ST(400);
 
-void BQ3060_init(struct BQ3060Config * conf){
-    if(!conf){
-        return;
-    }
-    CONF = conf;
-    I2CD = CONF->I2CD;
+EventSource read_new;
+EventSource BQ3060_data_ready;
 
-    //todo: set I2C pins
-    static const I2CConfig i2cfg = {
-        OPMODE_SMBUS_HOST,
-        100000,
-        STD_DUTY_CYCLE,
-    };
-    if(I2CD->state == I2C_STOP){
-        i2cStart(I2CD, &i2cfg);
-    }
-
-    initialized = true;
-}
+static struct BQ3060Data buffer;
 
 int BQ3060_Get(uint8_t register_id, uint16_t* data){
     if(initialized == false)
@@ -88,7 +73,67 @@ int BQ3060_Set(uint8_t register_id, uint16_t data){
     return RDY_OK;
 }
 
+/*void AtRate(int16_t rate){
+    BQ3060_AtRate,
+    BQ3060_AtRateTimeToFull,
+    BQ3060_AtRateTimeToEmpty,
+    BQ3060_AtRateOK
+}
+*/
+/*
+void StateOfCharge(){
+    BQ3060_MaxError = 0x0c,
+    BQ3060_RelativeStateOfCharge = 0x0d,
+    BQ3060_AbsoluteStateOfCharge = 0x0e,
+    BQ3060_RemainingCapacity = 0x0f,
+    BQ3060_FullChargeCapacity = 0x10,
+    BQ3060_RunTimeToEmpty = 0x11,
+    BQ3060_AverageTimeToEmpty = 0x12,
+    BQ3060_AverageTimeToFull = 0x13,
+}
+*/
+/*
+void DesiredCharge(){
+    BQ3060_ChargingCurrent = 0x14,
+    BQ3060_ChargingVoltage = 0x15,
 
+}
+*/
+/*
+void Safety(){
+    BQ3060_SafetyAlert = 0x50,
+    BQ3060_SafetyStatus = 0x51,
+    BQ3060_PFAlert = 0x52,
+    BQ3060_PFStatus = 0x53,
+}
+ */
+/*
+void Status(){
+    BQ3060_BatteryStatus = 0x16,
+    BQ3060_CycleCount = 0x17,
+    BQ3060_StateOfHealth = 0x4f,
+    BQ3060_OpertationStatus = 0x54,
+    BQ3060_ChargingStatus = 0x55,
+    BQ3060_FETStatus = 0x56,
+}
+ */
+
+static void Physical(struct BQ3060Data * data){
+    uint16_t raw;
+    BQ3060_Get(BQ3060_Temperature, &(data->Temperature));
+    BQ3060_Get(BQ3060_TS1Temperature, &(data->TS1Temperature));
+    BQ3060_Get(BQ3060_TS2Temperature, &(data->TS2Temperature));
+    BQ3060_Get(BQ3060_TempRange, &(data->TempRange));
+    BQ3060_Get(BQ3060_Current, &(data->Current));
+    BQ3060_Get(BQ3060_AverageCurrent, &(data->AverageCurrent));
+    BQ3060_Get(BQ3060_Voltage, &(data->Voltage));
+    BQ3060_Get(BQ3060_CellVoltage4, &(data->CellVoltage4));
+    BQ3060_Get(BQ3060_CellVoltage3, &(data->CellVoltage3));
+    BQ3060_Get(BQ3060_CellVoltage2, &(data->CellVoltage2));
+    BQ3060_Get(BQ3060_CellVoltage1, &(data->CellVoltage1));
+    BQ3060_Get(BQ3060_PackVoltage, &(data->PackVoltage));
+    BQ3060_Get(BQ3060_AverageVoltage, &(data->AverageVoltage));
+}
 /* Danger:
  *
  * Safety status : 0x51
@@ -152,3 +197,59 @@ int BQ3060_Set(uint8_t register_id, uint16_t data){
  *
 
  */
+
+
+void BQ3060_get_data(struct BQ3060Data * data){
+    chSysLock();
+    memcpy(data, &buffer, sizeof(buffer));
+    chSysUnlock();
+}
+
+static void vtfunc(void * p){
+    VirtualTimer * vtp = (VirtualTimer *) p;
+    chVTSetI(vtp, S2ST(1), vtfunc, vtp);
+    chBroadcastEventI(&read_new);
+}
+
+static void read_handler(eventid_t id){
+    Physical(buffer);
+    chBroadcastEventI(&BQ3060_data_ready);
+}
+
+static WORKING_AREA(wa_read, 256);
+static msg_t read_thread(void * p){
+    VirtualTimer vt;
+    chVTSetI(&vt, S2ST(1), vtfunc, &vt);
+
+    struct EventListener drdy;
+    static const evhandler_t evhndl[] = {
+            read_handler
+    };
+    chEvtRegister(&read_new, &drdy, 0);
+    while(TRUE){
+        chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
+    }
+
+    return -1;
+}
+
+void BQ3060_init(struct BQ3060Config * conf){
+    if(!conf){
+        return;
+    }
+    CONF = conf;
+    I2CD = CONF->I2CD;
+
+    //todo: set I2C pins
+    static const I2CConfig i2cfg = {
+        OPMODE_SMBUS_HOST,
+        100000,
+        STD_DUTY_CYCLE,
+    };
+    if(I2CD->state == I2C_STOP){
+        i2cStart(I2CD, &i2cfg);
+    }
+
+    chThdCreateStatic(wa_read, sizeof(wa_read), NORMALPRIO, read_thread, NULL);
+    initialized = true;
+}

@@ -44,7 +44,7 @@ typedef enum {
     BQ3060_AbsoluteStateOfCharge = 0x0e,
     BQ3060_RemainingCapacity = 0x0f,
     BQ3060_FullChargeCapacity = 0x10,
-    BQ3060_RunTimeToEmptry = 0x11,
+    BQ3060_RunTimeToEmpty = 0x11,
     BQ3060_AverageTimeToEmpty = 0x12,
     BQ3060_AverageTimeToFull = 0x13,
     BQ3060_ChargingCurrent = 0x14,
@@ -82,7 +82,7 @@ typedef enum {
     BQ3060_PackVoltage = 0x5a,
     BQ3060_AverageVoltage = 0x5d,
     BQ3060_TS1Temperature = 0x5e,
-    BQ3060_TS2Temperatrue = 0x5f,
+    BQ3060_TS2Temperature = 0x5f,
     BQ3060_UnSealKey = 0x60,
     BQ3060_FullAccessKey = 0x61,
     BQ3060_PFKey = 0x62,
@@ -105,6 +105,22 @@ typedef enum {
 
 } BQ3060_reg;
 
+struct BQ3060Data{
+    uint16_t Temperature;
+    int16_t TS1Temperature;
+    int16_t TS2Temperature;
+    uint16_t TempRange;
+    uint16_t Voltage;
+    int16_t Current;
+    int16_t AverageCurrent;
+    uint16_t CellVoltage1;
+    uint16_t CellVoltage2;
+    uint16_t CellVoltage3;
+    uint16_t CellVoltage4;
+    uint16_t PackVoltage;
+    uint16_t AverageVoltage;
+};
+
 struct BQ3060Config{
     I2CDriver *I2CD;
 };
@@ -114,5 +130,8 @@ extern struct BQ3060Config rnh3060conf;
 void BQ3060_init(struct BQ3060Config * conf);
 int BQ3060_Set(uint8_t register_id, uint16_t data);
 int BQ3060_Get(uint8_t register_id, uint16_t* data);
+
+extern EventSource BQ3060_data_ready;
+void BQ3060_get_data(struct BQ3060Data * data);
 
 #endif /* _BQ3060_H_ */
