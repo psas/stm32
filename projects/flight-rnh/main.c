@@ -73,6 +73,7 @@ void eth_start(void){
     chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, RNH_LWIP);
     RCICreate(&conf);
     send_socket = get_udp_socket(RNH_SEND_ADDR);
+    connect(send_socket, FC_ADDR, sizeof(struct sockaddr));
 }
 
 void sleep(void){
@@ -166,12 +167,13 @@ void main(void) {
 
     struct EventListener el0, el1;
     chEvtRegister(&bqst_event, &el0, 0);
-    chEvtRegister(&BQ3060_data_ready, &el1, 0);
+    chEvtRegister(&BQ3060_data_ready, &el1, 1);
     const evhandler_t evhndl[] = {
         BQ24725_start,
         BQ3060_send_data
     };
+
     while (TRUE) {
-        chEvtDispatch(evhndl, chEvtWaitAll(ALL_EVENTS));
+        chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
     }
 }
