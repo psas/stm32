@@ -1,9 +1,12 @@
 #include <stddef.h>
 #include <stdbool.h>
+#include <string.h>
 
+#include "ch.h"
 #include "hal.h"
 #include "BQ3060.h"
 
+#define UNUSED __attribute__((unused))
 
 struct BQ3060Config rnh3060conf = {
     .I2CD = &I2CD1
@@ -117,15 +120,13 @@ void Status(){
     BQ3060_FETStatus = 0x56,
 }
  */
-
 static void Physical(struct BQ3060Data * data){
-    uint16_t raw;
     BQ3060_Get(BQ3060_Temperature, &(data->Temperature));
-    BQ3060_Get(BQ3060_TS1Temperature, &(data->TS1Temperature));
-    BQ3060_Get(BQ3060_TS2Temperature, &(data->TS2Temperature));
+    BQ3060_Get(BQ3060_TS1Temperature, (uint16_t *)&(data->TS1Temperature));
+    BQ3060_Get(BQ3060_TS2Temperature, (uint16_t *)&(data->TS2Temperature));
     BQ3060_Get(BQ3060_TempRange, &(data->TempRange));
-    BQ3060_Get(BQ3060_Current, &(data->Current));
-    BQ3060_Get(BQ3060_AverageCurrent, &(data->AverageCurrent));
+    BQ3060_Get(BQ3060_Current, (uint16_t *)&(data->Current));
+    BQ3060_Get(BQ3060_AverageCurrent, (uint16_t *)&(data->AverageCurrent));
     BQ3060_Get(BQ3060_Voltage, &(data->Voltage));
     BQ3060_Get(BQ3060_CellVoltage4, &(data->CellVoltage4));
     BQ3060_Get(BQ3060_CellVoltage3, &(data->CellVoltage3));
@@ -198,11 +199,10 @@ static void Physical(struct BQ3060Data * data){
 
  */
 
-
 void BQ3060_get_data(struct BQ3060Data * data){
-    chSysLock();
+//    chSysLock();
     memcpy(data, &buffer, sizeof(buffer));
-    chSysUnlock();
+//    chSysUnlock();
 }
 
 static void vtfunc(void * p){
@@ -250,6 +250,7 @@ void BQ3060_init(struct BQ3060Config * conf){
         i2cStart(I2CD, &i2cfg);
     }
 
+    chEvtInit(&BQ3060_data_ready);
     chThdCreateStatic(wa_read, sizeof(wa_read), NORMALPRIO, read_thread, NULL);
     initialized = true;
 }
