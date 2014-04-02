@@ -35,7 +35,7 @@
 /* Returns a pointer to a filled anonymous struct sockaddr_in
  * suitable for direct use in bind() and connect()
  */
-#define make_addr(port, addr) \
+#define make_addr(addr, port) \
 (const struct sockaddr *) &(const struct sockaddr_in){ \
         .sin_family = AF_INET, \
         .sin_port = HTONS((port)), \
