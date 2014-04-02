@@ -2,6 +2,7 @@
 
 #include "lwip/sockets.h"
 #include "lwip/ip_addr.h"
+
 /*
  * HELPER TYPES AND MACROS
  * ====================== *****************************************************
@@ -13,15 +14,15 @@
         ((uint32_t)((a) & 0xff) << 24) | \
         ((uint32_t)((b) & 0xff) << 16) | \
         ((uint32_t)((c) & 0xff) << 8)  | \
-         (uint32_t)((d) & 0xff))
+         (uint32_t)((d) & 0xff)
 #elif  __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 /** Set an IP address given by the four byte-parts.
     Little-endian version that prevents the use of htonl. */
 #define IPv4(a,b,c,d) \
-       ((u32_t)((d) & 0xff) << 24) | \
-       ((u32_t)((c) & 0xff) << 16) | \
-       ((u32_t)((b) & 0xff) << 8)  | \
-        (u32_t)((a) & 0xff)
+       ((uint32_t)((d) & 0xff) << 24) | \
+       ((uint32_t)((c) & 0xff) << 16) | \
+       ((uint32_t)((b) & 0xff) << 8)  | \
+        (uint32_t)((a) & 0xff)
 #endif
 
 /* htons() in macro form because lwip doesn't declare it as a macro (ugh) */

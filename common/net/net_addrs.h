@@ -1,8 +1,8 @@
 /*
  * Provides filled address structures suitable for direct use in their
- * respective APIs (i.e. struct sockaddr pointers for sockets). Structs aren't
- * declared as constant because the APIs don't expect them to be, but please
- * treat them as if they were.
+ * respective APIs (i.e. struct sockaddr pointers for sockets). Some structs
+ * aren't declared as constant because the APIs don't expect them to be, but
+ * please treat them as if they were.
  */
 
 #ifndef NET_ADDRS_H_
