@@ -31,12 +31,6 @@ const BQ24725_charge_options BQ24725_charge_options_POR_default = {
     .charge_inhibit = charge_enable
 };
 
-struct BQ24725Config RNH_BQConfig = {
-        .ACOK = {GPIOD, GPIO_D0_BQ24_ACOK},
-        .ACOK_cb = NULL,
-        .I2CD = &I2CD1,
-};
-
 void BQ24725_init(struct BQ24725Config * conf){
     if(initialized == true)
         return;

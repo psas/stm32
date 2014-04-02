@@ -10,10 +10,6 @@
 
 #define UNUSED __attribute__((unused))
 
-struct BQ3060Config rnh3060conf = {
-    .I2CD = &I2CD1
-};
-
 static struct BQ3060Config * CONF;
 static bool initialized = false;
 static I2CDriver *I2CD;
