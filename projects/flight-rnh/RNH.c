@@ -23,22 +23,22 @@ RNH_port RNH_power(RNH_port port, RNH_action action){
 
     int active_port[NUM_PORT] = {FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE};
     if(port & RNH_PORT_1){
-        active_port[1] = TRUE;
+        active_port[0] = TRUE;
     }
     if(port & RNH_PORT_2){
-        active_port[2] = TRUE;
+        active_port[1] = TRUE;
     }
     if(port & RNH_PORT_3){
-        active_port[3] = TRUE;
+        active_port[2] = TRUE;
     }
     if(port & RNH_PORT_4){
-        active_port[4] = TRUE;
+        active_port[3] = TRUE;
     }
     if(port & RNH_PORT_6){
-        active_port[6] = TRUE;
+        active_port[5] = TRUE;
     }
     if(port & RNH_PORT_7){
-        active_port[7] = TRUE;
+        active_port[6] = TRUE;
     }
 
     RNH_port return_port = 0;
