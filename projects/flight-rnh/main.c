@@ -12,7 +12,6 @@
 #include "net_addrs.h"
 #include "utils_sockets.h"
 #include "utils_led.h"
-#include "utils_rtc.h"
 #include "rnet_cmd_interp.h"
 #include "BQ24725.h"
 #include "BQ3060.h"
@@ -31,6 +30,7 @@ static const char TIME[]    = "#TIME";
 static const char PWR_STAT[]= "#POWR";
 
 int send_socket;
+static EventSource bqst_event;
 
 void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
     if(rci_data->cmd_len < 2){
@@ -79,7 +79,7 @@ void sleep(void){
 
 }
 
-void BQ24725_start(void){
+void BQ24725_start(eventid_t id UNUSED){
     BQ24725_charge_options BQ24725_rocket_init = {
                 .ACOK_deglitch_time = t150ms,
                 .WATCHDOG_timer = disabled,
@@ -97,12 +97,6 @@ void BQ24725_start(void){
             BQ24725_SetInputCurrent(0x0A00);
             BQ24725_SetChargeOption(&BQ24725_rocket_init);
 }
-
-static void bqst(eventid_t id UNUSED){
-    BQ24725_start();
-}
-
-static EventSource bqst_event;
 
 static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
     if(BQ24725_ACOK()){
@@ -161,7 +155,7 @@ void main(void) {
     BQ3060_init(&rnh3060conf);
     if(BQ24725_ACOK()){
         palClearPad(GPIOD, GPIO_D11_RGB_B);
-        BQ24725_start();
+        BQ24725_start(0);
     }
     KS8999_init();
     eth_start();
@@ -170,7 +164,7 @@ void main(void) {
     chEvtRegister(&bqst_event, &el0, 0);
     chEvtRegister(&BQ3060_data_ready, &el1, 0);
     const evhandler_t evhndl[] = {
-        bqst,
+        BQ24725_start,
         BQ3060_send_data
     };
     while (TRUE) {
