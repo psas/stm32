@@ -37,26 +37,6 @@ struct BQ24725Config RNH_BQConfig = {
         .I2CD = &I2CD1,
 };
 
-inline uint16_t form_options_data(BQ24725_charge_options * opts){
-    return opts->ACOK_deglitch_time | opts->WATCHDOG_timer |
-            opts->BAT_depletion_threshold | opts->EMI_sw_freq_adj |
-            opts->EMI_sw_freq_adj_en | opts->IFAULT_HI_threshold |
-            opts->LEARN_en | opts->IOUT | opts->ACOC_threshold |
-            opts->charge_inhibit;
-}
-inline void form_options_struct(uint16_t data, BQ24725_charge_options* opt){
-    opt->ACOK_deglitch_time = data & BQ24725_ACOK_deglitch_time_MASK;
-    opt->WATCHDOG_timer = data & BQ24725_WATCHDOG_timer_MASK;
-    opt->BAT_depletion_threshold = data & BQ24725_BAT_depletion_threshold_MASK;
-    opt->EMI_sw_freq_adj = data & BQ24725_EMI_sw_freq_adj_MASK;
-    opt->EMI_sw_freq_adj_en = data & BQ24725_EMI_sw_freq_adj_en_MASK;
-    opt->IFAULT_HI_threshold = data & BQ24725_IFAULT_HI_threshold_MASK;
-    opt->LEARN_en = data & BQ24725_LEARN_en_MASK;
-    opt->IOUT = data & BQ24725_IOUT_MASK;
-    opt->ACOC_threshold = data & BQ24725_ACOC_threshold_MASK;
-    opt->charge_inhibit = data & BQ24725_charge_inhibit_MASK;
-}
-
 void BQ24725_init(struct BQ24725Config * conf){
     if(initialized == true)
         return;
