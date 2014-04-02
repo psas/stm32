@@ -144,15 +144,19 @@ void main(void) {
     //Set up events
     chEvtInit(&bqst_event);
 
-
     //Init hardware
     struct BQ24725Config BQConf = {
             .ACOK = {GPIOD, GPIO_D0_BQ24_ACOK},
             .ACOK_cb = ACOK_cb,
             .I2CD = &I2CD1
     };
+    struct BQ3060Config rnh3060conf = {
+        .I2CD = &I2CD1
+    };
+
     BQ24725_init(&BQConf);
     BQ3060_init(&rnh3060conf);
+
     if(BQ24725_ACOK()){
         palClearPad(GPIOD, GPIO_D11_RGB_B);
         BQ24725_start(0);
