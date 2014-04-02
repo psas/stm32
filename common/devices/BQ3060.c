@@ -4,6 +4,8 @@
 
 #include "ch.h"
 #include "hal.h"
+#include "evtimer.h"
+
 #include "BQ3060.h"
 
 #define UNUSED __attribute__((unused))
@@ -17,7 +19,6 @@ static bool initialized = false;
 static I2CDriver *I2CD;
 static const systime_t I2C_TIMEOUT = MS2ST(400);
 
-EventSource read_new;
 EventSource BQ3060_data_ready;
 
 static struct BQ3060Data buffer;
@@ -205,27 +206,26 @@ void BQ3060_get_data(struct BQ3060Data * data){
 //    chSysUnlock();
 }
 
-static void vtfunc(void * p){
-    VirtualTimer * vtp = (VirtualTimer *) p;
-    chVTSetI(vtp, S2ST(1), vtfunc, vtp);
-    chBroadcastEventI(&read_new);
-}
-
-static void read_handler(eventid_t id){
-    Physical(buffer);
-    chBroadcastEventI(&BQ3060_data_ready);
+static void read_handler(eventid_t id UNUSED){
+    Physical(&buffer);
+    chEvtBroadcast(&BQ3060_data_ready);
 }
 
 static WORKING_AREA(wa_read, 256);
-static msg_t read_thread(void * p){
-    VirtualTimer vt;
-    chVTSetI(&vt, S2ST(1), vtfunc, &vt);
+static msg_t read_thread(void * p UNUSED){
+    chRegSetThreadName("BQ3060");
 
-    struct EventListener drdy;
+    EvTimer timer;
+    timer.et_interval = S2ST(1);
+    chEvtInit(&timer.et_es);
+
+    struct EventListener eltimer;
     static const evhandler_t evhndl[] = {
             read_handler
     };
-    chEvtRegister(&read_new, &drdy, 0);
+    chEvtRegister(&timer.et_es, &eltimer, 0);
+
+    evtStart(&timer);
     while(TRUE){
         chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
     }
