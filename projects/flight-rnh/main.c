@@ -29,6 +29,8 @@ static const char VERSION[] = "#VERS";
 static const char TIME[]    = "#TIME";
 static const char PWR_STAT[]= "#POWR";
 
+int send_socket;
+
 void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
     if(rci_data->cmd_len < 2){
         return; //fixme return Error
@@ -43,7 +45,7 @@ void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
 void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     RTCTime timespec;
     rtcGetTime(&RTCD1, &timespec);
-
+    // FIXME use chrtclib.h
     uint64_t time_ns = rtc_to_ns(&timespec);
 
     rci_data->return_data[0] = time_ns & (0xFF << 7) >> 7;
@@ -58,6 +60,7 @@ void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     rci_data->return_len = 8;
 }
 
+
 void eth_start(void){
     static struct RCICommand cmds[] = {
             {TIME, cmd_time, NULL},
@@ -71,12 +74,12 @@ void eth_start(void){
 
     chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, RNH_LWIP);
     RCICreate(&conf);
+    send_socket = get_udp_socket(RNH_SEND_ADDR);
 }
 
 void sleep(void){
 
 }
-
 
 void BQ24725_start(void){
     BQ24725_charge_options BQ24725_rocket_init = {
@@ -120,18 +123,35 @@ static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
     }
 }
 
+static void BQ3060_send_data(eventid_t id UNUSED){
+    struct BQ3060Data data;
+    uint16_t buffer[13];
+    BQ3060_get_data(&data);
+    buffer[0] = htons(data.Temperature);
+    buffer[1] = htons(data.TS1Temperature);
+    buffer[2] = htons(data.TS2Temperature);
+    buffer[3] = htons(data.TempRange);
+    buffer[4] = htons(data.Voltage);
+    buffer[5] = htons(data.Current);
+    buffer[6] = htons(data.AverageCurrent);
+    buffer[7] = htons(data.CellVoltage1);
+    buffer[8] = htons(data.CellVoltage2);
+    buffer[9] = htons(data.CellVoltage3);
+    buffer[10] = htons(data.CellVoltage4);
+    buffer[11] = htons(data.PackVoltage);
+    buffer[12] = htons(data.AverageVoltage);
+    write(send_socket, buffer, sizeof(buffer));
+}
+
 void main(void) {
     halInit();
     chSysInit();
     led_init(&rnh_led_cfg); //diagnostic LED blinker
+    rnh_shell_start();
 
     //Set up events
     chEvtInit(&bqst_event);
-    struct EventListener el0;
-    chEvtRegister(&bqst_event, &el0, 0);
-    const evhandler_t evhndl[] = {
-        bqst
-    };
+
 
     //Init hardware
     struct BQ24725Config BQConf = {
@@ -148,7 +168,13 @@ void main(void) {
     KS8999_init();
     eth_start();
 
-    rnh_shell_start();
+    struct EventListener el0, el1;
+    chEvtRegister(&bqst_event, &el0, 0);
+    chEvtRegister(&BQ3060_data_ready, &el1, 0);
+    const evhandler_t evhndl[] = {
+        bqst,
+        BQ3060_send_data
+    };
     while (TRUE) {
         chEvtDispatch(evhndl, chEvtWaitAll(ALL_EVENTS));
     }
