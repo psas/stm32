@@ -8,6 +8,7 @@
 #include "rnet_cmd_interp.h"
 
 #define MIN(a, b) (a) < (b) ? (a) : (b)
+#define MAX(a, b) (a) > (b) ? (a) : (b)
 
 static void handle_command(struct RCICmdData * data, struct RCICommand * cmd){
     for(;cmd->name != NULL; ++cmd){
@@ -64,7 +65,7 @@ static msg_t rci_thread(void *p){
 
         //if there's data to return, return it to the address it came from
         if(data.return_len > 0){
-            if(sendto(socket, data.return_data, data.return_len, 0, &from, fromlen) < 0){
+            if(sendto(socket, data.return_data, MAX(data.return_len, ETH_MTU), 0, &from, fromlen) < 0){
                 break;
             }
         }
