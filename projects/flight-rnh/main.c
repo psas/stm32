@@ -2,6 +2,7 @@
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
+#include "chrtclib.h"
 
 #include "lwip/ip_addr.h"
 #include "lwip/sockets.h"
@@ -43,10 +44,7 @@ void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
 }
 
 void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
-    RTCTime timespec;
-    rtcGetTime(&RTCD1, &timespec);
-    // FIXME use chrtclib.h
-    uint64_t time_ns = rtc_to_ns(&timespec);
+    uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
 
     rci_data->return_data[0] = time_ns & (0xFF << 7) >> 7;
     rci_data->return_data[1] = time_ns & (0xFF << 6) >> 6;
