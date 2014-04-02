@@ -40,6 +40,7 @@ const char* i2c_errno_str(int32_t err) ;
 #endif
 
 
+#if HAL_USE_EXT
 static EXTConfig extconfig;
 //TODO: Ideally should have an EXTDriver as an argument, but there's no good
 //      way to dynamically have an EXTConfig for each one.
@@ -91,3 +92,4 @@ void extAddCallback(const struct pin * pin, uint32_t mode, extcallback_t cb){
 void extUtilsStart(void){
     extStart(&EXTD1, &extconfig);
 }
+#endif /* HAL_USE_EXT */

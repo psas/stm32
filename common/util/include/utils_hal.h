@@ -8,10 +8,9 @@ struct pin {
     uint16_t pad;
 };
 
+#if HAL_USE_EXT
 void extUtilsStart(void);
 void extAddCallback(const struct pin * pin, uint32_t mode, extcallback_t cb);
-//FIXME: anything that wants utils_hal for the pin struct needs
-//       HAL_USE_EXT defined as TRUE for extcallback_t. This should either be
-//       turned on by including utils_hal or not depend on it at all.
+#endif
 
 #endif /* UTILS_HAL_H_ */
