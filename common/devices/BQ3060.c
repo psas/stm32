@@ -212,8 +212,7 @@ static msg_t read_thread(void * p UNUSED){
     chRegSetThreadName("BQ3060");
 
     EvTimer timer;
-    timer.et_interval = S2ST(1);
-    chEvtInit(&timer.et_es);
+    evtInit(&timer, S2ST(1));
 
     struct EventListener eltimer;
     static const evhandler_t evhndl[] = {
