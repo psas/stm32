@@ -111,7 +111,7 @@ int main(void) {
     adis_init(&adis_olimex_e407);
 
     /* Start RocketNet Communication */
-    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, SENSOR_LWIP);
+    lwipThreadStart(SENSOR_LWIP);
 
     adis_socket = get_udp_socket(ADIS_ADDR);
     mpu_socket = get_udp_socket(MPU_ADDR);

@@ -55,8 +55,7 @@ void main(void) {
 
 	/* Start the lwip thread*/
 	chprintf(chp, "LWIP ");
-	chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2,
-	                    lwip_thread, &ip_opts);
+	lwipThreadStart(&ip_opts);
 
 	/* Start the feature threads */
 	chprintf(chp, "tx ");

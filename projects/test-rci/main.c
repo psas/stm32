@@ -2,6 +2,7 @@
 #include "hal.h"
 
 #include "net_addrs.h"
+#include "utils_sockets.h"
 #include "rnet_cmd_interp.h"
 
 #define UNUSED __attribute__((unused))
@@ -15,8 +16,7 @@ void main(void) {
     halInit();
     chSysInit();
 
-    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, 
-		      lwip_thread, RNH_LWIP);
+    lwipThreadStart(RNH_LWIP);
 
     struct RCICommand cmds[] = {
 	    {"#LEDS", led, NULL},

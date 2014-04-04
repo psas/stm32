@@ -7,12 +7,10 @@
 // ChibiOS
 #include "ch.h"
 #include "hal.h"
-//#include "lwipopts.h"
-#include "lwipthread.h"
-#include "chprintf.h"
 
 // PSAS common
 #include "net_addrs.h"
+#include "utils_sockets.h"
 #include "utils_led.h"
 
 // servo_control
@@ -28,12 +26,7 @@ void main(void) {
     led_init(&e407_led_cfg);
 
     /* Start lwip stack */
-    chThdCreateStatic( wa_lwip_thread
-                     , sizeof(wa_lwip_thread)
-                     , NORMALPRIO + 2
-                     , lwip_thread
-                     , ROLL_LWIP
-                     );
+    lwipThreadStart(ROLL_LWIP);
 
     /* activate PWM output */
     pwm_start();
