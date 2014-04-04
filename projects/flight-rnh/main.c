@@ -1,16 +1,14 @@
 #include <string.h>
 #include "ch.h"
 #include "hal.h"
-#include "chprintf.h"
 #include "chrtclib.h"
 
 #include "lwip/ip_addr.h"
 #include "lwip/sockets.h"
-#include "lwipopts.h"
-#include "lwipthread.h"
 
 #include "net_addrs.h"
 #include "utils_sockets.h"
+#include "utils_general.h"
 #include "utils_led.h"
 #include "rnet_cmd_interp.h"
 #include "BQ24725.h"
@@ -20,7 +18,12 @@
 #include "KS8999.h"
 #include "RNH.h"
 
-#define UNUSED __attribute__((unused))
+int BQ3060_socket;
+EVENTSOURCE_DECL(ACOK);
+
+/* RCI commands
+ *
+ */
 
 static const char ARM[]     = "#YOLO";
 static const char SAFE[]    = "#SAFE";
@@ -28,9 +31,6 @@ static const char PORT[]    = "#PORT";
 static const char VERSION[] = "#VERS";
 static const char TIME[]    = "#TIME";
 static const char PWR_STAT[]= "#POWR";
-
-int send_socket;
-static EventSource bqst_event;
 
 void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
     if(rci_data->cmd_len < 2){
@@ -58,65 +58,50 @@ void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     rci_data->return_len = 8;
 }
 
-
-void eth_start(void){
-    static struct RCICommand cmds[] = {
-            {TIME, cmd_time, NULL},
-            {PORT, cmd_port, NULL},
-            {NULL, NULL, NULL}
-    };
-
-    static struct RCIConfig conf;
-    conf.address = RNH_LISTEN_ADDR;
-    conf.commands = cmds;
-
-    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, RNH_LWIP);
-    RCICreate(&conf);
-    send_socket = get_udp_socket(RNH_SEND_ADDR);
-    connect(send_socket, FC_ADDR, sizeof(struct sockaddr));
-}
+/* Hardware handling callbacks
+ *
+ */
 
 void sleep(void){
 
 }
 
-void BQ24725_start(eventid_t id UNUSED){
-    BQ24725_charge_options BQ24725_rocket_init = {
-                .ACOK_deglitch_time = t150ms,
-                .WATCHDOG_timer = disabled,
-                .BAT_depletion_threshold = FT70_97pct,
-                .EMI_sw_freq_adj = dec18pct,
-                .EMI_sw_freq_adj_en = sw_freq_adj_disable,
-                .IFAULT_HI_threshold = l700mV,
-                .LEARN_en = LEARN_disable,
-                .IOUT = adapter_current,
-                .ACOC_threshold = l1_66X,
-                .charge_inhibit = charge_enable
-            };
-            BQ24725_SetChargeCurrent(0x400);
-            BQ24725_SetChargeVoltage(0x41A0);
-            BQ24725_SetInputCurrent(0x0A00);
-            BQ24725_SetChargeOption(&BQ24725_rocket_init);
-}
-
 static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
     if(BQ24725_ACOK()){
-
         palClearPad(GPIOD, GPIO_D11_RGB_B);
         chSysLockFromIsr();
-        chEvtBroadcastI(&bqst_event);
+        chEvtBroadcastI(&ACOK);
         chSysUnlockFromIsr();
         //if low power mode is set
-//        KS8999_enable(TRUE);
+        //KS8999_enable(TRUE);
     }else{
         palSetPad(GPIOD, GPIO_D11_RGB_B);
         //if low power mode is set
-//        sleep();
-//        KS8999_enable(FALSE);
+        //KS8999_enable(FALSE);
+        //sleep();
     }
 }
 
-static void BQ3060_send_data(eventid_t id UNUSED){
+void BQ24725_SetCharge(eventid_t id UNUSED){
+    BQ24725_charge_options BQ24725_rocket_init = {
+            .ACOK_deglitch_time = t150ms,
+            .WATCHDOG_timer = disabled,
+            .BAT_depletion_threshold = FT70_97pct,
+            .EMI_sw_freq_adj = dec18pct,
+            .EMI_sw_freq_adj_en = sw_freq_adj_disable,
+            .IFAULT_HI_threshold = l700mV,
+            .LEARN_en = LEARN_disable,
+            .IOUT = adapter_current,
+            .ACOC_threshold = l1_66X,
+            .charge_inhibit = charge_enable
+    };
+    BQ24725_SetChargeCurrent(0x400);
+    BQ24725_SetChargeVoltage(0x41A0);
+    BQ24725_SetInputCurrent(0x0A00);
+    BQ24725_SetChargeOption(&BQ24725_rocket_init);
+}
+
+static void BQ3060_SendData(eventid_t id UNUSED){
     struct BQ3060Data data;
     uint16_t buffer[13];
     BQ3060_get_data(&data);
@@ -133,44 +118,59 @@ static void BQ3060_send_data(eventid_t id UNUSED){
     buffer[10] = htons(data.CellVoltage4);
     buffer[11] = htons(data.PackVoltage);
     buffer[12] = htons(data.AverageVoltage);
-    write(send_socket, buffer, sizeof(buffer));
+    write(BQ3060_socket, buffer, sizeof(buffer));
 }
 
 void main(void) {
+    // Start Chibios
     halInit();
     chSysInit();
-    led_init(&rnh_led_cfg); //diagnostic LED blinker
+
+    // Start Diagnostics
+    led_init(&rnh_led_cfg);
     rnh_shell_start();
 
-    //Set up events
-    chEvtInit(&bqst_event);
-
-    //Init hardware
-    struct BQ24725Config BQConf = {
+    // Configuration
+    static struct BQ24725Config BQConf = {
             .ACOK = {GPIOD, GPIO_D0_BQ24_ACOK},
             .ACOK_cb = ACOK_cb,
             .I2CD = &I2CD1
     };
-    struct BQ3060Config rnh3060conf = {
-        .I2CD = &I2CD1
+    static struct BQ3060Config rnh3060conf = {
+            .I2CD = &I2CD1
     };
+    static struct RCIConfig conf;
+    conf.commands = (struct RCICommand[]){
+            {TIME, cmd_time, NULL},
+            {PORT, cmd_port, NULL},
+            {NULL}
+    };
+    conf.address = RNH_LISTEN_ADDR,
 
+    //Init hardware
     BQ24725_init(&BQConf);
     BQ3060_init(&rnh3060conf);
+    KS8999_init();
+    lwipThreadStart(RNH_LWIP);
+    RCICreate(&conf);
 
+    // Set up sockets
+    BQ3060_socket = get_udp_socket(RNH_SEND_ADDR);
+    connect(BQ3060_socket, FC_ADDR, sizeof(struct sockaddr));
+
+    // Start charging if possible
     if(BQ24725_ACOK()){
         palClearPad(GPIOD, GPIO_D11_RGB_B);
-        BQ24725_start(0);
+        BQ24725_SetCharge(0);
     }
-    KS8999_init();
-    eth_start();
 
+    // Set up event system
     struct EventListener el0, el1;
-    chEvtRegister(&bqst_event, &el0, 0);
+    chEvtRegister(&ACOK, &el0, 0);
     chEvtRegister(&BQ3060_data_ready, &el1, 1);
     const evhandler_t evhndl[] = {
-        BQ24725_start,
-        BQ3060_send_data
+        BQ24725_SetCharge,
+        BQ3060_SendData
     };
 
     while (TRUE) {
