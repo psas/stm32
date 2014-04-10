@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
 endif
 
 # C specific options here (added to USE_OPT).
@@ -65,6 +65,7 @@ PROJECT = ch
 
 # Imported source files and paths
 PSAS= ../../common
+CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
 include ./boards/OLIMEX_STM32_E407/board.mk
@@ -72,6 +73,7 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
+include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
@@ -88,8 +90,11 @@ CSRC = $(PORTSRC) \
        $(FATFSSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/chprintf.c \
+       $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_UTIL)/usbdetail.c \
+       $(PSAS_NET)/utils_sockets.c \
+       enet_api.c \
        pwmdetail.c \
        control.c \
 	   main.c
@@ -124,7 +129,8 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-	     $(PSAS_UTIL)/include \
+         $(PSAS_UTIL)/include $(PSAS_NET)\
+         $(CONF)
 
 #
 # Project, sources and paths
@@ -228,3 +234,6 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
+
+include $(PSAS)/oocd.mk
+

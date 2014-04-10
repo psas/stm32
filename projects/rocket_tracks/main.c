@@ -29,19 +29,29 @@
 
 #include "chprintf.h"
 #include "shell.h"
-
 #include "lwipthread.h"
 #include "lwip/ip_addr.h"
 
 #include "utils_sockets.h"
-#include "cmddetail.h"
+#include "usbdetail.h"
+//#include "cmddetail.h"
 #include "enet_api.h"
 
-#include "usbdetail.h"
 #include "pwmdetail.h"
 
 #include "main.h"
 #include "control.h"
+
+//Function Prototypes
+static void adccb1(ADCDriver *adcp, adcsample_t *buffer, size_t n);
+void DisplayData(BaseSequentialStream *chp, CONTROL_AXIS_STRUCT *axis_p);
+static void ControlAxis(CONTROL_AXIS_STRUCT *ptr, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN);
+static void spicb(SPIDriver *spip);
+void ReadADCs(axissample_t * Samples, int Reads);
+static void motordrive(GPTDriver *gptp);
+static void processLeds(void);
+uint32_t microsecondsToPWMTicks(const uint32_t microseconds);
+uint32_t pwmGetPclk(void);
 
 static const GPTConfig gpt1cfg = {
 	1000000,
@@ -79,36 +89,6 @@ static const ADCConversionGroup adcgrp1cfg5 = {
 	ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5)
 };
 
-static const ADCConversionGroup adcgrp1cfg4 = {
-	FALSE,
-	ADC_GRP1_NUM_CHANNELS,
-	adccb2,
-	NULL,
-	/* HW dependent part.*/
-	0,
-	ADC_CR2_SWSTART,
-	0,
-	ADC_SMPR2_SMP_AN4(ADC_SAMPLE_56),
-	ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
-	0,
-	ADC_SQR3_SQ1_N(ADC_CHANNEL_IN4)
-};
-
-static const ADCConversionGroup adcgrp2cfg = {
-	FALSE,
-	ADC_GRP2_NUM_CHANNELS,
-	adccb3,
-	NULL,
-	/* HW dependent part.*/
-	0,
-	ADC_CR2_SWSTART,
-	0,
-	ADC_SMPR2_SMP_AN4(ADC_SAMPLE_112) | ADC_SMPR2_SMP_AN5(ADC_SAMPLE_112),
-	ADC_SQR1_NUM_CH(ADC_GRP2_NUM_CHANNELS),
-	0,
-	ADC_SQR3_SQ2_N(ADC_CHANNEL_IN4) | ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5)
-};
-
 // Global variables
 
 static adcsample_t refMonitor[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
@@ -134,7 +114,7 @@ CONTROL_AXIS_STRUCT vertAxisStruct, latAxisStruct;
 
 static const EXTConfig extcfg = {
   {
-    {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOA, extcb1},   // WKUP Button PA0
+	{EXT_CH_MODE_DISABLED, NULL},
     {EXT_CH_MODE_DISABLED, NULL},
     {EXT_CH_MODE_DISABLED, NULL},
     {EXT_CH_MODE_DISABLED, NULL},
@@ -500,7 +480,7 @@ static void spicb(SPIDriver *spip) {
  */
 static void motordrive(GPTDriver *gptp) {
 
-static axissample_t Samples[AXIS_ADC_COUNT];
+axissample_t Samples[AXIS_ADC_COUNT];
 
 	(void) gptp;
 
@@ -509,23 +489,13 @@ static axissample_t Samples[AXIS_ADC_COUNT];
 	chSysLockFromIsr();
 
 	// Read Feedback ADC's
-	ReadADCs(&Samples, AXIS_ADC_COUNT);
+	ReadADCs(Samples, AXIS_ADC_COUNT);
 
 	chSysUnlockFromIsr();
 
-	//Calculate control feedback parameters
-	// Compute actual position
-	vertAxisStruct.S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + 2048;
-	latAxisStruct.S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + 2048;
-
-	//Calculate Gains
-	vertAxisStruct.U16MomentofInertia = vertInertia();
-	latGains(&latAxisStruct);
-	vertGains(&vertAxisStruct);
-
 	//Run Control Loops
-	ControlAxis(&latAxisStruct, latFeedbackSample[0], 3, 4);
-	ControlAxis(&vertAxisStruct, vertFeedbackSample[0], 1, 2);
+	ControlAxis(&latAxisStruct, 3, 4);
+	ControlAxis(&vertAxisStruct, 1, 2);
 
 
 	// Read input switch positions
@@ -612,7 +582,8 @@ int main(void) {
 static const evhandler_t evhndl[] = {
 WKUP_button_handler
 };
-struct EventListener el0;
+//struct EventListener el0;
+BaseSequentialStream *chp = getUsbStream();
 
 	/*
 	* System initializations.
@@ -745,7 +716,6 @@ struct EventListener el0;
 	* Normal main() thread activity, in this demo it does nothing except
 	* sleeping in a loop and listen for events.
 	*/
-	chEvtRegister(&wkup_event, &el0, 0);
 	while (TRUE) {
 		//Cycle motordrive if timer fails
 		if(U32DelayCount++ > 2500){
@@ -760,7 +730,7 @@ struct EventListener el0;
  *
  * Description:		Starts a SPI read transaction and reads 4 samples
  *****************************************************************************/
-void ReadADCs(uint16_t * Samples, int Reads) {
+void ReadADCs(axissample_t * Samples, int Reads) {
 
 
 	spiSelectI(&SPID1);

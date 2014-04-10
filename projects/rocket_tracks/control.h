@@ -18,6 +18,8 @@
 #define MASS								//TODO measure mass of payload
 #define MASS_I								//TODO calculate payload COM moment of inertia
 
+typedef uint16_t axissample_t;
+
 typedef struct {
 
 	// Mode and lockout variables

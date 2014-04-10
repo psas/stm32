@@ -47,6 +47,11 @@ typedef struct {
 	//TODO Robert use this for parsed data received from SLA
 } SLAData;
 
+void SendtoManualSocket(void);
+void SendtoSLASocket(void);
+void ReceiveSLASocket(void);
+void ReceiveManualSocket(void);
+
 void SendSLA(int Command);
 void ReceiveSLA(SLAData data);
 void ReceiveManual(ManualData data);

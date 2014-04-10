@@ -36,8 +36,6 @@
 *
 */
 
-typedef uint16_t axissample_t;
-
 #define AXIS_ADC_COUNT		4
 #define GPIOA_CS_SPI		4
 
@@ -56,19 +54,6 @@ typedef uint16_t axissample_t;
 #define ADC_GRP2_NUM_CHANNELS   2
 /* Depth of the conversion buffer, input channels are sampled once each.*/
 #define ADC_GRP2_BUF_DEPTH      1
-
-//Function Prototypes
-static void adccb1(ADCDriver *adcp, adcsample_t *buffer, size_t n);
-static void adccb2(ADCDriver *adcp, adcsample_t *buffer, size_t n);
-static void adccb3(ADCDriver *adcp, adcsample_t *buffer, size_t n);
-void DisplayData(BaseSequentialStream *chp, CONTROL_AXIS_STRUCT *axis_p);
-static void ControlAxis(CONTROL_AXIS_STRUCT *ptr, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN);
-static void spicb(SPIDriver *spip);
-void ReadADCs(uint16_t * Samples, int Reads);
-static void motordrive(GPTDriver *gptp);
-static void processLeds(void);
-uint32_t microsecondsToPWMTicks(const uint32_t microseconds);
-uint32_t pwmGetPclk(void);
 
 
 #endif

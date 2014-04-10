@@ -38,7 +38,7 @@ void SendtoManualSocket(){
     ManualSendSocket = get_udp_socket((struct sockaddr*)&self_addr);
 
     //Create the address to send to
-    set_sockaddr(&manual_addr, IP_HOST, DATA_UDP_TX_PORT);
+    set_sockaddr(&manual_addr, IP_HOST, MANUAL_TX_PORT);
 }
 void SendtoSLASocket(){
 
@@ -61,13 +61,12 @@ void ReceiveManualSocket() {
 
 //Functions to send Ethernet messages
 
-void SendSLA(int Command) {
-//TODO Robert send commands to SLA
-}
-
 void SendNeutral(Neutral data) {
 
 char msg[2];
+#ifndef NDEBUG
+BaseSequentialStream *chp = getUsbStream();
+#endif
 
 	msg[0] = data.latNeutral;
 	msg[1] = data.vertNeutral;
@@ -80,9 +79,13 @@ char msg[2];
     return;
 }
 
-void ReceiveSLA(SLAData data) {
-
-}
+//void SendSLA(int Command) {
+////TODO Robert send commands to SLA
+//}
+//
+//void ReceiveSLA(SLAData data) {
+////TODO Robert receive data from SLA
+//}
 
 /*!
  * Stack area for the rtx_controller_receive_thread.
@@ -95,16 +98,22 @@ msg_t rtx_controller_receive_thread(void *p __attribute__ ((unused))) {
      * message, printing it out over serial USB
      */
 
+uint8_t temp = 0;
+
 char msg[MANUAL_REMOTE_MESSAGE_SIZE];
 char SLA[SLA_MESSAGE_SIZE];
+
+socklen_t manual_addr_length = sizeof(manual_addr);
+socklen_t sla_addr_length = sizeof(sla_addr);
 
 	chRegSetThreadName("rtx_controller_receive_thread");
 	#ifndef NDEBUG
 	BaseSequentialStream *chp = getUsbStream();
 	#endif
 
+
     while(TRUE) {
-		if(recvfrom(ManualReceiveSocket, msg, sizeof(msg), 0, (struct sockaddr*)&manual_addr, sizeof(manual_addr)) < 0){
+		if(recvfrom(ManualReceiveSocket, msg, sizeof(msg), 0, (struct sockaddr*)&manual_addr, &manual_addr_length) < 0){
 			#ifndef NDEBUG
 			chprintf(chp, "Manual socket recv failure \r\n");
 			#endif
@@ -127,7 +136,7 @@ char SLA[SLA_MESSAGE_SIZE];
 			RemoteData.latPosition = (uint16_t)msg[10] | temp;
 		}
 		if(RemoteData.Mode == '1') {
-			if(recvfrom(SLAReceiveSocket, SLA, sizeof(SLA), 0, (struct sockaddr*)&sla_addr, sizeof(sla_addr)) < 0){
+			if(recvfrom(SLAReceiveSocket, SLA, sizeof(SLA), 0, (struct sockaddr*)&sla_addr, &sla_addr_length) < 0){
 				#ifndef NDEBUG
 				chprintf(chp, "SLA socket recv failure \r\n");
 				#endif
