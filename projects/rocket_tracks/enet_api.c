@@ -119,6 +119,12 @@ char SLA[SLA_MESSAGE_SIZE];
 			RemoteData.Aux = msg[2];
 			temp = (uint16_t)msg[3] << 8;
 			RemoteData.latPosition = (uint16_t)msg[4] | temp;
+			temp = (uint16_t)msg[5] << 8;
+			RemoteData.vertPosition = (uint16_t)msg[6] | temp;
+			temp = (uint16_t)msg[7] << 8;
+			RemoteData.Axis3Position = (uint16_t)msg[8] | temp;
+			temp = (uint16_t)msg[9] << 8;
+			RemoteData.latPosition = (uint16_t)msg[10] | temp;
 		}
 		if(RemoteData.Mode == '1') {
 			if(recvfrom(SLAReceiveSocket, SLA, sizeof(SLA), 0, (struct sockaddr*)&sla_addr, sizeof(sla_addr)) < 0){

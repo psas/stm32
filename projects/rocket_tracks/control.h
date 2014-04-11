@@ -27,8 +27,6 @@ typedef struct {
 	uint8_t U8PositionNeutral;
 	uint8_t U8VelocityNeutral;
 
-
-//	adcsample_t U16InputADC;
 	axissample_t U16FeedbackADC;
 	axissample_t U16FeedbackADCPrevious;
 

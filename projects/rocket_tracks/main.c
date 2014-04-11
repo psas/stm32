@@ -111,9 +111,7 @@ static const ADCConversionGroup adcgrp2cfg = {
 
 // Global variables
 
-static adcsample_t InputSamples[ADC_GRP2_NUM_CHANNELS * ADC_GRP2_BUF_DEPTH];
-static adcsample_t vertFeedbackSample[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
-static adcsample_t latFeedbackSample[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
+static adcsample_t refMonitor[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
 
 uint8_t U8EnableDriveSwitch = 0;
 uint8_t U8PrevPosnVelModeSwitchState = 0;
@@ -776,16 +774,9 @@ void ReadADCs(uint16_t * Samples, int Reads) {
  *
  * Description:		Updates PWM outputs based on system state
  *****************************************************************************/
-void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, adcsample_t sample, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN) {
-//void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN) {
+//void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, adcsample_t sample, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN) {
+void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN) {
 
-	// Get feedback ADC value
-	axis_p->U16FeedbackADC = sample;
-
-//	// Get commanded position
-//	if(U8trackupflag) {
-//		TrackUp();
-//	}
 	// Set axis mode
 	if(U8ShellMode == 2)
 		axis_p->U8PosnVelMode = U8PosnVelModeSwitch;

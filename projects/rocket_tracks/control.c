@@ -21,6 +21,7 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	const uint16_t U16PosDesAccumMultiplyer = 2048;
 	const uint16_t U16PosDesAccumExponentialDivisor = 1024;
 	const uint16_t U16VelocityDeadband = 80;
+	const uint16_t U16PosOffset = 2048;
 
 	// ************* Position Loop *************
 
@@ -28,12 +29,7 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	//ptr->S16PositionDesired
 
 	// Compute actual position
-	ptr->S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + 2048;
-
-	//Calculate Gains
-	vertAxisStruct.U16MomentofInertia = vertInertia();
-	latGains(&latAxisStruct);
-	vertGains(&vertAxisStruct);
+	ptr->S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + U16PosOffset;
 
 	// Compute position error Negative to deal with potentiometer direction
 	ptr->S16PositionError = -(ptr->S16PositionDesired - ptr->S16PositionActual);
@@ -83,42 +79,14 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	if(ptr->U16FeedbackADC < 5){
 		ptr->S16OutputCommand = 0;
 	}
-	else if( (ptr->U16FeedbackADC > ptr->U16HighPosnLimit - 2048) &&
+	else if( (ptr->S16PositionActual > ptr->U16HighPosnLimit) &&
 			 (ptr->S16OutputCommand < 0) ){
 		ptr->S16OutputCommand = 0;
 	}
-	else if( (ptr->U16FeedbackADC < ptr->U16LowPosnLimit - 2048) &&
+	else if( (ptr->S16PositionActual < ptr->U16LowPosnLimit) &&
 			 (ptr->S16OutputCommand > 0) ){
 		ptr->S16OutputCommand = 0;
 	}
 
 } // End void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 
-float vertInertia() {
-
-	//TODO calculate vertical axis moment of inertia
-}
-
-void vertGains() {
-
-	//TODO calculate P gain
-	vertAxisStruct.U16PositionPGain;
-
-	//TODO calculate I gain
-	vertAxisStruct.U16PositionIGain;
-
-	//TODO calculate D gain
-	vertAxisStruct.U16PositionDGain;
-}
-
-void latGains() {
-
-	//TODO calculate P gain
-	latAxisStruct.U16PositionPGain;
-
-	//TODO calculate I gain
-	latAxisStruct.U16PositionIGain;
-
-	//TODO calculate D gain
-	latAxisStruct.U16PositionDGain;
-}

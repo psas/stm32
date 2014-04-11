@@ -22,7 +22,7 @@
 #define IP_SLA	                            "192.168.0.196"
 #define IP_MANUAL                           "192.168.0.123"
 
-#define MANUAL_REMOTE_MESSAGE_SIZE			10
+#define MANUAL_REMOTE_MESSAGE_SIZE			11
 #define SLA_MESSAGE_SIZE					2
 
 
