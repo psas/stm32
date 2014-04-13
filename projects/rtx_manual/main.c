@@ -625,9 +625,9 @@ BaseSequentialStream *chp = getUsbStream();
     */
 	usbSerialShellStart(commands);
 
-	// Enable Continuous GPT for 10ms Interval
+	// Enable Continuous GPT for 1ms Interval
 	gptStart(&GPTD1, &gpt1cfg);
-	gptStartContinuous(&GPTD1,100000);
+	gptStartContinuous(&GPTD1,10000);
 
 	// Configure pins for Feedback ADC's
 	palSetPadMode(GPIOA, GPIOA_PIN4, PAL_MODE_INPUT_ANALOG);
