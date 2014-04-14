@@ -19,24 +19,11 @@
 #include "lwip/ip_addr.h"
 
 #include "utils_sockets.h"
+#include "utils_shell.h"
+#include "utils_led.h"
+
 #include "usbdetail.h"
-#include "cmddetail.h"
 #include "data_udp.h"
-
-
-
-static WORKING_AREA(waThread_blinker, 64);
-/*! \brief Green LED blinker thread
- */
-static msg_t Thread_blinker(void *arg) {
-	(void)arg;
-	chRegSetThreadName("blinker");
-	while (TRUE) {
-		palTogglePad(GPIOC, GPIOC_LED);
-		chThdSleepMilliseconds(500);
-	}
-	return -1;
-}
 
 void main(void) {
 	/*
@@ -49,8 +36,10 @@ void main(void) {
 	halInit();
 	chSysInit();
 
-	palSetPad(GPIOC, GPIOC_LED);
+	/* Start diagnostics led */
+	led_init(&e407_led_cfg);
 
+	/* Start diagnostics shell */
 	const ShellCommand commands[] = {
 	        {"mem", cmd_mem},
 	        {"threads", cmd_threads},
@@ -66,8 +55,7 @@ void main(void) {
 
 	/* Start the lwip thread*/
 	chprintf(chp, "LWIP ");
-	chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2,
-	                    lwip_thread, &ip_opts);
+	lwipThreadStart(&ip_opts);
 
 	/* Start the feature threads */
 	chprintf(chp, "tx ");
@@ -76,8 +64,6 @@ void main(void) {
     chprintf(chp, "rx ");
     chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO,
       		data_udp_receive_thread, NULL);
-    chprintf(chp, "shell ");
-    chThdCreateStatic(waThread_blinker, sizeof(waThread_blinker), NORMALPRIO, Thread_blinker, NULL);
 
     while (TRUE) {
 		chThdSleep(TIME_INFINITE);

@@ -14,7 +14,7 @@
 #include "BQ24725.h"
 
 static I2CDriver *I2CD;
-struct BQ24725Config * CONF;
+static struct BQ24725Config * CONF;
 static bool initialized = false;
 static const systime_t I2C_TIMEOUT = MS2ST(400);
 
@@ -31,41 +31,15 @@ const BQ24725_charge_options BQ24725_charge_options_POR_default = {
     .charge_inhibit = charge_enable
 };
 
-struct BQ24725Config RNH_BQConfig = {
-        .ACOK = {GPIOD, GPIO_D0_BQ24_ACOK},
-        .ACOK_cb = NULL,
-        .I2CD = &I2CD1,
-};
-
-inline uint16_t form_options_data(BQ24725_charge_options * opts){
-    return opts->ACOK_deglitch_time | opts->WATCHDOG_timer |
-            opts->BAT_depletion_threshold | opts->EMI_sw_freq_adj |
-            opts->EMI_sw_freq_adj_en | opts->IFAULT_HI_threshold |
-            opts->LEARN_en | opts->IOUT | opts->ACOC_threshold |
-            opts->charge_inhibit;
-}
-inline void form_options_struct(uint16_t data, BQ24725_charge_options* opt){
-    opt->ACOK_deglitch_time = data & BQ24725_ACOK_deglitch_time_MASK;
-    opt->WATCHDOG_timer = data & BQ24725_WATCHDOG_timer_MASK;
-    opt->BAT_depletion_threshold = data & BQ24725_BAT_depletion_threshold_MASK;
-    opt->EMI_sw_freq_adj = data & BQ24725_EMI_sw_freq_adj_MASK;
-    opt->EMI_sw_freq_adj_en = data & BQ24725_EMI_sw_freq_adj_en_MASK;
-    opt->IFAULT_HI_threshold = data & BQ24725_IFAULT_HI_threshold_MASK;
-    opt->LEARN_en = data & BQ24725_LEARN_en_MASK;
-    opt->IOUT = data & BQ24725_IOUT_MASK;
-    opt->ACOC_threshold = data & BQ24725_ACOC_threshold_MASK;
-    opt->charge_inhibit = data & BQ24725_charge_inhibit_MASK;
-}
-
 void BQ24725_init(struct BQ24725Config * conf){
     if(initialized == true)
         return;
 
     if(!conf){
-        CONF = &RNH_BQConfig;
-    }else{
-        CONF = conf;
+        return;
     }
+    CONF = conf;
+    I2CD = CONF->I2CD;
 
     //todo: set I2C pins
     static const I2CConfig i2cfg = {
@@ -73,8 +47,9 @@ void BQ24725_init(struct BQ24725Config * conf){
         100000,
         STD_DUTY_CYCLE,
     };
-    I2CD = CONF->I2CD;
-    i2cStart(I2CD, &i2cfg);
+    if(I2CD->state == I2C_STOP){
+        i2cStart(I2CD, &i2cfg);
+    }
 
     palSetPadMode(CONF->ACOK.port, CONF->ACOK.pad, PAL_MODE_INPUT_PULLDOWN | PAL_STM32_OSPEED_HIGHEST);
     extAddCallback(&(CONF->ACOK), EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART, CONF->ACOK_cb);
@@ -87,7 +62,7 @@ void BQ24725_init(struct BQ24725Config * conf){
 //todo: form options data/struct
 static int BQ24725_Get(uint8_t register_id, uint16_t* data){
     if(initialized == false)
-        BQ24725_init(NULL);
+        return -1;
 
     uint8_t tx[1] = {register_id};
     uint8_t rx[2];
@@ -115,7 +90,7 @@ static int BQ24725_Get(uint8_t register_id, uint16_t* data){
 
 static int BQ24725_Set(uint8_t register_id, uint16_t data){
     if(initialized == false)
-    	BQ24725_init(NULL);
+    	return -1;
 
     uint8_t tx[3] = {register_id, LOWDATA_BYTE(data), HIGHDATA_BYTE(data)};
     i2cflags_t errors;

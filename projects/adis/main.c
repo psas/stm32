@@ -72,7 +72,7 @@ void main(void){
 	led_init(&led_cfg);
 
     /* Start lwip */
-    chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, SENSOR_LWIP);
+    lwipThreadStart(SENSOR_LWIP);
 
     /* Create the ADIS out socket, connecting as it only sends to one place */
     sendsocket = get_udp_socket(ADIS_ADDR);

@@ -1,5 +1,7 @@
 #FIXME: Pass -Werror to submakes
-SUBDIRS = $(shell ls -d */)
+
+SKIPDIRS = mpu flight-imu eventlogger
+SUBDIRS = $(shell find -mindepth 1 -maxdepth 1 -type d $(foreach dir,$(SKIPDIRS),-not -name "$(dir)"))
 CLEAN_SUBDIRS = $(SUBDIRS:%=install-%)
 
 all: $(SUBDIRS)

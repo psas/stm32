@@ -1,11 +1,3 @@
+This directory holds details for setting up and running our toolchain.
 
-To install the binaries:
-
-cd to /opt/psas/
-untar the archive there.
-Then edit your ~/.profile to add the following to your path:
-
-/opt/psas/x-tools/stm32f407/arm-psas-eabi/bin
-
-
-Now you can cross compile code to the arm microcontroller.
+See the top level readme for more details. I kinda think that information should be moved here?

@@ -6,74 +6,104 @@
  * stuff. For this driver the AKM is accessed only in the 9150's master mode.
  */
 
+#include <stddef.h>
 #include <stdbool.h>
 
 #include "ch.h"
 #include "hal.h"
 
-#include "usbdetail.h"
-#include "chprintf.h"
+#include "utils_hal.h"
 
 #include "MPU9150.h"
 
-static I2CDriver *I2CD = NULL;
+#define UNUSED __attribute__((unused))
 
-MPU9150_Driver mpu9150_driver;
-MPU9150_read_data mpu9150_current_read;
 
-static EventSource mpu9150_interrupt;
-EventSource mpu9150_data_ready;
+static int initialized;
+static I2CDriver *I2CD;
+static const systime_t I2C_TIMEOUT = MS2ST(400);
+static EventSource interrupt;
 
-static const systime_t mpu9150_i2c_timeout = MS2ST(400);
+EventSource MPU9150_data_ready;
 
-static void MPU9150_get(mpu9150_a_g_regaddr ra, mpu9150_reg_data* d) {
-	msg_t status = RDY_OK;
+int MPU9150_Get(uint8_t register_id, uint8_t* data){
+    if(initialized == false)
+        return -1;
 
-	mpu9150_driver.txbuf[0] = ra;
-	i2cAcquireBus(I2CD);
-	status = i2cMasterTransmitTimeout(I2CD, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 1, mpu9150_driver.rxbuf, 1, mpu9150_i2c_timeout);
-	i2cReleaseBus(I2CD);
-	if (status != RDY_OK){
-		mpu9150_driver.i2c_errors = i2cGetErrors(I2CD);
-	}
-	*d = mpu9150_driver.rxbuf[0];
-
-    if (status != RDY_OK){
-        mpu9150_driver.i2c_errors = i2cGetErrors(I2CD);
+    uint8_t tx[] = {register_id};
+    uint8_t rx[1];
+    i2cflags_t errors;
+    i2cAcquireBus(I2CD);
+    msg_t status = i2cMasterTransmitTimeout(I2CD,  MPU9150_a_g_ADDR, tx, sizeof(tx), rx, sizeof(rx), I2C_TIMEOUT);
+    switch(status){
+    case RDY_OK:
+        i2cReleaseBus(I2CD);
+        break;
+    case RDY_RESET:
+        errors = i2cGetErrors(I2CD);
+        i2cReleaseBus(I2CD);
+        return errors;
+    case RDY_TIMEOUT:
+        i2cReleaseBus(I2CD);
+        return RDY_TIMEOUT;
+    default:
+        i2cReleaseBus(I2CD);
     }
+
+    *data = rx[0];
+    return RDY_OK;
+}
+int MPU9150_Set(uint8_t register_id, uint8_t data){
+    if(initialized == false)
+        return -1;
+
+    uint8_t tx[] = {register_id, data};
+    i2cflags_t errors;
+    i2cAcquireBus(I2CD);
+    msg_t status = i2cMasterTransmitTimeout(I2CD, MPU9150_a_g_ADDR, tx, sizeof(tx), NULL, 0, I2C_TIMEOUT);
+    switch(status){
+    case RDY_OK:
+        i2cReleaseBus(I2CD);
+        break;
+    case RDY_RESET:
+        errors = i2cGetErrors(I2CD);
+        i2cReleaseBus(I2CD);
+        return errors;
+    case RDY_TIMEOUT:
+        i2cReleaseBus(I2CD);
+        return RDY_TIMEOUT;
+    default:
+        i2cReleaseBus(I2CD);
+    }
+
+    return RDY_OK;
 }
 
-static void MPU9150_set(mpu9150_a_g_regaddr ra, mpu9150_reg_data d) {
-	msg_t status = RDY_OK;
 
-	mpu9150_driver.txbuf[0] = ra;
-	mpu9150_driver.txbuf[1] = d;
-	i2cAcquireBus(I2CD);
-	status = i2cMasterTransmitTimeout(I2CD, mpu9150_i2c_a_g_addr, mpu9150_driver.txbuf, 2, mpu9150_driver.rxbuf, 0, mpu9150_i2c_timeout);
-	i2cReleaseBus(I2CD);
-    if (status != RDY_OK){
-        mpu9150_driver.i2c_errors = i2cGetErrors(I2CD);
-    }
+static void on_interrupt(EXTDriver *extp UNUSED, expchannel_t channel UNUSED){
+    chSysLockFromIsr();
+    chEvtBroadcastI(&interrupt);
+    chSysUnlockFromIsr();
 }
 
-static void mpu_get_all_sensors(eventid_t u){
+static void get_all_sensors(eventid_t u){
     i2cMasterTransmitTimeout();
-    chEvtBroadcast(&adis_data_ready);
+    chEvtBroadcast(&MPU9150_data_ready);
 }
 
-static msg_t mpu_read_thd(void * arg){
+static WORKING_AREA(wa_read, 128);
+static msg_t read_thd(void * arg UNUSED){
     chRegSetThreadName("MPU9150");
 
     struct EventListener listener;
     static const evhandler_t handlers[] = {
-            mpu_get_all_sensors
+            get_all_sensors
     };
-    chEvtRegister(&mpu9150_interrupt, &listener, 0);
+    chEvtRegister(&interrupt, &listener, 0);
 
     while (TRUE) {
         chEvtDispatch(handlers, chEvtWaitOne(ALL_EVENTS));
     }
-
     return -1;
 }
 
@@ -81,28 +111,34 @@ static msg_t mpu_read_thd(void * arg){
 /*! \brief Initialize MPU9150 driver
  *
  */
-void mpu9150_start(MPU9150_config  *config) {
-	uint8_t     i              = 0;
+void MPU9150_init(MPU9150Config  *conf) {
+//TODO: If I2C is active, check if config is correct
 
-	I2CD = config->I2CD;
+    I2CD = conf->I2CD;
 
-	mpu9150_driver.i2c_errors   = 0;
-	mpu9150_driver.i2c_instance = i2c;
-	for(i=0; i<MPU9150_MAX_TX_BUFFER; ++i) {
-		mpu9150_driver.txbuf[i]        = 0;
-	}
-	for(i=0; i<MPU9150_MAX_RX_BUFFER; ++i) {
-		mpu9150_driver.rxbuf[i]        = 0xa5;
-	}
-	mpu9150_current_read.accel_xyz.x     = 0;
-	mpu9150_current_read.accel_xyz.y     = 0;
-	mpu9150_current_read.accel_xyz.z     = 0;
-	mpu9150_current_read.gyro_xyz.x      = 0;
-	mpu9150_current_read.gyro_xyz.y      = 0;
-	mpu9150_current_read.gyro_xyz.z      = 0;
-	mpu9150_current_read.celsius         = 0;
+    palSetPadMode(conf->sda.port, conf->sda.pad, PAL_MODE_ALTERNATE(4)
+            | PAL_STM32_OTYPE_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST |PAL_STM32_PUDR_FLOATING );
+    palSetPadMode(conf->scl.port, conf->scl.pad, PAL_MODE_ALTERNATE(4)
+            | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
 
-	chEvtInit(&mpu9150_int_event);
+    static const I2CConfig i2cfg = {
+        OPMODE_I2C,
+        400000,
+        FAST_DUTY_CYCLE_2,
+    };
+    if(I2CD->state == I2C_STOP){
+        i2cStart(I2CD, &i2cfg);
+    }
+
+	chEvtInit(&MPU9150_data_ready);
+	chEvtinit(&interrupt);
+
+    extAddCallback(conf->interrupt, EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, on_interrupt);
+    extUtilsStart();
+
+    chThdCreateStatic(wa_read, sizeof(wa_read), NORMALPRIO, read_thd, NULL);
+
+    initialized = true;
 }
 
 void mpu9150_reset(void) {

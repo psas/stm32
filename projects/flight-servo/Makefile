@@ -97,7 +97,6 @@ CSRC = $(PORTSRC) \
 	   $(PSAS_UTIL)/utils_led.c \
        servo_control.c \
        launch_detect.c \
-       debug_pwm.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -238,4 +237,3 @@ endif
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
 
 include $(PSAS)/oocd.mk
-

@@ -10,11 +10,22 @@
 #include "lwip/sockets.h"
 #include "lwip/ip_addr.h"
 
-/* Convenience functions for filling out structs and setting up sockets */
+/* Ethernet MTU in bytes - useful for creating UDP rx and tx buffers*/
+#define ETH_MTU 1500
+
+/* Fills out an lwipthread_opts struct */
 void set_lwipthread_opts(struct lwipthread_opts * ip_opts,
     const char * ip, const char * netmask, const char * gateway, uint8_t * mac);
+
+/* Starts the lwip core thread with ip_opts */
+void lwipThreadStart(struct lwipthread_opts * ip_opts);
+
+
+/* Fills out a sockaddr_in with AF_INET, ip, and port in network byteorder */
 void set_sockaddr(struct sockaddr_in * addr, const char * ip, int port);
-int get_udp_socket(struct sockaddr *addr);
+
+/* Returns an AF_INET UDP socket bound to addr, or less than 0 on failure */
+int get_udp_socket(const struct sockaddr *addr);
 
 #endif
 

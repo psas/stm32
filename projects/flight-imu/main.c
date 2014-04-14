@@ -1,52 +1,34 @@
-/*! \file main.c
- *
+/*
+ * Flight Application IMU
  * This is specific to the Olimex stm32-e407 board modified for flight with IMU sensors.
- *
  */
 
-/*!
- * \defgroup mainapp flight-imu Flight Application IMU
- * @{
- */
-
-#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 
 #include "ch.h"
 #include "hal.h"
-#include "chprintf.h"
-#include "shell.h"
 
-#include "board.h"
-#include "lwip/ip_addr.h"
-#include "lwipopts.h"
 #include "lwipthread.h"
 #include "ff.h"
 
-#include "MPU9150.h"
 #include "ADIS16405.h"
+#include "MPU9150.h"
 #include "MPL3115A2.h"
 
 #include "net_addrs.h"
 #include "utils_sockets.h"
+#include "utils_led.h"
 
-#include "iwdg_lld.h"
 #include "usbdetail.h"
-#include "extdetail.h"
-#include "cmddetail.h"
 
-#include "sensor_mpl.h"
-#include "sensor_mpu.h"
-
-#include "data_udp.h"
 #include "psas_rtc.h"
 #include "psas_sdclog.h"
 #include "sdcdetail.h"
 
-#include "main.h"
+#define UNUSED __attribute__((unused))
 
-static const int    FLIGHT_IMU_WATCHDOG_MS = 250;
+static int adis_socket, mpu_socket, mpl_socket;
 
 static const ShellCommand commands[] = {
     {"tree",        cmd_tree},
@@ -57,145 +39,114 @@ static const ShellCommand commands[] = {
     {NULL,          NULL}
 };
 
-/*! configure the i2c module on stm32
- *
- */
-const I2CConfig IMU_I2C_Config = {
-    OPMODE_I2C,
-    400000,                // i2c clock speed. Test at 400000 when r=4.7k
-    FAST_DUTY_CYCLE_2,
-    // STD_DUTY_CYCLE,
-};
-
 /*! \typedef mpu9150_config
  *
  * Configuration for the MPU IMU connections
  */
-const mpu9150_connect mpu9150_connections = {
-    GPIOF,                // i2c sda port
-    0,                    // i2c_sda_pad
-    GPIOF,                // i2c_scl_port
-    1,                    // i2c scl pad
-    GPIOF,                // interrupt port
-    13,                   // interrupt pad;
+const MPU9150Config mpuconf = {
+    .sda = {GPIOF, 0},
+    .scl = {GPIOF, 1},
+    .interrupt = {GPIOF, 13},
+    .I2CD = &I2CD2
 };
 
-static WORKING_AREA(waThread_blinker, 64);
-/*! \brief Green LED blinker thread
-*/
-static msg_t Thread_blinker(void *arg) {
-    (void)arg;
-    chRegSetThreadName("blinker");
-    while (TRUE) {
-        palTogglePad(GPIOC, GPIOC_LED);
-        chThdSleepMilliseconds(fs_ready ? 125 : 500);
-    }
-    return -1;
+
+/*! \brief event handler for mpu9150 udp data
+ *  send one packet of mpu9150 data on event.
+ */
+static void send_mpl3115a2_data(eventid_t id UNUSED) {
+    uint8_t data[sizeof(MPL_packet)];
+
+    memcpy(&packet.data, (void*) &mpl3115a2_current_read, sizeof(MPL3115A2_read_data) );
+
+    memcpy (data, (void*) &packet, sizeof(packet));
+    write(mpl_socket, data, sizeof(data));
+}
+/*! \brief event handler for mpu9150 udp data
+ *  send one packet of mpu9150 data on event.
+ */
+static void send_mpu9150_data(eventid_t id UNUSED) {
+    uint8_t data[sizeof(MPU_packet)];
+
+    memcpy(&packet.data, (void*) &mpu9150_current_read, sizeof(MPU9150_read_data) );
+
+    memcpy (data, (void*) &packet, sizeof(packet));
+    write(mpu_socket, data, sizeof(data));
 }
 
-static WORKING_AREA(waThread_indwatchdog, 64);
-/*! \brief  Watchdog thread
-*/
-static msg_t Thread_indwatchdog(void *arg) {
-    (void)arg;
+/*! \brief event handler for adis16405 udp data
+ *  send one packet of adis16405 data on event.
+ */
+static void send_adis16405_data(eventid_t id UNUSED) {
 
-    chRegSetThreadName("iwatchdog");
-    while (TRUE) {
-        iwdg_lld_reload();
-        chThdSleepMilliseconds(FLIGHT_IMU_WATCHDOG_MS);
-    }
-    return -1;
+    uint8_t data[sizeof(ADIS_packet)];
+
+    ADIS16405_burst_data burst;
+    adis_get_data(&burst);
+
+    memcpy (data, (void*) &packet, sizeof(packet));
+    write(adis_socket, data, sizeof(data));
 }
+
 
 int main(void) {
-    static const evhandler_t evhndl_main[]  = {
-        sdc_insert_handler,
-        sdc_remove_handler
-    };
-    struct EventListener     el0, el1;
-
-    //struct lwipthread_opts   ip_opts;
-
-    /*
-     * System initializations.
-     * - HAL initialization, this also initializes the configured device drivers
-     *   and performs the board-specific initializations.
-     * - Kernel initialization, the main() function becomes a thread and the
-     *   RTOS is active.
-     */
+    /* Initialize system */
     halInit();
     chSysInit();
+    led_init(&e407_led_cfg); //diagnostics
 
+    /* Start the RTC */
     psas_rtc_lld_init();
-
     psas_rtc_set_fc_boot_mark(&RTCD1); 
 
-    /*
-     * Activates the serial driver 6 and SDC driver 1 using default
-     * configuration.
-     */
-    sdcStart(&SDCD1, NULL);
-
-    /*
-     * Activates the card insertion monitor.
-     */
-    sdc_tmr_init(&SDCD1);
-
-    usbSerialShellStart(commands);
-
-    //adis_init();
-    //adis_reset();
-
-    mpu9150_start(&I2CD2);
-    mpl3115a2_start(&I2CD2);
-
-    /*
-     * I2C2 I/O pins setup
-     */
-    palSetPadMode(mpu9150_connections.i2c_sda_port , mpu9150_connections.i2c_sda_pad,
-            PAL_MODE_ALTERNATE(4) | PAL_STM32_OTYPE_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST |PAL_STM32_PUDR_FLOATING );
-    palSetPadMode(mpu9150_connections.i2c_scl_port, mpu9150_connections.i2c_scl_pad,
-            PAL_MODE_ALTERNATE(4) | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
-
-    palSetPad(mpu9150_connections.i2c_scl_port,  mpu9150_connections.i2c_scl_pad );
-
-    // the mpu and the mpl sensor share the same I2C instance
-    i2cStart(mpu9150_driver.i2c_instance, &IMU_I2C_Config);
-
-    // Activates the EXT driver
-    extStart(&EXTD1, &extcfg);
-
-    // Maintenance threads
-    chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
-    chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
-
-    // MPL pressure sensor
-    chThdCreateStatic(waThread_mpl_int_1        , sizeof(waThread_mpl_int_1)        , NORMALPRIO    , Thread_mpl_int_1       , NULL);
-
-    // MPU 6 axis IMU sensor
-    chThdCreateStatic(waThread_mpu9150_int      , sizeof(waThread_mpu9150_int)      , NORMALPRIO    , Thread_mpu9150_int     , NULL);
-
-    /* SPI ADIS - As of: Mon 18 November 2013 11:11:42 (PST) Unavailable for testing. */
-    //chThdCreateStatic(waThread_adis_dio1,    sizeof(waThread_adis_dio1),    NORMALPRIO, Thread_adis_dio1,    NULL);
-    //chThdCreateStatic(waThread_adis_newdata, sizeof(waThread_adis_newdata), NORMALPRIO, Thread_adis_newdata, NULL);
-
-
-     chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2, lwip_thread, SENSOR_LWIP);
-    /*    chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
-     *    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
-     */
-
+    /* Start SD Card logging */
+    sdcStart(&SDCD1, NULL); // Activates SDC driver 1 using default configuration
+    sdc_tmr_init(&SDCD1); // Activates the card insertion monitor
     //chThdCreateStatic(wa_sdlog_thread           , sizeof(wa_sdlog_thread)           , NORMALPRIO    , sdlog_thread           , NULL);
-
-    chEvtRegister(&sdc_inserted_event,   &el0, 0);
-    chEvtRegister(&sdc_removed_event,    &el1, 1);
-
     // It is possible the card is already inserted. Check now by calling insert handler directly.
     sdc_insert_handler(0);
 
+    /* Initialize sensors */
+    MPU9150_init(&mpuconf);
+    adis_init(&adis_olimex_e407);
+
+    /* Start RocketNet Communication */
+    lwipThreadStart(SENSOR_LWIP);
+
+    adis_socket = get_udp_socket(ADIS_ADDR);
+    mpu_socket = get_udp_socket(MPU_ADDR);
+    mpl_socket = get_udp_socket(MPL_ADDR);
+
+    if(adis_socket < 0 || mpu_socket < 0 || mpl_socket < 0){
+        log_error("Failed to get a sensor socket");
+        return RDY_RESET;
+    }
+
+    connect(adis_socket, FC_ADDR, sizeof(struct sockaddr));
+    connect(mpu_socket, FC_ADDR, sizeof(struct sockaddr));
+    connect(mpl_socket, FC_ADDR, sizeof(struct sockaddr));
+
+    /* Set up events */
+    static const evhandler_t evhndl_main[]  = {
+        sdc_insert_handler,
+        sdc_remove_handler,
+        send_mpu9150_data,
+        send_mpl3115a2_data,
+        send_adis16405_data
+    };
+    struct EventListener     el0, el1;
+    struct EventListener     evl_mpu9150;
+    struct EventListener     evl_mpl3115a2;
+    struct EventListener     evl_adis16405;
+    chEvtRegister(&sdc_inserted_event,   &el0, 0);
+    chEvtRegister(&sdc_removed_event,    &el1, 1);
+    chEvtRegister(&mpu9150_data_event, &evl_mpu9150, 2);
+    chEvtRegister(&mpl3115a2_data_event, &evl_mpl3115a2, 3);
+    chEvtRegister(&ADIS16405_data_ready, &evl_adis16405, 4);
+
+    usbSerialShellStart(commands);
     while (TRUE) {
        chEvtDispatch(evhndl_main, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(50)));
     }
 }
 
-//! @}
