@@ -1,6 +1,6 @@
 language: c
 install: make get-deps
-script : cd projects && make
+script : if [ ${COVERITY_SCAN_BRANCH} != 1 ]; then cd projects && make ; fi
 
 notifications:
   irc:
@@ -25,5 +25,5 @@ addons:
       description: "Your project description here"
     notification_email: theo0x48@gmail.com
     build_command_prepend:
-    build_command: cd projects && make
+    build_command: "cd projects && make"
     branch_pattern: coverity_scan
