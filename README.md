@@ -1,6 +1,7 @@
 # STM32 Firmware Development
 
 [![Build Status](https://travis-ci.org/psas/stm32.png)](https://travis-ci.org/psas/stm32)
+[![Coverity Scan Build Status](https://scan.coverity.com/projects/1787/badge.svg)](https://scan.coverity.com/projects/1787)
 
 This repo is for firmware, OS, and application code for the STM32F4xx series of microcontrollers used on the PSAS AV3 avionics system.
 
