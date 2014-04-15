@@ -1,7 +1,7 @@
 
 
 
-ADC_GRP1_NUM_CHANNELS 1
+#define ADC_GRP1_NUM_CHANNELS 1
 
 
 /*
@@ -11,16 +11,16 @@ ADC_GRP1_NUM_CHANNELS 1
  */
 static const ADCConversionGroup adcgrpcfg1 = {
     .circular = FALSE,                                           // circular
-    ADC_GRP1_NUM_CHANNELS,                           
-    NULL,                                            // end cb
-    adcerrorcallback,                                // error cb
-    (ADC_CR1_DISCEN | ADC_CR1_EOCIE),                // CR1 
-    ADC_CR2_SWSTART,                                 // CR2  ??
-    ADC_SMPR1_SMP_AN11(ADC_SAMPLE_480),
-    0,                                               // SMPR2
-    ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
-    0,                                               // SQR2
-    ADC_SQR3_SQ1_N(ADC_CHANNEL_IN10)
+    .num_channels = ADC_GRP1_NUM_CHANNELS,
+    .end_cb = NULL,                                            // end cb
+    .error_cb = adcerrorcallback,                                // error cb
+    .cr1 = (ADC_CR1_DISCEN | ADC_CR1_EOCIE),                // CR1
+    .cr2 = ADC_CR2_SWSTART,                                 // CR2  ??
+    .smpr1 = ADC_SMPR1_SMP_AN11(ADC_SAMPLE_480),
+    .smpr2 = 0,                                               // SMPR2
+    .sqr1 = ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
+    .sqr2 = 0,                                               // SQR2
+    .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN10)
 };
 
 /*
