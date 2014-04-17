@@ -11,9 +11,10 @@
  *     void foo(int bar UNUSED, void * baz UNUSED)
  */
 #define UNUSED __attribute__((unused))
+#define NORETURN __attribute__((noreturn))
 
 // Prefix string for debugging messages, useful in asserts
-#define DBG_PREFIX __FILE__":"__LINE__", "__FUNCTION__" - "
+#define DBG_PREFIX __FILE__  ":" "__LINE__" ", " "__FUNCTION__" " - "
 
 /* Makes constructing switches that print enums or flags easier:
  *     switch(flag){
