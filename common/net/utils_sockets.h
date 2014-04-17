@@ -22,7 +22,7 @@ void lwipThreadStart(struct lwipthread_opts * ip_opts);
 
 
 /* Fills out a sockaddr_in with AF_INET, ip, and port in network byteorder */
-void set_sockaddr(struct sockaddr_in * addr, const char * ip, int port);
+void set_sockaddr(struct sockaddr_in * addr, const char * ip, uint16_t port);
 
 /* Returns an AF_INET UDP socket bound to addr, or less than 0 on failure */
 int get_udp_socket(const struct sockaddr *addr);
