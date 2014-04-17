@@ -1,9 +1,11 @@
+#include <stddef.h>
 
 #include "ch.h"
 #include "hal.h"
+
+#include "utils_general.h"
 #include "utils_led.h"
 
-#define NORETURN __attribute__((noreturn))
 
 static WORKING_AREA(wa_led, 64);
 NORETURN static void led(void * arg) {
