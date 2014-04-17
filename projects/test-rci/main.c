@@ -24,7 +24,7 @@ void main(void) {
     };
 
     struct RCIConfig cfg = {
-	    .address = RNH_LISTEN_ADDR,
+	    .address = RNH_RCI_ADDR,
 	    .commands = cmds
     };
     

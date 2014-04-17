@@ -52,7 +52,7 @@ msg_t data_udp_send_thread(void *p __attribute__ ((unused))) {
 
 	chprintf(chp, "Start udp send thread\n\r");
 
-    int s = get_udp_socket(RNH_SEND_ADDR);
+    int s = get_udp_socket(RNH_BATTERY_ADDR);
     if(s < 0){
         return -1;
     }
@@ -108,7 +108,7 @@ WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 msg_t data_udp_receive_thread(void *p __attribute__ ((unused))) {
 	chRegSetThreadName("data_udp_receive_thread");
 
-	int s = get_udp_socket(RNH_LISTEN_ADDR);
+	int s = get_udp_socket(RNH_RCI_ADDR);
 	if (s < 0) {
 	    return -1;
 	}
