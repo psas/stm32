@@ -2,7 +2,7 @@ OPENOCD_DIR = $(PSAS_OPENOCD)
 OPENOCD_HEXFILE = $(BUILDDIR)/$(PROJECT).hex
 GDB_ELF = $(BUILDDIR)/$(PROJECT).elf
 OOCD_CFG = stlinkv2_stm32_e407.cfg
-GDB_CFG = $(PSAS_COMMON)/gdboocd_ocd.cmd
+GDB_CFG = $(PSAS_OPENOCD)/gdboocd_ocd.cmd
 
 write: $(OPENOCD_HEXFILE) write_ocd
 
@@ -20,9 +20,9 @@ gdb: $(GDB_ELF) gdb_ocd
 gdb_base:
 	$(TRGT)gdb -q $(GDB_ELF) -x $(GDB_CFG)
 	
-gdb_ocd: GDB_CFG = $(PSAS_COMMON)/gdboocd_ocd.cmd
+gdb_ocd: GDB_CFG = $(PSAS_OPENOCD)/gdboocd_ocd.cmd
 gdb_ocd: gdb_base
 
-gdb_stl: GDB_CFG = $(PSAS_COMMON)/gdboocd_stl.cmd
+gdb_stl: GDB_CFG = $(PSAS_OPENOCD)/gdboocd_stl.cmd
 gdb_stl: gdb_base
 
