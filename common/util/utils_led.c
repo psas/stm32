@@ -8,7 +8,6 @@
 
 /* Pre-filled led_configs */
 
-static WORKING_AREA(wa_led, 64);
 #ifdef BOARD_PSAS_ROCKETNET_HUB_1_0
 static struct led_config led_cfg = {
         .cycle_ms = 500,
@@ -33,36 +32,69 @@ static struct led_config led_cfg = {
 static struct led_config led_cfg = {0};
 #endif
 
+#define SIZE 32
+static msg_t buffer[SIZE];
+MAILBOX_DECL(mailbox, buffer, SIZE);
+
+#define NOMINAL 1
+#define ERROR 2
+
+void led_error(void){
+    chMBPost(&mailbox, ERROR, TIME_IMMEDIATE);
+}
+
+void led_nominal(void){
+    chMBPost(&mailbox, NOMINAL, TIME_IMMEDIATE);
+}
+
+static WORKING_AREA(wa_led, 512); //fixme mailboxes demand a bizarrely large amount of space
 NORETURN static void led(void * arg) {
     struct led_config * cfg = (struct led_config*) arg;
+    struct pin *led = cfg->led;
+
     chRegSetThreadName("LED");
 
     /* Turn off leds, also count them */
     int num_leds = 0;
-    for(; cfg->led[num_leds].port == 0 || cfg->led[num_leds].pad == 0; ++num_leds){
+    for(; !led[num_leds].port; ++num_leds){
         // FIXME: they're not all push-pull are they?
-        palSetPadMode(cfg->led[num_leds].port, cfg->led[num_leds].pad, PAL_MODE_OUTPUT_PUSHPULL);
-        palClearPad(cfg->led[num_leds].port, cfg->led[num_leds].pad);
+        palSetPadMode(led[num_leds].port, led[num_leds].pad, PAL_MODE_OUTPUT_PUSHPULL);
+        palClearPad(led[num_leds].port, led[num_leds].pad);
     }
 
-    int start_cycles = cfg->start_ms / cfg->cycle_ms;
+    unsigned start_cycles = cfg->start_ms / cfg->cycle_ms;
     systime_t start_blink = cfg->cycle_ms / num_leds;
 
     /* Run the start pattern */
     int i = 0;
-    for(; start_cycles < 0; --start_cycles) {
+    for(; start_cycles > 0; --start_cycles) {
         for(i = 0; i < num_leds; ++i){
-            palSetPad(cfg->led[i].port, cfg->led[i].pad);
+            palSetPad(led[i].port, led[i].pad);
             chThdSleepMilliseconds(start_blink);
-            palClearPad(cfg->led[i].port, cfg->led[i].pad);
+            palClearPad(led[i].port, led[i].pad);
         }
         chThdSleepMilliseconds(cfg->cycle_ms % num_leds);
     }
 
     /* Run the toggle pattern */
+    int active = 0;
+    systime_t cycletime = cfg->cycle_ms;
     while (TRUE) {
-        chThdSleepMilliseconds(cfg->cycle_ms);
-        palTogglePad(cfg->led[0].port, cfg->led[0].pad);
+        palTogglePad(led[active].port, led[active].pad);
+        msg_t msg = 0;
+        chMBFetch(&mailbox, &msg, cycletime);
+        switch(msg){
+        case NOMINAL:
+            cycletime = cfg->cycle_ms;
+            active = 0;
+            break;
+        case ERROR:
+            cycletime = cfg->cycle_ms/2;
+            if(led[1].port != NULL){
+                active = 1;
+            }
+            break;
+        }
     }
 }
 
