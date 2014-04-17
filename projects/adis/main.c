@@ -61,7 +61,7 @@ void main(void){
 	static struct led_config led_cfg = {
 	        .cycle_ms = 500,
 	        .start_ms = 0,
-	        .led = {
+	        .led = (struct pin[]){
 	                {GPIOC, GPIOC_LED},
 	                {GPIOF, GPIOF_LED_RED},
 	                {GPIOF, GPIOF_LED_GREEN},

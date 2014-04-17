@@ -127,7 +127,7 @@ void main(void) {
     chSysInit();
 
     // Start Diagnostics
-    led_init(&rnh_led_cfg);
+    led_init(NULL);
     rnh_shell_start();
 
     // Configuration
