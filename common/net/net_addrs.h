@@ -27,7 +27,8 @@ extern const struct sockaddr * TEATHER_ADDR; // Launch Detect
 
 /* Rocket Net Hub */
 extern struct lwipthread_opts * RNH_LWIP;
-extern const struct sockaddr * RNH_LISTEN_ADDR;
-extern const struct sockaddr * RNH_SEND_ADDR;
+extern const struct sockaddr * RNH_RCI_ADDR;     // RCI listener
+extern const struct sockaddr * RNH_BATTERY_ADDR; // Battery data
+extern const struct sockaddr * RNH_PORT_ADDR;    // Port data
 
 #endif /* NET_ADDRS_H_ */

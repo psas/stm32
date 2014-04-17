@@ -23,7 +23,7 @@ void lwipThreadStart(struct lwipthread_opts * ip_opts){
                       ip_opts);
 }
 
-void set_sockaddr(struct sockaddr_in * addr, const char * ip, int port){
+void set_sockaddr(struct sockaddr_in * addr, const char * ip, uint16_t port){
     //Create an address (remember to have the data in network byte order)
     memset(addr, 0, sizeof(struct sockaddr_in));
     addr->sin_family = AF_INET,

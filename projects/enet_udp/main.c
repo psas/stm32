@@ -37,7 +37,7 @@ void main(void) {
 	chSysInit();
 
 	/* Start diagnostics led */
-	led_init(&e407_led_cfg);
+	led_init(NULL);
 
 	/* Start diagnostics shell */
 	const ShellCommand commands[] = {

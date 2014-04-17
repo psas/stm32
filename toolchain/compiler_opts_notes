@@ -1,0 +1,76 @@
+arm-none-eabi-gcc
+
+opts
+-O2 - probably good. might break asserts?
+-fomit-frame-pointer - on by default with any opts
+-falign-functions=16 - requires more research
+-ffunction-sections - unneeded
+-fdata-sections - unneeded
+-fno-common - harmless - more research?
+#explicitly not using -flto, -Ofast, and other
+#opt flags used only in flight targets but not
+#debugging targets
+
+warnings
+-Wall
+-Wno-main # main doesnt return a val or take args
+-Wextra
+-Wstrict-prototypes
+#-Werror in build for flight
+-Wnested-externs
+#cant use -std=c99 or -Wpedantic because asm
+
+debugging
+-ggdb
+
+assembler flags
+-Wa,-alms=build/lst/
+
+arch
+-mcpu=cortex-m4
+-mno-thumb-interwork
+
+chibios
+-DCORTEX_USE_FPU=FALSE #change mfloat-abi to hard
+-DTHUMB_PRESENT
+-DTHUMB_NO_INTERWORKING
+
+build 
+-MD
+-MP
+-MF .dep/build.d
+
+#investigate what newlib offers for us
+
+#Warnings that might interest us
+##other flags
+   -ffreestanding (Wno-main) 
+   -02 (Warray-bounds)
+   nonull function attribute?
+##warnings
+  -Waggressive-loop-optimizations 
+  -Wdisabled-optimization  
+  -Wunsafe-loop-optimizations - with -funsafe-loop-opts
+
+  -Wc++-compat (-Wjump-misses-init)? might be like pedantic
+  -Wcast-qual   
+  -Wconversion  
+  -Wdouble-promotion - tied in with enablefpu
+  -Wunsuffixed-float-constants  - may be useful for fpu stuff 
+  -Wfloat-equal 
+  -Wformat=2 
+
+  -Wlogical-op
+
+  -Wmissing-include-dirs 
+  -Wpacked  -Wpadded  - padded excessive  
+  -Wpointer-arith  
+  -Wredundant-decls 
+  -Wshadow  - chibios hits it 
+  -Wstack-usage=len 
+  -Wstrict-overflow=5/-fstrict-overflow
+  -Wsuggest-attribute=[pure|const|noreturn|format] - lots of chibios
+  -Wmissing-format-attribute == -Wsuggest-attribute=format
+
+  -Wundef - !! ChibiOS bug RTC_SUPPORTS_CALLBACKS 
+  -Wwrite-strings

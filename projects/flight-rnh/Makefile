@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
+  USE_OPT = -Ofast -flto -fomit-frame-pointer -falign-functions=16 -Wno-main
 endif
 
 # C specific options here (added to USE_OPT).
@@ -169,7 +169,11 @@ AOPT =
 TOPT = -mthumb -DTHUMB
 
 # Define C warning options here
-CWARN = -Wall -Wextra -Wstrict-prototypes
+CWARN = -Wall -Wextra -Wstrict-prototypes -Wdisabled-optimization \
+	-Wdouble-promotion -Wformat=2 -Wfloat-equal \
+	-Waggressive-loop-optimizations -Wunsafe-loop-optimizations \
+	-Waggregate-return -Wlogical-op -Wmissing-include-dirs \
+	-Wpointer-arith -Wredundant-decls -Wcast-qual\
 
 # Define C++ warning options here
 CPPWARN = -Wall -Wextra
@@ -241,6 +245,5 @@ ifeq ($(USE_FWLIB),yes)
 endif
 
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
-
-include $(PSAS)/oocd.mk
+include $(PSAS_RULES)
 

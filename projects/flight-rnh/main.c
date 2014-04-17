@@ -127,7 +127,7 @@ void main(void) {
     chSysInit();
 
     // Start Diagnostics
-    led_init(&rnh_led_cfg);
+    led_init(NULL);
     rnh_shell_start();
 
     // Configuration
@@ -145,7 +145,7 @@ void main(void) {
             {PORT, cmd_port, NULL},
             {NULL}
     };
-    conf.address = RNH_LISTEN_ADDR,
+    conf.address = RNH_RCI_ADDR,
 
     //Init hardware
     BQ24725_init(&BQConf);
@@ -155,7 +155,7 @@ void main(void) {
     RCICreate(&conf);
 
     // Set up sockets
-    BQ3060_socket = get_udp_socket(RNH_SEND_ADDR);
+    BQ3060_socket = get_udp_socket(RNH_BATTERY_ADDR);
     connect(BQ3060_socket, FC_ADDR, sizeof(struct sockaddr));
 
     // Start charging if possible
