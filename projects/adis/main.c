@@ -57,17 +57,18 @@ static void adis_drdy_handler(eventid_t id __attribute__((unused))){
 void main(void){
 	halInit();
 	chSysInit();
+	static struct pin leds[] = {
+		{GPIOC, GPIOC_LED},
+		{GPIOF, GPIOF_LED_RED},
+		{GPIOF, GPIOF_LED_GREEN},
+		{GPIOF, GPIOF_LED_BLUE},
+		{0, 0}
+	};
 
 	static struct led_config led_cfg = {
 	        .cycle_ms = 500,
 	        .start_ms = 0,
-	        .led = (struct pin[]){
-	                {GPIOC, GPIOC_LED},
-	                {GPIOF, GPIOF_LED_RED},
-	                {GPIOF, GPIOF_LED_GREEN},
-	                {GPIOF, GPIOF_LED_BLUE},
-	                {0, 0}
-	        }
+	        .led = 	leds
 	};
 	led_init(&led_cfg);
 
