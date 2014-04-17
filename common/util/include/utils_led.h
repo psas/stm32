@@ -23,17 +23,15 @@ struct led_config {
  * 2. cycle through all leds for start_ms milliseconds. start_ms should be
  *    greater than cycle_ms.
  * 3. then toggle the first led in the list every cycle_ms milliseconds.
+ *
+ * If the argument to led_init is null it will attempt to find a configuration
+ * suitable for the board it was compiled for. Otherwise it will raise an
+ * assertion. Known boards:
+ * BOARD_PSAS_ROCKETNET_HUB_1_0
+ * BOARD_OLIMEX_STM32_E407
  */
 void led_init(struct led_config * cfg);
 
-/* Pre-filled led configs */
 
-#ifdef BOARD_PSAS_ROCKETNET_HUB_1_0
-extern struct led_config rnh_led_cfg;
-#endif
-
-#ifdef BOARD_OLIMEX_STM32_E407
-extern struct led_config e407_led_cfg;
-#endif
 
 #endif /* UTILS_LED_H_ */

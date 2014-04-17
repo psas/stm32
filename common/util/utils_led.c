@@ -6,8 +6,33 @@
 #include "utils_general.h"
 #include "utils_led.h"
 
+/* Pre-filled led_configs */
 
 static WORKING_AREA(wa_led, 64);
+#ifdef BOARD_PSAS_ROCKETNET_HUB_1_0
+static struct led_config led_cfg = {
+        .cycle_ms = 500,
+        .start_ms = 2500,
+        .led = (struct pin[]){
+                {GPIOD, GPIO_D12_RGB_G},
+                {GPIOD, GPIO_D13_RGB_R},
+                {GPIOD, GPIO_D11_RGB_B},
+                {0, 0}
+        }
+};
+#elif defined BOARD_OLIMEX_STM32_E407
+static struct led_config led_cfg = {
+        .cycle_ms = 500,
+        .start_ms = 0,
+        .led = (struct pin[]){
+                {GPIOC, GPIOC_LED},
+                {NULL, 0}
+        }
+};
+#else
+static struct led_config led_cfg = {0};
+#endif
+
 NORETURN static void led(void * arg) {
     struct led_config * cfg = (struct led_config*) arg;
     chRegSetThreadName("LED");
@@ -42,34 +67,15 @@ NORETURN static void led(void * arg) {
 }
 
 void led_init(struct led_config * cfg){
-    if(cfg->led == NULL)
-        return;
+    // If cfg is null see if a default one can be found. If it can't it is
+    // set to an to an invalid config.
+    if(!cfg){
+        cfg = &led_cfg;
+    }
+
+    //Triggers if cfg isnvalid.
+    chDbgAssert(cfg->led && cfg->led[0].port, DBG_PREFIX "No defined LEDs", NULL);
+    chDbgAssert(cfg->cycle_ms > 0, DBG_PREFIX "LED cycle time must be positive", NULL);
 
     chThdCreateStatic(wa_led, sizeof(wa_led), NORMALPRIO, (tfunc_t)led, cfg);
 }
-
-/* Pre-filled led_configs */
-
-#ifdef BOARD_PSAS_ROCKETNET_HUB_1_0
-struct led_config rnh_led_cfg = {
-        .cycle_ms = 500,
-        .start_ms = 2500,
-        .led = {
-                {GPIOD, GPIO_D12_RGB_G},
-                {GPIOD, GPIO_D13_RGB_R},
-                {GPIOD, GPIO_D11_RGB_B},
-                {0, 0}
-        }
-};
-#endif
-
-#ifdef BOARD_OLIMEX_STM32_E407
-struct led_config e407_led_cfg = {
-        .cycle_ms = 500,
-        .start_ms = 0,
-        .led = {
-                {GPIOC, GPIOC_LED},
-                {NULL, 0}
-        }
-};
-#endif
