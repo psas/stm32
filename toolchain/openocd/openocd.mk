@@ -26,6 +26,3 @@ gdb_ocd: gdb_base
 gdb_stl: GDB_CFG = $(PSAS_COMMON)/gdboocd_stl.cmd
 gdb_stl: gdb_base
 
-
-
-#monitor target configure -rtos ChibiOS
