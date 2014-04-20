@@ -11,6 +11,8 @@ $(SUBDIRS):
 
 clean: $(CLEAN_SUBDIRS)
 
+rebuild: clean all
+
 $(CLEAN_SUBDIRS): 
 	$(MAKE) -C $(@:install-%=%) -w clean
 
