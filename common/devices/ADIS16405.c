@@ -154,6 +154,20 @@ void adis_get_data(ADIS16405_burst_data * data){ // TODO: adis error struct
     chSysUnlock();
 }
 
+void adis_selftest() {
+    uint16_t flags;
+
+    // run the internal self-test routine
+    adis_set(ADIS_MSC_CTRL,0xB504);
+    // what should the delay be here?
+    // get and check error flags
+    flags = adis_get(ADIS_DIAG_STAT);
+    // do I return flags directly for parsing in calling function
+    // or return just pass/fail
+    // or return pass/fail with additional flags value if user wants it?
+    
+}
+
 
 //void adis_auto_diagnostic(){
 //    uint16_t msc = adis_get(ADIS_MSC_CTRL);

@@ -132,6 +132,7 @@ uint16_t adis_get(adis_regaddr addr);
 void adis_set(adis_regaddr addr, uint16_t value);
 void adis_get_data(ADIS16405_burst_data * data);
 void adis_reset(void);
+void adis_selftest(void);
 
 /*!
  * @}
