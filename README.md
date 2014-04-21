@@ -78,6 +78,7 @@ The last time ChibiOS was updated: December 2013
     - The prefered way is to use the provided [PPA](https://launchpad.net/~terry.guo/+archive/gcc-arm-embedded)
   - Ubuntu 14.04 and Debian testing recently (April 2014) introduced their own compiler package named gcc-arm-none-eabi, but it's not the same
     as ours and the packaging is broken anyway. If you've just upgraded to 14.04 run:
+
     ```
     sudo apt-get remove binutils-arm-none-eabi gcc-arm-none-eabi
     sudo apt-get autoremove
@@ -85,6 +86,7 @@ The last time ChibiOS was updated: December 2013
     sudo apt-get update
     sudo apt-get install gcc-arm-none-eabi=4-8-2014q1-0trusty8
     ```
+    
 #### Other
  - Programmers used for JTAG
    - Olimex-arm-usb-ocd and STLinkV2 are what we currently use, but any supported by OpenOCD should work
