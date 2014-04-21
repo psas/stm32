@@ -9,7 +9,8 @@ To initialize the ChibiOS submodule run:
 
     $ git submodule update --init
 
-If it's been a while since you've updated ChibiOS you'll need to re-sync it as its origin has changed:
+When ChibiOS updates you'll need to re-sync it as its origin has changed:
+The last time ChibiOS was updated: December 2013
 
     $ git submodule sync
     $ git submodule update
@@ -75,7 +76,15 @@ If it's been a while since you've updated ChibiOS you'll need to re-sync it as i
   - Version 4.8 as of March 2014
   - Instillation instructions:
     - The prefered way is to use the provided [PPA](https://launchpad.net/~terry.guo/+archive/gcc-arm-embedded)
-
+  - Ubuntu 14.04 and Debian testing recently (April 2014) introduced their own compiler package named gcc-arm-none-eabi, but it's not the same
+    as ours and the packaging is broken anyway. If you've just upgraded to 14.04 run:
+    ```
+    sudo apt-get remove binutils-arm-none-eabi gcc-arm-none-eabi
+    sudo apt-get autoremove
+    sudo add-apt-repository ppa:terry.guo/gcc-arm-embedded
+    sudo apt-get update
+    sudo apt-get install gcc-arm-none-eabi=4-8-2014q1-0trusty8
+    ```
 #### Other
  - Programmers used for JTAG
    - Olimex-arm-usb-ocd and STLinkV2 are what we currently use, but any supported by OpenOCD should work
