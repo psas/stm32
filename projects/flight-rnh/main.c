@@ -18,7 +18,8 @@
 #include "KS8999.h"
 #include "RNH.h"
 
-int BQ3060_socket;
+int battery_socket;
+int port_socket;
 EVENTSOURCE_DECL(ACOK);
 
 /* RCI commands
@@ -36,6 +37,9 @@ void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
     if(rci_data->cmd_len < 2){
         return; //fixme return Error
     }
+
+
+
     RNH_action action = rci_data->cmd_data[0];
     int port_mask = rci_data->cmd_data[1];
 
@@ -118,7 +122,13 @@ static void BQ3060_SendData(eventid_t id UNUSED){
     buffer[10] = htons(data.CellVoltage4);
     buffer[11] = htons(data.PackVoltage);
     buffer[12] = htons(data.AverageVoltage);
-    write(BQ3060_socket, buffer, sizeof(buffer));
+    write(battery_socket, buffer, sizeof(buffer));
+}
+
+static void portCurrent_SendData(eventid_t id UNUSED){
+    uint16_t buffer[8];
+    portCurrentGetData(buffer);
+    write(port_socket, buffer, sizeof(buffer));
 }
 
 void main(void) {
@@ -151,12 +161,18 @@ void main(void) {
     BQ24725_init(&BQConf);
     BQ3060_init(&rnh3060conf);
     KS8999_init();
+    RNH_init();
+
     lwipThreadStart(RNH_LWIP);
+    chThdSleepMilliseconds(100); // because threads suck, lwipthread was starting after rci thread
+                                 // FIXME THIS IS A TERRIBLE HACK
     RCICreate(&conf);
 
     // Set up sockets
-    BQ3060_socket = get_udp_socket(RNH_BATTERY_ADDR);
-    connect(BQ3060_socket, FC_ADDR, sizeof(struct sockaddr));
+    battery_socket = get_udp_socket(RNH_BATTERY_ADDR);
+    port_socket = get_udp_socket(RNH_PORT_ADDR);
+    connect(battery_socket, FC_ADDR, sizeof(struct sockaddr));
+    connect(port_socket, FC_ADDR, sizeof(struct sockaddr));
 
     // Start charging if possible
     if(BQ24725_ACOK()){
@@ -165,12 +181,14 @@ void main(void) {
     }
 
     // Set up event system
-    struct EventListener el0, el1;
-    chEvtRegister(&ACOK, &el0, 0);
-    chEvtRegister(&BQ3060_data_ready, &el1, 1);
+    struct EventListener batt0, batt1, port0;
+    chEvtRegister(&ACOK, &batt0, 0);
+    chEvtRegister(&BQ3060_data_ready, &batt1, 1);
+    chEvtRegister(&portCurrent_drdy, &port0, 2);
     const evhandler_t evhndl[] = {
         BQ24725_SetCharge,
-        BQ3060_SendData
+        BQ3060_SendData,
+        portCurrent_SendData
     };
 
     while (TRUE) {

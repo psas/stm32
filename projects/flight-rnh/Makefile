@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -Ofast -flto -fomit-frame-pointer -falign-functions=16 -Wno-main
+  USE_OPT = -Og -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
 endif
 
 # C specific options here (added to USE_OPT).
@@ -68,7 +68,6 @@ PSAS= ../../common
 CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-# include ./boards/OLIMEX_STM32_E407/board.mk
 include $(PSAS_BOARDS)/PSAS_ROCKETNET_HUB_1_0/board.mk
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
@@ -79,7 +78,6 @@ include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
-#LDSCRIPT= $(PORTLD)/STM32F407xG_CCM.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -146,8 +144,6 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
 
 MCU  = cortex-m4
 
-#TRGT = arm-elf-
-#TRGT = arm-none-eabi-
 TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
@@ -173,7 +169,7 @@ CWARN = -Wall -Wextra -Wstrict-prototypes -Wdisabled-optimization \
 	-Wdouble-promotion -Wformat=2 -Wfloat-equal \
 	-Waggressive-loop-optimizations -Wunsafe-loop-optimizations \
 	-Waggregate-return -Wlogical-op -Wmissing-include-dirs \
-	-Wpointer-arith -Wredundant-decls -Wcast-qual\
+	-Wpointer-arith -Wredundant-decls 
 
 # Define C++ warning options here
 CPPWARN = -Wall -Wextra

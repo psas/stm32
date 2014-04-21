@@ -24,4 +24,11 @@ typedef enum {RNH_PORT_STATUS = 0, RNH_PORT_FAULT = 1,
  * faulting ports for FAULT
  */
 RNH_port RNH_power(RNH_port port, RNH_action action);
+
+extern EventSource portCurrent_drdy;
+
+void RNH_init(void);
+void portCurrentGetData(uint16_t * data);
+
+
 #endif /* RNH_H_ */
