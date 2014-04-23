@@ -37,7 +37,8 @@
 #define INIT_PWM_PERIOD_TICKS      ((pwmcnt_t) 20000)
 #define INIT_PWM_PULSE_WIDTH_TICKS ((pwmcnt_t) 9000)
 
-#define POSITION_MAILBOX_SIZE 8
+#define COMMAND_MAILBOX_SIZE 8
+
 
 // This enum corresponds to the PWM bisable bit in the message received from the
 // flight computer. Since it's a _disable_ bit, when it is zero then the PWM is
@@ -54,10 +55,25 @@ enum {
 
 static struct VirtualTimer servo_output_timer;
 
-// This mailbox is how the thread that receives servo position commands from the
-// flight computer sends them to the thread that actually sets PWM output.
-static msg_t servo_position_buffer[POSITION_MAILBOX_SIZE];
-static MAILBOX_DECL(servo_positions, servo_position_buffer, POSITION_MAILBOX_SIZE);
+// This mailbox is how the thread that listens for position commands over the
+// nework sends the commands to the thread that actually sets the PWM output.
+// The mailbox stores pointers to PositionCommand structs that are stored in the
+// pos_cmd_pool memory pool.
+static msg_t servo_command_buffer[COMMAND_MAILBOX_SIZE];
+static MAILBOX_DECL(servo_commands, servo_command_buffer, COMMAND_MAILBOX_SIZE);
+
+static MemoryPool pos_cmd_pool;
+static PositionCommand pos_cmd_pool_storage[COMMAND_MAILBOX_SIZE];
+
+// This mailbox is how the PWM output setter thread sends back deltas between
+// commanded position and the actual position that it set.
+// The mailbox stores pointers to PositionDelta structs that are stored in the
+// pos_delta_pool memory pool.
+static msg_t servo_delta_buffer[COMMAND_MAILBOX_SIZE];
+static MAILBOX_DECL(servo_deltas, servo_delta_buffer, COMMAND_MAILBOX_SIZE);
+
+static MemoryPool pos_delta_pool;
+static PositionCommand pos_delta_pool_storage[COMMAND_MAILBOX_SIZE];
 
 
 
@@ -93,18 +109,26 @@ static void set_pwm_position(void* u UNUSED) {
 
     ticks++;
 
-    msg_t new_msg, fetch_status;
+    PositionCommand* cmd;
+    msg_t fetch_status;
+
     chSysLockFromIsr();
-    fetch_status = chMBFetchI(&servo_positions, &new_msg);
+    fetch_status = chMBFetchI(&servo_commands, (msg_t *) &cmd);
     chSysUnlockFromIsr();
     if (fetch_status == RDY_TIMEOUT) {
         // if nobody sent a position to our mailbox, we have nothing to do
         return;
     }
 
-    uint16_t desired_position = (uint16_t) new_msg;
-    uint16_t output = desired_position;
+    // copy the information out of the struct so we can free it ASAP
+    uint16_t desired_position = cmd->position;
+    uint64_t cmd_time = cmd->time;
 
+    chSysLockFromIsr();
+    chPoolFreeI(&pos_cmd_pool, cmd);
+    chSysUnlockFromIsr();
+
+    uint16_t output = desired_position;
     int16_t difference = desired_position - last_position;
 
     // limit rate
@@ -139,7 +163,16 @@ static void set_pwm_position(void* u UNUSED) {
     if (last_difference != 0) {
         pwmEnableChannelI(&PWMD4, 3, pwm_us_to_ticks(output));
     }
+
     last_position = output;
+
+    if (output != desired_position) {
+        PositionDelta* delta = (PositionDelta*) chPoolAlloc(&pos_delta_pool);
+        if (delta == NULL) return; // the pool is empty, so bail
+        delta->cmd_time = cmd_time;
+        delta->delta = desired_position - output;
+        chMBPost(&servo_deltas, (msg_t) delta, TIME_IMMEDIATE);
+    }
 }
 
 
@@ -187,7 +220,7 @@ static msg_t listener_thread(void* u UNUSED) {
         }
 
         // set pos
-        chMBPost(&servo_positions, (msg_t) pos, TIME_IMMEDIATE);
+        chMBPost(&servo_commands, (msg_t) pos, TIME_IMMEDIATE);
 
         ticks++;
         chThdSleepMilliseconds(1);
@@ -201,13 +234,22 @@ static msg_t listener_thread(void* u UNUSED) {
         // fixme: once the RNH power issue is fixed servo control can respect
         // the disable flag
 //        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
-            uint16_t width = rc_packet.u16ServoPulseWidthBin14;
+            PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
+            if (cmd == NULL) continue; // the pool is empty, so bail until next msg
+            cmd->time = rc_packet.time;
+            cmd->position = (1000 * rc_packet.u16ServoPulseWidthBin14) >> 14;
 
-            chMBPost(&servo_positions, (msg_t) width, TIME_IMMEDIATE);
+            chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
 
 //        } else {
 //            pwmDisableChannel(&PWMD4, 3);
 //        }
+
+        PositionDelta* delta;
+        msg_t fetch_status = chMBFetch(&servo_deltas, (msg_t *) &delta, TIME_IMMEDIATE);
+        if (fetch_status == RDY_TIMEOUT) continue; // no delta received, so wait for next command
+        memcpy(data, delta, sizeof(PositionDelta));
+        write(socket, data, sizeof(PositionDelta));
     }
 #endif
 
@@ -215,6 +257,11 @@ static msg_t listener_thread(void* u UNUSED) {
 }
 
 void pwm_start() {
+    chPoolInit(&pos_cmd_pool, sizeof(PositionCommand), NULL);
+    chPoolLoadArray(&pos_cmd_pool, pos_cmd_pool_storage, COMMAND_MAILBOX_SIZE);
+    chPoolInit(&pos_delta_pool, sizeof(PositionDelta), NULL);
+    chPoolLoadArray(&pos_delta_pool, pos_delta_pool_storage, COMMAND_MAILBOX_SIZE);
+
     // Static because pwmStart doesn't deep copy PWMConfigs
     static PWMConfig pwmcfg = {
         .frequency = INIT_PWM_FREQ, /* 6Mhz PWM clock frequency; (1/f) = 'ticks' => 167ns/tick */

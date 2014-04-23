@@ -26,6 +26,7 @@ typedef struct {
  * but do not memcpy the network data into it, it may not work.
  */
 typedef struct {
+    uint64_t time;
     uint16_t u16ServoPulseWidthBin14; // PWM on-time in milliseconds x 2^14
                                       // e.g. 1.5 msec = 1.5 x 2^14 = 24576
     uint8_t u8ServoDisableFlag;       // Disable servo (turn off PWM) when this flag is not 0

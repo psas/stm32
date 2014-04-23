@@ -54,6 +54,26 @@
 #define PWM_MIN_DIRECTION_CHANGE_PERIOD (1000 / PWM_MAX_OSCILLATION_FREQ)
 
 
+/*
+ * Servo Command Mailboxen Parameters
+ * ================================== ******************************************
+ */
+
+/*
+ * Data Structures
+ * =============== *************************************************************
+ */
+
+typedef struct PositionCommand {
+  uint64_t time;
+  uint16_t position;
+} PositionCommand;
+
+typedef struct PositionDelta {
+  uint64_t cmd_time;
+  uint16_t delta;
+} PositionDelta;
+
 
 /*
  * Function Declarations
