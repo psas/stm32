@@ -87,11 +87,10 @@ CSRC = $(PORTSRC) \
        $(LWSRC) $(CHIBIOS)/os/various/evtimer.c \
        $(PSAS_DEVICES)/ADIS16405.c \
        main.c \
-	   $(PSAS_UTIL)/utils_hal.c \
-       $(PSAS_NET)/utils_sockets.c \
-       $(PSAS_NET)/net_addrs.c \
-       $(PSAS_UTIL)/utils_led.c
-       
+       $(PSAS_UTIL)/utils_hal.c \
+       $(PSAS_UTIL)/utils_led.c \
+       $(PSAS_NETSRC)
+
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
