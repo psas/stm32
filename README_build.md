@@ -46,8 +46,10 @@ This file maintains the location of common utilities for the stm32 build system.
 In stm32/toolchain/openocd the makefile openocd.mk defines rules for interacting with already compiled binaries:
  - write: writes the binary out to a board.
  - gdb: Starts a gdb session with a binary already flashed to a baord.
+
 Both rules have the variants *_ocd and *_stl that select JTAG dongle configurations.
  - *_ocd is for the Olimex ARM-USB-OCD
  - *_stl is for the STLinkV2
+
 Rules default to *_ocd, but this can be changed by setting OOCD_CFG and GDB_CFG.
 
