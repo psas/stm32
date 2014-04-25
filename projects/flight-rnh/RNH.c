@@ -1,43 +1,53 @@
-/*
- */
 #include <stddef.h>
 #include <string.h>
 
 #include "ch.h"
 #include "hal.h"
 #include "utils_general.h"
+#include "utils_hal.h"
 
 #include "RNH.h"
 
+typedef enum {
+    RNH_PORT_STATUS = 0,
+    RNH_PORT_FAULT = 1,
+    RNH_PORT_ON = 2,
+    RNH_PORT_OFF = 3,
+    RNH_PORT_CURRENT_FREQ = 4
+} RNHAction;
+
+static void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED);
+const struct RCICommand RCI_CMD_PORT = {
+    .name = "#PORT",
+    .function = cmd_port,
+    .user_data = NULL
+};
+
 #define NUM_PORT 8
+static const uint32_t power[NUM_PORT] = {
+    GPIO_E0_NODE1_N_EN,
+    GPIO_E1_NODE2_N_EN,
+    GPIO_E2_NODE3_N_EN,
+    GPIO_E3_NODE4_N_EN,
+    GPIO_E4_NC,
+    GPIO_E5_NODE6_N_EN,
+    GPIO_E6_NODE7_N_EN,
+    GPIO_E7_NODE8_N_EN
+};
+static const uint32_t fault[NUM_PORT] = {
+    GPIO_E8_NODE1_N_FLT,
+    GPIO_E9_NODE2_N_FLT,
+    GPIO_E10_NODE3_N_FLT,
+    GPIO_E11_NODE4_N_FLT,
+    GPIO_E12_NC,
+    GPIO_E13_NODE6_N_FLT,
+    GPIO_E14_NODE7_N_FLT,
+    GPIO_E15_NODE8_N_FLT
+};
 
-EVENTSOURCE_DECL(portCurrent_drdy);
-
+EVENTSOURCE_DECL(rnhPortCurrent);
 static uint16_t outBuffer[8];
 static int activeport;
-
-static void ADCCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n UNUSED){
-    static uint8_t done_samples = 0; // bitfield of completed samples
-    int i = 0;
-    if(adcp == &ADCD1){
-        i = activeport*2;
-    }else if(adcp == &ADCD2){
-        i = activeport*2 + 1;
-    }
-
-    if(adcp == &ADCD1 || adcp == &ADCD2){
-        outBuffer[i] = buffer[0];
-        done_samples |= 1 << i;
-    }
-
-    if(done_samples == 0xFF){
-        done_samples = 0;
-        chSysLockFromIsr();
-        chEvtBroadcastI(&portCurrent_drdy);
-        chSysUnlockFromIsr();
-    }
-
-}
 
 static void select_port_imon(int port){
     switch(port){
@@ -60,6 +70,29 @@ static void select_port_imon(int port){
     }
 }
 
+static void ADCCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n UNUSED){
+    static uint8_t done_samples = 0; // bitfield of completed samples
+    int i = 0;
+    if(adcp == &ADCD1){
+        i = activeport*2;
+    }else if(adcp == &ADCD2){
+        i = activeport*2 + 1;
+    }
+
+    if(adcp == &ADCD1 || adcp == &ADCD2){
+        outBuffer[i] = buffer[0];
+        done_samples |= 1 << i;
+    }
+
+    if(done_samples == 0xFF){
+        done_samples = 0;
+        chSysLockFromIsr();
+        chEvtBroadcastI(&rnhPortCurrent);
+        chSysUnlockFromIsr();
+    }
+
+}
+
 static void StartADCSample(GPTDriver *gptp UNUSED){
     static adcsample_t buffer0 = 0;
     static adcsample_t buffer1 = 0;
@@ -76,7 +109,6 @@ static void StartADCSample(GPTDriver *gptp UNUSED){
             .sqr2 = 0,
             .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN10)
     };
-
     static ADCConversionGroup bank1 = {
             .circular = FALSE,
             .num_channels = 1,
@@ -99,13 +131,17 @@ static void StartADCSample(GPTDriver *gptp UNUSED){
     activeport = (activeport + 1) % 4;
 }
 
-void portCurrentGetData(uint16_t * data){
-//    chSysLock();
-    memcpy(data, &outBuffer, sizeof(outBuffer));
-//    chSysUnlock();
+
+static rnhPortFaultHandler fault_handler = NULL;
+static void * fault_handler_data = NULL;
+
+static void portErrorCallback (EXTDriver *extp UNUSED, expchannel_t channel){
+    if(fault_handler){
+        fault_handler(channel - NUM_PORT, fault_handler_data);
+    }
 }
 
-void RNH_init(void){
+void rnhPortStart(void){
     static ADCConfig conf = {0}; //nothing to config on STM32
 
     adcStart(&ADCD1, &conf);
@@ -119,74 +155,110 @@ void RNH_init(void){
     gptStart(&GPTD2, &gptcfg);
     gptStartContinuous(&GPTD2, 1000);
 
+
+    for(int i = 0; i < NUM_PORT; ++i){
+        extAddCallback( &(struct pin){.port=GPIOE, .pad=fault[i]}
+                      , EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART
+                      , portErrorCallback
+                      );
+    }
+    extUtilsStart();
 }
 
-static uint32_t power[NUM_PORT] =
-    {GPIO_E0_NODE1_N_EN, GPIO_E1_NODE2_N_EN,
-     GPIO_E2_NODE3_N_EN, GPIO_E3_NODE4_N_EN, GPIO_E4_NC,
-     GPIO_E5_NODE6_N_EN, GPIO_E6_NODE7_N_EN, GPIO_E7_NODE8_N_EN};
+RNHPort rnhPortStatus(RNHPort port){
+    RNHPort return_port = 0;
+    port &= RNH_PORT_ALL;
 
-//todo: interrupt on faults?
+    for(int i = 0; i < NUM_PORT; ++i){
+        if(port & 1<<i){
+            return_port |= palReadPad(GPIOE, power[i])<<i;
+        }
+    }
+    return return_port;
+};
 
-static uint32_t fault[NUM_PORT] =
-    {GPIO_E8_NODE1_N_FLT, GPIO_E9_NODE2_N_FLT,
-     GPIO_E10_NODE3_N_FLT, GPIO_E11_NODE4_N_FLT, GPIO_E12_NC,
-     GPIO_E13_NODE6_N_FLT, GPIO_E14_NODE7_N_FLT, GPIO_E15_NODE8_N_FLT};
+RNHPort rnhPortFault(RNHPort port){
+    RNHPort return_port = 0;
+    port &= RNH_PORT_ALL;
 
-RNH_port RNH_power(RNH_port port, RNH_action action){
-
-    int active_port[NUM_PORT] = {FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE};
-    if(port & RNH_PORT_1){
-        active_port[0] = TRUE;
-    }
-    if(port & RNH_PORT_2){
-        active_port[1] = TRUE;
-    }
-    if(port & RNH_PORT_3){
-        active_port[2] = TRUE;
-    }
-    if(port & RNH_PORT_4){
-        active_port[3] = TRUE;
-    }
-    if(port & RNH_PORT_6){
-        active_port[5] = TRUE;
-    }
-    if(port & RNH_PORT_7){
-        active_port[6] = TRUE;
-    }
-
-    RNH_port return_port = 0;
-    int i;
-    for(i = 0; i < NUM_PORT; ++i){
-        if(active_port[i]){
-            switch(action){
-            case RNH_PORT_ON:
-                palClearPad(GPIOE, power[i]);
-                if(palReadPad(GPIOE, power[i])){
-                    return_port |= 1<<i;
-                }
-                break;
-            case RNH_PORT_OFF:
-                palSetPad(GPIOE, power[i]);
-                if(palReadPad(GPIOE, power[i])){
-                    return_port |= 1<<i;
-                }
-                break;
-            case RNH_PORT_FAULT:
-                if(palReadPad(GPIOE, fault[i])){
-                    return_port |= 1<<i;
-                }
-                break;
-            case RNH_PORT_STATUS:
-            default:
-                if(palReadPad(GPIOE, power[i])){
-                    return_port |= 1<<i;
-                }
-                break;
-            }
+    for(int i = 0; i < NUM_PORT; ++i){
+        if(port & 1<<i){
+            return_port |= palReadPad(GPIOE, fault[i])<<i;
         }
     }
     return return_port;
 }
 
+void rnhPortOn(RNHPort port){
+    port &= RNH_PORT_ALL;
+
+    for(int i = 0; i < NUM_PORT; ++i){
+        if(port & 1<<i){
+            palClearPad(GPIOE, power[i]);
+        }
+    }
+}
+
+void rnhPortOff(RNHPort port){
+    port &= RNH_PORT_ALL;
+
+    for(int i = 0; i < NUM_PORT; ++i){
+        if(port & 1<<i){
+            palSetPad(GPIOE, power[i]);
+        }
+    }
+}
+
+void rnhPortSetFaultHandler(rnhPortFaultHandler handler, void * data){
+    chSysLock();
+    fault_handler = handler;
+    fault_handler_data = data;
+    chSysUnlock();
+}
+
+void rnhPortGetCurrentData(uint16_t * data){
+     chSysLock();
+     memcpy(data, &outBuffer, sizeof(outBuffer));
+     chSysUnlock();
+ }
+
+void rnhPortSetCurrentDataRate(unsigned freq){
+    gptStopTimer(&GPTD2);
+    gptStartContinuous(&GPTD2, 40000 / 4 / freq);
+}
+
+static void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
+    if(rci_data->cmd_len < 2){
+        return; //fixme return error
+    }
+
+    RNHAction action = rci_data->cmd_data[0];
+    int data = rci_data->cmd_data[1];
+    RNHPort ret = 0;
+
+    switch(action){
+    case RNH_PORT_STATUS:
+        ret = rnhPortStatus(data);
+        break;
+    case RNH_PORT_FAULT:
+        ret = rnhPortFault(data);
+        break;
+    case RNH_PORT_ON:
+        rnhPortOn(data);
+        ret = rnhPortStatus(RNH_PORT_ALL);
+        break;
+    case RNH_PORT_OFF:
+        rnhPortOff(data);
+        ret = rnhPortStatus(RNH_PORT_ALL);
+        break;
+    case RNH_PORT_CURRENT_FREQ:
+        rnhPortSetCurrentDataRate(data);
+        return;
+    default:
+        return; //fixme return error
+    }
+
+    rci_data->return_data[0] = ret;
+    rci_data->return_len = 1;
+}
 

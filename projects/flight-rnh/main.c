@@ -28,24 +28,9 @@ EVENTSOURCE_DECL(ACOK);
 
 static const char ARM[]     = "#YOLO";
 static const char SAFE[]    = "#SAFE";
-static const char PORT[]    = "#PORT";
 static const char VERSION[] = "#VERS";
 static const char TIME[]    = "#TIME";
 static const char PWR_STAT[]= "#POWR";
-
-void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
-    if(rci_data->cmd_len < 2){
-        return; //fixme return Error
-    }
-
-
-
-    RNH_action action = rci_data->cmd_data[0];
-    int port_mask = rci_data->cmd_data[1];
-
-    rci_data->return_data[0] = RNH_power(port_mask, action);
-    rci_data->return_len = 1;
-}
 
 void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
@@ -127,7 +112,7 @@ static void BQ3060_SendData(eventid_t id UNUSED){
 
 static void portCurrent_SendData(eventid_t id UNUSED){
     uint16_t buffer[8];
-    portCurrentGetData(buffer);
+    rnhPortGetCurrentData(buffer);
     write(port_socket, buffer, sizeof(buffer));
 }
 
@@ -152,7 +137,7 @@ void main(void) {
     static struct RCIConfig conf;
     conf.commands = (struct RCICommand[]){
             {TIME, cmd_time, NULL},
-            {PORT, cmd_port, NULL},
+            RCI_CMD_PORT,
             {NULL}
     };
     conf.address = RNH_RCI_ADDR,
@@ -161,7 +146,7 @@ void main(void) {
     BQ24725_init(&BQConf);
     BQ3060_init(&rnh3060conf);
     KS8999_init();
-    RNH_init();
+    rnhPortStart();
 
     lwipThreadStart(RNH_LWIP);
     chThdSleepMilliseconds(100); // because threads suck, lwipthread was starting after rci thread
@@ -184,7 +169,7 @@ void main(void) {
     struct EventListener batt0, batt1, port0;
     chEvtRegister(&ACOK, &batt0, 0);
     chEvtRegister(&BQ3060_data_ready, &batt1, 1);
-    chEvtRegister(&portCurrent_drdy, &port0, 2);
+    chEvtRegister(&rnhPortCurrent, &port0, 2);
     const evhandler_t evhndl[] = {
         BQ24725_SetCharge,
         BQ3060_SendData,

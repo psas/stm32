@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -Og -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
+  USE_OPT = -Og -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main -std=gnu99
 endif
 
 # C specific options here (added to USE_OPT).
@@ -88,6 +88,7 @@ CSRC = $(PORTSRC) \
        $(BOARDSRC) \
        $(LWSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
+       $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/various/chrtclib.c \
