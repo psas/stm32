@@ -6,7 +6,7 @@
 #include "utils_general.h"
 #include "utils_hal.h"
 
-#include "RNH.h"
+#include "RNHPort.h"
 
 typedef enum {
     RNH_PORT_STATUS = 0,

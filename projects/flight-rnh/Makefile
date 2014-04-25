@@ -95,7 +95,7 @@ CSRC = $(PORTSRC) \
         main.c \
         rnh_shell.c \
         KS8999.c \
-        RNH.c \
+        RNHPort.c \
        $(PSAS_DEVICES)/BQ24725.c \
        $(PSAS_DEVICES)/BQ3060.c \
        $(PSAS_NETSRC) \

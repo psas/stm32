@@ -16,7 +16,7 @@
 
 #include "rnh_shell.h"
 #include "KS8999.h"
-#include "RNH.h"
+#include "RNHPort.h"
 
 int battery_socket;
 int port_socket;
