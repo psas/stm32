@@ -76,6 +76,8 @@ static msg_t rci_thread(void *p){
 void RCICreate(struct RCIConfig * conf){
     chDbgAssert(conf, "RCICreate needs a config", NULL);
 
+#if 0 //FIXME: because of threads this doesn't actually work all the time.
+      //       What's a better way of finding lwip has started.
     /* Check if LWIP has been started */
     Thread * thd = chRegFirstThread();
     while(thd){
@@ -85,7 +87,7 @@ void RCICreate(struct RCIConfig * conf){
         thd = chRegNextThread(thd);
     }
     chDbgAssert(thd, "RCICreate needs lwip started beforehand", NULL);
-
+#endif
     chThdCreateStatic(wa_rci, sizeof(wa_rci), NORMALPRIO, rci_thread, (void *)conf);
 }
 
