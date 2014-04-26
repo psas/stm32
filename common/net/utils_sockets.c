@@ -18,7 +18,7 @@ void set_lwipthread_opts(struct lwipthread_opts * ip_opts,
 void lwipThreadStart(struct lwipthread_opts * ip_opts){
     chThdCreateStatic(wa_lwip_thread,
                       sizeof(wa_lwip_thread),
-                      LWIP_THREAD_PRIORITY,
+                      NORMALPRIO + 2,
                       lwip_thread,
                       ip_opts);
 }
