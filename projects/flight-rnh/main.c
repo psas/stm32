@@ -111,9 +111,9 @@ static void BQ3060_SendData(eventid_t id UNUSED){
 }
 
 static void portCurrent_SendData(eventid_t id UNUSED){
-    uint16_t buffer[8];
-    rnhPortGetCurrentData(buffer);
-    write(port_socket, buffer, sizeof(buffer));
+    struct rnhPortCurrent sample;
+    rnhPortGetCurrentData(&sample);
+    write(port_socket, sample.current, sizeof(sample.current));
 }
 
 void main(void) {
