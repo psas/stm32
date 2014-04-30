@@ -155,7 +155,10 @@ void main(void) {
 
     // Set up sockets
     battery_socket = get_udp_socket(RNH_BATTERY_ADDR);
+    chDbgAssert(battery_socket >=0, "Battery socket failed", NULL);
     port_socket = get_udp_socket(RNH_PORT_ADDR);
+    chDbgAssert(port_socket >=0, DBG_PREFIX"Port socket socket failed", NULL);
+
     connect(battery_socket, FC_ADDR, sizeof(struct sockaddr));
     connect(port_socket, FC_ADDR, sizeof(struct sockaddr));
 
