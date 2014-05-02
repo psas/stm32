@@ -5,9 +5,40 @@
 void					main(void);
 
 static void			appMain(void);
+static void			irqButton(EXTDriver* extp, expchannel_t channel);
 static void			osInit(void);
 static void			osShutdown(void);
 static void			stopMode(void);
+
+static volatile int	buttonFlag;
+
+static const EXTConfig	extConfig = {
+									{
+										{ EXT_CH_MODE_RISING_EDGE | EXT_MODE_GPIOA, irqButton },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL },
+										{ EXT_CH_MODE_DISABLED, NULL }
+									}
+								};
 
 static int	leds[] = {
 					GPIOD_LED4,
@@ -17,8 +48,7 @@ static int	leds[] = {
 				};
 
 void appMain() {
-	int		running;
-	uint32_t	i, led, ticks, since;
+	uint32_t	i, led;
 
 	// flash all LEDs a few times
 	for (i = 0 ; i < 5 ; ++i) {
@@ -29,34 +59,19 @@ void appMain() {
 	}
 
 	// cycle LED blinking until user button pressed
-	ticks = MS2ST(250);
-	running = 1;
+	buttonFlag = 0;
 	led = 0;
-	while (running) {
+	while (!buttonFlag) {
 		palTogglePad(GPIOD, leds[led]);
 		if (++led == sizeof(leds) / sizeof(leds[0]))
 			led = 0;
 
-		since = chTimeNow();
-		while (chTimeNow() - since < ticks)
-			if (palReadPad(GPIOA, GPIOA_BUTTON)) {
-				running = 0;
-				break;
-			}
+		chThdSleepMilliseconds(250);
 	}
 
 	// turn on all LEDs
 	for (led = 0 ; led < sizeof(leds) / sizeof(leds[0]) ; ++led)
 		palWritePad(GPIOD, leds[led], 1);
-
-/*
-	// debounce user button
-	ticks = MS2ST(100);
-	since = chTimeNow();
-	while (chTimeNow() - since < ticks)
-		if (palReadPad(GPIOA, GPIOA_BUTTON))
-			since = chTimeNow();
-*/
 
 	// turn off LEDs one by one, in reverse order from blink cycle
 	for (led = sizeof(leds) / sizeof(leds[0]) ; led-- ; ) {
@@ -64,6 +79,13 @@ void appMain() {
 
 		chThdSleepMilliseconds(250);
 	}
+}
+
+void irqButton(EXTDriver* extp, expchannel_t channel) {
+	(void)extp;
+	(void)channel;
+
+	buttonFlag = true;
 }
 
 void main(void) {
@@ -81,6 +103,8 @@ void main(void) {
 void osInit() {
 	halInit();
 	chSysInit();
+	extStart(&EXTD1, &extConfig);
+	extChannelEnable(&EXTD1, 0);
 }
 
 void osShutdown() {
@@ -88,33 +112,10 @@ void osShutdown() {
 }
 
 void stopMode() {
-	uint32_t	i;
-
 	// configure for STOP mode on WFI
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 	PWR->CR &= ~PWR_CR_PDDS;
 	PWR->CR |= PWR_CR_FPDS | PWR_CR_LPDS;
-
-	// interrupt 0 source is PA0
-	SYSCFG->EXTICR[0] &= ~SYSCFG_EXTICR1_EXTI0;
-	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI0_PA;
-
-	// disable all events
-	// enable interrupt 0, disable all others
-	// configure interrupt 0 on rising trigger
-	// clear all pending interrupts
-	for (i = 0 ; i < 23 ; ++i) {
-		EXTI->EMR   &= ~(1 << i);
-		if (i == 0) {
-			EXTI->IMR   |= (1 << i);
-			EXTI->RTSR  |= (1 << i);
-		} else {
-			EXTI->IMR   &= ~(1 << i);
-			EXTI->RTSR  &= ~(1 << i);
-		}
-		EXTI->FTSR  &= ~(1 << i);
-		EXTI->PR     =  (1 << i);
-	}
 
 	// wait for interrupt
 	__WFI();
@@ -123,4 +124,6 @@ void stopMode() {
 	// stm32_clock_init() switches it to the HSE clock, but it is normally
 	// called only from crt0, by way of __early_init.
 	stm32_clock_init();
+
+	extStop(&EXTD1);
 }
