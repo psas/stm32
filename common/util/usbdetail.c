@@ -364,6 +364,37 @@ void usb_event(USBDriver *usbp, usbevent_t event) {
     return;
 }
 
+#if PSAS_NONBLOCKING_SERIAL
+
+static size_t chp_write(void *ip, const uint8_t *bp, size_t n) {
+
+  return chOQWriteTimeout(&((SerialUSBDriver *)ip)->oqueue, bp,
+                          n, TIME_IMMEDIATE);
+}
+
+static size_t chp_read(void *ip, uint8_t *bp, size_t n) {
+
+  return chIQReadTimeout(&((SerialUSBDriver *)ip)->iqueue, bp,
+                         n, TIME_IMMEDIATE);
+}
+
+static msg_t chp_put(void *ip, uint8_t b) {
+
+  return chOQPutTimeout(&((SerialUSBDriver *)ip)->oqueue, b, TIME_IMMEDIATE);
+}
+
+static msg_t chp_get(void *ip) {
+
+  return chIQGetTimeout(&((SerialUSBDriver *)ip)->iqueue, TIME_IMMEDIATE);
+}
+
+static struct SerialUSBDriverVMT chp_vmt = {
+  chp_write, chp_read, chp_put, chp_get,
+    0, 0, 0, 0
+};
+
+#endif // PSAS_NONBLOCKING_SERIAL
+
 static int startUSD = FALSE;
 static void usbSerialDriverStart(void){
     //todo: better way of doing this. Hardware checks?
@@ -387,6 +418,14 @@ static void usbSerialDriverStart(void){
     chThdSleepMilliseconds(1500);
     usbStart(serusbcfg.usbp, &usbcfg);
     usbConnectBus(serusbcfg.usbp);
+
+#ifdef PSAS_NONBLOCKING_SERIAL
+    chp_vmt.putt = SDU_PSAS.vmt->putt;
+    chp_vmt.gett = SDU_PSAS.vmt->gett;
+    chp_vmt.writet = SDU_PSAS.vmt->writet;
+    chp_vmt.readt = SDU_PSAS.vmt->readt;
+    SDU_PSAS.vmt = &chp_vmt;
+#endif
 }
 
 BaseSequentialStream * getUsbStream(void){
