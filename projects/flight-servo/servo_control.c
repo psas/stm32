@@ -63,7 +63,7 @@ static msg_t servo_command_buffer[COMMAND_MAILBOX_SIZE];
 static MAILBOX_DECL(servo_commands, servo_command_buffer, COMMAND_MAILBOX_SIZE);
 
 static MemoryPool pos_cmd_pool;
-static PositionCommand pos_cmd_pool_storage[COMMAND_MAILBOX_SIZE];
+static PositionCommand pos_cmd_pool_storage[COMMAND_MAILBOX_SIZE] __attribute__((aligned(sizeof(stkalign_t))));
 
 // This mailbox is how the PWM output setter thread sends back deltas between
 // commanded position and the actual position that it set.
@@ -73,7 +73,7 @@ static msg_t servo_delta_buffer[COMMAND_MAILBOX_SIZE];
 static MAILBOX_DECL(servo_deltas, servo_delta_buffer, COMMAND_MAILBOX_SIZE);
 
 static MemoryPool pos_delta_pool;
-static PositionCommand pos_delta_pool_storage[COMMAND_MAILBOX_SIZE];
+static PositionDelta pos_delta_pool_storage[COMMAND_MAILBOX_SIZE] __attribute__((aligned(sizeof(stkalign_t))));
 
 
 
@@ -167,11 +167,16 @@ static void set_pwm_position(void* u UNUSED) {
     last_position = output;
 
     if (output != desired_position) {
-        PositionDelta* delta = (PositionDelta*) chPoolAlloc(&pos_delta_pool);
+        chSysLockFromIsr();
+        PositionDelta* delta = (PositionDelta*) chPoolAllocI(&pos_delta_pool);
+        chSysUnlockFromIsr();
         if (delta == NULL) return; // the pool is empty, so bail
+
         delta->cmd_time = cmd_time;
         delta->delta = desired_position - output;
-        chMBPost(&servo_deltas, (msg_t) delta, TIME_IMMEDIATE);
+        chSysLockFromIsr();
+        chMBPostI(&servo_deltas, (msg_t) delta);
+        chSysUnlockFromIsr();
     }
 }
 
@@ -197,7 +202,7 @@ static msg_t listener_thread(void* u UNUSED) {
 #if DEBUG_PWM
     int16_t ticks = 0;
     while (TRUE) {
-        int16_t pos = PWM_CENTER;
+        uint16_t pos = PWM_CENTER;
 
         // calculate pos
         if (ticks < 10000) {
@@ -219,8 +224,11 @@ static msg_t listener_thread(void* u UNUSED) {
             ticks = -1;
         }
 
-        // set pos
-        chMBPost(&servo_commands, (msg_t) pos, TIME_IMMEDIATE);
+        PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
+        if (cmd == NULL) continue;
+        cmd->time = (uint64_t) 1;
+        cmd->position = (uint16_t) pos;
+        chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
 
         ticks++;
         chThdSleepMilliseconds(1);
