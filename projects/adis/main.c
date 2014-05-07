@@ -14,6 +14,7 @@
 #include "lwipthread.h"
 
 #include "utils_sockets.h"
+#include "utils_general.h"
 #include "utils_led.h"
 #include "net_addrs.h"
 
@@ -40,7 +41,7 @@ void serialize_adis(ADIS16405_burst_data * data, uint16_t * buffer){
     buffer[11] = htons(data->aux_adc);
 }
 
-static void adis_drdy_handler(eventid_t id __attribute__((unused))){
+static void adis_drdy_handler(eventid_t id UNUSED){
     ADIS16405_burst_data data;
     uint16_t buffer[12]; //FIXME: buffer size
     palSetPad(GPIOF, GPIOF_LED_BLUE);
