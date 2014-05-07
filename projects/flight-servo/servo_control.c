@@ -194,11 +194,6 @@ static msg_t listener_thread(void* u UNUSED) {
     RCOutput       rc_packet;
     char data[sizeof(RCOutput)];
 
-    int socket = get_udp_socket(ROLL_ADDR);
-    if(socket < 0){
-        return -1;
-    }
-
 #if DEBUG_PWM
     int16_t ticks = 0;
     while (TRUE) {
@@ -234,6 +229,11 @@ static msg_t listener_thread(void* u UNUSED) {
         chThdSleepMilliseconds(1);
     }
 #else
+    int socket = get_udp_socket(ROLL_ADDR);
+    if(socket < 0){
+        return -1;
+    }
+
     while(TRUE){
         //fixme: throw away anything left
         read(socket, data, sizeof(data));
@@ -245,8 +245,7 @@ static msg_t listener_thread(void* u UNUSED) {
             PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
             if (cmd == NULL) continue; // the pool is empty, so bail until next msg
             cmd->time = rc_packet.time;
-            cmd->position = (1000 * rc_packet.u16ServoPulseWidthBin14) >> 14;
-
+            cmd->position = rc_packet.u16ServoPulseWidthBin14;
             chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
 
 //        } else {
@@ -258,6 +257,7 @@ static msg_t listener_thread(void* u UNUSED) {
         if (fetch_status == RDY_TIMEOUT) continue; // no delta received, so wait for next command
         memcpy(data, delta, sizeof(PositionDelta));
         write(socket, data, sizeof(PositionDelta));
+        chPoolFree(&pos_delta_pool, delta);
     }
 #endif
 
