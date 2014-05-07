@@ -23,12 +23,13 @@ void lwipThreadStart(struct lwipthread_opts * ip_opts){
                       ip_opts);
 }
 
-void set_sockaddr(struct sockaddr_in * addr, const char * ip, uint16_t port){
+void set_sockaddr(struct sockaddr * addr, const char * ip, uint16_t port){
     //Create an address (remember to have the data in network byte order)
-    memset(addr, 0, sizeof(struct sockaddr_in));
-    addr->sin_family = AF_INET,
-    addr->sin_port = htons(port);
-    inet_aton(ip, &addr->sin_addr);
+    struct sockaddr_in * in = (struct sockaddr_in *)addr;
+    memset(in, 0, sizeof(struct sockaddr_in));
+    in->sin_family = AF_INET,
+    in->sin_port = htons(port);
+    inet_aton(ip, &in->sin_addr);
 }
 
 
@@ -41,7 +42,7 @@ int get_udp_socket(const struct sockaddr *addr){
     }
 
     //bind our own address to the socket
-    if(bind(s, addr, sizeof(struct sockaddr)) < 0){
+    if(bind(s, addr, sizeof(struct sockaddr_in)) < 0){
         /* socket bind failure */
         return -2;
     }
