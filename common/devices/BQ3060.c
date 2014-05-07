@@ -16,6 +16,7 @@ static I2CDriver *I2CD;
 static const systime_t I2C_TIMEOUT = MS2ST(400);
 
 EventSource BQ3060_data_ready;
+EventSource BQ3060_battery_fault;
 
 static struct BQ3060Data buffer;
 
@@ -215,6 +216,7 @@ static msg_t read_thread(void * p UNUSED){
     evtInit(&timer, S2ST(1));
 
     struct EventListener eltimer;
+    uint16_t safetyData = 0;
     static const evhandler_t evhndl[] = {
             read_handler
     };
@@ -223,6 +225,24 @@ static msg_t read_thread(void * p UNUSED){
     evtStart(&timer);
     while(TRUE){
         chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
+	//if any battery issues have occurred we fire 
+	//the event associated with BQ3060_battery_fault
+	//read the safety alert register (0x50)
+	BQ3060_Get(0x50,&safetyData);
+	if (safetyData != 0) {
+		chEvtBroadcast(&BQ3060_battery_fault);
+	}
+	//read the pending failure alert register (0x52)
+	BQ3060_Get(0x52,&safetyData);
+	if (safetyData != 0) {
+		chEvtBroadcast(&BQ3060_battery_fault);
+	}
+	//read the permanent failure status register (0x53)
+	BQ3060_Get(0x53,&safetyData);
+	if (safetyData != 0) {
+		chEvtBroadcast(&BQ3060_battery_fault);
+	}
+	chThdSleepMilliseconds(1000); 
     }
 
     return -1;

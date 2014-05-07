@@ -130,6 +130,7 @@ int BQ3060_Set(uint8_t register_id, uint16_t data);
 int BQ3060_Get(uint8_t register_id, uint16_t* data);
 
 extern EventSource BQ3060_data_ready;
+extern EventSource BQ3060_battery_fault;
 void BQ3060_get_data(struct BQ3060Data * data);
 
 #endif /* _BQ3060_H_ */
