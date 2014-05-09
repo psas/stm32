@@ -31,33 +31,45 @@
 #include "shell.h"
 #include "lwipthread.h"
 #include "lwip/ip_addr.h"
-
 #include "utils_sockets.h"
+
 #include "usbdetail.h"
 //#include "cmddetail.h"
 #include "enet_api.h"
-
 #include "pwmdetail.h"
-
-#include "main.h"
 #include "control.h"
+#include "rocket_tracks.h"
+
+/* Total number of feedback channels to be sampled by a single ADC operation.*/
+#define ADC_GRP1_NUM_CHANNELS   1
+/* Depth of the conversion buffer, channels are sampled once each.*/
+#define ADC_GRP1_BUF_DEPTH      1
+/* Total number of input channels to be sampled by a single ADC operation.*/
+#define ADC_GRP2_NUM_CHANNELS   1
+/* Depth of the conversion buffer, input channels are sampled once each.*/
+#define ADC_GRP2_BUF_DEPTH      1
 
 //Function Prototypes
-static void adccb1(ADCDriver *adcp, adcsample_t *buffer, size_t n);
 void DisplayData(BaseSequentialStream *chp, CONTROL_AXIS_STRUCT *axis_p);
+static void watchdog(void);
+static void enable_axes(uint8_t enable);
 static void ControlAxis(CONTROL_AXIS_STRUCT *ptr, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN);
 static void spicb(SPIDriver *spip);
-void ReadADCs(axissample_t * Samples, int Reads);
+static void extReadADCs(EXTDriver *extp, expchannel_t channel);
+static void convert_start(GPTDriver *gptp);
 static void motordrive(GPTDriver *gptp);
-static void processLeds(void);
 uint32_t microsecondsToPWMTicks(const uint32_t microseconds);
-uint32_t pwmGetPclk(void);
+static uint8_t DriveEnable (void);
 
 static const GPTConfig gpt1cfg = {
 	1000000,
-//	10000000,
-//	motordrive
-	NULL,
+	motordrive,
+	0,
+};
+
+static const GPTConfig gpt2cfg = {
+	1000000,
+	convert_start,
 	0,
 };
 
@@ -71,13 +83,13 @@ static const SPIConfig spi1cfg = {
   /* HW dependent part.*/
   GPIOA,
   GPIOA_CS_SPI,
-  SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_CPOL | SPI_CR1_CPHA
+  SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_CPOL | SPI_CR1_CPHA,
 };
 
-static const ADCConversionGroup adcgrp1cfg5 = {
+static const ADCConversionGroup adcgrpcfg1 = {
 	FALSE,
 	ADC_GRP1_NUM_CHANNELS,
-	adccb1,
+	NULL,
 	NULL,
 	/* HW dependent part.*/
 	0,
@@ -86,31 +98,30 @@ static const ADCConversionGroup adcgrp1cfg5 = {
 	ADC_SMPR2_SMP_AN5(ADC_SAMPLE_56),
 	ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
 	0,
-	ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5)
+	ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5),
 };
 
 // Global variables
 
-static adcsample_t refMonitor[ADC_GRP1_NUM_CHANNELS * ADC_GRP1_BUF_DEPTH];
+// Shell Override Variables
+uint8_t U8ShellEnable = ENABLED;
+uint8_t U8ShellMode = NO_SHELL_MODE;
 
-uint8_t U8EnableDriveSwitch = 0;
-uint8_t U8PrevPosnVelModeSwitchState = 0;
+// ADC Sample Variables
+static axissample_t Samples[AXIS_ADC_COUNT];
+static uint32_t AxisAccumulator[AXIS_ADC_COUNT];
+static adcsample_t refMonitor;
 
-uint8_t U8ShellEnable = 0;
-uint8_t U8ShellMode = 2;
-//uint8_t U8trackupflag = 0;
-
+// Axis Control Variables
+uint8_t U8PrevPosnVelModeSwitchState = DISABLED;
 uint32_t u32Temp = 0;
+CONTROL_AXIS_STRUCT vertAxisStruct, latAxisStruct;
 static uint8_t u8WatchDogCycleCount = 0;
 
-static uint32_t U32DelayCount = 0;
-static uint8_t U8PosnVelModeSwitch = 0;
-static uint32_t u32LedCount = 0;
-static uint8_t U8LedState = 0;
-static uint8_t U8VertLedState = LED_BLINK;
-static uint8_t U8LatLedState = LED_BLINK;
-CONTROL_AXIS_STRUCT vertAxisStruct, latAxisStruct;
 
+// Message structs
+ManualData ManualStatus;
+Neutral NeutralStatus;
 
 static const EXTConfig extcfg = {
   {
@@ -121,6 +132,7 @@ static const EXTConfig extcfg = {
     {EXT_CH_MODE_DISABLED, NULL},
     {EXT_CH_MODE_DISABLED, NULL},
     {EXT_CH_MODE_DISABLED, NULL},
+    {EXT_CH_MODE_RISING_EDGE, extReadADCs},
     {EXT_CH_MODE_DISABLED, NULL},
     {EXT_CH_MODE_DISABLED, NULL},
     {EXT_CH_MODE_DISABLED, NULL},
@@ -136,7 +148,6 @@ static const EXTConfig extcfg = {
     {EXT_CH_MODE_DISABLED, NULL},
     {EXT_CH_MODE_DISABLED, NULL},
     {EXT_CH_MODE_DISABLED, NULL},
-    {EXT_CH_MODE_DISABLED, NULL}
   }
 };
 
@@ -176,9 +187,9 @@ static void cmd_data(BaseSequentialStream *chp, int argc, char *argv[]) {
 
 	(void)argv; (void)argc;
 
-	if(U8ShellMode != 2) {
+	if(U8ShellMode != NO_SHELL_MODE) {
 		chprintf(chp, "\tShell Override ");
-		if(U8ShellMode == 1) {
+		if(U8ShellMode == ENABLED) {
 			chprintf(chp, "Mode : Position\r\n");
 		}
 		else {
@@ -186,7 +197,7 @@ static void cmd_data(BaseSequentialStream *chp, int argc, char *argv[]) {
 		}
 	}
 	else {
-		if(U8PosnVelModeSwitch == 1) {
+		if(ManualStatus.Mode == SIGHTLINE_MODE) {
 			chprintf(chp, "Mode : Position\r\n");
 		}
 		else {
@@ -238,7 +249,7 @@ static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[]) {
 	if (argc > 0) {
 		chprintf(chp, "Usage: stop\r\n");
 	}
-	U8ShellEnable = 0;
+	U8ShellEnable = DISABLED;
 	chprintf(chp, "System Disabled. Type 'enable' to resume. \r\n");
 }
 
@@ -257,7 +268,7 @@ static void cmd_enable(BaseSequentialStream *chp, int argc, char *argv[]) {
 		chprintf(chp, "Usage: Enable\r\n");
 		return;
 	}
-	U8ShellEnable = 1;
+	U8ShellEnable = ENABLED;
 	chprintf(chp, "System Enabled.\r\n");
 }
 
@@ -280,19 +291,19 @@ static void cmd_freeze(BaseSequentialStream *chp, int argc, char *argv[]) {
 		return;
 	}
 	if (*argv[0] == 'V' || *argv[0] == 'v') {
-		U8ShellMode = 3;
-		vertAxisStruct.U8FreezeAxis = 1;
+		U8ShellMode = FREEZE_MODE;
+		vertAxisStruct.U8FreezeAxis = ENABLED;
 		chprintf(chp, "Vertical Axis ");
 	}
 	else if(*argv[0] == 'L' || *argv[0] == 'l') {
-		U8ShellMode = 3;
-		latAxisStruct.U8FreezeAxis = 1;
+		U8ShellMode = FREEZE_MODE;
+		latAxisStruct.U8FreezeAxis = ENABLED;
 		chprintf(chp, "Lateral Axis ");
 	}
 	else {
-		U8ShellMode = 3;
-		latAxisStruct.U8FreezeAxis = 1;
-		vertAxisStruct.U8FreezeAxis = 1;
+		U8ShellMode = FREEZE_MODE;
+		latAxisStruct.U8FreezeAxis = ENABLED;
+		vertAxisStruct.U8FreezeAxis = ENABLED;
 		chprintf(chp, "Both Axes ");
 	}
 	chprintf(chp, "Frozen.\r\n");
@@ -317,28 +328,28 @@ static void cmd_unfreeze(BaseSequentialStream *chp, int argc, char *argv[]) {
 		return;
 	}
 	if (*argv[0] == 'V' || *argv[0] == 'v') {
-		U8ShellMode = 1;
-		vertAxisStruct.U8FreezeAxis = 0;
+		U8ShellMode = NO_SHELL_MODE;
+		vertAxisStruct.U8FreezeAxis = DISABLED;
 		chprintf(chp, "Vertical Axis ");
 	}
 	else if(*argv[0] == 'L' || *argv[0] == 'l') {
-		U8ShellMode = 2;
-		latAxisStruct.U8FreezeAxis = 0;
+		U8ShellMode = NO_SHELL_MODE;
+		latAxisStruct.U8FreezeAxis = DISABLED;
 		chprintf(chp, "Lateral Axis ");
 	}
 	else {
-		U8ShellMode = 2;
-		latAxisStruct.U8FreezeAxis = 0;
-		vertAxisStruct.U8FreezeAxis = 0;
+		U8ShellMode = NO_SHELL_MODE;
+		latAxisStruct.U8FreezeAxis = DISABLED;
+		vertAxisStruct.U8FreezeAxis = DISABLED;
 		chprintf(chp, "Both Axes ");
 	}
 	chprintf(chp, "Unfrozen.\r\n");
 
-	if(U8PosnVelModeSwitch > 0) {
-		chprintf(chp, "Mode : Position\r\n");
+	if(ManualStatus.Mode == SIGHTLINE_MODE) {
+		chprintf(chp, "Mode : Sightline\r\n");
 	}
 	else {
-		chprintf(chp, "Mode : Velocity\r\n");
+		chprintf(chp, "Mode : Manual\r\n");
 	}
 }
 
@@ -348,9 +359,9 @@ static void cmd_unfreeze(BaseSequentialStream *chp, int argc, char *argv[]) {
  * Description:		Selects/displays mode or reverts to mode switch state
  *
  * Arguments:		NULL: Displays current mode
- * 					0: Shell Override Mode: Velocity
- * 					1: Shell Override Mode: Position
- * 					2: Mode switch
+ * 					MANUAL_MODE: Shell Override Mode: Manual
+ * 					SIGHTLINE_MODE: Shell Override Mode: Sightline
+ * 					NO_SHELL_MODE: Manual Control Box Mode Command
  *
  *****************************************************************************/
 static void cmd_mode(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -358,27 +369,27 @@ static void cmd_mode(BaseSequentialStream *chp, int argc, char *argv[]) {
 	(void)argv;
 	if (argc > 0) {
 		if (*argv[0] == '0')
-			U8ShellMode = 0;
+			U8ShellMode = MANUAL_MODE;
 		else if(*argv[0] == '1')
-			U8ShellMode = 1;
+			U8ShellMode = SIGHTLINE_MODE;
 		else if(*argv[0] == '2')
-			U8ShellMode = 2;
+			U8ShellMode = NO_SHELL_MODE;
 	}
-	if(U8ShellMode != 2) {
+	if(U8ShellMode != NO_SHELL_MODE) {
 		chprintf(chp, "\tShell Override ");
-		if(U8ShellMode > 0) {
-			chprintf(chp, "Mode : Position\r\n");
+		if(U8ShellMode == SIGHTLINE_MODE) {
+			chprintf(chp, "Mode : Sightline\r\n");
 		}
 		else {
-			chprintf(chp, "Mode : Velocity\r\n");
+			chprintf(chp, "Mode : Manual\r\n");
 		}
 	}
 	else {
-		if(U8PosnVelModeSwitch > 0) {
-			chprintf(chp, "Mode : Position\r\n");
+		if(ManualStatus.Mode == SIGHTLINE_MODE) {
+			chprintf(chp, "Mode : Sightline\r\n");
 		}
 		else {
-			chprintf(chp, "Mode : Velocity\r\n");
+			chprintf(chp, "Mode : Manual\r\n");
 		}
 	}
 }
@@ -412,7 +423,7 @@ CONTROL_AXIS_STRUCT *axis_p = NULL;
 	(void)argv;
 	if (argc > 0) {
 
-		U8ShellEnable = 0;
+		U8ShellEnable = DISABLED;
 		chprintf(chp, "System Disabled. Type 'enable' to resume. \r\n");
 
 		if (*argv[0] == 'V' || *argv[0] == 'v') {
@@ -469,10 +480,45 @@ static const ShellCommand commands[] = {
  */
 static void spicb(SPIDriver *spip) {
 
-  /* On transfer end just releases the slave select line.*/
+  /* On transfer end releases the slave select line.*/
   chSysLockFromIsr();
   spiUnselectI(spip);
   chSysUnlockFromIsr();
+  // Weighted Moving Average accumulator of axis feedback samples
+  AxisAccumulator[LAT_AXIS] = ((AxisAccumulator[LAT_AXIS] * 7) + Samples[LAT_AXIS])/8;
+  AxisAccumulator[VERT_AXIS] = ((AxisAccumulator[VERT_AXIS] * 7) + Samples[VERT_AXIS])/8;
+}
+
+/******************************************************************************
+ * Function name:	ReadADCs
+ *
+ * Description:		Starts a SPI read transaction and reads 4 samples
+ *****************************************************************************/
+static void extReadADCs(EXTDriver *extp, expchannel_t channel) {
+
+	(void)extp;
+	(void)channel;
+
+	chSysLockFromIsr();
+	extChannelDisableI(&EXTD1, 7);
+	spiStartReceiveI(&SPID1, AXIS_ADC_COUNT, (void *)&Samples);
+	chSysUnlockFromIsr();
+}
+
+/*
+ * Starts new conversion of axis input ADCs.
+ */
+static void convert_start(GPTDriver *gptp) {
+
+	(void) gptp;
+
+	//Read Input ADCs
+	chSysLockFromIsr();
+	spiSelectI(&SPID1);
+	extChannelEnableI(&EXTD1, 7);
+	chSysUnlockFromIsr();
+
+	return;
 }
 
 /*
@@ -480,16 +526,14 @@ static void spicb(SPIDriver *spip) {
  */
 static void motordrive(GPTDriver *gptp) {
 
-axissample_t Samples[AXIS_ADC_COUNT];
 
 	(void) gptp;
-
-	U32DelayCount = 0;
 
 	chSysLockFromIsr();
 
 	// Read Feedback ADC's
-	ReadADCs(Samples, AXIS_ADC_COUNT);
+	latAxisStruct.U16FeedbackADC = (axissample_t)AxisAccumulator[LAT_AXIS];
+	vertAxisStruct.U16FeedbackADC = (axissample_t)AxisAccumulator[VERT_AXIS];
 
 	chSysUnlockFromIsr();
 
@@ -497,81 +541,43 @@ axissample_t Samples[AXIS_ADC_COUNT];
 	ControlAxis(&latAxisStruct, 3, 4);
 	ControlAxis(&vertAxisStruct, 1, 2);
 
+	// Drive Enable Safety Interlock Section
 
-	// Read input switch positions
-	U8EnableDriveSwitch = palReadPad(GPIOD, GPIOD_PIN8); // PD8
-	U8PosnVelModeSwitch = palReadPad(GPIOD, GPIOD_PIN9); // PD9
+	// DANGER - Safety-Critical Code Section
+	DriveEnable();
 
-	// Handle ENABLE on GMD and LEDs on GFE
-	if(U8EnableDriveSwitch > 0 && U8ShellEnable > 0) {
-		// Turn ON enable
-		palSetPad(GPIOD, GPIOD_PIN10);
-		palSetPad(GPIOD, GPIOD_PIN6);
-//		// Turn Green LED on, Red LED off
-//		palSetPad(GPIOD, GPIOD_PIN0);
-//		palClearPad(GPIOD, GPIOD_PIN1);
-
-		// Interlock drives on mode change
-		if(U8ShellMode == 2) {
-			if(U8PosnVelModeSwitch != U8PrevPosnVelModeSwitchState) {
-				vertAxisStruct.U8DriveIsInterlocked = 1;
-				latAxisStruct.U8DriveIsInterlocked = 1;
-			}
-		}
-		else {
-			if(U8ShellMode != U8PrevPosnVelModeSwitchState) {
-				vertAxisStruct.U8DriveIsInterlocked = 1;
-				latAxisStruct.U8DriveIsInterlocked = 1;
-			}
-		}
-	}
-	else {
-		// Otherwise enable is OFF
-		palClearPad(GPIOD, GPIOD_PIN10);
-		palClearPad(GPIOD, GPIOD_PIN6);
-//		// Turn Green LED off, Red LED on
-//		palClearPad(GPIOD, GPIOG_PIN0);
-//		palSetPad(GPIOD, GPIOD_PIN1);
-
-		// Lock out drives
-		vertAxisStruct.U8DriveIsInterlocked = 1;
-		latAxisStruct.U8DriveIsInterlocked = 1;
-	}
-
-	// Interlock drives on mode change
-	if(U8ShellMode == 2) {
-		U8PrevPosnVelModeSwitchState = U8PosnVelModeSwitch;
-	}
-	else {
-		U8PrevPosnVelModeSwitchState = U8ShellMode;
-	}
-
-//	U8PrevPosnVelModeSwitchState = U8PosnVelModeSwitch;
-
-	processLeds();
-
-	// Handle HW Watchdog on GMD
-	if(u8WatchDogCycleCount > 7){
-		u8WatchDogCycleCount = 0;
-		palTogglePad(GPIOD, GPIOD_PIN11);
-		palTogglePad(GPIOD, GPIOD_PIN5);
-	}
-	else
-		u8WatchDogCycleCount++;
 
 	return;
 }
 
-/*
- * WKUP button handler
- *
- * Challenge: Do something more interesting here.
- */
-static void WKUP_button_handler(eventid_t id) {
 
-	BaseSequentialStream *chp = getUsbStream();
-	chprintf(chp, "WKUP btn. eventid: %d\r\n", id);
-	chprintf(chp, "STM32_TIMCLK1 is: %d\r\n", STM32_TIMCLK1);
+/******************************************************************************
+ * Function name:	ControlAxis
+ *
+ * Description:		Updates PWM outputs based on system state
+ *****************************************************************************/
+//void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, adcsample_t sample, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN) {
+void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN) {
+
+	// Run control loop
+	controlLoop(axis_p);
+
+    chSysLockFromIsr();
+	// Set axis PWM's
+	if(axis_p->S16OutputCommand > 0){ //Forward
+		// Compute ON time scaled 0 - 511 counts
+		// Can't go to 100% DC, so max is 98%, or 958
+		u32Temp = ((uint32_t)(axis_p->S16OutputCommand * (2 * 958))) / 1000;
+		pwmEnableChannelI(&PWMD4, PWM_U_CHAN - 1, microsecondsToPWMTicks( u32Temp ));	// U-Pole
+		pwmEnableChannelI(&PWMD4, PWM_V_CHAN - 1, microsecondsToPWMTicks( 0 ));			// V-Pole
+	}else{ // Reverse
+		// Compute ON time scaled 0 - 511 counts
+		// Can't go to 100% DC, so max is 98%, or 958
+		u32Temp = ((uint32_t)(axis_p->S16OutputCommand * (-2 * 958))) / 1000;
+		pwmEnableChannelI(&PWMD4, PWM_U_CHAN - 1, microsecondsToPWMTicks( 0 ));			// U-Pole
+		pwmEnableChannelI(&PWMD4, PWM_V_CHAN - 1, microsecondsToPWMTicks( u32Temp ));	// V-Pole
+	}
+    chSysUnlockFromIsr();
 }
 
 /*
@@ -579,10 +585,6 @@ static void WKUP_button_handler(eventid_t id) {
  */
 int main(void) {
 
-static const evhandler_t evhndl[] = {
-WKUP_button_handler
-};
-//struct EventListener el0;
 BaseSequentialStream *chp = getUsbStream();
 
 	/*
@@ -600,12 +602,6 @@ BaseSequentialStream *chp = getUsbStream();
     struct lwipthread_opts   ip_opts;
 	uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
 	set_lwipthread_opts(&ip_opts, IP_MANUAL, "255.255.255.0", "192.168.1.1", macAddress);
-
-	//Create sockets
-	SendtoManualSocket();
-	SendtoSLASocket();
-	ReceiveSLASocket();
-	ReceiveManualSocket();
 
 	/* Start the lwip thread*/
 	chprintf(chp, "LWIP ");
@@ -629,56 +625,45 @@ BaseSequentialStream *chp = getUsbStream();
 	gptStart(&GPTD1, &gpt1cfg);
 	gptStartContinuous(&GPTD1,100000);
 
-	// Configure pins for Feedback ADC's
-	palSetPadMode(GPIOA, GPIOA_PIN4, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOA, GPIOA_PIN5, PAL_MODE_INPUT_ANALOG);
-	// Configure pins for Input ADC's
-	palSetPadMode(GPIOF, GPIOF_PIN6, PAL_MODE_INPUT_ANALOG);
-	palSetPadMode(GPIOF, GPIOF_PIN7, PAL_MODE_INPUT_ANALOG);
+	// Enable Continuous GPT for 500us Interval for ADC conversions
+	gptStart(&GPTD2, &gpt2cfg);
+	gptStartContinuous(&GPTD2, 5000);
 
-	// Configure pins for LED's
-	// PD3: Vertical Axis LED
-	palSetPadMode(GPIOD, GPIOD_PIN3, PAL_MODE_OUTPUT_PUSHPULL);
-	// PD4: Lateral Axis LED
-	palSetPadMode(GPIOD, GPIOD_PIN4, PAL_MODE_OUTPUT_PUSHPULL);
+	// Configure Pins for SPI
+	// PA4: SPI NSS (AF5)
+	palSetPadMode(GPIOA, GPIOA_ADC_CNV, PAL_MODE_ALTERNATE(5));
+	// PA5: SPI SCK (AF5)
+	palSetPadMode(GPIOA, GPIOA_SPI1_SCK, PAL_MODE_ALTERNATE(5));
+	// PA6: SPI MISO (AF5)
+	palSetPadMode(GPIOA, GPIOA_SPI1_MISO, PAL_MODE_ALTERNATE(5));
 
-	// Configure pins for switches
-	// PD8: Drive Enable Switch
-	palSetPadMode(GPIOD, GPIOD_PIN8, PAL_MODE_INPUT);
-	// PD9: Mode Select Switch
-	palSetPadMode(GPIOD, GPIOD_PIN9, PAL_MODE_INPUT);
+	// Configure pin for ADC Convert Done Interrupt (PE7)
+	palSetPadMode(GPIOE, GPIOE_CONV_DONE, PAL_MODE_INPUT);
+
+	// Configure pin for VREF Monitor ADC Input (PC0)
+	palSetPadMode(GPIOC, GPIOC_VREF_MONITOR, PAL_MODE_INPUT_ANALOG);
 
 	// Configure pins for long lead GMD Enable/Watchdog
-	// PD5: Enable out to GMD
-	palSetPadMode(GPIOD, GPIOD_PIN5, PAL_MODE_OUTPUT_PUSHPULL);
-	// PD6: Watchdog out to GMD
-	palSetPadMode(GPIOD, GPIOD_PIN6, PAL_MODE_OUTPUT_PUSHPULL);
+	// PD5: watchdog out to GMD
+	palSetPadMode(GPIOD, GPIOD_VERT_WD, PAL_MODE_OUTPUT_PUSHPULL);
+	// PD6: Enable out to GMD
+	palSetPadMode(GPIOD, GPIOD_VERT_EN, PAL_MODE_OUTPUT_PUSHPULL);
 
-	// Configure pins for short lead GMD Enable/Watchdog
-	// PD10: Enable out to GMD
-	palSetPadMode(GPIOD, GPIOD_PIN10, PAL_MODE_OUTPUT_PUSHPULL);
-	// PD11: Watchdog out to GMD
-	palSetPadMode(GPIOD, GPIOD_PIN11, PAL_MODE_OUTPUT_PUSHPULL);
+	// Configure pins for lateral Axis GMD Enable/Watchdog
+	// PD10: Watchdog out to GMD
+	palSetPadMode(GPIOD, GPIOD_LAT_WD, PAL_MODE_OUTPUT_PUSHPULL);
+	// PD11: Enable out to GMD
+	palSetPadMode(GPIOD, GPIOD_LAT_EN, PAL_MODE_OUTPUT_PUSHPULL);
 
 	// Configure pins for PWM output (D12-D15: TIM4, channel 1-4)
-	palSetPadMode(GPIOD, GPIOD_PIN12, PAL_MODE_ALTERNATE(2));	//U-pole, short lead
-	palSetPadMode(GPIOD, GPIOD_PIN13, PAL_MODE_ALTERNATE(2));	//V-pole, short lead
-	palSetPadMode(GPIOD, GPIOD_PIN14, PAL_MODE_ALTERNATE(2));	//U-pole, long lead
-	palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));	//V-pole, long lead
+	palSetPadMode(GPIOD, GPIOD_VERT_V, PAL_MODE_ALTERNATE(2));	//U-pole, short lead
+	palSetPadMode(GPIOD, GPIOD_VERT_U, PAL_MODE_ALTERNATE(2));	//V-pole, short lead
+	palSetPadMode(GPIOD, GPIOD_LAT_V, PAL_MODE_ALTERNATE(2));	//U-pole, long lead
+	palSetPadMode(GPIOD, GPIOD_LAT_U, PAL_MODE_ALTERNATE(2));	//V-pole, long lead
 
 	adcStart(&ADCD1, NULL);
 
 	pwmStart(&PWMD4, &pwmcfg);
-
-	// Enable TIM4 PWM channel 1-4 with initial DC=0%
-	/* @param[in] pwmp      pointer to a @p PWMDriver object
-	*  @param[in] channel   PWM channel identifier (0...PWM_CHANNELS-1)
-	*  @param[in] width     PWM pulse width as clock pulses number
-	*/
-	pwmEnableChannel(&PWMD4, 0, 0);
-	pwmEnableChannel(&PWMD4, 1, 0);
-	pwmEnableChannel(&PWMD4, 2, 0);
-	pwmEnableChannel(&PWMD4, 3, 0);
 
 	// Set axis control gain and limit values
 	// Set Vertical Axis Gains
@@ -698,6 +683,8 @@ BaseSequentialStream *chp = getUsbStream();
 	latAxisStruct.U16HighPosnLimit = 5300;
 	latAxisStruct.U16LowPosnLimit = 3100;
 
+	adcStart(&ADCD1, NULL);
+
 	/*
 	* Activates the serial driver 6 and SDC driver 1 using default
 	* configuration.
@@ -710,137 +697,45 @@ BaseSequentialStream *chp = getUsbStream();
 	*/
 	extStart(&EXTD1, &extcfg);
 
-	/*
-	* Normal main() thread activity, in this demo it does nothing except
-	* sleeping in a loop and listen for events.
-	*/
 	while (TRUE) {
-		//Cycle motordrive if timer fails
-		if(U32DelayCount++ > 2500){
-			motordrive(&GPTD1);
-		}
-		chEvtDispatch(evhndl, chEvtWaitOneTimeout(ALL_EVENTS, MS2ST(500)));
+		chThdSleep(TIME_INFINITE);
 	}
 }
 
 /******************************************************************************
- * Function name:	ReadADCs
+ * Function name:	watchdog
  *
- * Description:		Starts a SPI read transaction and reads 4 samples
+ * Description:		Toggles the Watchdog outputs to the GMD's
+ *
  *****************************************************************************/
-void ReadADCs(axissample_t * Samples, int Reads) {
+static void watchdog() {
 
-
-	spiSelectI(&SPID1);
-	spiStartReceiveI(&SPID1, Reads, Samples);
-	spiUnselectI(&SPID1);
-
+	// Handle HW Watchdog on GMD
+	if(u8WatchDogCycleCount % 2){
+		palTogglePad(GPIOD, GPIOD_LAT_WD);
+		palTogglePad(GPIOD, GPIOD_VERT_WD);
+	}
+	u8WatchDogCycleCount++;
 }
 
 /******************************************************************************
- * Function name:	ControlAxis
+ * Function name:	enable_axes
  *
- * Description:		Updates PWM outputs based on system state
+ * Description:		Asserts or deasserts all axis Enable outputs to the GMD's
+ * 					based on the value of enable.
+ *
  *****************************************************************************/
-//void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, adcsample_t sample, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN) {
-void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN) {
+static void enable_axes(uint8_t enable) {
 
-	// Set axis mode
-	if(U8ShellMode == 2)
-		axis_p->U8PosnVelMode = U8PosnVelModeSwitch;
+	// Enable all axes
+	if(enable == ENABLED){
+		palSetPad(GPIOD, GPIOD_LAT_EN);
+		palSetPad(GPIOD, GPIOD_VERT_EN);
+	}
+	// Disable all axes
 	else
-		axis_p->U8PosnVelMode = U8ShellMode;
-
-	// Run control loop
-	controlLoop(axis_p);
-
-
-    chSysLockFromIsr();
-	// Set axis PWM's
-	if(axis_p->S16OutputCommand > 0){ //Forward
-		// Compute ON time scaled 0 - 511 counts
-		// Can't go to 100% DC, so max is 98%, or 958
-		u32Temp = ((uint32_t)(axis_p->S16OutputCommand * (2 * 958))) / 1000;
-		pwmEnableChannelI(&PWMD4, PWM_U_CHAN - 1, microsecondsToPWMTicks( u32Temp ));	// U-Pole
-		pwmEnableChannelI(&PWMD4, PWM_V_CHAN - 1, microsecondsToPWMTicks( 0 ));			// V-Pole
-	}else{ // Reverse
-		// Compute ON time scaled 0 - 511 counts
-		// Can't go to 100% DC, so max is 98%, or 958
-		u32Temp = ((uint32_t)(axis_p->S16OutputCommand * (-2 * 958))) / 1000;
-		pwmEnableChannelI(&PWMD4, PWM_U_CHAN - 1, microsecondsToPWMTicks( 0 ));			// U-Pole
-		pwmEnableChannelI(&PWMD4, PWM_V_CHAN - 1, microsecondsToPWMTicks( u32Temp ));	// V-Pole
-	}
-    chSysUnlockFromIsr();
-}
-
-/******************************************************************************
- * Function name:	processLeds
- *
- * Description:		Manages LEDs based on system state
- *
- *****************************************************************************/
-static void processLeds(void){
-
-	// Set LED's to blink if drive is interlocked
-	if( (vertAxisStruct.U8VelocityNeutral > 0) | (vertAxisStruct.U8PositionNeutral > 0) ) {
-		U8VertLedState = LED_ON;
-	}else{
-		U8VertLedState = LED_BLINK;
-	}
-	if( (latAxisStruct.U8VelocityNeutral > 0) | (latAxisStruct.U8PositionNeutral > 0) ) {
-		U8LatLedState = LED_ON;
-	}else{
-		U8LatLedState = LED_BLINK;
-	}
-
-	// Handle LED timer operation
-	if(u32LedCount > 50){
-		u32LedCount = 0;
-		U8LedState = ~U8LedState;
-	}else{
-		u32LedCount++;
-	}
-
-	// Process Vertical LED on PD3
-	switch(U8VertLedState){
-	case LED_OFF:
-		palClearPad(GPIOD, GPIOD_PIN3);
-		break;
-	case LED_ON:
-		palSetPad(GPIOD, GPIOD_PIN3);
-		break;
-	case LED_BLINK:
-		if(U8LedState){palSetPad(GPIOD, GPIOD_PIN3);}
-		else{palClearPad(GPIOD, GPIOD_PIN3);}
-		break;
-	}
-
-	// Process Lateral LED on PD4
-	switch(U8LatLedState){
-	case LED_OFF:
-		palClearPad(GPIOD, GPIOD_PIN4);
-		break;
-	case LED_ON:
-		palSetPad(GPIOD, GPIOD_PIN4);
-		break;
-	case LED_BLINK:
-		if(U8LedState){palSetPad(GPIOD, GPIOD_PIN4);}
-		else{palClearPad(GPIOD, GPIOD_PIN4);}
-		break;
-	}
-
-//	// Process Posn / Vel LEDs on PD5 and PD6
-//	if(U8PosnVelModeSwitch > 0){
-//		palSetPad(GPIOD, GPIOD_PIN5);
-//		palClearPad(GPIOD, GPIOD_PIN6);
-//	}else{
-//		palClearPad(GPIOD, GPIOD_PIN5);
-//		palSetPad(GPIOD, GPIOD_PIN6);
-//	}
-	// Process flashing Green Wake-up LED
-	if(U8LedState){palSetPad(GPIOC, GPIOC_LED);}
-	else{palClearPad(GPIOC, GPIOC_LED);}
-
+		palClearPad(GPIOD, GPIOD_LAT_EN);
+		palClearPad(GPIOD, GPIOD_VERT_EN);
 }
 
 /******************************************************************************
@@ -851,9 +746,10 @@ static void processLeds(void){
  *****************************************************************************/
 uint32_t microsecondsToPWMTicks(const uint32_t microseconds)
 {
-	uint32_t ret = (pwmGetPclk() / 1000000) * microseconds;
+	uint32_t ret = (pwmcfg.frequency / 1000000) * microseconds;
 	return (ret);
 }
+
 
 /******************************************************************************
  * Function name:	nanosecondsToPWMTicks
@@ -863,17 +759,90 @@ uint32_t microsecondsToPWMTicks(const uint32_t microseconds)
  *****************************************************************************/
 uint32_t nanosecondsToPWMTicks(const uint32_t nanoseconds) {
 
-	uint32_t ret = (pwmGetPclk() * nanoseconds) / 1000000000;
+	uint32_t ret = (pwmcfg.frequency * nanoseconds) / 1000000000;
 	return (ret);
 }
 
 /******************************************************************************
- * Returns PWM frequency rate so that frequency and duty cycle can be computed.
+ * Function name:	DriveEnable
  *
+ * Description:		DANGER - LIFE-SAFETY CRITICAL CODE - THIS CODE WAS
+ * 					DEVELOPED BASED ON RESULTS OF SYSTEM FMEA AND SHOULD BE
+ * 					MODIFIED ONLY BY QUALIFIED PERSONNEL.
  *
+ * 					Performs safety interlock checks before enabling GMDs and
+ * 					toggling watchdog as appropriate.
+ *
+ * 					Returns ENABLED for Drives Enabled
+ * 					Returns DISABLED for Drives Disabled
  *****************************************************************************/
-uint32_t pwmGetPclk(void) {
+static uint8_t DriveEnable() {
 
-	return pwmcfg.frequency;
+uint8_t UserEnable = DISABLED;
+uint8_t TestEnable = DISABLED;
+uint8_t ApproveEnable = DISABLED;
+
+uint8_t ModeStatus = MANUAL_MODE;
+
+	// Check Mode Status Before Interlocking Drives
+	if(U8ShellMode == NO_SHELL_MODE)
+		ModeStatus = ManualStatus.Mode;
+	else
+		ModeStatus = U8ShellMode;
+
+/* DRIVE ENABLE CHECKS SECTION */
+
+	// Check for User Enable Status (Manual Enable Switch and Shell Override)
+	if(ManualStatus.Enable == ENABLED && U8ShellEnable == ENABLED)
+		UserEnable = ENABLED;
+	else
+		UserEnable = DISABLED;
+
+	// Check for Reference Voltage OK
+	if(refMonitor >= REFMONITOR_THRESH)
+		TestEnable = ENABLED;
+	else
+		TestEnable = DISABLED;
+
+	// Check all enable flags and approve Enable
+	if(UserEnable && TestEnable)
+		ApproveEnable = ENABLED;
+	else
+		ApproveEnable = DISABLED;
+
+
+	// Handle ENABLE on GMD and Drive Interlocks on Mode Change
+	if(ApproveEnable == ENABLED) {
+
+		// Turn ON enable
+		enable_axes(ENABLED);
+		// Run watchdog
+		watchdog();
+
+		// Interlock drives on mode change
+		if(ModeStatus != U8PrevPosnVelModeSwitchState) {
+			vertAxisStruct.U8DriveIsInterlocked = ENABLED;
+			latAxisStruct.U8DriveIsInterlocked = ENABLED;
+		}
+	}
+	// Disable Drives and Interlock if ENABLE not approved
+	else {
+		// Otherwise enable is OFF
+		enable_axes(DISABLED);
+		// Lock out drives
+		vertAxisStruct.U8DriveIsInterlocked = ENABLED;
+		latAxisStruct.U8DriveIsInterlocked = ENABLED;
+	}
+
+	// Record previous Mode to support drive interlock on mode change
+	U8PrevPosnVelModeSwitchState = ModeStatus;
+
+	// Read Reference Voltage Monitor ADC
+	chSysLockFromIsr();
+	//Read lat input ADC
+	adcStartConversionI(&ADCD1, &adcgrpcfg1, &refMonitor, 1);
+	chSysUnlockFromIsr();
+
+
+	return ApproveEnable;
 }
-

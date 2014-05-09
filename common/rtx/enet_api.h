@@ -28,9 +28,9 @@
 
 typedef struct {
 
-	char Enable;
-	char Mode;
-	char Aux;
+	uint8_t Enable;
+	uint8_t Mode;
+	uint8_t Aux;
 	uint16_t latPosition;
 	uint16_t vertPosition;
 	uint16_t Axis3Position;
@@ -39,8 +39,8 @@ typedef struct {
 
 typedef struct {
 
-	char latNeutral;
-	char vertNeutral;
+	uint8_t latNeutral;
+	uint8_t vertNeutral;
 } Neutral;
 
 typedef struct {

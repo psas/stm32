@@ -23,6 +23,7 @@ static struct sockaddr_in self_addr;
 static struct sockaddr_in manual_addr;
 static struct sockaddr_in sla_addr;
 
+
 static int ManualSendSocket;
 static int SLASendSocket;
 static int SLAReceiveSocket;

@@ -58,7 +58,7 @@
 /*
  * MCU type as defined in the ST header file stm32f4xx.h.
  */
-#define STM32F4XX
+#define STM32F40_41xxx
 
 /*
  * IO pins assignments.
@@ -69,6 +69,7 @@
 #define GPIOA_ETH_RMII_MDINT        3
 #define GPIOA_PIN4                  4
 #define GPIOA_SPI1_NSS              4
+#define GPIOA_PIN5                  5
 #define GPIOA_SPI1_SCK              5
 #define GPIOA_PIN6                  6
 #define GPIOA_SPI1_MISO             6

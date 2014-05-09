@@ -24,7 +24,6 @@ typedef struct {
 
 	// Mode and lockout variables
 	uint8_t U8FreezeAxis;
-	uint8_t U8PosnVelMode;
 	uint8_t U8DriveIsInterlocked;
 	uint8_t U8PositionNeutral;
 	uint8_t U8VelocityNeutral;
@@ -63,10 +62,6 @@ typedef struct {
 	int16_t S16VelocityActual;
 	int16_t S16VelocityError;
 
-}CONTROL_AXIS_STRUCT;
-
-void controlLoop(CONTROL_AXIS_STRUCT * ptr);
-void vertGains(CONTROL_AXIS_STRUCT * ptr);
-void latGains(CONTROL_AXIS_STRUCT * ptr);
+} CONTROL_AXIS_STRUCT;
 
 #endif

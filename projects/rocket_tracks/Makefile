@@ -65,10 +65,11 @@ PROJECT = ch
 
 # Imported source files and paths
 PSAS= ../../common
+RTX= $(PSAS)/rtx
 CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-include ./boards/OLIMEX_STM32_E407/board.mk
+include $(PSAS_BOARDS)/PSAS_RTX_CONTROLLER/board.mk
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
@@ -89,14 +90,14 @@ CSRC = $(PORTSRC) \
        $(LWSRC) \
        $(FATFSSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
-       $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/memstreams.c \
+       $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_UTIL)/usbdetail.c \
        $(PSAS_NET)/utils_sockets.c \
-       enet_api.c \
+       $(RTX)/enet_api.c \
+       $(RTX)/control.c \
        pwmdetail.c \
-       control.c \
 	   main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -129,7 +130,8 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_UTIL)/include $(PSAS_NET)\
+         $(PSAS_DEVICES)/include $(PSAS_UTIL)/include\
+         $(PSAS_NET) $(RTX) \
          $(CONF)
 
 #

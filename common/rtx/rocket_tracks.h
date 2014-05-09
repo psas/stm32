@@ -1,9 +1,9 @@
-/*! \file main.h
+/*! \file rocket_tracks.h
  *
  */
 
-#ifndef _MAIN_H
-#define _MAIN_H
+#ifndef _ROCKET_TRACKS_H
+#define _ROCKET_TRACKS_H
 
 /*! \mainpage pwm_mod PWM Modulation experiments
 *
@@ -36,25 +36,27 @@
 *
 */
 
-#define AXIS_ADC_COUNT		4
-#define GPIOA_CS_SPI		4
+#define AXIS_ADC_COUNT			4
 
-#define VERTICAL_COMMAND_LIMIT		300
-#define LATERAL_COMMAND_LIMIT		250
+#define LAT_AXIS				0
+#define VERT_AXIS				1
+#define AXIS3					2
+#define AXIS4					3
 
-#define LED_OFF						0
-#define LED_ON						1
-#define LED_BLINK					2
+#define GPIOA_CS_SPI			4
 
-/* Total number of feedback channels to be sampled by a single ADC operation.*/
-#define ADC_GRP1_NUM_CHANNELS   1
-/* Depth of the conversion buffer, channels are sampled once each.*/
-#define ADC_GRP1_BUF_DEPTH      1
-/* Total number of input channels to be sampled by a single ADC operation.*/
-#define ADC_GRP2_NUM_CHANNELS   2
-/* Depth of the conversion buffer, input channels are sampled once each.*/
-#define ADC_GRP2_BUF_DEPTH      1
+#define VERTICAL_COMMAND_LIMIT	300
+#define LATERAL_COMMAND_LIMIT	250
 
+#define ENABLED					1
+#define DISABLED				0
+
+#define MANUAL_MODE				0
+#define SIGHTLINE_MODE			1
+#define NO_SHELL_MODE			2
+#define FREEZE_MODE				3
+
+#define REFMONITOR_THRESH		4000
 
 #endif
 
