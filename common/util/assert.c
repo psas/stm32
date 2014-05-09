@@ -37,10 +37,10 @@ void assertionFailure(const char* expr, const char* file, unsigned int line) {
 		chSequentialStreamWrite(assertStream, (const uint8_t*)p, plen);
 		chSequentialStreamWrite(assertStream, (const uint8_t*)"): ", 3);
 		chSequentialStreamWrite(assertStream, (const uint8_t*)expr, strlen(expr));
-		chSequentialStreamWrite(assertStream, (const uint8_t*)"\n", 1);
+		chSequentialStreamWrite(assertStream, (const uint8_t*)"\r\n", 2);
 
 		while (1)	// halt this way to allow assertStream to drain
-			;
+			chThdSleep(TIME_INFINITE);
 	} else
 		chSysHalt();
 }

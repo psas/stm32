@@ -3,8 +3,8 @@
 
 #ifdef NDEBUG
 
-#define setAssertStream(s) ((void)0)
-#define assert(e) ((void)0)
+#define setAssertStream(s) ((void)(!!(s)))
+#define assert(e) ((void)(!!(e)))
 
 #else
 
