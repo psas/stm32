@@ -112,8 +112,17 @@ static void BQ3060_SendData(eventid_t id UNUSED){
 
 static void portCurrent_SendData(eventid_t id UNUSED){
     struct rnhPortCurrent sample;
+    uint16_t buffer[8];
     rnhPortGetCurrentData(&sample);
-    write(port_socket, sample.current, sizeof(sample.current));
+    buffer[0] = htons(sample.current[0]);
+    buffer[1] = htons(sample.current[1]);
+    buffer[2] = htons(sample.current[2]);
+    buffer[3] = htons(sample.current[3]);
+    buffer[4] = htons(sample.current[4]);
+    buffer[5] = htons(sample.current[5]);
+    buffer[6] = htons(sample.current[6]);
+    buffer[7] = htons(sample.current[7]);
+    write(port_socket, buffer, sizeof(buffer));
 }
 
 void main(void) {
@@ -149,8 +158,6 @@ void main(void) {
     rnhPortStart();
 
     lwipThreadStart(RNH_LWIP);
-    chThdSleepMilliseconds(100); // because threads suck, lwipthread was starting after rci thread
-                                 // FIXME THIS IS A TERRIBLE HACK
     RCICreate(&conf);
 
     // Set up sockets

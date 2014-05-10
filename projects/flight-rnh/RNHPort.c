@@ -91,11 +91,15 @@ static void StartADCSample(GPTDriver *gptp UNUSED){
 
     select_port_imon(activeport);
     chSysLockFromIsr();
-    if((1 << activeport) & RNH_PORT_ALL){
+    if((1 << activeport) & rnhPortStatus()){
         adcStartConversionI(&ADCD1, &bank0, &outBuffer.current[activeport], 1);
+    } else {
+        outBuffer.current[activeport] = 0;
     }
-    if((1 << (activeport + 4)) & RNH_PORT_ALL){
+    if((1 << (activeport + 4)) & rnhPortStatus()){
         adcStartConversionI(&ADCD2, &bank1, &outBuffer.current[activeport + 4], 1);
+    } else {
+        outBuffer.current[activeport] = 0;
     }
     chSysUnlockFromIsr();
     activeport = (activeport + 1) % 4;
