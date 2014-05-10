@@ -104,7 +104,7 @@ void main(void) {
 	chSysInit();
 
 	/* Start diagnostics led */
-	led_init(NULL);
+	ledStart(NULL);
 
 	/* Start diagnostics shell */
 	const ShellCommand commands[] = {

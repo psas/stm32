@@ -18,9 +18,11 @@
 #include "KS8999.h"
 #include "RNHPort.h"
 
-int battery_socket;
-int port_socket;
-EVENTSOURCE_DECL(ACOK);
+static int battery_socket;
+static int port_socket;
+static EVENTSOURCE_DECL(ACOK);
+
+static const struct led * LED_ACOK = &BLUE;
 
 /* RCI commands
  *
@@ -57,14 +59,14 @@ void sleep(void){
 
 static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
     if(BQ24725_ACOK()){
-        palClearPad(GPIOD, GPIO_D11_RGB_B);
+        ledOn(LED_ACOK);
         chSysLockFromIsr();
         chEvtBroadcastI(&ACOK);
         chSysUnlockFromIsr();
         //if low power mode is set
         //KS8999_enable(TRUE);
     }else{
-        palSetPad(GPIOD, GPIO_D11_RGB_B);
+    	ledOff(LED_ACOK);
         //if low power mode is set
         //KS8999_enable(FALSE);
         //sleep();
@@ -131,7 +133,7 @@ void main(void) {
     chSysInit();
 
     // Start Diagnostics
-    led_init(NULL);
+    ledStart(NULL);
     rnh_shell_start();
 
     // Configuration
@@ -171,7 +173,7 @@ void main(void) {
 
     // Start charging if possible
     if(BQ24725_ACOK()){
-        palClearPad(GPIOD, GPIO_D11_RGB_B);
+        ledOn(LED_ACOK);
         BQ24725_SetCharge(0);
     }
 
