@@ -71,7 +71,12 @@ PROJECT = ch
 PSAS= ../../common
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-include $(CHIBIOS)/boards/OLIMEX_STM32_E407/board.mk
+BOARD ?= OLIMEX_STM32_E407
+ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
+    include $(CHIBIOS)/boards/$(BOARD)/board.mk
+else
+    include $(PSAS)/boards/$(BOARD)/board.mk
+endif
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
@@ -80,7 +85,6 @@ include $(CHIBIOS)/test/test.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
-#LDSCRIPT= $(PORTLD)/STM32F407xG_CCM.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -90,7 +94,6 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       $(CHIBIOS)/os/various/chprintf.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

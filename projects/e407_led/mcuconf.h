@@ -45,7 +45,11 @@
 #define STM32_CLOCK48_REQUIRED              TRUE
 #define STM32_SW                            STM32_SW_PLL
 #define STM32_PLLSRC                        STM32_PLLSRC_HSE
+#ifdef BOARD_PSAS_ROCKETNET_HUB_1_0
+#define STM32_PLLM_VALUE                    25
+#elif defined BOARD_OLIMEX_STM32_E407
 #define STM32_PLLM_VALUE                    12
+#endif
 #define STM32_PLLN_VALUE                    336
 #define STM32_PLLP_VALUE                    2
 #define STM32_PLLQ_VALUE                    7
