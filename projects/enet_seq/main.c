@@ -61,8 +61,6 @@ void main(void) {
 	usbSerialShellStart(commands);
 	BaseSequentialStream * chp = getUsbStream();
 
-	setAssertStream(chp);
-
 	/* fill out lwipthread_opts with our address*/
     struct lwipthread_opts   ip_opts;
 	uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};

@@ -3,17 +3,15 @@
 
 #ifdef NDEBUG
 
-#define setAssertStream(s) ((void)(!!(s)))
-#define assert(e) ((void)(!!(e)))
+#define assert(e) ((void)0)
 
 #else
 
-#include "ch.h"
+void assertionFailure(const char* message);
 
-void setAssertStream(BaseSequentialStream* stream);
-void assertionFailure(const char* expr, const char* file, unsigned int line);
-
-#define assert(e) ((void)( (!!(e)) || (assertionFailure(#e, __FILE__, __LINE__), 0) ))
+#define __assertHelp1(line) #line
+#define __assertHelp2(line) __assertHelp1(line)
+#define assert(e) ((void)( (!!(e)) || (assertionFailure("assertion failure: " __FILE__ "(" __assertHelp2(__LINE__) "): " #e), 0) ))
 
 #endif
 
