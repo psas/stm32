@@ -24,14 +24,14 @@ void set_sockaddr(struct sockaddr_in * addr, const char * ip, int port){
 }
 
 void sendpwm(int s, int pulsewidth, int servodisable){
-    static uint64_t sequence_no = 0;
+    static uint32_t sequence_no = 0;
     uint8_t buffer[sizeof(RCOutput)];
     ssize_t send_status;
     RCOutput rc_packet;
 
-    rc_packet.time = sequence_no++;
-    rc_packet.u16ServoPulseWidthBin14 = pulsewidth;
-    rc_packet.u8ServoDisableFlag      = servodisable;
+    rc_packet.time = htonl(sequence_no++);
+    rc_packet.u16ServoPulseWidthBin14 = htons(pulsewidth);
+    rc_packet.u8ServoDisableFlag = servodisable;
     memcpy(buffer, &rc_packet, sizeof(RCOutput));
 
     if ((send_status = send(s, buffer, sizeof(RCOutput), 0)) < 0) {

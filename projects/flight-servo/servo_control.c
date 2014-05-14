@@ -244,8 +244,8 @@ static msg_t listener_thread(void* u UNUSED) {
 //        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
             PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
             if (cmd == NULL) continue; // the pool is empty, so bail until next msg
-            cmd->time = rc_packet.time;
-            cmd->position = rc_packet.u16ServoPulseWidthBin14;
+            cmd->time = ntohl(rc_packet.time);
+            cmd->position = ntohs(rc_packet.u16ServoPulseWidthBin14);
             chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
 
 //        } else {
