@@ -104,8 +104,8 @@ static void set_pwm_position(void* u UNUSED) {
 
     static int16_t last_difference = 0;
     static uint16_t last_position = 1500;
-    static uint64_t ticks = 0;
-    static uint64_t last_direction_change_tick = 0;
+    static uint32_t ticks = 0;
+    static uint32_t last_direction_change_tick = 0;
 
     ticks++;
 
@@ -122,7 +122,7 @@ static void set_pwm_position(void* u UNUSED) {
 
     // copy the information out of the struct so we can free it ASAP
     uint16_t desired_position = cmd->position;
-    uint64_t cmd_time = cmd->time;
+    uint32_t cmd_time = cmd->time;
 
     chSysLockFromIsr();
     chPoolFreeI(&pos_cmd_pool, cmd);
@@ -143,7 +143,7 @@ static void set_pwm_position(void* u UNUSED) {
     // limit oscillation frequency
     if ((difference > 0 && last_difference <= 0)
         || (difference < 0 && last_difference >= 0)) {
-        uint64_t elapsed = ticks - last_direction_change_tick;
+        uint32_t elapsed = ticks - last_direction_change_tick;
         if (elapsed < PWM_MIN_DIRECTION_CHANGE_PERIOD) {
             // changed direction too recently; not allowed to change again yet
             output = last_position;
@@ -221,7 +221,7 @@ static msg_t listener_thread(void* u UNUSED) {
 
         PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
         if (cmd == NULL) continue;
-        cmd->time = (uint64_t) 1;
+        cmd->time = (uint32_t) 1;
         cmd->position = (uint16_t) pos;
         chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
 
