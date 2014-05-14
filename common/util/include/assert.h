@@ -1,17 +1,17 @@
 #ifndef __assert_h
 #define __assert_h
 
-#ifdef NDEBUG
+#include "chdebug.h"
 
-#define assert(e) ((void)0)
-
-#else
-
-void assertionFailure(const char* message);
+#if CH_DBG_ENABLE_ASSERTS
 
 #define __assertHelp1(line) #line
 #define __assertHelp2(line) __assertHelp1(line)
-#define assert(e) ((void)( (!!(e)) || (assertionFailure("assertion failure: " __FILE__ "(" __assertHelp2(__LINE__) "): " #e), 0) ))
+#define assert(e) ((void)( (!!(e)) || (chDbgPanic("assertion failure: " __FILE__ "(" __assertHelp2(__LINE__) "): " #e), 0) ))
+
+#else
+
+#define assert(e) ((void)0)
 
 #endif
 
