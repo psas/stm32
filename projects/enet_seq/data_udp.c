@@ -21,10 +21,10 @@ static DECL_SEQ_SOCKET(seqRecv, DATA_UDP_MSG_SIZE);
 WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 
 msg_t data_udp_send_thread(void *p __attribute__ ((unused))){
-   BaseSequentialStream*	chp;
-   struct sockaddr_in		self_addr, dest_addr;
-   int							s;
-   uint8_t						count;
+   BaseSequentialStream*   chp;
+   struct sockaddr_in      self_addr, dest_addr;
+   int                     s;
+   uint8_t                 count;
 
    chRegSetThreadName("data_udp_send_thread");
 
@@ -51,9 +51,9 @@ msg_t data_udp_send_thread(void *p __attribute__ ((unused))){
 WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
 
 msg_t data_udp_receive_thread(void *p __attribute__ ((unused))) {
-   BaseSequentialStream*	chp;
-   struct sockaddr_in		self_addr;
-   int							s;
+   BaseSequentialStream*   chp;
+   struct sockaddr_in      self_addr;
+   int                     s;
 
    chRegSetThreadName("data_udp_receive_thread");
 

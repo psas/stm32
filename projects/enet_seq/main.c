@@ -38,16 +38,16 @@ void cmd_assert(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 void main(void) {
-   BaseSequentialStream*	chp;
-   const ShellCommand		commands[] = {
-      { "assert",		cmd_assert	},
-      { "mem",			cmd_mem		},
-      { "threads",	cmd_threads	},
+   BaseSequentialStream*   chp;
+   const ShellCommand      commands[] = {
+      { "assert",    cmd_assert  },
+      { "mem",       cmd_mem     },
+      { "threads",   cmd_threads },
 
-      { NULL,			NULL			}
+      { NULL,        NULL        }
    };
-   struct lwipthread_opts	ip_opts;
-   uint8_t						macAddress[6] = { 0xc2, 0xaf, 0x51, 0x03, 0xcf, 0x46 };
+   struct lwipthread_opts  ip_opts;
+   uint8_t                 macAddress[6] = { 0xc2, 0xaf, 0x51, 0x03, 0xcf, 0x46 };
 
    halInit();
    chSysInit();

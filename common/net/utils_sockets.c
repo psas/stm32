@@ -6,9 +6,9 @@
 
 #include "utils_sockets.h"
 
-static int	recvSeqPacket(struct SeqSocketBase* ss, int packetLen);
+static int  recvSeqPacket(struct SeqSocketBase* ss, int packetLen);
 
-static SeqErrorLogger	seqErrorLogger;
+static SeqErrorLogger   seqErrorLogger;
 
 void set_lwipthread_opts(struct lwipthread_opts * ip_opts,
     const char * ip, const char * netmask, const char * gateway, uint8_t * mac)
@@ -54,7 +54,7 @@ int get_udp_socket(const struct sockaddr *addr){
 }
 
 int recvSeqPacket(struct SeqSocketBase* ss, int packetLen) {
-   unsigned long	seq;
+   unsigned long  seq;
 
    if (packetLen < 0)
       return packetLen;
@@ -96,7 +96,7 @@ int seq_recvfrom(struct SeqSocketBase* ss, int flags, struct sockaddr* from, soc
 }
 
 int seq_send(struct SeqSocketBase* ss, size_t size, int flags) {
-   int	s;
+   int   s;
 
    if (size > ss->maxSize) {
       errno = EMSGSIZE;
@@ -115,7 +115,7 @@ int seq_send(struct SeqSocketBase* ss, size_t size, int flags) {
 }
 
 int seq_sendto(struct SeqSocketBase* ss, size_t size, int flags, const struct sockaddr* to, socklen_t tolen) {
-   int	s;
+   int   s;
 
    if (size > ss->maxSize) {
       errno = EMSGSIZE;
@@ -144,7 +144,7 @@ void seq_socket_init(struct SeqSocketBase* ss, int socket) {
 }
 
 int seq_write(struct SeqSocketBase* ss, size_t size) {
-   int	s;
+   int   s;
 
    if (size > ss->maxSize) {
       errno = EMSGSIZE;
