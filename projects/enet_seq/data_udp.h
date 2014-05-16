@@ -25,18 +25,11 @@
 
 #define DATA_UDP_MSG_SIZE                    50
 
-extern WORKING_AREA(wa_data_udp_send_thread,    DATA_UDP_SEND_THREAD_STACK_SIZE);
+extern WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
+msg_t data_udp_send_thread(void* p);
+
 extern WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_RECEIVE_THREAD_STACK_SIZE);
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-  msg_t data_udp_send_thread(void *p);
-  msg_t data_udp_receive_thread(void *p);
-
-#ifdef __cplusplus
-}
-#endif
+msg_t data_udp_receive_thread(void* p);
 
 #endif
 

@@ -30,59 +30,54 @@
 int assertFail;
 
 void cmd_assert(BaseSequentialStream *chp, int argc, char *argv[]) {
-	(void)chp;
-	(void)argc;
-	(void)argv;
+   (void)chp;
+   (void)argc;
+   (void)argv;
 
-	assertFail = 1;
+   assertFail = 1;
 }
 
 void main(void) {
-	/*
-	 * System initializations.
-	 * - HAL initialization, this also initializes the configured device drivers
-	 *   and performs the board-specific initializations.
-	 * - Kernel initialization, the main() function becomes a thread and the
-	 *   RTOS is active.
-	 */
-	halInit();
-	chSysInit();
+   BaseSequentialStream*	chp;
+   const ShellCommand		commands[] = {
+      { "assert",		cmd_assert	},
+      { "mem",			cmd_mem		},
+      { "threads",	cmd_threads	},
 
-	/* Start diagnostics led */
-	ledStart(NULL);
+      { NULL,			NULL			}
+   };
+   struct lwipthread_opts	ip_opts;
+   uint8_t						macAddress[6] = { 0xc2, 0xaf, 0x51, 0x03, 0xcf, 0x46 };
 
-	/* Start diagnostics shell */
-	const ShellCommand commands[] = {
-			  {"assert", cmd_assert},
-	        {"mem", cmd_mem},
-	        {"threads", cmd_threads},
-	        {NULL, NULL}
-	};
-	usbSerialShellStart(commands);
-	BaseSequentialStream * chp = getUsbStream();
+   halInit();
+   chSysInit();
 
-	/* fill out lwipthread_opts with our address*/
-    struct lwipthread_opts   ip_opts;
-	uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
-	set_lwipthread_opts(&ip_opts, IP_DEVICE, "255.255.255.0", "192.168.1.1", macAddress);
+   /* Start diagnostics led */
+   ledStart(NULL);
 
-	/* Start the lwip thread*/
-	chprintf(chp, "LWIP ");
-	lwipThreadStart(&ip_opts);
+   /* Start diagnostics shell */
+   usbSerialShellStart(commands);
+   chp = getUsbStream();
 
-	/* Start the feature threads */
-	chprintf(chp, "tx ");
-    chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO,
-    		data_udp_send_thread, NULL);
-    chprintf(chp, "rx ");
-    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO,
-      		data_udp_receive_thread, NULL);
+   /* fill out lwipthread_opts with our address*/
+   set_lwipthread_opts(&ip_opts, IP_DEVICE, "255.255.255.0", "192.168.1.1", macAddress);
 
-    while (TRUE) {
-		chThdSleep(100);
+   /* Start the lwip thread*/
+   chprintf(chp, "LWIP ");
+   lwipThreadStart(&ip_opts);
 
-		assert(!assertFail);
-	}
+   /* Start the worker threads */
+   chprintf(chp, "tx ");
+   chThdCreateStatic(wa_data_udp_send_thread, sizeof(wa_data_udp_send_thread), NORMALPRIO, data_udp_send_thread, NULL);
+
+   chprintf(chp, "rx ");
+   chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO, data_udp_receive_thread, NULL);
+
+   while (TRUE) {
+      chThdSleep(100);
+
+      assert(!assertFail);
+   }
 }
 
 
