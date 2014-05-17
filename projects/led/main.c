@@ -12,21 +12,21 @@ struct led {
     uint16_t pad;
 };
 
-/* Conditional definition of GREEN to allow for multiple supported boards by
+/* Conditional definition of LED to allow for multiple supported boards by
  * the same project
  */
-extern const struct led GREEN;
+extern const struct led LED;
 #ifdef BOARD_PSAS_ROCKETNET_HUB_1_0 /* PSAS Rocketnet Hub board */
-const struct led GREEN = {GPIOD, GPIO_D12_RGB_G};
+const struct led LED = {GPIOD, GPIO_D12_RGB_G};
 #elif defined BOARD_OLIMEX_STM32_E407 /* Olimex e407 board */
-const struct led GREEN = {GPIOC, GPIOC_LED};
+const struct led LED = {GPIOC, GPIOC_LED};
 #endif
 
 
 /* Blinks the LED */
-static void led(void) {
+static void blink(void) {
     while (1) {
-        palTogglePad(GREEN.port, GREEN.pad);
+        palTogglePad(LED.port, LED.pad);
         chThdSleepMilliseconds(500);
     }
 }
@@ -45,7 +45,7 @@ void main(void) {
     chSysInit();
 
     /* Normal main() thread activity, unendingly blinks an LED */
-    led();
+    blink();
 
     /* main() should never return */
     while(TRUE){
