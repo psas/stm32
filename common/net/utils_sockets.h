@@ -1,3 +1,4 @@
+
 /*
  * Socket and address related utilities
  *
@@ -27,20 +28,15 @@ void set_sockaddr(struct sockaddr * addr, const char * ip, uint16_t port);
 /* Returns an AF_INET UDP socket bound to addr, or less than 0 on failure */
 int get_udp_socket(const struct sockaddr *addr);
 
-struct SeqSocketBase {
+struct SeqSocket {
    size_t         maxSize;
    int            socket;
    unsigned long  seqSend;
    unsigned long  seqRecv;
-   unsigned long  bufferSeq;
-   uint8_t        buffer[1];
+   uint8_t*       buffer;
 };
 
-#define DECL_SEQ_SOCKET(VAR, MAXSIZE)           \
-struct {                                        \
-   struct SeqSocketBase base;                   \
-   uint8_t              storage[MAXSIZE - 1];   \
-} VAR = { { MAXSIZE, 0, 0, 0, 0, "" }, "" }
+#define DECL_SEQ_SOCKET(MAXSIZE) { MAXSIZE, 0, 0, 0, (((uint8_t[MAXSIZE + sizeof(unsigned long)]){ 0 }) + sizeof(unsigned long)) }
 
 typedef enum SeqError {
    SEQ_backward,
@@ -51,15 +47,15 @@ typedef int (*SeqErrorLogger)(SeqError error, unsigned long expSeq, unsigned lon
 
 void  seq_set_error_logger(SeqErrorLogger logger);
 
-void  seq_socket_init(struct SeqSocketBase* ss, int socket);
+void  seq_socket_init(struct SeqSocket* ss, int socket);
 
-int   seq_recv(struct SeqSocketBase* ss, int flags);
-int   seq_send(struct SeqSocketBase* ss, size_t size, int flags);
+int   seq_recv(struct SeqSocket* ss, int flags);
+int   seq_send(struct SeqSocket* ss, size_t size, int flags);
 
-int   seq_recvfrom(struct SeqSocketBase* ss, int flags, struct sockaddr* from, socklen_t* fromlen);
-int   seq_sendto(struct SeqSocketBase* ss, size_t size, int flags, const struct sockaddr* to, socklen_t tolen);
+int   seq_recvfrom(struct SeqSocket* ss, int flags, struct sockaddr* from, socklen_t* fromlen);
+int   seq_sendto(struct SeqSocket* ss, size_t size, int flags, const struct sockaddr* to, socklen_t tolen);
 
-int   seq_read(struct SeqSocketBase* ss);
-int   seq_write(struct SeqSocketBase* ss, size_t size);
+int   seq_read(struct SeqSocket* ss);
+int   seq_write(struct SeqSocket* ss, size_t size);
 
 #endif
