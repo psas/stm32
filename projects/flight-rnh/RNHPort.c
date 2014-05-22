@@ -139,7 +139,7 @@ void rnhPortStart(void){
             .dier = 0,
     };
     gptStart(&GPTD2, &gptcfg);
-    gptStartContinuous(&GPTD2, 500);
+    gptStartContinuous(&GPTD2, 5);
 
 
     for(int i = 0; i < NUM_PORT; ++i){
