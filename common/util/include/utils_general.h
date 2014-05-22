@@ -5,6 +5,7 @@
 
 #ifndef UTILS_GENERAL_H_
 #define UTILS_GENERAL_H_
+#include "chprintf.h"
 
 /* Used to mark things as unused so GCC will shut up about it. Useful in
  * function declarations:
@@ -14,7 +15,9 @@
 #define NORETURN __attribute__((noreturn))
 
 // Prefix string for debugging messages, useful in asserts
-#define DBG_PREFIX __FILE__  ":" "__LINE__" ", " "__FUNCTION__" " - "
+#define _STRINGIFY(line) #line
+#define STRINGIFY(line) _STRINGIFY(line)
+#define DBG_PREFIX __FILE__  ":" STRINGIFY(__LINE__) ", "
 
 /* Makes constructing switches that print enums or flags easier:
  *     switch(flag){
