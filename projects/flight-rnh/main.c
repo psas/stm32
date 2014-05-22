@@ -120,7 +120,7 @@ static void portCurrent_SendData(eventid_t id UNUSED){
     buffer[1] = htons(sample.current[1]);
     buffer[2] = htons(sample.current[2]);
     buffer[3] = htons(sample.current[3]);
-    buffer[4] = htons(sample.current[4]);
+    buffer[4] = htons(BQ24725_IMON());
     buffer[5] = htons(sample.current[5]);
     buffer[6] = htons(sample.current[6]);
     buffer[7] = htons(sample.current[7]);
@@ -137,13 +137,20 @@ void main(void) {
     rnh_shell_start();
 
     // Configuration
+    static I2CPins I2C1Pins = {
+            .SDA = {GPIOB, GPIO_B7_I2C_SDA},
+            .SCL = {GPIOB, GPIO_B6_I2C_SCL}
+    };
     static struct BQ24725Config BQConf = {
             .ACOK = {GPIOD, GPIO_D0_BQ24_ACOK},
             .ACOK_cb = ACOK_cb,
-            .I2CD = &I2CD1
+            .I2CD = &I2CD1,
+            .I2CP = &I2C1Pins,
+            .ADCD = &ADCD3
     };
     static struct BQ3060Config rnh3060conf = {
-            .I2CD = &I2CD1
+            .I2CD = &I2CD1,
+            .I2CP = &I2C1Pins
     };
     static struct RCIConfig conf;
     conf.commands = (struct RCICommand[]){
