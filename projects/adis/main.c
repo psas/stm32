@@ -22,7 +22,7 @@
 
 static int sendsocket;
 
-void serialize_adis(ADIS16405_burst_data * data, uint16_t * buffer){
+void serialize_adis(ADIS16405Data * data, uint16_t * buffer){
     buffer[0] = htons(data->supply_out);
     buffer[1] = htons(data->xgyro_out);
     buffer[2] = htons(data->ygyro_out);
@@ -38,7 +38,7 @@ void serialize_adis(ADIS16405_burst_data * data, uint16_t * buffer){
 }
 
 static void adis_drdy_handler(eventid_t id UNUSED){
-    ADIS16405_burst_data data;
+    ADIS16405Data data;
     uint16_t buffer[12]; //FIXME: buffer size
 
     adis_get_data(&data);

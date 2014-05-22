@@ -19,7 +19,7 @@
 #define WRITE_ADDR(addr) ((addr) |  0x80)
 #define READ_ADDR(addr)  ((addr) & ~0x80)
 
-#define BURST_EXCHANGE_LEN (sizeof(ADIS16405_burst_data)+ 2) //+2 for initial addr
+#define BURST_EXCHANGE_LEN (sizeof(ADIS16405Data)+ 2) //+2 for initial addr
 uint8_t adis_raw_in[BURST_EXCHANGE_LEN];
 EventSource ADIS16405_data_ready;
 
