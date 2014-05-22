@@ -165,7 +165,7 @@ static void read_handler(eventid_t id UNUSED){
     chEvtBroadcast(&BQ3060_data_ready);
 }
 
-static WORKING_AREA(wa_read, 256);
+static WORKING_AREA(wa_read, 512);
 static msg_t read_thread(void * p UNUSED){
     chRegSetThreadName("BQ3060");
 
