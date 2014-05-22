@@ -7,10 +7,11 @@
 #include "lwip/sockets.h"
 
 #include "net_addrs.h"
+#include "rnet_cmd_interp.h"
+#include "utils_rci.h"
 #include "utils_sockets.h"
 #include "utils_general.h"
 #include "utils_led.h"
-#include "rnet_cmd_interp.h"
 #include "BQ24725.h"
 #include "BQ3060.h"
 
@@ -30,9 +31,7 @@ static const struct led * LED_ACOK = &BLUE;
 
 static const char ARM[]     = "#YOLO";
 static const char SAFE[]    = "#SAFE";
-static const char VERSION[] = "#VERS";
 static const char TIME[]    = "#TIME";
-static const char PWR_STAT[]= "#POWR";
 
 void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
@@ -156,6 +155,7 @@ void main(void) {
     conf.commands = (struct RCICommand[]){
             {TIME, cmd_time, NULL},
             RCI_CMD_PORT,
+            RCI_CMD_VERS,
             {NULL}
     };
     conf.address = RNH_RCI_ADDR,

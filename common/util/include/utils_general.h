@@ -5,6 +5,8 @@
 
 #ifndef UTILS_GENERAL_H_
 #define UTILS_GENERAL_H_
+#include <stddef.h>
+#include "ch.h"
 #include "chprintf.h"
 
 /* Used to mark things as unused so GCC will shut up about it. Useful in

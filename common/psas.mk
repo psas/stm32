@@ -7,3 +7,4 @@ PSAS_NET           = $(PSAS_COMMON)/net
 PSAS_NETSRC        = $(PSAS_NET)/rnet_cmd_interp.c $(PSAS_NET)/net_addrs.c $(PSAS_NET)/utils_sockets.c
 PSAS_BOARDS        = $(PSAS_COMMON)/boards
 PSAS_RULES         = $(PSAS_OPENOCD)/openocd.mk
+PSAS_VERSION       = "\"`git rev-parse HEAD`\""
