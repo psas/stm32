@@ -55,17 +55,20 @@ static void select_port_imon(int port){
     (port & 2) ? palSetPad(GPIOD, GPIO_D8_IMON_A1) : palClearPad(GPIOD, GPIO_D8_IMON_A1);
 }
 
+#define SAMPLE_PORTS (RNH_PORT_ALL)
+
 static void ADCCallback(ADCDriver *adcp UNUSED, adcsample_t *buffer, size_t n UNUSED){
-    static uint8_t remaining_samples = RNH_PORT_ALL;
+    static uint8_t remaining_samples = SAMPLE_PORTS;
 
     remaining_samples &= ~(1 << (buffer - outBuffer.current));
 
     if(!remaining_samples){
-        remaining_samples = RNH_PORT_ALL;
+        remaining_samples = SAMPLE_PORTS;
         chSysLockFromIsr();
         chEvtBroadcastI(&rnhPortCurrent);
         chSysUnlockFromIsr();
     }
+    //FIXME: Ideally select_port_imon would go here, but coordinating between the two adcs is trickey
 }
 
 #define makeBankConversionGroup(channel) \
@@ -84,22 +87,31 @@ static void ADCCallback(ADCDriver *adcp UNUSED, adcsample_t *buffer, size_t n UN
 }
 
 static void StartADCSample(GPTDriver *gptp UNUSED){
-    static int activeport;
+    static int activeport = 0;
+    static int select_port = 1;
+    if(select_port){
+        select_port_imon(activeport);
+        select_port = 0;
+        return;
+    }
+    select_port = 1;
 
     static ADCConversionGroup bank0 = makeBankConversionGroup(10);
     static ADCConversionGroup bank1 = makeBankConversionGroup(11);
 
-    select_port_imon(activeport);
     chSysLockFromIsr();
-    if((1 << activeport) & rnhPortStatus()){
-        adcStartConversionI(&ADCD1, &bank0, &outBuffer.current[activeport], 1);
+    int bank1port = activeport;
+    int bank2port = activeport + 4;
+
+    if((1 << bank1port) & SAMPLE_PORTS ){
+        adcStartConversionI(&ADCD1, &bank0, &outBuffer.current[bank1port], 1);
     } else {
-        outBuffer.current[activeport] = 0;
+        outBuffer.current[bank1port] = 0;
     }
-    if((1 << (activeport + 4)) & rnhPortStatus()){
-        adcStartConversionI(&ADCD2, &bank1, &outBuffer.current[activeport + 4], 1);
+    if((1 << bank2port) & SAMPLE_PORTS){
+        adcStartConversionI(&ADCD2, &bank1, &outBuffer.current[bank2port], 1);
     } else {
-        outBuffer.current[activeport] = 0;
+        outBuffer.current[bank2port] = 0;
     }
     chSysUnlockFromIsr();
     activeport = (activeport + 1) % 4;
@@ -127,7 +139,7 @@ void rnhPortStart(void){
             .dier = 0,
     };
     gptStart(&GPTD2, &gptcfg);
-    gptStartContinuous(&GPTD2, 1000);
+    gptStartContinuous(&GPTD2, 500);
 
 
     for(int i = 0; i < NUM_PORT; ++i){
