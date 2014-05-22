@@ -154,9 +154,9 @@ void main(void) {
     conf.address = RNH_RCI_ADDR,
 
     //Init hardware
-    BQ24725_init(&BQConf);
-    BQ3060_init(&rnh3060conf);
-    KS8999_init();
+    BQ24725Start(&BQConf);
+    BQ3060Start(&rnh3060conf);
+    KS8999Start();
     rnhPortStart();
 
     lwipThreadStart(RNH_LWIP);
