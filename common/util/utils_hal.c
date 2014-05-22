@@ -66,30 +66,34 @@ void extUtilsStart(void){
  * I2C subsystem
  * ============= **************************************************************
  */
-#if 0 //HAL_USE_I2C
+#if HAL_USE_I2C
 // TODO: SMBA?
 // TODO: Can the pins alt function table be used in some way?
+static const systime_t I2C_TIMEOUT = MS2ST(500);
+#define LOWDATA_BYTE(data) ((data) & 0xFF)
+#define HIGHDATA_BYTE(data) (((data) & 0xFF00) >> 8)
+#define DATA_FROM_BYTES(low, high) (((low) & 0xFF) | ((high) &0xFF) << 8)
 
 #define ALT_FUNC_I2C 4 // See STM32F407 Datasheet, Table 9
-#define PINMODE PAL_MODE_ALTERNATE(ALT_FUNC_I2C)\
-              | PAL_STM32_PUDR_PULLUP\
-              | PAL_STM32_OSPEED_HIGHEST\
-              | PAL_STM32_OTYPE_OPENDRAIN;
+#define I2C_PINMODE PAL_MODE_ALTERNATE(ALT_FUNC_I2C) \
+              | PAL_STM32_PUDR_PULLUP \
+              | PAL_STM32_OSPEED_HIGHEST \
+              | PAL_STM32_OTYPE_OPENDRAIN
 
-void utils_i2cStart(I2CDriver * driver, I2CConfig * config, I2CPins * pins){
+void i2cUtilsStart(I2CDriver * driver, const I2CConfig * config, const I2CPins * pins){
     chDbgCheck(driver && config && pins, utils_i2cStart);
     chDbgAssert(driver->state != I2C_UNINIT,
                 DBG_PREFIX "I2C hal driver must be enabled",
                 NULL);
 
-    palSetPadMode(pins->SDA.port, pins->SDA.pad, PINMODE);
-    palSetPadMode(pins->SCL.port, pins->SCL.pad, PINMODE);
+    palSetPadMode(pins->SDA.port, pins->SDA.pad, I2C_PINMODE);
+    palSetPadMode(pins->SCL.port, pins->SCL.pad, I2C_PINMODE);
 
     if(driver->state == I2C_STOP){
-        i2cStart(driver, &config);
+        i2cStart(driver, config);
     }else{
         //Verify I2C configs match.
-        chDbgAssert(driver->config->opmode == config->opmode,
+        chDbgAssert(driver->config->op_mode == config->op_mode,
                 DBG_PREFIX "requested opmode does not match previously configured",
                 NULL);
         chDbgAssert(driver->config->clock_speed == config->clock_speed,
@@ -101,55 +105,57 @@ void utils_i2cStart(I2CDriver * driver, I2CConfig * config, I2CPins * pins){
     }
 }
 
-int SMBus_Get(uint8_t register_id, uint16_t* data){
-    uint8_t tx[1] = {register_id};
+//FIXME: SMBus has many additional access modes. These are only the ones we use now
+
+int SMBusGet(I2CDriver * driver, uint8_t addr, uint8_t command, uint16_t* data){
+    uint8_t tx[1] = {command};
     uint8_t rx[2];
     i2cflags_t errors;
-    i2cAcquireBus(I2CD);
-    msg_t status = i2cMasterTransmitTimeout(I2CD, BQ3060_ADDR, tx, sizeof(tx), rx, sizeof(rx), I2C_TIMEOUT);
+    i2cAcquireBus(driver);
+    msg_t status = i2cMasterTransmitTimeout(driver, addr, tx, sizeof(tx), rx, sizeof(rx), I2C_TIMEOUT);
     switch(status){
     case RDY_OK:
-        i2cReleaseBus(I2CD);
+        i2cReleaseBus(driver);
         break;
     case RDY_RESET:
-        errors = i2cGetErrors(I2CD);
-        i2cReleaseBus(I2CD);
+        errors = i2cGetErrors(driver);
+        i2cReleaseBus(driver);
         return errors;
     case RDY_TIMEOUT:
-        i2cReleaseBus(I2CD);
+        i2cReleaseBus(driver);
         return RDY_TIMEOUT;
     default:
-        i2cReleaseBus(I2CD);
+        i2cReleaseBus(driver);
     }
 
     *data = DATA_FROM_BYTES(rx[0], rx[1]);
     return RDY_OK;
 }
 
-int SMBus_Set(uint8_t register_id, uint16_t data){
-    uint8_t tx[3] = {register_id, LOWDATA_BYTE(data), HIGHDATA_BYTE(data)};
+int SMBusSet(I2CDriver * driver, uint8_t addr, uint8_t command, uint16_t data){
+    uint8_t tx[3] = {command, LOWDATA_BYTE(data), HIGHDATA_BYTE(data)};
     i2cflags_t errors;
-    i2cAcquireBus(I2CD);
-    msg_t status = i2cMasterTransmitTimeout(I2CD, BQ3060_ADDR, tx, sizeof(tx), NULL, 0, I2C_TIMEOUT);
+    i2cAcquireBus(driver);
+    msg_t status = i2cMasterTransmitTimeout(driver, addr, tx, sizeof(tx), NULL, 0, I2C_TIMEOUT);
     switch(status){
     case RDY_OK:
-        i2cReleaseBus(I2CD);
+        i2cReleaseBus(driver);
         break;
     case RDY_RESET:
-        errors = i2cGetErrors(I2CD);
-        i2cReleaseBus(I2CD);
+        errors = i2cGetErrors(driver);
+        i2cReleaseBus(driver);
         return errors;
     case RDY_TIMEOUT:
-        i2cReleaseBus(I2CD);
+        i2cReleaseBus(driver);
         return RDY_TIMEOUT;
     default:
-        i2cReleaseBus(I2CD);
+        i2cReleaseBus(driver);
     }
 
     return RDY_OK;
 }
 
-void chprint_i2c_state(BaseSequentialStream * chp, i2cstate_t state){
+void chprintI2cState(BaseSequentialStream * chp, i2cstate_t state){
     switch(state){
     case_chprint(chp, I2C_UNINIT)
     case_chprint(chp, I2C_STOP)
@@ -162,7 +168,7 @@ void chprint_i2c_state(BaseSequentialStream * chp, i2cstate_t state){
     }
 }
 
-void chprint_i2c_error(BaseSequentialStream * chp, int err){
+void chprintI2cError(BaseSequentialStream * chp, int err){
     switch(err){
     case_chprint(chp, I2CD_NO_ERROR)
     case_chprint(chp, I2CD_BUS_ERROR)
