@@ -25,7 +25,7 @@ static bool launch_detected; // Changed in isr, launch_detect_init
 
 static EventSource launch_detect_event;
 
-static int ld_socket; // Used in handler, set in launch_detect_init
+static struct SeqSocket ld_socket = DECL_SEQ_SOCKET(1);
 
 /*
  * Triggered by a level change on the launch detect pin.
@@ -45,7 +45,8 @@ static void isr(EXTDriver *e UNUSED, expchannel_t c UNUSED) {
 
 // Sends the launch state to the flight computer
 static void handler(eventid_t u UNUSED) {
-    write(ld_socket, &launch_detected, 1);
+    ld_socket.buffer[0] = launch_detected;
+    seq_write(&ld_socket, 1);
 
 #ifdef DEBUG_LAUNCH_DETECT
     BaseSequentialStream *usbserial = getActiveUsbSerialStream();
@@ -130,8 +131,8 @@ void launch_detect_init() {
         launch_detected = false;
     }
 
-    ld_socket = get_udp_socket(TEATHER_ADDR);
-    connect(ld_socket, FC_ADDR, sizeof(struct sockaddr));
+    seq_socket_init(&ld_socket, get_udp_socket(TEATHER_ADDR));
+    connect(ld_socket.socket, FC_ADDR, sizeof(struct sockaddr));
 
     handler(0); //sends initial launch status
 

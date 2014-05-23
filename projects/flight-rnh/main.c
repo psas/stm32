@@ -19,8 +19,9 @@
 #include "KS8999.h"
 #include "RNHPort.h"
 
-static int battery_socket;
-static int port_socket;
+static struct SeqSocket battery_socket = DECL_SEQ_SOCKET(ETH_MTU);
+static struct SeqSocket port_socket = DECL_SEQ_SOCKET(ETH_MTU);
+
 static EVENTSOURCE_DECL(ACOK);
 
 static const struct led * LED_ACOK = &BLUE;
@@ -65,7 +66,7 @@ static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
         //if low power mode is set
         //KS8999_enable(TRUE);
     }else{
-    	ledOff(LED_ACOK);
+        ledOff(LED_ACOK);
         //if low power mode is set
         //KS8999_enable(FALSE);
         //sleep();
@@ -93,40 +94,40 @@ void BQ24725_SetCharge(eventid_t id UNUSED){
 
 static void BQ3060_SendData(eventid_t id UNUSED){
     struct BQ3060Data data;
-    uint16_t buffer[13];
     BQ3060_get_data(&data);
-    buffer[0] = htons(data.Temperature);
-    buffer[1] = htons(data.TS1Temperature);
-    buffer[2] = htons(data.TS2Temperature);
-    buffer[3] = htons(data.TempRange);
-    buffer[4] = htons(data.Voltage);
-    buffer[5] = htons(data.Current);
-    buffer[6] = htons(data.AverageCurrent);
-    buffer[7] = htons(data.CellVoltage1);
-    buffer[8] = htons(data.CellVoltage2);
-    buffer[9] = htons(data.CellVoltage3);
-    buffer[10] = htons(data.CellVoltage4);
-    buffer[11] = htons(data.PackVoltage);
-    buffer[12] = htons(data.AverageVoltage);
-    write(battery_socket, buffer, sizeof(buffer));
+    battery_socket.buffer[0] = htons(data.Temperature);
+    battery_socket.buffer[1] = htons(data.TS1Temperature);
+    battery_socket.buffer[2] = htons(data.TS2Temperature);
+    battery_socket.buffer[3] = htons(data.TempRange);
+    battery_socket.buffer[4] = htons(data.Voltage);
+    battery_socket.buffer[5] = htons(data.Current);
+    battery_socket.buffer[6] = htons(data.AverageCurrent);
+    battery_socket.buffer[7] = htons(data.CellVoltage1);
+    battery_socket.buffer[8] = htons(data.CellVoltage2);
+    battery_socket.buffer[9] = htons(data.CellVoltage3);
+    battery_socket.buffer[10] = htons(data.CellVoltage4);
+    battery_socket.buffer[11] = htons(data.PackVoltage);
+    battery_socket.buffer[12] = htons(data.AverageVoltage);
+    seq_write(&battery_socket, 13);
 }
 
 static void portCurrent_SendData(eventid_t id UNUSED){
     struct rnhPortCurrent sample;
-    uint16_t buffer[8];
     rnhPortGetCurrentData(&sample);
-    buffer[0] = htons(sample.current[0]);
-    buffer[1] = htons(sample.current[1]);
-    buffer[2] = htons(sample.current[2]);
-    buffer[3] = htons(sample.current[3]);
-    buffer[4] = htons(BQ24725_IMON());
-    buffer[5] = htons(sample.current[5]);
-    buffer[6] = htons(sample.current[6]);
-    buffer[7] = htons(sample.current[7]);
-    write(port_socket, buffer, sizeof(buffer));
+    port_socket.buffer[0] = htons(sample.current[0]);
+    port_socket.buffer[1] = htons(sample.current[1]);
+    port_socket.buffer[2] = htons(sample.current[2]);
+    port_socket.buffer[3] = htons(sample.current[3]);
+    port_socket.buffer[4] = htons(BQ24725_IMON());
+    port_socket.buffer[5] = htons(sample.current[5]);
+    port_socket.buffer[6] = htons(sample.current[6]);
+    port_socket.buffer[7] = htons(sample.current[7]);
+    seq_write(&port_socket, 8);
 }
 
 void main(void) {
+    int s;
+
     // Start Chibios
     halInit();
     chSysInit();
@@ -170,13 +171,16 @@ void main(void) {
     RCICreate(&conf);
 
     // Set up sockets
-    battery_socket = get_udp_socket(RNH_BATTERY_ADDR);
-    chDbgAssert(battery_socket >=0, "Battery socket failed", NULL);
-    port_socket = get_udp_socket(RNH_PORT_ADDR);
-    chDbgAssert(port_socket >=0, DBG_PREFIX"Port socket socket failed", NULL);
+    s = get_udp_socket(RNH_BATTERY_ADDR);
+    chDbgAssert(s >=0, "Battery socket failed", NULL);
+    seq_socket_init(&battery_socket, s);
 
-    connect(battery_socket, FC_ADDR, sizeof(struct sockaddr));
-    connect(port_socket, FC_ADDR, sizeof(struct sockaddr));
+    s = get_udp_socket(RNH_PORT_ADDR);
+    chDbgAssert(s >=0, DBG_PREFIX"Port socket socket failed", NULL);
+    seq_socket_init(&port_socket, s);
+
+    connect(battery_socket.socket, FC_ADDR, sizeof(struct sockaddr));
+    connect(port_socket.socket, FC_ADDR, sizeof(struct sockaddr));
 
     // Start charging if possible
     if(BQ24725_ACOK()){
