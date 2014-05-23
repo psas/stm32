@@ -7,4 +7,18 @@ PSAS_NET           = $(PSAS_COMMON)/net
 PSAS_NETSRC        = $(PSAS_NET)/rnet_cmd_interp.c $(PSAS_NET)/net_addrs.c $(PSAS_NET)/utils_sockets.c
 PSAS_BOARDS        = $(PSAS_COMMON)/boards
 PSAS_RULES         = $(PSAS_OPENOCD)/openocd.mk
-PSAS_VERSION       = "\"`git rev-parse HEAD`\""
+
+ifeq ($(shell git diff-index --quiet HEAD . ../../common; echo $$?), 1)
+INDEX_DIRTY = M
+else
+INDEX_DIRTY =
+endif
+
+ifeq ($(MAKECMDGOALS),)
+VERSION_PREFIX = dev-
+else
+VERSION_PREFIX = $(MAKECMDGOALS)-
+endif
+
+PSAS_VERSION = "\"$(VERSION_PREFIX)`git rev-parse --short HEAD`$(INDEX_DIRTY)\""
+
