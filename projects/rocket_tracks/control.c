@@ -12,16 +12,18 @@
  *****************************************************************************/
 
 #include <stdint.h>
-#include <math.h>
+//#include <math.h>
+
+#include "rocket_tracks.h"
+#include "enet_api.h"
 #include "control.h"
 
 void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 {
 	// Accumulator scaling multiplier
-	const uint16_t U16PosDesAccumMultiplyer = 2048;
-	const uint16_t U16PosDesAccumExponentialDivisor = 1024;
-	const uint16_t U16VelocityDeadband = 80;
-	const uint16_t U16PosOffset = 2048;
+//	const uint16_t U16PosDesAccumMultiplyer = 2048;
+//	const uint16_t U16PosDesAccumExponentialDivisor = 1024;
+//	const uint16_t U16VelocityDeadband = 80;
 
 	// ************* Position Loop *************
 
@@ -29,7 +31,7 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	//ptr->S16PositionDesired
 
 	// Compute actual position
-	ptr->S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + U16PosOffset;
+	ptr->S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + POSITION_OFFSET;
 
 	// Compute position error Negative to deal with potentiometer direction
 	ptr->S16PositionError = -(ptr->S16PositionDesired - ptr->S16PositionActual);
@@ -89,4 +91,19 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	}
 
 } // End void controlLoop(CONTROL_AXIS_STRUCT * ptr)
+
+void Process_SLA(SLAData * data,
+		CONTROL_AXIS_STRUCT * latp, CONTROL_AXIS_STRUCT * vertp) {
+
+int16_t col_coord = 0;
+int16_t row_coord = 0;
+
+	// Calculate Lateral Axis desired position
+	col_coord = (data->Column-(COL_PIXELS/2));
+	latp->S16PositionDesired = (col_coord * COORD_TO_LAT) + latp->S16PositionActual;
+
+	// Calculate Vertical Axis desired position
+	col_coord = (data->Column-(COL_PIXELS/2));
+	vertp->S16PositionDesired = (row_coord * COORD_TO_VERT) + vertp->S16PositionActual;
+}
 

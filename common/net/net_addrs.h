@@ -31,4 +31,15 @@ extern const struct sockaddr * RNH_RCI_ADDR;     // RCI listener
 extern const struct sockaddr * RNH_BATTERY_ADDR; // Battery data
 extern const struct sockaddr * RNH_PORT_ADDR;    // Port data
 
+/* Rocket Tracks Controller */
+extern struct lwipthread_opts * RTX_LWIP;
+extern const struct sockaddr * RTX_MANUAL_ADDR;	 // Manual Control listener
+extern const struct sockaddr * RTX_NEUTRAL_ADDR; // Axis Neutral data
+extern const struct sockaddr * RTX_FROMSLA_ADDR; // Sightline listener
+
+/* Rocket Tracks Manual Control Box */
+extern struct lwipthread_opts * RTXMAN_LWIP;
+extern const struct sockaddr * RTXMAN_OUT_ADDR;     // Manual Control data
+extern const struct sockaddr * RTXMAN_NEUTRAL_ADDR; // Axis Neutral Listener
+
 #endif /* NET_ADDRS_H_ */

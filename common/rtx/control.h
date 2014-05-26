@@ -64,4 +64,8 @@ typedef struct {
 
 } CONTROL_AXIS_STRUCT;
 
+void controlLoop(CONTROL_AXIS_STRUCT * ptr);
+void Process_SLA(SLAData * data,
+		CONTROL_AXIS_STRUCT * latp, CONTROL_AXIS_STRUCT * vertp);
+
 #endif

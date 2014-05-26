@@ -56,7 +56,26 @@
 #define NO_SHELL_MODE			2
 #define FREEZE_MODE				3
 
+/* Safety-Critical Code Section - DO NOT MODIFY */
+
 #define REFMONITOR_THRESH		4000
+
+#define LAT_HIGH_POS_MAX		0xfff0
+#define LAT_LOW_POS_MAX			0x000f
+#define VERT_HIGH_POS_MAX		0xfff0
+#define VERT_LOW_POS_MAX		0x000f
+
+#define POSITION_OFFSET			2048
+
+#define OUT_OF_RANGE_TIMEOUT	3
+#define MANUAL_WATCHDOG_TIMEOUT	3
+
+#define COL_PIXELS				1900
+#define ROW_PIXELS				1080
+
+#define COORD_TO_LAT			1
+#define COORD_TO_VERT			1
+
 
 #endif
 

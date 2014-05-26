@@ -18,10 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
-#include <string.h>
-#include <limits.h>
-#include <stdint.h>
+//#include <string.h>
 #include <stdlib.h>
 
 #include "ch.h"
@@ -31,11 +28,16 @@
 #include "shell.h"
 #include "lwipthread.h"
 #include "lwip/ip_addr.h"
+#include "lwip/sockets.h"
+
+#include "utils_general.h"
 #include "utils_sockets.h"
+#include "utils_shell.h"
 
 #include "usbdetail.h"
-//#include "cmddetail.h"
 #include "enet_api.h"
+#include "net_addrs.h"
+
 #include "pwmdetail.h"
 #include "control.h"
 #include "rocket_tracks.h"
@@ -61,17 +63,6 @@ static void motordrive(GPTDriver *gptp);
 uint32_t microsecondsToPWMTicks(const uint32_t microseconds);
 static uint8_t DriveEnable (void);
 
-static const GPTConfig gpt1cfg = {
-	1000000,
-	motordrive,
-	0,
-};
-
-static const GPTConfig gpt2cfg = {
-	1000000,
-	convert_start,
-	0,
-};
 
 /*
  * SPI1 configuration structure.
@@ -117,11 +108,21 @@ uint8_t U8PrevPosnVelModeSwitchState = DISABLED;
 uint32_t u32Temp = 0;
 CONTROL_AXIS_STRUCT vertAxisStruct, latAxisStruct;
 static uint8_t u8WatchDogCycleCount = 0;
+static uint8_t latOutofrangehigh = 0;
+static uint8_t latOutofrangelow = 0;
+static uint8_t vertOutofrangehigh = 0;
+static uint8_t vertOutofrangelow = 0;
+static uint8_t ManualWatchdog = 0;
 
 
 // Message structs
 ManualData ManualStatus;
 Neutral NeutralStatus;
+SLAData SLAStatus;
+
+static EVENTSOURCE_DECL(ReadyNeutral);
+static EVENTSOURCE_DECL(ReadyManual);
+static EVENTSOURCE_DECL(ReadySLA);
 
 static const EXTConfig extcfg = {
   {
@@ -158,20 +159,6 @@ static const EXTConfig extcfg = {
 
 #define SHELL_WA_SIZE   THD_WA_SIZE(2048)
 #define TEST_WA_SIZE    THD_WA_SIZE(256)
-
-static void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
-	size_t n, size;
-
-	(void)argv;
-	if (argc > 0) {
-		chprintf(chp, "Usage: mem\r\n");
-		return;
-	}
-	n = chHeapStatus(NULL, &size);
-	chprintf(chp, "core free memory : %u bytes\r\n", chCoreStatus());
-	chprintf(chp, "heap fragments   : %u\r\n", n);
-	chprintf(chp, "heap free total  : %u bytes\r\n", size);
-}
 
 /******************************************************************************
  * Function name:	cmd_data
@@ -463,7 +450,7 @@ CONTROL_AXIS_STRUCT *axis_p = NULL;
  */
 static const ShellCommand commands[] = {
 	{"mem", cmd_mem},
-//	{"threads", cmd_threads},
+	{"threads", cmd_threads},
 	{"data", cmd_data},
 	{"stop", cmd_stop},
 	{"disable", cmd_stop},
@@ -521,13 +508,41 @@ static void convert_start(GPTDriver *gptp) {
 	return;
 }
 
+static const GPTConfig gpt2cfg = {
+	1000000,
+	convert_start,
+	0,
+};
+
+static void evtSendNeutral(eventid_t id UNUSED){
+
+    SendNeutral(&NeutralStatus);
+}
+
+static void evtReceiveManual(eventid_t id UNUSED){
+
+//	ReceiveManual(&ManualStatus);
+	if(ReceiveManual(&ManualStatus)) {
+		ManualWatchdog = 0;
+	}
+	else
+		++ManualWatchdog;
+}
+
+static void evtReceiveSLA(eventid_t id UNUSED){
+
+    ReceiveSLA(&SLAStatus);
+    Process_SLA(&SLAStatus, &latAxisStruct, &vertAxisStruct);
+}
+
 /*
  * GMD control thread, times are in microseconds.
  */
 static void motordrive(GPTDriver *gptp) {
 
-
 	(void) gptp;
+
+	BaseSequentialStream *chp = getUsbStream();
 
 	chSysLockFromIsr();
 
@@ -537,18 +552,37 @@ static void motordrive(GPTDriver *gptp) {
 
 	chSysUnlockFromIsr();
 
+	// Send Neutral Status to Manual Control Box
+	chEvtBroadcastI(&ReadyNeutral);
+
+	// Check for Manual Control Status message
+	chEvtBroadcastI(&ReadyManual);
+
+	// Check for SLA message and calculate desired positions
+	if(ManualStatus.Mode == SIGHTLINE_MODE) {
+		chEvtBroadcastI(&ReadySLA);
+	}
+
 	//Run Control Loops
 	ControlAxis(&latAxisStruct, 3, 4);
 	ControlAxis(&vertAxisStruct, 1, 2);
 
 	// Drive Enable Safety Interlock Section
-
 	// DANGER - Safety-Critical Code Section
-	DriveEnable();
 
+	if(DriveEnable() == DISABLED)
+		chprintf(chp, "System Disabled\r\n");
+
+	// END - Safety-Critical Code Section
 
 	return;
 }
+
+static const GPTConfig gpt1cfg = {
+	1000000,
+	motordrive,
+	0,
+};
 
 
 /******************************************************************************
@@ -597,21 +631,6 @@ BaseSequentialStream *chp = getUsbStream();
 
 	halInit();
 	chSysInit();
-
-	/* fill out lwipthread_opts with our address*/
-    struct lwipthread_opts   ip_opts;
-	uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
-	set_lwipthread_opts(&ip_opts, IP_MANUAL, "255.255.255.0", "192.168.1.1", macAddress);
-
-	/* Start the lwip thread*/
-	chprintf(chp, "LWIP ");
-	chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2,
-	                    lwip_thread, &ip_opts);
-
-    //Receive thread
-    chprintf(chp, "rx ");
-    chThdCreateStatic(wa_rtx_controller_receive_thread, sizeof(wa_rtx_controller_receive_thread), RTX_CONTROLLER_RX_THD_PRIORITY,
-    		rtx_controller_receive_thread, NULL);
 
     //Start SPI1 peripheral
 	spiStart(&SPID1, &spi1cfg);
@@ -683,13 +702,6 @@ BaseSequentialStream *chp = getUsbStream();
 	latAxisStruct.U16HighPosnLimit = 5300;
 	latAxisStruct.U16LowPosnLimit = 3100;
 
-	adcStart(&ADCD1, NULL);
-
-	/*
-	* Activates the serial driver 6 and SDC driver 1 using default
-	* configuration.
-	*/
-	sdStart(&SD6, NULL);
 
 	/*
 	* Activates the EXT driver 1.
@@ -697,9 +709,56 @@ BaseSequentialStream *chp = getUsbStream();
 	*/
 	extStart(&EXTD1, &extcfg);
 
+	/* Start the lwip thread*/
+	chprintf(chp, "LWIP ");
+	lwipThreadStart(RTX_LWIP);
+
+	//Create sockets
+	ReceiveRTxfromSLASocket();
+	SendRTxtoManualSocket();
+	ReceiveRTxfromManualSocket();
+
+	adcStart(&ADCD1, NULL);
+
+    // Set up event system
+    struct EventListener evtNeutral, evtManual, evtSLA;
+    chEvtRegister(&ReadyNeutral, &evtNeutral, 0);
+    chEvtRegister(&ReadyManual, &evtManual, 1);
+    chEvtRegister(&ReadySLA, &evtSLA, 2);
+    const evhandler_t evhndl[] = {
+        evtSendNeutral,
+        evtReceiveManual,
+        evtReceiveSLA,
+    };
+
 	while (TRUE) {
-		chThdSleep(TIME_INFINITE);
+		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}
+}
+
+/******************************************************************************
+ * Function name:	microsecondsToPWMTicks
+ *
+ * Description:		Returns number of PWM ticks in microseconds variable
+ *
+ *****************************************************************************/
+uint32_t microsecondsToPWMTicks(const uint32_t microseconds)
+{
+	uint32_t ret = (pwmcfg.frequency / 1000000) * microseconds;
+	return (ret);
+}
+
+
+/******************************************************************************
+ * Function name:	nanosecondsToPWMTicks
+ *
+ * Description:		Returns number of PWM ticks in nanoseconds variable
+ *
+ *****************************************************************************/
+uint32_t nanosecondsToPWMTicks(const uint32_t nanoseconds) {
+
+	uint32_t ret = (pwmcfg.frequency * nanoseconds) / 1000000000;
+	return (ret);
 }
 
 /******************************************************************************
@@ -739,31 +798,6 @@ static void enable_axes(uint8_t enable) {
 }
 
 /******************************************************************************
- * Function name:	microsecondsToPWMTicks
- *
- * Description:		Returns number of PWM ticks in microseconds variable
- *
- *****************************************************************************/
-uint32_t microsecondsToPWMTicks(const uint32_t microseconds)
-{
-	uint32_t ret = (pwmcfg.frequency / 1000000) * microseconds;
-	return (ret);
-}
-
-
-/******************************************************************************
- * Function name:	nanosecondsToPWMTicks
- *
- * Description:		Returns number of PWM ticks in nanoseconds variable
- *
- *****************************************************************************/
-uint32_t nanosecondsToPWMTicks(const uint32_t nanoseconds) {
-
-	uint32_t ret = (pwmcfg.frequency * nanoseconds) / 1000000000;
-	return (ret);
-}
-
-/******************************************************************************
  * Function name:	DriveEnable
  *
  * Description:		DANGER - LIFE-SAFETY CRITICAL CODE - THIS CODE WAS
@@ -779,7 +813,7 @@ uint32_t nanosecondsToPWMTicks(const uint32_t nanoseconds) {
 static uint8_t DriveEnable() {
 
 uint8_t UserEnable = DISABLED;
-uint8_t TestEnable = DISABLED;
+uint8_t TestEnable = ENABLED;
 uint8_t ApproveEnable = DISABLED;
 
 uint8_t ModeStatus = MANUAL_MODE;
@@ -795,14 +829,51 @@ uint8_t ModeStatus = MANUAL_MODE;
 	// Check for User Enable Status (Manual Enable Switch and Shell Override)
 	if(ManualStatus.Enable == ENABLED && U8ShellEnable == ENABLED)
 		UserEnable = ENABLED;
-	else
+	else {
 		UserEnable = DISABLED;
+		latOutofrangehigh = 0;
+		latOutofrangelow = 0;
+		vertOutofrangehigh = 0;
+		vertOutofrangelow = 0;
+	}
 
 	// Check for Reference Voltage OK
-	if(refMonitor >= REFMONITOR_THRESH)
-		TestEnable = ENABLED;
-	else
+	if(refMonitor < REFMONITOR_THRESH)
 		TestEnable = DISABLED;
+
+	// Check for out-of-range lat axis positions
+	if(Samples[LAT_AXIS] >= LAT_HIGH_POS_MAX) {
+		++latOutofrangehigh;
+		latOutofrangelow = 0;
+	}
+	else if(Samples[LAT_AXIS] <= LAT_LOW_POS_MAX) {
+		++latOutofrangelow;
+		latOutofrangehigh = 0;
+	}
+	if(vertOutofrangelow > OUT_OF_RANGE_TIMEOUT ||
+			vertOutofrangehigh > OUT_OF_RANGE_TIMEOUT) {
+		TestEnable = DISABLED;
+	}
+
+	// Check for out-of-range vert axis positions
+	if(Samples[VERT_AXIS] >= VERT_HIGH_POS_MAX) {
+		++vertOutofrangehigh;
+		vertOutofrangelow = 0;
+	}
+	else if(Samples[VERT_AXIS] <= VERT_LOW_POS_MAX) {
+		++vertOutofrangelow;
+		vertOutofrangehigh = 0;
+	}
+	if(latOutofrangelow > OUT_OF_RANGE_TIMEOUT ||
+			latOutofrangehigh > OUT_OF_RANGE_TIMEOUT) {
+		TestEnable = DISABLED;
+
+	}
+
+	// Check ManualWatchdog Time-out
+	if(ManualWatchdog > MANUAL_WATCHDOG_TIMEOUT) {
+		TestEnable = DISABLED;
+	}
 
 	// Check all enable flags and approve Enable
 	if(UserEnable && TestEnable)

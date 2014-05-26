@@ -99,3 +99,24 @@ const struct sockaddr * RNH_RCI_ADDR = make_addr(RNH_IP, RNH_RCI);
 const struct sockaddr * RNH_BATTERY_ADDR = make_addr(RNH_IP, RNH_BATTERY);
 const struct sockaddr * RNH_PORT_ADDR = make_addr(RNH_IP, RNH_PORT);
 
+/* Rocket Tracks Controller */
+#define RTX_IP IPv4(10, 0, 0, 40)
+#define RTX_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0xdd}
+#define RTX_MANUAL 36200  // Manual Control listener
+#define RTX_NEUTRAL 36201 // Axis Neutral data
+#define RTX_FROMSLA 36202 // Sightline listener
+
+struct lwipthread_opts * RTX_LWIP = make_lwipopts(RTX_MAC, RTX_IP, NETMASK, GATEWAY);
+const struct sockaddr * RTX_MANUAL_ADDR = make_addr(RTX_IP, RTX_MANUAL);
+const struct sockaddr * RTX_NEUTRAL_ADDR = make_addr(RTX_IP, RTX_NEUTRAL);
+const struct sockaddr * RTX_FROMSLA_ADDR = make_addr(RTX_IP, RTX_FROMSLA);
+
+/* Rocket Tracks Manual Control Box */
+#define RTXMAN_IP IPv4(10, 0, 0, 45)
+#define RTXMAN_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0xee}
+#define RTXMAN_OUT 36203     // Manual Control data
+#define RTXMAN_NEUTRAL 36204 // Axis Neutral listener
+
+struct lwipthread_opts * RTXMAN_LWIP = make_lwipopts(RTXMAN_MAC, RTXMAN_IP, NETMASK, GATEWAY);
+const struct sockaddr * RTXMAN_OUT_ADDR = make_addr(RTXMAN_IP, RTXMAN_OUT);
+const struct sockaddr * RTXMAN_NEUTRAL_ADDR = make_addr(RTXMAN_IP, RTXMAN_NEUTRAL);
