@@ -34,6 +34,26 @@ static struct led_config led_cfg = {
                 NULL
         }
 };
+#elif defined BOARD_GPS_RF_FRONTEND_2
+const struct led LED2 = {GPIOD, GPIOD_LED2};
+const struct led LED4 = {GPIOD, GPIOD_LED4};
+const struct led LED5 = {GPIOD, GPIOD_LED5};
+const struct led RED = {GPIOD, GPIOD_RGB_R};
+const struct led BLUE = {GPIOD, GPIOD_RGB_B};
+const struct led GREEN = {GPIOD, GPIOD_RGB_G};
+static struct led_config led_cfg = {
+        .cycle_ms = 500,
+        .start_ms = 4000,
+        .led = (const struct led*[]){
+                &GREEN,
+                &RED,
+                &BLUE,
+                &LED2,
+                &LED4,
+                &LED5,
+                NULL
+        }
+};
 #else
 static struct led_config led_cfg = {0};
 #endif
@@ -78,7 +98,7 @@ NORETURN static void led(void * arg) {
 
     /* Turn off leds, also count them */
     int num_leds = 0;
-    for(; !led[num_leds]->port; ++num_leds){
+    for(; led[num_leds]; ++num_leds){
         // FIXME: they're not all push-pull are they?
         palSetPadMode(led[num_leds]->port, led[num_leds]->pad, PAL_MODE_OUTPUT_PUSHPULL);
         ledOff(led[num_leds]);
@@ -91,7 +111,7 @@ NORETURN static void led(void * arg) {
     int i = 0;
     for(; start_cycles > 0; --start_cycles) {
         for(i = 0; i < num_leds; ++i){
-        	ledOn(led[i]);
+            ledOn(led[i]);
             chThdSleepMilliseconds(start_blink);
             ledOff(led[i]);
         }
