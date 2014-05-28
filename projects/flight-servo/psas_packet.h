@@ -15,10 +15,6 @@
  * ================ ************************************************************
  */
 
-typedef struct {
-    uint8_t launch_detect; // 1 when launch detected. 0 when no launch detected.
-} __attribute__((packed)) LaunchDetect;
-
 
 /*! \warning The structure from the RC module on the Flight computer
  * is not packed. Current plans are to pass a byte array from the FC
