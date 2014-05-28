@@ -20,6 +20,7 @@ EventSource BQ3060_battery_fault;
 
 static struct BQ3060Data buffer;
 
+
 int BQ3060_Get(uint8_t register_id, uint16_t* data){
     if(initialized == false)
         return -1;
@@ -217,6 +218,11 @@ static msg_t read_thread(void * p UNUSED){
 
     struct EventListener eltimer;
     uint16_t safetyData = 0;
+    //crntAlarms - current alarms {safetyAlarm,failureAlert,permanentFailure}
+    //cumAlarms - cumulative alarms {safetyAlarm,failureAlert,permanentFailure} 
+    uint16_t crntAlarms[3] = {0};
+    uint16_t cumAlarms[3] = {0};
+    uint16_t curSftyAlert;
     static const evhandler_t evhndl[] = {
             read_handler
     };
@@ -229,16 +235,24 @@ static msg_t read_thread(void * p UNUSED){
 	//the event associated with BQ3060_battery_fault
 	//read the safety alert register (0x50)
 	BQ3060_Get(0x50,&safetyData);
+	crntAlarms[0] = safetyData;
+	curSftyAlert = safetyData;
+	cumAlarms[0] = cumAlarms[0] | safetyData;
 	if (safetyData != 0) {
 		chEvtBroadcast(&BQ3060_battery_fault);
+
 	}
 	//read the pending failure alert register (0x52)
 	BQ3060_Get(0x52,&safetyData);
+	crntAlarms[1] = safetyData;
+	cumAlarms[1] = cumAlarms[1] | safetyData;
 	if (safetyData != 0) {
 		chEvtBroadcast(&BQ3060_battery_fault);
 	}
 	//read the permanent failure status register (0x53)
 	BQ3060_Get(0x53,&safetyData);
+	crntAlarms[2] = safetyData;
+	cumAlarms[2] = cumAlarms[2] | safetyData;
 	if (safetyData != 0) {
 		chEvtBroadcast(&BQ3060_battery_fault);
 	}

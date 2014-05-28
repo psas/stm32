@@ -20,6 +20,10 @@
 
 int battery_socket;
 int port_socket;
+//these are defined in BQ3060.c
+uint16_t crntAlarms[3];
+uint16_t cumAlarms[3];
+
 EVENTSOURCE_DECL(ACOK);
 
 /* RCI commands
@@ -120,15 +124,20 @@ static void batteryFault_Handler(eventid_t id UNUSED) {
 	//this handler will set a flag to prevent the
 	//rocket from arming if it is tripped
 	//it will then send the fault data onto the wire
-	uint16_t buffer[3];
-	uint16_t regData;
-	BQ3060_Get(0x50,&regData);
-	buffer[0] = htons(regData);
-	BQ3060_Get(0x52,&regData);
-	buffer[1] = htons(regData);
-	BQ3060_Get(0x53,&regData);
-	buffer[2] = htons(regData);
-	write(port_socket, buffer, sizeof(buffer));
+	//uint16_t buffer[3];
+	//uint16_t regData;
+	//BQ3060_Get(0x50,&regData);
+	//buffer[0] = htons(regData);
+	//BQ3060_Get(0x52,&regData);
+	//buffer[1] = htons(regData);
+	//BQ3060_Get(0x53,&regData);
+	//buffer[2] = htons(regData);
+	//write(port_socket, buffer, sizeof(buffer));
+	write(port_socket, crntAlarms, sizeof(crntAlarms));
+}
+
+static void batteryFaultHist_Handler(eventid_t id UNUSED) {
+	write(port_socket, cumAlarms, sizeof(cumAlarms));
 }
 
 void main(void) {
@@ -181,16 +190,18 @@ void main(void) {
     }
 
     // Set up event system
-    struct EventListener batt0, batt1, port0, batt_fault;
+    struct EventListener batt0, batt1, port0, batt_fault, batt_fault_hist;
     chEvtRegister(&ACOK, &batt0, 0);
     chEvtRegister(&BQ3060_data_ready, &batt1, 1);
     chEvtRegister(&rnhPortCurrent, &port0, 2);
     chEvtRegister(&BQ3060_battery_fault, &batt_fault, 3);
+    chEvtRegister(&BQ3060_battery_fault_hist, &batt_fault_hist, 4);
     const evhandler_t evhndl[] = {
         BQ24725_SetCharge,
         BQ3060_SendData,
         portCurrent_SendData,
-	batteryFault_Handler
+	batteryFault_Handler,
+	batteryFaultHist_Handler	
     };
 
     while (TRUE) {
