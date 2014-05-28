@@ -35,7 +35,6 @@ static const char TIME[]    = "#TIME";
 
 void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
-
     rci_data->return_data[0] = time_ns & (0xFF << 7) >> 7;
     rci_data->return_data[1] = time_ns & (0xFF << 6) >> 6;
     rci_data->return_data[2] = time_ns & (0xFF << 5) >> 5;
@@ -158,7 +157,7 @@ void main(void) {
             RCI_CMD_VERS,
             {NULL}
     };
-    conf.address = RNH_RCI_ADDR,
+    conf.address = RNH_RCI_ADDR;
 
     //Init hardware
     BQ24725Start(&BQConf);
