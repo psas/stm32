@@ -28,7 +28,7 @@
 /*
  * Board identifier.
  */
-#define BOARD_PSAS_ROCKETNET_HUB_1_0
+#define BOARD_GPS_RF_FRONTEND_2
 #define BOARD_NAME                  "PSAS GPS RF Frontend v2"
 
 #define  MII_KS8081_ID              0x00221560 /* KSZ8081 r1.1 datasheet p31 */
@@ -187,14 +187,14 @@
                                      PIN_MODE_INPUT(GPIOA_CLK_SER)            |\
                                      PIN_MODE_INPUT(GPIOA_PIN6)               |\
                                      PIN_MODE_ALTERNATE(GPIOA_ETH_RMII_CRS_DV)|\
-                                     PIN_MODE_OUTPUT(GPIOA_MCO1_ETH_CLK)      |\
+                                     PIN_MODE_ALTERNATE(GPIOA_MCO1_ETH_CLK)      |\
                                      PIN_MODE_ALTERNATE(GPIOA_OTG_FS_VBUS )   |\
                                      PIN_MODE_INPUT(GPIOA_PIN10)              |\
                                      PIN_MODE_ALTERNATE(GPIOA_OTG_FS_DM)      |\
                                      PIN_MODE_ALTERNATE(GPIOA_OTG_FS_DP)      |\
                                      PIN_MODE_ALTERNATE(GPIOA_JTAG_TMS)       |\
-                                     PIN_MODE_ALTERNATE(GPIO_A14_JTAG_TCK)    |\
-                                     PIN_MODE_ALTERNATE(GPIO_A15_JTAG_TDI))
+                                     PIN_MODE_ALTERNATE(GPIOA_JTAG_TCK)    |\
+                                     PIN_MODE_ALTERNATE(GPIOA_JTAG_TDI))
 
 #define VAL_GPIOA_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOA_PIN0 )          |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_ETH_RMII_REF_CLK)|\
@@ -210,8 +210,8 @@
                                      PIN_OTYPE_PUSHPULL(GPIOA_OTG_FS_DM)      |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_OTG_FS_DP)      |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_JTAG_TMS)       |\
-                                     PIN_OTYPE_PUSHPULL(GPIO_A14_JTAG_TCK)    |\
-                                     PIN_OTYPE_PUSHPULL(GPIO_A15_JTAG_TDI))
+                                     PIN_OTYPE_PUSHPULL(GPIOA_JTAG_TCK)    |\
+                                     PIN_OTYPE_PUSHPULL(GPIOA_JTAG_TDI))
 
 #define VAL_GPIOA_OSPEEDR           (PIN_OSPEED_100M(GPIOA_PIN0)              |\
                                      PIN_OSPEED_100M(GPIOA_ETH_RMII_REF_CLK ) |\
@@ -227,8 +227,8 @@
                                      PIN_OSPEED_100M(GPIOA_OTG_FS_DM            ) |\
                                      PIN_OSPEED_100M(GPIOA_OTG_FS_DP            ) |\
                                      PIN_OSPEED_100M(GPIOA_JTAG_TMS      ) |\
-                                     PIN_OSPEED_100M(GPIO_A14_JTAG_TCK      ) |\
-                                     PIN_OSPEED_100M(GPIO_A15_JTAG_TDI))
+                                     PIN_OSPEED_100M(GPIOA_JTAG_TCK      ) |\
+                                     PIN_OSPEED_100M(GPIOA_JTAG_TDI))
 
 #define VAL_GPIOA_PUPDR             (PIN_PUPDR_PULLUP(GPIOA_PIN0       ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_REF_CLK       ) |\
@@ -244,8 +244,8 @@
                                      PIN_PUPDR_FLOATING(GPIOA_OTG_FS_DM            ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_OTG_FS_DP            ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_JTAG_TMS      ) |\
-                                     PIN_PUPDR_PULLDOWN(GPIO_A14_JTAG_TCK      ) |\
-                                     PIN_PUPDR_FLOATING(GPIO_A15_JTAG_TDI))
+                                     PIN_PUPDR_PULLDOWN(GPIOA_JTAG_TCK      ) |\
+                                     PIN_PUPDR_FLOATING(GPIOA_JTAG_TDI))
 
 #define VAL_GPIOA_ODR               (PIN_ODR_HIGH(GPIOA_PIN0             ) |\
                                      PIN_ODR_HIGH(GPIOA_ETH_RMII_REF_CLK             ) |\
@@ -261,8 +261,8 @@
                                      PIN_ODR_HIGH(GPIOA_OTG_FS_DM                  ) |\
                                      PIN_ODR_HIGH(GPIOA_OTG_FS_DP                  ) |\
                                      PIN_ODR_HIGH(GPIOA_JTAG_TMS            ) |\
-                                     PIN_ODR_HIGH(GPIO_A14_JTAG_TCK            ) |\
-                                     PIN_ODR_HIGH(GPIO_A15_JTAG_TDI))
+                                     PIN_ODR_HIGH(GPIOA_JTAG_TCK            ) |\
+                                     PIN_ODR_HIGH(GPIOA_JTAG_TDI))
 
 #define VAL_GPIOA_AFRL              (PIN_AFIO_AF( GPIOA_PIN0        ,  0  )  |\
                                      PIN_AFIO_AF( GPIOA_ETH_RMII_REF_CLK        , 11  )  |\
@@ -395,7 +395,7 @@
  *
  */
 #define VAL_GPIOC_MODER             (PIN_MODE_INPUT(GPIOC_PIN0  ) |\
-                                     PIN_MODE_ANALOG(GPIOC_ETH_RMII_MDC  ) |\
+                                     PIN_MODE_ALTERNATE(GPIOC_ETH_RMII_MDC  ) |\
                                      PIN_MODE_INPUT (GPIOC_PIN2          ) |\
                                      PIN_MODE_INPUT (GPIOC_PIN3           ) |\
                                      PIN_MODE_ALTERNATE (GPIOC_ETH_RMII_RXD0          ) |\
@@ -501,7 +501,7 @@
  * GPIOD setup:
  *
  */
-#define VAL_GPIOD_MODER             (PIN_MODE_OUTPUT     ( GPIOD_SD_VCC      )|\
+#define VAL_GPIOD_MODER             (PIN_MODE_OUTPUT     ( GPIOD_SD_VDD      )|\
                                      PIN_MODE_INPUT     ( GPIOD_PIN1             )|\
                                      PIN_MODE_ALTERNATE    ( GPIOD_SD_CMD )|\
                                      PIN_MODE_OUTPUT     ( GPIOD_EPHY_NRST             )|\
@@ -517,7 +517,7 @@
                                      PIN_MODE_OUTPUT    ( GPIOD_RGB_B         )|\
                                      PIN_MODE_OUTPUT    ( GPIOD_RGB_G        )|\
                                      PIN_MODE_INPUT     ( GPIOD_PIN15            ))
-#define VAL_GPIOD_OTYPER            (PIN_OTYPE_PUSHPULL ( GPIOD_SD_VCC      )|\
+#define VAL_GPIOD_OTYPER            (PIN_OTYPE_PUSHPULL ( GPIOD_SD_VDD      )|\
                                      PIN_OTYPE_PUSHPULL ( GPIOD_PIN1             )|\
                                      PIN_OTYPE_PUSHPULL ( GPIOD_SD_CMD )|\
                                      PIN_OTYPE_PUSHPULL ( GPIOD_EPHY_NRST             )|\
@@ -534,7 +534,7 @@
                                      PIN_OTYPE_PUSHPULL ( GPIOD_RGB_G        )|\
                                      PIN_OTYPE_PUSHPULL ( GPIOD_PIN15            ))
 
-#define VAL_GPIOD_OSPEEDR           (PIN_OSPEED_100M    ( GPIOD_SD_VCC      )|\
+#define VAL_GPIOD_OSPEEDR           (PIN_OSPEED_100M    ( GPIOD_SD_VDD      )|\
                                      PIN_OSPEED_100M    ( GPIOD_PIN1             )|\
                                      PIN_OSPEED_100M    ( GPIOD_SD_CMD )|\
                                      PIN_OSPEED_100M    ( GPIOD_EPHY_NRST             )|\
@@ -551,7 +551,7 @@
                                      PIN_OSPEED_100M    ( GPIOD_RGB_G        )|\
                                      PIN_OSPEED_100M    ( GPIOD_PIN15            ))
 
-#define VAL_GPIOD_PUPDR             (PIN_PUPDR_PULLUP ( GPIOD_SD_VCC      )|\
+#define VAL_GPIOD_PUPDR             (PIN_PUPDR_PULLUP ( GPIOD_SD_VDD      )|\
                                      PIN_PUPDR_PULLDOWN ( GPIOD_PIN1             )|\
                                      PIN_PUPDR_FLOATING ( GPIOD_SD_CMD )|\
                                      PIN_PUPDR_PULLUP ( GPIOD_EPHY_NRST             )|\
@@ -568,7 +568,7 @@
                                      PIN_PUPDR_PULLUP ( GPIOD_RGB_G        )|\
                                      PIN_PUPDR_PULLUP ( GPIOD_PIN15            ))
 
-#define VAL_GPIOD_ODR               (PIN_ODR_HIGH       ( GPIOD_SD_VCC      )|\
+#define VAL_GPIOD_ODR               (PIN_ODR_HIGH       ( GPIOD_SD_VDD      )|\
                                      PIN_ODR_HIGH       ( GPIOD_PIN1             )|\
                                      PIN_ODR_HIGH       ( GPIOD_SD_CMD )|\
                                      PIN_ODR_HIGH       ( GPIOD_EPHY_NRST             )|\
@@ -585,7 +585,7 @@
                                      PIN_ODR_HIGH       ( GPIOD_RGB_G        )|\
                                      PIN_ODR_HIGH       ( GPIOD_PIN15            ))
 
-#define VAL_GPIOD_AFRL              (PIN_AFIO_AF        ( GPIOD_SD_VCC      , 0) |\
+#define VAL_GPIOD_AFRL              (PIN_AFIO_AF        ( GPIOD_SD_VDD      , 0) |\
                                      PIN_AFIO_AF        ( GPIOD_PIN1             , 0) |\
                                      PIN_AFIO_AF        ( GPIOD_SD_CMD , 12) |\
                                      PIN_AFIO_AF        ( GPIOD_EPHY_NRST             , 0) |\
@@ -617,7 +617,7 @@
                                      PIN_MODE_INPUT (GPIOE_DATASYNC   ) |\
                                      PIN_MODE_INPUT (GPIOE_PIN8  ) |\
                                      PIN_MODE_INPUT (GPIOE_TIMESYNC  ) |\
-                                     PIN_MODE_OUTOUT (GPIOE_MAX_SHDN ) |\
+                                     PIN_MODE_OUTPUT (GPIOE_MAX_SHDN ) |\
                                      PIN_MODE_OUTPUT (GPIOE_MAX_IDLE ) |\
                                      PIN_MODE_OUTPUT (GPIOE_MAX_CFG_CS          ) |\
                                      PIN_MODE_OUTPUT (GPIOE_MAX_CFG_CLK ) |\
@@ -710,6 +710,21 @@
                                      PIN_AFIO_AF       (GPIOE_MAX_CFG_MOSI, 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN15, 0 ))
 
+#define VAL_GPIOF_MODER    0
+#define VAL_GPIOF_OTYPER   0
+#define VAL_GPIOF_OSPEEDR  0
+#define VAL_GPIOF_PUPDR    0
+#define VAL_GPIOF_ODR     0
+#define VAL_GPIOF_AFRL 0
+#define VAL_GPIOF_AFRH 0
+#define VAL_GPIOG_MODER 0
+#define VAL_GPIOG_OTYPER 0
+#define VAL_GPIOG_OSPEEDR 0
+#define VAL_GPIOG_PUPDR 0
+#define VAL_GPIOG_ODR 0
+#define VAL_GPIOG_AFRL 0
+#define VAL_GPIOG_AFRH 0
+
 #define VAL_GPIOH_MODER             (PIN_MODE_INPUT(GPIOH_OSC_IN) |         \
                                      PIN_MODE_INPUT(GPIOH_OSC_OUT))
 
@@ -728,8 +743,15 @@
 #define VAL_GPIOH_AFRL              (PIN_AFIO_AF(GPIOH_OSC_IN, 0) |         \
                                      PIN_AFIO_AF(GPIOH_OSC_OUT, 0))
 
-#define VAL_GPIOH_AFRH              (PIN_AFIO_AF(GPIOH_PIN8, 0) |           \
-                                     PIN_AFIO_AF(GPIOH_PIN9, 0))
+#define VAL_GPIOH_AFRH               0
+
+#define VAL_GPIOI_MODER   0
+#define VAL_GPIOI_OTYPER  0
+#define VAL_GPIOI_OSPEEDR 0
+#define VAL_GPIOI_PUPDR   0
+#define VAL_GPIOI_ODR     0
+#define VAL_GPIOI_AFRL    0
+#define VAL_GPIOI_AFRH    0
 
 #if !defined(_FROM_ASM_)
 #ifdef __cplusplus

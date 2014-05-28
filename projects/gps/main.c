@@ -9,6 +9,8 @@ void main(void) {
     chSysInit();
 
     ledStart(NULL);
+
+    palSetPad(GPIOD, GPIOD_EPHY_NRST);
     while(TRUE){
         chThdSleep(TIME_INFINITE);
     }
