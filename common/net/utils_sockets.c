@@ -60,6 +60,9 @@ int recvSeqPacket(struct SeqSocket* ss, int packetLen) {
       return packetLen;
 
    if (packetLen < (int)sizeof(unsigned long)) {
+      if (seqErrorLogger)
+         seqErrorLogger(SEQ_noseq, ss->seqRecv, 0, ss->buffer - sizeof(unsigned long), (size_t)packetLen);
+
       errno = EIO;
       return -1;
    }
