@@ -33,7 +33,7 @@ extern const struct sockaddr * RNH_PORT_ADDR;    // Port data
 
 /* Rocket Tracks Controller */
 extern struct lwipthread_opts * RTX_LWIP;
-extern const struct sockaddr * RTX_MANUAL_ADDR;	 // Manual Control listener
+extern const struct sockaddr * RTX_MANUAL_ADDR;  // Manual Control listener
 extern const struct sockaddr * RTX_NEUTRAL_ADDR; // Axis Neutral data
 extern const struct sockaddr * RTX_FROMSLA_ADDR; // Sightline listener
 
@@ -41,5 +41,9 @@ extern const struct sockaddr * RTX_FROMSLA_ADDR; // Sightline listener
 extern struct lwipthread_opts * RTXMAN_LWIP;
 extern const struct sockaddr * RTXMAN_OUT_ADDR;     // Manual Control data
 extern const struct sockaddr * RTXMAN_NEUTRAL_ADDR; // Axis Neutral Listener
+
+/* GPS frontend */
+extern struct lwipthread_opts * GPS_LWIP;
+extern struct sockaddr * GPS_OUT; // Data's gotta be flowing out, right?
 
 #endif /* NET_ADDRS_H_ */

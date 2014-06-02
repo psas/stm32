@@ -28,6 +28,13 @@ extern const struct led RED;
 extern const struct led BLUE;
 #elif defined BOARD_OLIMEX_STM32_E407
 extern const struct led GREEN;
+#elif defined BOARD_GPS_RF_FRONTEND_2
+extern const struct led GREEN;
+extern const struct led RED;
+extern const struct led BLUE;
+extern const struct led LED2;
+extern const struct led LED4;
+extern const struct led LED5;
 #endif
 
 

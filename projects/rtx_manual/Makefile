@@ -99,7 +99,7 @@ CSRC = $(PORTSRC) \
        $(RTX)/enet_api.c \
        $(PSAS_NET)/utils_shell.c \
        $(PSAS_UTIL)/utils_led.c \
-	   rtx_manual.c
+       main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
