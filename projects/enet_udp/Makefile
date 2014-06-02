@@ -130,7 +130,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_UTIL)/include $(PSAS_NET)\
+         $(PSAS_UTIL)/include $(PSAS_NET) \
          $(CONF)
 
 #
