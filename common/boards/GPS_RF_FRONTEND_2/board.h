@@ -38,6 +38,9 @@
 #define BOARD_PHY_ID                MII_KS8081_ID
 #define BOARD_PHY_RMII
 
+void mac_phy_reset(void);
+#define BOARD_PHY_RESET             mac_phy_reset
+
 /*
  * Board oscillators-related settings.
  */
@@ -554,7 +557,7 @@
 #define VAL_GPIOD_PUPDR             (PIN_PUPDR_PULLUP ( GPIOD_SD_VDD      )|\
                                      PIN_PUPDR_PULLDOWN ( GPIOD_PIN1             )|\
                                      PIN_PUPDR_FLOATING ( GPIOD_SD_CMD )|\
-                                     PIN_PUPDR_PULLUP ( GPIOD_EPHY_NRST             )|\
+                                     PIN_PUPDR_PULLDOWN ( GPIOD_EPHY_NRST             )|\
                                      PIN_PUPDR_PULLUP ( GPIOD_PIN4      )|\
                                      PIN_PUPDR_PULLUP ( GPIOD_PIN5             )|\
                                      PIN_PUPDR_PULLUP ( GPIOD_PIN6             )|\

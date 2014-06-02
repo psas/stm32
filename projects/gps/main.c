@@ -2,6 +2,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "net_addrs.h"
+#include "utils_sockets.h"
 #include "utils_led.h"
 void main(void) {
 
@@ -10,7 +12,7 @@ void main(void) {
 
     ledStart(NULL);
 
-    palSetPad(GPIOD, GPIOD_EPHY_NRST);
+    lwipThreadStart(GPS_LWIP);
     while(TRUE){
         chThdSleep(TIME_INFINITE);
     }
