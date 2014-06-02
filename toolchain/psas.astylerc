@@ -1,0 +1,52 @@
+#
+# Under discussion: Everyone uses a different editor when participating
+# in PSAS and we would like consistent code style. Currently the proposal
+# is to use 8 space tabs for indenting and spaces for alignment. Also a
+# consistent bracket format is under discussion. This file attempts to capture
+# an initial style in the hopes we can automate the make-the-C-file-styles
+# consistent with less impact on developers.
+# 
+# This file is offered as an example in a proposal to move to a code 
+# cleanup tool to automate the consistency process. The example is using
+# 'astyle'. (http://astyle.sourceforge.net/)
+#
+# Ref:
+# http://astyle.sourceforge.net/astyle.html#_Options_File
+#
+# astyle options for psas
+# Example: 
+# > astyle --options=psas.astylerc test.c 
+# This:
+#  1 int main (void) {int     i= 0;int     helloi=0;printf("test"); while (1) {$ 
+#  2 >------->-------i++;$
+#  3 >-------} i++;$
+#  4 >-------return (0); }$
+# Becomes:
+#  1 int main (void)$
+#  2 {$ 
+#  3 >-------int     i = 0;$
+#  4 >-------int     helloi = 0;$
+#  5 >-------printf("test");$
+#  6 >-------while (1)$
+#  7 >-------{$
+#  8 >------->-------i++;$
+#  9 >-------}$
+# 10 >-------i++;$
+# 11 >-------return (0);$
+# 12 }$
+####
+# indent with tabs
+--indent=tab=8
+# bracket style
+-A1
+# other
+--indent-switches
+--indent-col1-comments
+--pad-oper
+--delete-empty-lines
+--align-pointer=middle
+--add-brackets
+# other than indentation, use spaces
+--convert-tabs
+--max-code-length=95
+
