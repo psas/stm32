@@ -29,14 +29,14 @@ void set_sockaddr(struct sockaddr * addr, const char * ip, uint16_t port);
 int get_udp_socket(const struct sockaddr *addr);
 
 struct SeqSocket {
-    size_t          maxSize;
-    int             socket;
-    unsigned long   seqSend;
-    unsigned long   seqRecv;
-    uint8_t*        buffer;
+    size_t        maxSize;
+    int           socket;
+    uint32_t   	seqSend;
+    uint32_t  		seqRecv;
+    uint8_t*      buffer;
 };
 
-#define DECL_SEQ_SOCKET(MAXSIZE) { MAXSIZE, 0, 0, 0, (((uint8_t[MAXSIZE + sizeof(unsigned long)]){ 0 }) + sizeof(unsigned long)) }
+#define DECL_SEQ_SOCKET(MAXSIZE) { MAXSIZE, 0, 0, 0, (((uint8_t[MAXSIZE + sizeof(uint32_t)]){ 0 }) + sizeof(uint32_t)) }
 
 typedef enum SeqError {
     SEQ_noseq,
@@ -44,7 +44,7 @@ typedef enum SeqError {
     SEQ_skip,
 } SeqError;
 
-typedef int (*SeqErrorLogger)(SeqError error, unsigned long expSeq, unsigned long rcvdSeq, const void* data, size_t size);
+typedef int (*SeqErrorLogger)(SeqError error, uint32_t expSeq, uint32_t rcvdSeq, const void* data, size_t size);
 
 void    seq_set_error_logger(SeqErrorLogger logger);
 
