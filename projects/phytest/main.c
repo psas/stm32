@@ -54,30 +54,13 @@ static uint32_t mii_read(MACDriver *macp, uint32_t reg) {
   return ETH->MACMIIDR;
 }
 
-static struct led_config led_cfg = {
-	.cycle_ms = 250,
-	.start_ms = 4000,
-	.led = (const struct led*[]){
-		&LED2,
-		&LED4,
-		&LED5,
-		NULL
-	}
-};
-
 uint8_t macaddr[6] = {0xE6, 0x10, 0x20, 0x30, 0x40, 0x11};
 const MACConfig macconf = {macaddr};
 
 void led2num(int i){
-	ledOff(&LED2);
-	ledOff(&LED4);
-	ledOff(&LED5);
-	if(i & 1)
-		ledOn(&LED2);
-	if(i & 2)
-		ledOn(&LED4);
-	if(i & 4)
-		ledOn(&LED5);
+	(i & 1? ledOn:ledOff)(&LED2);
+	(i & 2? ledOn:ledOff)(&LED4);
+	(i & 4? ledOn:ledOff)(&LED5);
 }
 
 void main(void) {
@@ -85,7 +68,6 @@ void main(void) {
 	halInit();
 	chSysInit();
 
-//	ledStart(&led_cfg);
 	macStart(&ETHD1, &macconf);
 
 	mii_write(&ETHD1, 0x16, mii_read(&ETHD1, 0x16) | (1<<5));
@@ -104,35 +86,36 @@ void main(void) {
 		{GPIOB, GPIOB_ETH_RMII_TXD1}
 	};
 
-	for(int i = 0; i < 10; ++i)
-		palSetPadMode(test[i].port, test[i].pad, PAL_MODE_OUTPUT_PUSHPULL);
-	palSetPadMode(test[10].port, test[10].pad, PAL_MODE_INPUT);
-
-	for(int i = 0; i < 10; ++i)
-		palSetPad(test[i].port, test[i].pad);
-
-	chThdSleepMilliseconds(100);
-	unsigned int val = palReadPad(test[10].port, test[10].pad);
-
-	for(int i = 0; i < 10; ++i){
-		led2num(i);
-		ledOn(&GREEN);
-		chThdSleepMilliseconds(500);
-		ledOff(&GREEN);
-		palClearPad(test[i].port, test[i].pad);
-		chThdSleepMilliseconds(100);
-		if(val != palReadPad(test[10].port, test[10].pad)){
-			ledOn(&BLUE);
-		}
-
-		val = palReadPad(test[10].port, test[10].pad);
-		chThdSleepMilliseconds(500);
-		ledOff(&BLUE);
-	}
-
 	while(TRUE){
-		chThdSleep(TIME_INFINITE);
-	}
+		for(int i = 0; i < 10; ++i)
+			palSetPadMode(test[i].port, test[i].pad, PAL_MODE_OUTPUT_PUSHPULL);
+		palSetPadMode(test[10].port, test[10].pad, PAL_MODE_INPUT);
 
+		for(int i = 0; i < 10; ++i)
+			palSetPad(test[i].port, test[i].pad);
+
+		chThdSleepMilliseconds(100);
+		unsigned int val = palReadPad(test[10].port, test[10].pad);
+
+		for(int i = 0; i < 10; ++i){
+			led2num(i);
+			ledOn(&BLUE);
+			chThdSleepMilliseconds(500);
+			ledOff(&BLUE);
+			palClearPad(test[i].port, test[i].pad);
+			chThdSleepMilliseconds(100);
+			if(val != palReadPad(test[10].port, test[10].pad)){
+				ledOn(&GREEN);
+			} else {
+				ledOn(&RED);
+			}
+
+			val = palReadPad(test[10].port, test[10].pad);
+			chThdSleepMilliseconds(500);
+			ledOff(&GREEN);
+			ledOff(&RED);
+		}
+		chThdSleepMilliseconds(1000);
+	}
 }
 
