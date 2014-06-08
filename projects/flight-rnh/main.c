@@ -19,8 +19,8 @@
 #include "KS8999.h"
 #include "RNHPort.h"
 
-static struct SeqSocket battery_socket = DECL_SEQ_SOCKET(ETH_MTU);
-static struct SeqSocket port_socket = DECL_SEQ_SOCKET(ETH_MTU);
+static struct SeqSocket battery_socket = DECL_SEQ_SOCKET(13*2);
+static struct SeqSocket port_socket = DECL_SEQ_SOCKET(8*2);
 
 static EVENTSOURCE_DECL(ACOK);
 
@@ -108,7 +108,7 @@ static void BQ3060_SendData(eventid_t id UNUSED){
     battery_socket.buffer[10] = htons(data.CellVoltage4);
     battery_socket.buffer[11] = htons(data.PackVoltage);
     battery_socket.buffer[12] = htons(data.AverageVoltage);
-    seq_write(&battery_socket, 13);
+    seq_write(&battery_socket, 13*2);
 }
 
 static void portCurrent_SendData(eventid_t id UNUSED){
@@ -122,7 +122,7 @@ static void portCurrent_SendData(eventid_t id UNUSED){
     port_socket.buffer[5] = htons(sample.current[5]);
     port_socket.buffer[6] = htons(sample.current[6]);
     port_socket.buffer[7] = htons(sample.current[7]);
-    seq_write(&port_socket, 8);
+    seq_write(&port_socket, 8*2);
 }
 
 void main(void) {
