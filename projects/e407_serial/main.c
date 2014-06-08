@@ -24,21 +24,8 @@
 #include "chprintf.h"
 #include "shell.h"
 #include "cmddetail.h"
-#include <lwip/ip_addr.h>
-#include "iwdg_lld.h"
-#include "data_udp.h"
-#include "lwipopts.h"
-#include "lwipthread.h"
 
-#include "board.h"
-
-#include "device_net.h"
-#include "fc_net.h"
 #include "utils_shell.h"
-
-
-#include "main.h"
-
 
 /*! The goal of this code is to run the shell through the serial terminal
  * and not the usb subsystem. Connect an FTDI serial/usb connector to the
@@ -87,24 +74,9 @@ static msg_t Thread_blinker(void *arg) {
     return -1;
 }
 
-static WORKING_AREA(waThread_indwatchdog, 64);
-/*! \brief  Watchdog thread
-*/
-static msg_t Thread_indwatchdog(void *arg) {
-    (void)arg;
-
-    chRegSetThreadName("iwatchdog");
-    while (TRUE) {
-        iwdg_lld_reload();
-        chThdSleepMilliseconds(250);
-    }
-    return -1;
-}
 
 int main(void) {
     static Thread            *shelltp       = NULL;
-
-    struct lwipthread_opts   ip_opts;
 
     /*
      * System initializations.
@@ -124,25 +96,7 @@ int main(void) {
      */
     shellInit();
 
-    iwdg_begin();
-
     chThdCreateStatic(waThread_blinker          , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
-    chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
-
-    static       uint8_t      IMU_macAddress[6]           = IMU_A_MAC_ADDRESS;
-    struct       ip_addr      ip, gateway, netmask;
-    IMU_A_IP_ADDR(&ip);
-    IMU_A_GATEWAY(&gateway);
-    IMU_A_NETMASK(&netmask);
-
-    ip_opts.macaddress = IMU_macAddress;
-    ip_opts.address    = ip.addr;
-    ip_opts.netmask    = netmask.addr;
-    ip_opts.gateway    = gateway.addr;
-
-    chThdCreateStatic(wa_lwip_thread            , sizeof(wa_lwip_thread)            , NORMALPRIO + 2, lwip_thread            , &ip_opts);
-    chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
-    chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
 
     /*
      * Normal main() thread activity, in this demo it enables and disables the
