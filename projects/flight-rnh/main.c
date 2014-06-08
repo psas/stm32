@@ -94,33 +94,33 @@ void BQ24725_SetCharge(eventid_t id UNUSED){
 static void BQ3060_SendData(eventid_t id UNUSED){
     struct BQ3060Data data;
     BQ3060_get_data(&data);
-    battery_socket.buffer[0] = htons(data.Temperature);
-    battery_socket.buffer[1] = htons(data.TS1Temperature);
-    battery_socket.buffer[2] = htons(data.TS2Temperature);
-    battery_socket.buffer[3] = htons(data.TempRange);
-    battery_socket.buffer[4] = htons(data.Voltage);
-    battery_socket.buffer[5] = htons(data.Current);
-    battery_socket.buffer[6] = htons(data.AverageCurrent);
-    battery_socket.buffer[7] = htons(data.CellVoltage1);
-    battery_socket.buffer[8] = htons(data.CellVoltage2);
-    battery_socket.buffer[9] = htons(data.CellVoltage3);
-    battery_socket.buffer[10] = htons(data.CellVoltage4);
-    battery_socket.buffer[11] = htons(data.PackVoltage);
-    battery_socket.buffer[12] = htons(data.AverageVoltage);
+    ((uint16_t *)battery_socket.buffer)[0] = htons(data.Temperature);
+    ((uint16_t *)battery_socket.buffer)[1] = htons(data.TS1Temperature);
+    ((uint16_t *)battery_socket.buffer)[2] = htons(data.TS2Temperature);
+    ((uint16_t *)battery_socket.buffer)[3] = htons(data.TempRange);
+    ((uint16_t *)battery_socket.buffer)[4] = htons(data.Voltage);
+    ((uint16_t *)battery_socket.buffer)[5] = htons(data.Current);
+    ((uint16_t *)battery_socket.buffer)[6] = htons(data.AverageCurrent);
+    ((uint16_t *)battery_socket.buffer)[7] = htons(data.CellVoltage1);
+    ((uint16_t *)battery_socket.buffer)[8] = htons(data.CellVoltage2);
+    ((uint16_t *)battery_socket.buffer)[9] = htons(data.CellVoltage3);
+    ((uint16_t *)battery_socket.buffer)[10] = htons(data.CellVoltage4);
+    ((uint16_t *)battery_socket.buffer)[11] = htons(data.PackVoltage);
+    ((uint16_t *)battery_socket.buffer)[12] = htons(data.AverageVoltage);
     seq_write(&battery_socket, 13*2);
 }
 
 static void portCurrent_SendData(eventid_t id UNUSED){
     struct rnhPortCurrent sample;
     rnhPortGetCurrentData(&sample);
-    port_socket.buffer[0] = htons(sample.current[0]);
-    port_socket.buffer[1] = htons(sample.current[1]);
-    port_socket.buffer[2] = htons(sample.current[2]);
-    port_socket.buffer[3] = htons(sample.current[3]);
-    port_socket.buffer[4] = htons(BQ24725_IMON());
-    port_socket.buffer[5] = htons(sample.current[5]);
-    port_socket.buffer[6] = htons(sample.current[6]);
-    port_socket.buffer[7] = htons(sample.current[7]);
+    ((uint16_t *)port_socket.buffer)[0] = htons(sample.current[0]);
+    ((uint16_t *)port_socket.buffer)[1] = htons(sample.current[1]);
+    ((uint16_t *)port_socket.buffer)[2] = htons(sample.current[2]);
+    ((uint16_t *)port_socket.buffer)[3] = htons(sample.current[3]);
+    ((uint16_t *)port_socket.buffer)[4] = htons(BQ24725_IMON());
+    ((uint16_t *)port_socket.buffer)[5] = htons(sample.current[5]);
+    ((uint16_t *)port_socket.buffer)[6] = htons(sample.current[6]);
+    ((uint16_t *)port_socket.buffer)[7] = htons(sample.current[7]);
     seq_write(&port_socket, 8*2);
 }
 
