@@ -8,29 +8,28 @@
  * ====================== *****************************************************
  */
 
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-/** Set an IP address given by the four byte-parts */
-#define IPv4(a,b,c,d) \
-        ((uint32_t)((a) & 0xff) << 24) | \
-        ((uint32_t)((b) & 0xff) << 16) | \
-        ((uint32_t)((c) & 0xff) << 8)  | \
-         (uint32_t)((d) & 0xff)
-#elif  __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-/** Set an IP address given by the four byte-parts.
-    Little-endian version that prevents the use of htonl. */
-#define IPv4(a,b,c,d) \
-       ((uint32_t)((d) & 0xff) << 24) | \
-       ((uint32_t)((c) & 0xff) << 16) | \
-       ((uint32_t)((b) & 0xff) << 8)  | \
-        (uint32_t)((a) & 0xff)
-#endif
-
 /* htons() in macro form because lwip doesn't declare it as a macro (ugh) */
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define HTONS(n) (uint16_t)((((uint16_t) (n)) << 8) | (((uint16_t) (n)) >> 8))
+#define HTONS(n) __builtin_bswap16(n)
 #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define HTONS(n) (n)
 #endif
+
+/* htonl() in macro form because lwip doesn't declare it as a macro (ugh) */
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define HTONL(n) __builtin_bswap32(n)
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#define HTONL(n) (n)
+#endif
+
+/** Set an IP address given by the four byte-parts */
+#define IPv4(a,b,c,d) \
+        HTONL( \
+            ((uint32_t)((a) & 0xff) << 24) | \
+            ((uint32_t)((b) & 0xff) << 16) | \
+            ((uint32_t)((c) & 0xff) << 8)  | \
+             (uint32_t)((d) & 0xff) \
+        )
 
 /* Returns a pointer to a filled anonymous struct sockaddr_in
  * suitable for direct use in bind() and connect()
