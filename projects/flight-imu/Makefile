@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16
+  USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
 endif
 
 # C specific options here (added to USE_OPT).
@@ -94,22 +94,12 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/various/chrtclib.c \
        $(CHIBIOS)/os/various/syscalls.c \
-       $(PSAS_DEVICES)/iwdg_lld.c \
-       $(PSAS_DEVICES)/usbdetail.c \
-       $(PSAS_DEVICES)/psas_rtc.c \
-       $(PSAS_DEVICES)/psas_sdclog.c \
        $(PSAS_DEVICES)/ADIS16405.c \
-       $(PSAS_DEVICES)/MPU9150.c \
-       $(PSAS_DEVICES)/MPL3115A2.c \
-       $(PSAS_NET)/net_addrs.c \
-       $(PSAS_UTIL)/crc_16_reflect.c \
-       ./data_udp/data_udp.c \
-       ./shell_cmd/cmddetail.c \
-       ./ext_pins/extdetail.c \
-       ./sdc/sdcdetail.c \
-       ./sensor_mpl.c \
-       ./sensor_mpu.c \
-	main.c
+       $(PSAS_NETSRC) \
+       $(PSAS_UTIL)/utils_general.c \
+       $(PSAS_UTIL)/utils_led.c \
+       $(PSAS_UTIL)/utils_hal.c \
+       main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
