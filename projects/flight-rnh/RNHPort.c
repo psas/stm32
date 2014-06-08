@@ -45,7 +45,7 @@ static const uint32_t fault[NUM_PORT] = {
     GPIO_E15_NODE8_N_FLT
 };
 
-#define portGPTfreq 40000
+#define portGPTfreq 80000
 
 EVENTSOURCE_DECL(rnhPortCurrent);
 static struct rnhPortCurrent outBuffer;
@@ -139,7 +139,7 @@ void rnhPortStart(void){
             .dier = 0,
     };
     gptStart(&GPTD2, &gptcfg);
-    gptStartContinuous(&GPTD2, 5);
+    rnhPortSetCurrentDataRate(RNH_PORT_CURRENT_DEFAULT_SAMPLE_RATE);
 
 
     for(int i = 0; i < NUM_PORT; ++i){
@@ -203,8 +203,9 @@ void rnhPortGetCurrentData(struct rnhPortCurrent * measurement){
  }
 
 void rnhPortSetCurrentDataRate(unsigned freq){
+    chDbgAssert(freq <= RNH_PORT_CURRENT_MAX_SAMPLE_RATE, "Setting rhnport sample rate too high", NULL);
     gptStopTimer(&GPTD2);
-    gptStartContinuous(&GPTD2, portGPTfreq / 4 / freq);
+    gptStartContinuous(&GPTD2, portGPTfreq / 8 / freq);
 }
 
 static void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
@@ -236,7 +237,11 @@ static void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
         ret = rnhPortStatus();
         break;
     case RNH_PORT_CURRENT_FREQ:
-        rnhPortSetCurrentDataRate(data);
+        if(data > RNH_PORT_CURRENT_MAX_SAMPLE_RATE){
+            ret = -1;
+        }else{
+            rnhPortSetCurrentDataRate(data);
+        }
         return;
     default:
         return;
