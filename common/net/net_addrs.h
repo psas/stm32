@@ -44,6 +44,6 @@ extern const struct sockaddr * RTXMAN_NEUTRAL_ADDR; // Axis Neutral Listener
 
 /* GPS frontend */
 extern struct lwipthread_opts * GPS_LWIP;
-extern struct sockaddr * GPS_OUT; // Data's gotta be flowing out, right?
+extern struct sockaddr * GPS_OUT_ADDR; // Data's gotta be flowing out, right?
 
 #endif /* NET_ADDRS_H_ */
