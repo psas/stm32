@@ -16,7 +16,7 @@
 
 #include "ADIS16405.h"
 
-static int sendsocket;
+static struct SeqSocket adis_socket = DECL_SEQ_SOCKET(sizeof(ADIS16405Data));
 
 static const struct swap burst_swaps[] = {
     SWAP_FIELD(ADIS16405Data, supply_out),
@@ -35,14 +35,10 @@ static const struct swap burst_swaps[] = {
 
 static void adis_drdy_handler(eventid_t id UNUSED){
     ADIS16405Data data;
-    uint8_t buffer[sizeof(data)];
-
     adis_get_data(&data);
 
-    write_swapped(burst_swaps, &data, buffer);
-    if(write(sendsocket, buffer, sizeof(buffer)) < 0){
-        ledError();
-    }
+    write_swapped(burst_swaps, &data, adis_socket.buffer);
+    seq_write(&adis_socket, sizeof(data));
 }
 
 void main(void){
@@ -63,12 +59,11 @@ void main(void){
     RCICreate(&conf);
 
     /* Create the ADIS out socket, connecting as it only sends to one place */
-    sendsocket = get_udp_socket(ADIS_ADDR);
-    if(sendsocket < 0){
-        ledError();
-    } else if(connect(sendsocket, FC_ADDR, sizeof(struct sockaddr)) < 0){
-        ledError();
-    }
+    int s = get_udp_socket(ADIS_ADDR);
+    chDbgAssert(s >= 0, "ADIS socket failed", NULL);
+    seq_socket_init(&adis_socket, s);
+
+    connect(adis_socket.socket, FC_ADDR, sizeof(struct sockaddr));
 
     adis_init(&adis_olimex_e407);
 
