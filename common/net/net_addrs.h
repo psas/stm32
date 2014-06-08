@@ -16,6 +16,7 @@ extern const struct sockaddr * FC_ADDR;
 
 /* Sensor Node */
 extern struct lwipthread_opts * SENSOR_LWIP;
+extern const struct sockaddr * SENSOR_RCI_ADDR; //RCI
 extern const struct sockaddr * ADIS_ADDR; // ADIS16405
 extern const struct sockaddr * MPU_ADDR;  // MPU1950
 extern const struct sockaddr * MPL_ADDR;  // MPL3115A2

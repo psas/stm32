@@ -7,6 +7,8 @@
 #include "lwip/sockets.h"
 #include "lwipthread.h"
 
+#include "rnet_cmd_interp.h"
+#include "utils_rci.h"
 #include "utils_sockets.h"
 #include "utils_general.h"
 #include "utils_led.h"
@@ -49,8 +51,16 @@ void main(void){
 
     ledStart(NULL);
 
+    static struct RCIConfig conf;
+    conf.commands = (struct RCICommand[]){
+            RCI_CMD_VERS,
+            {NULL}
+    };
+    conf.address = SENSOR_RCI_ADDR;
+
     /* Start lwip */
     lwipThreadStart(SENSOR_LWIP);
+    RCICreate(&conf);
 
     /* Create the ADIS out socket, connecting as it only sends to one place */
     sendsocket = get_udp_socket(ADIS_ADDR);
