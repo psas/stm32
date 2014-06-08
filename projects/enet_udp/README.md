@@ -1,37 +1,14 @@
-/*! \mainpage STM32 LWIP Ethernet UDP experiments
-*
-*
-* \section intro Introduction
-*
-* Experiment with creating an stm32 - flight computer datapath usinw LwIP
-* and ChibiOS.
-*
-* \section filestructure File Tree
-*
-* <hr>
-*
-* @section notes release.notes
-* release.notes
-* <hr>
-* @section requirements Requirements
-*
-* @section copyright Copyright Notes
-*
-*** Notes **
-*
-* arm-psas-eabi-gcc compiler
-* ChibiOS source
-* Olimex stm32-e407 development board
-*
-* <hr>
-*
-*/
+###STM32 LWIP Ethernet UDP experiments
 
-Experiment with creating the stm32fxxx to flight computer
-datapath over ethernet using UDP protocol
+This project is for experementing with ethernet and getting UDP data transfer
+working from an Olimex STM32-E407 to a particular target, be it a development
+machine, flight computer, or another STM32.
 
-This experiment uses the lwip stack in the ChibiOS/ext
-directory..
 
-It is developed on an Olimex stm32-e407 board
+To talk to a board from your development machine you'll need to create a
+static IP on your wired ethernet connection (usually eth0) in the same block
+as the project (i.e. 10.0.0.xxx). You should probably disconnect from other
+networks like wireless.
 
+Try to ping the board first, and if that works procede to using talk.py to see
+if data can flow back and forth.

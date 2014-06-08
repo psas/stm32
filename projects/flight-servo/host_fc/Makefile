@@ -7,8 +7,8 @@ LDFLAGS+=
 
 all: servo_test
 
-servo_test: servo_test.o
+servo_test: servo_test.o utils_sockets.o
 
 clean:
-	$(RM) servo_test servo_test.o
+	$(RM) servo_test servo_test.o utils_sockets.o
 

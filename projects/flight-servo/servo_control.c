@@ -63,7 +63,7 @@ static msg_t servo_command_buffer[COMMAND_MAILBOX_SIZE];
 static MAILBOX_DECL(servo_commands, servo_command_buffer, COMMAND_MAILBOX_SIZE);
 
 static MemoryPool pos_cmd_pool;
-static PositionCommand pos_cmd_pool_storage[COMMAND_MAILBOX_SIZE];
+static PositionCommand pos_cmd_pool_storage[COMMAND_MAILBOX_SIZE] __attribute__((aligned(sizeof(stkalign_t))));
 
 // This mailbox is how the PWM output setter thread sends back deltas between
 // commanded position and the actual position that it set.
@@ -73,7 +73,7 @@ static msg_t servo_delta_buffer[COMMAND_MAILBOX_SIZE];
 static MAILBOX_DECL(servo_deltas, servo_delta_buffer, COMMAND_MAILBOX_SIZE);
 
 static MemoryPool pos_delta_pool;
-static PositionCommand pos_delta_pool_storage[COMMAND_MAILBOX_SIZE];
+static PositionDelta pos_delta_pool_storage[COMMAND_MAILBOX_SIZE] __attribute__((aligned(sizeof(stkalign_t))));
 
 
 
@@ -104,8 +104,8 @@ static void set_pwm_position(void* u UNUSED) {
 
     static int16_t last_difference = 0;
     static uint16_t last_position = 1500;
-    static uint64_t ticks = 0;
-    static uint64_t last_direction_change_tick = 0;
+    static uint32_t ticks = 0;
+    static uint32_t last_direction_change_tick = 0;
 
     ticks++;
 
@@ -122,7 +122,6 @@ static void set_pwm_position(void* u UNUSED) {
 
     // copy the information out of the struct so we can free it ASAP
     uint16_t desired_position = cmd->position;
-    uint64_t cmd_time = cmd->time;
 
     chSysLockFromIsr();
     chPoolFreeI(&pos_cmd_pool, cmd);
@@ -143,7 +142,7 @@ static void set_pwm_position(void* u UNUSED) {
     // limit oscillation frequency
     if ((difference > 0 && last_difference <= 0)
         || (difference < 0 && last_difference >= 0)) {
-        uint64_t elapsed = ticks - last_direction_change_tick;
+        uint32_t elapsed = ticks - last_direction_change_tick;
         if (elapsed < PWM_MIN_DIRECTION_CHANGE_PERIOD) {
             // changed direction too recently; not allowed to change again yet
             output = last_position;
@@ -167,11 +166,15 @@ static void set_pwm_position(void* u UNUSED) {
     last_position = output;
 
     if (output != desired_position) {
-        PositionDelta* delta = (PositionDelta*) chPoolAlloc(&pos_delta_pool);
+        chSysLockFromIsr();
+        PositionDelta* delta = (PositionDelta*) chPoolAllocI(&pos_delta_pool);
+        chSysUnlockFromIsr();
         if (delta == NULL) return; // the pool is empty, so bail
-        delta->cmd_time = cmd_time;
+
         delta->delta = desired_position - output;
-        chMBPost(&servo_deltas, (msg_t) delta, TIME_IMMEDIATE);
+        chSysLockFromIsr();
+        chMBPostI(&servo_deltas, (msg_t) delta);
+        chSysUnlockFromIsr();
     }
 }
 
@@ -186,18 +189,13 @@ WORKING_AREA(wa_listener_thread, 1024);
 static msg_t listener_thread(void* u UNUSED) {
     chRegSetThreadName("command_listener");
 
-    RCOutput       rc_packet;
-    char data[sizeof(RCOutput)];
-
-    int socket = get_udp_socket(ROLL_ADDR);
-    if(socket < 0){
-        return -1;
-    }
+    RCOutput rc_packet;
+    struct SeqSocket socket = DECL_SEQ_SOCKET(sizeof(RCOutput));
 
 #if DEBUG_PWM
     int16_t ticks = 0;
     while (TRUE) {
-        int16_t pos = PWM_CENTER;
+        uint16_t pos = PWM_CENTER;
 
         // calculate pos
         if (ticks < 10000) {
@@ -219,37 +217,49 @@ static msg_t listener_thread(void* u UNUSED) {
             ticks = -1;
         }
 
-        // set pos
-        chMBPost(&servo_commands, (msg_t) pos, TIME_IMMEDIATE);
+        PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
+        if (cmd == NULL) continue;
+        cmd->position = (uint16_t) pos;
+        chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
 
         ticks++;
         chThdSleepMilliseconds(1);
     }
 #else
-    while(TRUE){
-        //fixme: throw away anything left
-        read(socket, data, sizeof(data));
-        memcpy(&rc_packet, data, sizeof(RCOutput));
+    int s = get_udp_socket(ROLL_ADDR);
+    if (s < 0) {
+        return -1;
+    }
 
-        // fixme: once the RNH power issue is fixed servo control can respect
-        // the disable flag
-//        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
-            PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
-            if (cmd == NULL) continue; // the pool is empty, so bail until next msg
-            cmd->time = rc_packet.time;
-            cmd->position = (1000 * rc_packet.u16ServoPulseWidthBin14) >> 14;
+    seq_socket_init(&socket, s);
 
-            chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
+    while (TRUE) {
+        int r;
 
-//        } else {
-//            pwmDisableChannel(&PWMD4, 3);
-//        }
+        r = seq_read(&socket);
+        if (r == sizeof(RCOutput)) {
+            //fixme: throw away anything left
+            memcpy(&rc_packet, socket.buffer, sizeof(RCOutput));
 
-        PositionDelta* delta;
-        msg_t fetch_status = chMBFetch(&servo_deltas, (msg_t *) &delta, TIME_IMMEDIATE);
-        if (fetch_status == RDY_TIMEOUT) continue; // no delta received, so wait for next command
-        memcpy(data, delta, sizeof(PositionDelta));
-        write(socket, data, sizeof(PositionDelta));
+            // fixme: once the RNH power issue is fixed servo control can respect
+            // the disable flag
+//          if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
+                PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
+                if (cmd == NULL) continue; // the pool is empty, so bail until next msg
+                cmd->position = ntohs(rc_packet.u16ServoPulseWidthBin14);
+                chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
+
+//            } else {
+//                pwmDisableChannel(&PWMD4, 3);
+//            }
+
+            PositionDelta* delta;
+            msg_t fetch_status = chMBFetch(&servo_deltas, (msg_t *) &delta, TIME_IMMEDIATE);
+            if (fetch_status == RDY_TIMEOUT) continue; // no delta received, so wait for next command
+            memcpy(socket.buffer, delta, sizeof(PositionDelta));
+            seq_write(&socket, sizeof(PositionDelta));
+            chPoolFree(&pos_delta_pool, delta);
+        }
     }
 #endif
 

@@ -10,22 +10,6 @@
 #include "hal.h"
 #include "utils_hal.h"
 
-#define BQ24725_ADDR	0b0001001
-
-#define DEVICE_ID       0xFF
-#define MANUFACTURE_ID  0xFE
-#define CHARGE_CURRENT  0x14
-#define CHARGE_VOLTAGE  0x15
-#define INPUT_CURRENT   0x3F
-#define CHARGE_OPTION   0x12
-
-#define CHARGE_CURRENT_MASK 0x1FC0
-#define CHARGE_VOLTAGE_MASK 0x7FF0
-#define INPUT_CURRENT_MASK  0x1F80
-#define LOWDATA_BYTE(data) ((data) & 0xFF)
-#define HIGHDATA_BYTE(data) (((data) & 0xFF00) >> 8)
-#define DATA_FROM_BYTES(low, high) (((low) & 0xFF) | ((high) &0xFF) << 8)
-
 typedef enum {t150ms=0, t1300ms=0x8000}  BQ24725_ACOK_deglitch_time;
 #define BQ24725_ACOK_deglitch_time_MASK 0x8000
 
@@ -74,15 +58,6 @@ typedef struct BQ24725_charge_options{
 	BQ24725_charge_inhibit charge_inhibit;
 } BQ24725_charge_options;
 
-extern const BQ24725_charge_options BQ24725_charge_options_POR_default;
-
-struct BQ24725Config {
-    struct pin ACOK;
-    extcallback_t ACOK_cb;
-    I2CDriver *I2CD;
-    //TODO: i2c pins
-};
-
 static inline uint16_t form_options_data(BQ24725_charge_options * opts){
     return opts->ACOK_deglitch_time | opts->WATCHDOG_timer |
             opts->BAT_depletion_threshold | opts->EMI_sw_freq_adj |
@@ -104,7 +79,15 @@ static inline void form_options_struct(uint16_t data, BQ24725_charge_options* op
     opt->charge_inhibit = data & BQ24725_charge_inhibit_MASK;
 }
 
-void BQ24725_init(struct BQ24725Config * conf);
+struct BQ24725Config {
+    struct pin ACOK;
+    extcallback_t ACOK_cb;
+    I2CDriver *I2CD;
+    I2CPins   *I2CP;
+    ADCDriver *ADCD;
+};
+
+void BQ24725Start(struct BQ24725Config * conf);
 int BQ24725_GetDeviceID(uint16_t* data);
 int BQ24725_GetManufactureID(uint16_t* data);
 int BQ24725_GetChargeCurrent(uint16_t* data);
@@ -118,4 +101,5 @@ int BQ24725_SetChargeOption(BQ24725_charge_options * option);
 int BQ24725_ACOK(void);
 int BQ24725_IMON(void);
 
+extern const BQ24725_charge_options BQ24725_charge_options_POR_default;
 #endif /* BQ24725_H_ */

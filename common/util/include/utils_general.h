@@ -5,6 +5,9 @@
 
 #ifndef UTILS_GENERAL_H_
 #define UTILS_GENERAL_H_
+#include <stddef.h>
+#include "ch.h"
+#include "chprintf.h"
 
 /* Used to mark things as unused so GCC will shut up about it. Useful in
  * function declarations:
@@ -14,7 +17,9 @@
 #define NORETURN __attribute__((noreturn))
 
 // Prefix string for debugging messages, useful in asserts
-#define DBG_PREFIX __FILE__  ":" "__LINE__" ", " "__FUNCTION__" " - "
+#define _STRINGIFY(line) #line
+#define STRINGIFY(line) _STRINGIFY(line)
+#define DBG_PREFIX __FILE__  ":" STRINGIFY(__LINE__) ", "
 
 /* Makes constructing switches that print enums or flags easier:
  *     switch(flag){
@@ -30,4 +35,18 @@ case val:\
     chprintf(chp, #val);\
     break;
 
+/* Utility for converting a struct to a network endian array and back
+ * Create an array of swap structs using the SWAP_FIELD macro and pass
+ * that, the structure, and the array to one of the swapped functions
+ */
+
+#define SWAP_FIELD(type, field) { offsetof(type, field), sizeof(((type *)0)->field) }
+
+struct swap {
+    size_t offset;
+    size_t length;
+};
+
+void write_swapped(const struct swap *swaps, const void *data, uint8_t *buffer);
+void read_swapped(const struct swap *swaps, void *data, const uint8_t *buffer);
 #endif /* UTILS_GENERAL_H_ */

@@ -2,7 +2,7 @@
 
 
 #SKIPDIRS is intended to temporarily exclude a project from being built. Can be set from an environment variable
-SKIPDIRS ?= mpu flight-imu eventlogger
+SKIPDIRS ?= mpu eventlogger
 
 #This line creates a list of all the current directories in projects and then remove those listed in SKIPDIRS:
 SUBDIRS = $(shell find -mindepth 1 -maxdepth 1 -type d $(foreach dir,$(SKIPDIRS),-not -name "$(dir)"))

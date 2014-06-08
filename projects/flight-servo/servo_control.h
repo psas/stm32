@@ -65,12 +65,10 @@
  */
 
 typedef struct PositionCommand {
-  uint64_t time;
   uint16_t position;
 } PositionCommand;
 
 typedef struct PositionDelta {
-  uint64_t cmd_time;
   uint16_t delta;
 } PositionDelta;
 

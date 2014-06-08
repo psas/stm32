@@ -19,9 +19,11 @@ typedef struct{
     struct pin SCL;
 } I2CPins;
 
-void utils_i2cStart(I2CDriver * driver, I2CConfig * config, I2CPins * pins);
-void chprint_i2c_state(BaseSequentialStream * chp, i2cstate_t state);
-void chprint_i2c_error(BaseSequentialStream * chp, int err);
+void i2cUtilsStart(I2CDriver * driver, const I2CConfig * config, const I2CPins * pins);
+int SMBusGet(I2CDriver * driver, uint8_t addr, uint8_t command, uint16_t* data);
+int SMBusSet(I2CDriver * driver, uint8_t addr, uint8_t command, uint16_t data);
+void chprintI2cState(BaseSequentialStream * chp, i2cstate_t state);
+void chprintI2cError(BaseSequentialStream * chp, int err);
 #endif
 
 

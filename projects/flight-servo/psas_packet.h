@@ -15,10 +15,6 @@
  * ================ ************************************************************
  */
 
-typedef struct {
-    uint8_t launch_detect; // 1 when launch detected. 0 when no launch detected.
-} __attribute__((packed)) LaunchDetect;
-
 
 /*! \warning The structure from the RC module on the Flight computer
  * is not packed. Current plans are to pass a byte array from the FC
@@ -26,7 +22,6 @@ typedef struct {
  * but do not memcpy the network data into it, it may not work.
  */
 typedef struct {
-    uint64_t time;
     uint16_t u16ServoPulseWidthBin14; // PWM on-time in milliseconds x 2^14
                                       // e.g. 1.5 msec = 1.5 x 2^14 = 24576
     uint8_t u8ServoDisableFlag;       // Disable servo (turn off PWM) when this flag is not 0

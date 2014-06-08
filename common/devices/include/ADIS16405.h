@@ -1,19 +1,7 @@
-/*! \file ADIS16405.h
- *
- * Intended for use with ChibiOS RT
- */
-
-/*! \addtogroup adis16405
- * @{
- */
+/* Intended for use with ChibiOS RT */
 
 #ifndef _ADIS16405_H
 #define _ADIS16405_H
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include "ch.h"
 #include "hal.h"
@@ -24,10 +12,7 @@ extern "C" {
 #define 	ADIS_DEBUG                   0
 #endif
 
-/*! \typedef adis_regaddr
- *
- * ADIS Register addresses
- */
+/* ADIS Register addresses */
 typedef enum {
 	// Name         address         default    function
 	ADIS_FLASH_CNT    = 0x00,        //  N/A     Flash memory write count
@@ -73,24 +58,12 @@ typedef enum {
 
 } adis_regaddr;
 
-//typedef struct{
-//    memory_test = 0,
-//    auto_self_test = 0,
-//    manual_test_neg = 0,
-//    manual_test_pos = 0,
-//    gyro_lin_accel_bias_compensation = 0,
-//    lin_accel_origin_alignment = 0,
-//    data_ready_enable = 0,
-//    data_ready_polarity = 0,
-//    data_ready_lineselect = 0
-//} adis_MSC_CTRL;
-
 /*! \typedef
  * Burst data collection. This establishes what we consider the right datatype
  * for the registers because trying to work with 12 or 14 bit twos complement
- * that doesn't sign extend to 16 bits is nuts and we consider it a bug.
+ * that doesn't sign extend to 16 bits is unpleasant.
  */
-typedef struct ADIS16405_burst_data {
+typedef struct ADIS16405Data {
 	uint16_t supply_out;//  Power supply measurement
 	int16_t xgyro_out;  //  X-axis gyroscope output
 	int16_t ygyro_out;  //  Y-axis gyroscope output
@@ -103,7 +76,7 @@ typedef struct ADIS16405_burst_data {
 	int16_t zmagn_out;  //  Z-axis magnetometer measurement
 	int16_t temp_out;   //  Temperature output
 	uint16_t aux_adc;   //  Auxiliary ADC measurement
-} __attribute__((packed)) ADIS16405_burst_data;
+} ADIS16405Data;
 
 /*! \typedef adis_config
  *
@@ -130,17 +103,8 @@ extern EventSource ADIS16405_data_ready;
 void adis_init(const ADIS16405Config * conf);
 uint16_t adis_get(adis_regaddr addr);
 void adis_set(adis_regaddr addr, uint16_t value);
-void adis_get_data(ADIS16405_burst_data * data);
+void adis_get_data(ADIS16405Data * data);
 void adis_reset(void);
-
-/*!
- * @}
- */
-
-#ifdef __cplusplus
-}
-#endif
-
 
 #endif
 

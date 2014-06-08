@@ -9,56 +9,67 @@
 #include <inttypes.h>
 #include <assert.h>
 #include <math.h>
+#include <errno.h>
 
 #include "psas_packet.h"
+#include "utils_sockets.h"
 
 #define BUFLEN 64
 
-void set_sockaddr(struct sockaddr_in * addr, const char * ip, int port){
-    //Create an address (remember to have the data in network byte order)
-    memset(addr, 0, sizeof(struct sockaddr_in));
-    addr->sin_family = AF_INET,
-    addr->sin_port = htons(port);
-    inet_aton(ip, &addr->sin_addr);
-}
+static struct SeqSocket sock = DECL_SEQ_SOCKET(sizeof(RCOutput));
 
-void sendpwm(int s, int pulsewidth, int servodisable, struct timespec * sleep){
+void sendpwm(int pulsewidth, int servodisable){
+    uint8_t buffer[sizeof(RCOutput)];
+    ssize_t send_status;
     RCOutput rc_packet;
-    uint8_t buf[sizeof(RCOutput)];
-    printf("pulsewidth: %u\n", pulsewidth);
-    rc_packet.u16ServoPulseWidthBin14 = pulsewidth;
-    rc_packet.u8ServoDisableFlag      = servodisable;
-    memcpy(buf, &rc_packet, sizeof(RCOutput));
-//          printf("sizeof: %x\n", sizeof(RC_OUTPUT_STRUCT_TYPE));
-//          printf("buf:   %x %x %x\n", buf[0], buf[1], buf[2]);
-//            printf("rc:    %x %x %x\n", (rc_packet.u16ServoPulseWidthBin14&0xff00)>>8, rc_packet.u16ServoPulseWidthBin14&0x00ff , rc_packet.u8ServoDisableFlag);
-//            printf("val:   %x\n\n", rc_packet.u16ServoPulseWidthBin14);
-    write(s, buf, sizeof(RCOutput));
-    nanosleep(sleep, NULL);
+
+    rc_packet.u16ServoPulseWidthBin14 = htons(pulsewidth);
+    rc_packet.u8ServoDisableFlag = servodisable;
+    memcpy(sock.buffer, &rc_packet, sizeof(RCOutput));
+
+    send_status = seq_send(&sock, sizeof(RCOutput), 0);
+
+    if (send_status < 0) {
+        printf("local error while sending message! errno: %i\n", errno);
+    } else {
+        printf("successfully sent control message with pulsewidth %i\n", pulsewidth);
+    }
 }
 
 int main(void){
-
     int s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     assert(s != -1);
     struct sockaddr_in servo_ctl;
-    set_sockaddr(&servo_ctl, "10.0.0.30", 35003);
-    connect(s, (struct sockaddr *)&servo_ctl, sizeof(servo_ctl));
+    set_sockaddr((struct sockaddr*)&servo_ctl, "10.0.0.30", 35003);
+
+    if (connect(s, (struct sockaddr *)&servo_ctl, sizeof(servo_ctl))) {
+        printf("Could not connect to servo board! errno: %i\n", errno);
+        return errno;
+    } else {
+        printf("Connected to servo control board!\n");
+    }
+
+    seq_socket_init(&sock, s);
 
     struct timespec sleeptime;
     int pulsewidth;
     for(;;) {
         sleeptime.tv_sec   = 0;
         sleeptime.tv_nsec  = 25000000;  /* 25 mS */
-        for (pulsewidth = 1050; pulsewidth < 1950; pulsewidth += 10) {
-            sendpwm(s, pulsewidth, 0, &sleeptime);
+
+        for (pulsewidth = 1100; pulsewidth <= 1900; pulsewidth += 10) {
+            sendpwm(pulsewidth, 0);
+            nanosleep(&sleeptime, NULL);
         }
-        for (pulsewidth = 1950; pulsewidth > 1050; pulsewidth -= 10) {
-            sendpwm(s, pulsewidth, 0, &sleeptime);
+
+        for (pulsewidth = 1900; pulsewidth >= 1100; pulsewidth -= 10) {
+            sendpwm(pulsewidth, 0);
+            nanosleep(&sleeptime, NULL);
         }
 
         sleeptime.tv_sec   = 4;
         sleeptime.tv_nsec  = 25000000;  /* 25 mS */
-        sendpwm(s, 1500, 1, &sleeptime);
+        sendpwm(1500, 1);
+        nanosleep(&sleeptime, NULL);
     }
 }

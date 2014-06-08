@@ -45,88 +45,74 @@ static const uint32_t fault[NUM_PORT] = {
     GPIO_E15_NODE8_N_FLT
 };
 
+#define portGPTfreq 80000
+
 EVENTSOURCE_DECL(rnhPortCurrent);
-static uint16_t outBuffer[8];
-static int activeport;
+static struct rnhPortCurrent outBuffer;
 
 static void select_port_imon(int port){
-    switch(port){
-    case 0:
-        palClearPad(GPIOD, GPIO_D7_IMON_A0);
-        palClearPad(GPIOD, GPIO_D8_IMON_A1);
-        break;
-    case 1:
-        palSetPad(GPIOD, GPIO_D7_IMON_A0);
-        palClearPad(GPIOD, GPIO_D8_IMON_A1);
-        break;
-    case 2:
-        palClearPad(GPIOD, GPIO_D7_IMON_A0);
-        palSetPad(GPIOD, GPIO_D8_IMON_A1);
-        break;
-    case 3:
-        palSetPad(GPIOD, GPIO_D7_IMON_A0);
-        palSetPad(GPIOD, GPIO_D8_IMON_A1);
-        break;
-    }
+    (port & 1) ? palSetPad(GPIOD, GPIO_D7_IMON_A0) : palClearPad(GPIOD, GPIO_D7_IMON_A0);
+    (port & 2) ? palSetPad(GPIOD, GPIO_D8_IMON_A1) : palClearPad(GPIOD, GPIO_D8_IMON_A1);
 }
 
-static void ADCCallback(ADCDriver *adcp, adcsample_t *buffer, size_t n UNUSED){
-    static uint8_t done_samples = 0; // bitfield of completed samples
-    int i = 0;
-    if(adcp == &ADCD1){
-        i = activeport*2;
-    }else if(adcp == &ADCD2){
-        i = activeport*2 + 1;
-    }
+#define SAMPLE_PORTS (RNH_PORT_ALL)
 
-    if(adcp == &ADCD1 || adcp == &ADCD2){
-        outBuffer[i] = buffer[0];
-        done_samples |= 1 << i;
-    }
+static void ADCCallback(ADCDriver *adcp UNUSED, adcsample_t *buffer, size_t n UNUSED){
+    static uint8_t remaining_samples = SAMPLE_PORTS;
 
-    if(done_samples == 0xFF){
-        done_samples = 0;
+    remaining_samples &= ~(1 << (buffer - outBuffer.current));
+
+    if(!remaining_samples){
+        remaining_samples = SAMPLE_PORTS;
         chSysLockFromIsr();
         chEvtBroadcastI(&rnhPortCurrent);
         chSysUnlockFromIsr();
     }
+    //FIXME: Ideally select_port_imon would go here, but coordinating between the two adcs is trickey
+}
 
+#define makeBankConversionGroup(channel) \
+{ \
+    .circular = FALSE, \
+    .num_channels = 1, \
+    .end_cb = ADCCallback, \
+    .error_cb = NULL, \
+    .cr1 = ADC_CR1_EOCIE, \
+    .cr2 = ADC_CR2_SWSTART, \
+    .smpr1 = ADC_SMPR1_SMP_AN ## channel (ADC_SAMPLE_480), \
+    .smpr2 = 0, \
+    .sqr1 = ADC_SQR1_NUM_CH(1), \
+    .sqr2 = 0, \
+    .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN ## channel) \
 }
 
 static void StartADCSample(GPTDriver *gptp UNUSED){
-    static adcsample_t buffer0 = 0;
-    static adcsample_t buffer1 = 0;
-    static ADCConversionGroup bank0 = {
-            .circular = FALSE,
-            .num_channels = 1,
-            .end_cb = ADCCallback,
-            .error_cb = NULL,
-            .cr1 = ADC_CR1_EOCIE,
-            .cr2 = ADC_CR2_SWSTART,
-            .smpr1 = ADC_SMPR1_SMP_AN10(ADC_SAMPLE_480),
-            .smpr2 = 0,
-            .sqr1 = ADC_SQR1_NUM_CH(1),
-            .sqr2 = 0,
-            .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN10)
-    };
-    static ADCConversionGroup bank1 = {
-            .circular = FALSE,
-            .num_channels = 1,
-            .end_cb = ADCCallback,
-            .error_cb = NULL,
-            .cr1 = ADC_CR1_EOCIE,
-            .cr2 = ADC_CR2_SWSTART,
-            .smpr1 = ADC_SMPR1_SMP_AN11(ADC_SAMPLE_480),
-            .smpr2 = 0,
-            .sqr1 = ADC_SQR1_NUM_CH(1),
-            .sqr2 = 0,
-            .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN11)
-    };
+    static int activeport = 0;
+    static int select_port = 1;
+    if(select_port){
+        select_port_imon(activeport);
+        select_port = 0;
+        return;
+    }
+    select_port = 1;
 
-    select_port_imon(activeport);
+    static ADCConversionGroup bank0 = makeBankConversionGroup(10);
+    static ADCConversionGroup bank1 = makeBankConversionGroup(11);
+
     chSysLockFromIsr();
-    adcStartConversionI(&ADCD1, &bank0, &buffer0, 1);
-    adcStartConversionI(&ADCD2, &bank1, &buffer1, 1);
+    int bank1port = activeport;
+    int bank2port = activeport + 4;
+
+    if((1 << bank1port) & SAMPLE_PORTS ){
+        adcStartConversionI(&ADCD1, &bank0, &outBuffer.current[bank1port], 1);
+    } else {
+        outBuffer.current[bank1port] = 0;
+    }
+    if((1 << bank2port) & SAMPLE_PORTS){
+        adcStartConversionI(&ADCD2, &bank1, &outBuffer.current[bank2port], 1);
+    } else {
+        outBuffer.current[bank2port] = 0;
+    }
     chSysUnlockFromIsr();
     activeport = (activeport + 1) % 4;
 }
@@ -148,12 +134,12 @@ void rnhPortStart(void){
     adcStart(&ADCD2, &conf);
 
     static GPTConfig gptcfg = {
-            .frequency = 40000,
+            .frequency = portGPTfreq,
             .callback = StartADCSample,
             .dier = 0,
     };
     gptStart(&GPTD2, &gptcfg);
-    gptStartContinuous(&GPTD2, 1000);
+    rnhPortSetCurrentDataRate(RNH_PORT_CURRENT_DEFAULT_SAMPLE_RATE);
 
 
     for(int i = 0; i < NUM_PORT; ++i){
@@ -165,28 +151,22 @@ void rnhPortStart(void){
     extUtilsStart();
 }
 
-RNHPort rnhPortStatus(RNHPort port){
+RNHPort rnhPortStatus(void){
     RNHPort return_port = 0;
-    port &= RNH_PORT_ALL;
 
     for(int i = 0; i < NUM_PORT; ++i){
-        if(port & 1<<i){
-            return_port |= palReadPad(GPIOE, power[i])<<i;
-        }
+        return_port |= palReadPad(GPIOE, power[i])<<i;
     }
-    return return_port;
+    return return_port & RNH_PORT_ALL;
 };
 
-RNHPort rnhPortFault(RNHPort port){
+RNHPort rnhPortFault(void){
     RNHPort return_port = 0;
-    port &= RNH_PORT_ALL;
 
     for(int i = 0; i < NUM_PORT; ++i){
-        if(port & 1<<i){
-            return_port |= palReadPad(GPIOE, fault[i])<<i;
-        }
+        return_port |= palReadPad(GPIOE, fault[i])<<i;
     }
-    return return_port;
+    return return_port & RNH_PORT_ALL;
 }
 
 void rnhPortOn(RNHPort port){
@@ -216,46 +196,55 @@ void rnhPortSetFaultHandler(rnhPortFaultHandler handler, void * data){
     chSysUnlock();
 }
 
-void rnhPortGetCurrentData(uint16_t * data){
+void rnhPortGetCurrentData(struct rnhPortCurrent * measurement){
      chSysLock();
-     memcpy(data, &outBuffer, sizeof(outBuffer));
+     *measurement = outBuffer;
      chSysUnlock();
  }
 
 void rnhPortSetCurrentDataRate(unsigned freq){
+    chDbgAssert(freq <= RNH_PORT_CURRENT_MAX_SAMPLE_RATE, "Setting rhnport sample rate too high", NULL);
     gptStopTimer(&GPTD2);
-    gptStartContinuous(&GPTD2, 40000 / 4 / freq);
+    gptStartContinuous(&GPTD2, portGPTfreq / 8 / freq);
 }
 
 static void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
-    if(rci_data->cmd_len < 2){
-        return; //fixme return error
+    if(rci_data->cmd_len < 1){
+        return;
     }
 
     RNHAction action = rci_data->cmd_data[0];
-    int data = rci_data->cmd_data[1];
+    int data = 0;
+    for(int i = 1; i < rci_data->cmd_len; ++i){
+        data <<= 8;
+        data |= rci_data->cmd_data[i];
+    }
     RNHPort ret = 0;
 
     switch(action){
     case RNH_PORT_STATUS:
-        ret = rnhPortStatus(data);
+        ret = rnhPortStatus();
         break;
     case RNH_PORT_FAULT:
-        ret = rnhPortFault(data);
+        ret = rnhPortFault();
         break;
     case RNH_PORT_ON:
         rnhPortOn(data);
-        ret = rnhPortStatus(RNH_PORT_ALL);
+        ret = rnhPortStatus();
         break;
     case RNH_PORT_OFF:
         rnhPortOff(data);
-        ret = rnhPortStatus(RNH_PORT_ALL);
+        ret = rnhPortStatus();
         break;
     case RNH_PORT_CURRENT_FREQ:
-        rnhPortSetCurrentDataRate(data);
+        if(data > RNH_PORT_CURRENT_MAX_SAMPLE_RATE){
+            ret = -1;
+        }else{
+            rnhPortSetCurrentDataRate(data);
+        }
         return;
     default:
-        return; //fixme return error
+        return;
     }
 
     rci_data->return_data[0] = ret;

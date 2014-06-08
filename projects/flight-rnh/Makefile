@@ -100,7 +100,8 @@ CSRC = $(PORTSRC) \
        $(PSAS_DEVICES)/BQ3060.c \
        $(PSAS_NETSRC) \
        $(PSAS_UTIL)/utils_hal.c \
-       $(PSAS_UTIL)/utils_led.c 
+       $(PSAS_UTIL)/utils_led.c \
+       $(PSAS_UTIL)/utils_rci.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -208,7 +209,7 @@ DLIBS =
 
 # List all user C define here, like -D_DEBUG=1
 #UDEFS = -DADIS_DEBUG=1
-UDEFS =
+UDEFS = -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
 
 # Define ASM defines here
 UADEFS =
