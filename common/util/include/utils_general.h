@@ -35,4 +35,18 @@ case val:\
     chprintf(chp, #val);\
     break;
 
+/* Utility for converting a struct to a network endian array and back
+ * Create an array of swap structs using the SWAP_FIELD macro and pass
+ * that, the structure, and the array to one of the swapped functions
+ */
+
+#define SWAP_FIELD(type, field) { offsetof(type, field), sizeof(((type *)0)->field) }
+
+struct swap {
+    size_t offset;
+    size_t length;
+};
+
+void write_swapped(const struct swap *swaps, const void *data, uint8_t *buffer);
+void read_swapped(const struct swap *swaps, void *data, const uint8_t *buffer);
 #endif /* UTILS_GENERAL_H_ */
