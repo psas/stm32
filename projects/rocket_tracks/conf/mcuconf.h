@@ -45,7 +45,7 @@
 #define STM32_CLOCK48_REQUIRED              TRUE
 #define STM32_SW                            STM32_SW_PLL
 #define STM32_PLLSRC                        STM32_PLLSRC_HSE
-#define STM32_PLLM_VALUE                    12
+#define STM32_PLLM_VALUE                    25
 #define STM32_PLLN_VALUE                    336
 #define STM32_PLLP_VALUE                    2
 #define STM32_PLLQ_VALUE                    7
@@ -54,7 +54,7 @@
 #define STM32_PPRE2                         STM32_PPRE2_DIV2
 #define STM32_RTCSEL                        STM32_RTCSEL_LSI
 #define STM32_RTCPRE_VALUE                  8
-#define STM32_MCO1SEL                       STM32_MCO1SEL_HSI
+#define STM32_MCO1SEL                       STM32_MCO1SEL_HSE
 #define STM32_MCO1PRE                       STM32_MCO1PRE_DIV1
 #define STM32_MCO2SEL                       STM32_MCO2SEL_SYSCLK
 #define STM32_MCO2PRE                       STM32_MCO2PRE_DIV5
@@ -169,7 +169,7 @@
 #define STM32_MAC_RECEIVE_BUFFERS           4
 #define STM32_MAC_BUFFERS_SIZE              1522
 #define STM32_MAC_PHY_TIMEOUT               100
-#define STM32_MAC_ETH1_CHANGE_PHY_STATE     TRUE
+#define STM32_MAC_ETH1_CHANGE_PHY_STATE     FALSE
 #define STM32_MAC_ETH1_IRQ_PRIORITY         13
 #define STM32_MAC_IP_CHECKSUM_OFFLOAD       0
 

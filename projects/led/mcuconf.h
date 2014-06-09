@@ -49,6 +49,8 @@
 #define STM32_PLLM_VALUE                    25
 #elif defined BOARD_OLIMEX_STM32_E407
 #define STM32_PLLM_VALUE                    12
+#elif defined BOARD_PSAS_RTX_CONTROLLER
+#define STM32_PLLM_VALUE                    25
 #endif
 #define STM32_PLLN_VALUE                    336
 #define STM32_PLLP_VALUE                    2

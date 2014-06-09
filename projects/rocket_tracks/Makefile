@@ -95,12 +95,14 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_UTIL)/usbdetail.c \
        $(PSAS_NET)/utils_sockets.c \
-       $(PSAS_NET)/utils_shell.c \
+       $(PSAS_UTIL)/utils_shell.c \
+       $(PSAS_UTIL)/utils_led.c \
        $(PSAS_NET)/net_addrs.c \
        $(RTX)/enet_api.c \
        $(RTX)/control.c \
        pwmdetail.c \
 	   main.c
+
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
