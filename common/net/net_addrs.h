@@ -36,11 +36,13 @@ extern struct lwipthread_opts * RTX_LWIP;
 extern const struct sockaddr * RTX_MANUAL_ADDR;  // Manual Control listener
 extern const struct sockaddr * RTX_NEUTRAL_ADDR; // Axis Neutral data
 extern const struct sockaddr * RTX_FROMSLA_ADDR; // Sightline listener
+extern const struct sockaddr * RTX_DIAG_ADDR;	// Axis Diagnostic data
 
 /* Rocket Tracks Manual Control Box */
 extern struct lwipthread_opts * RTXMAN_LWIP;
 extern const struct sockaddr * RTXMAN_OUT_ADDR;     // Manual Control data
-extern const struct sockaddr * RTXMAN_NEUTRAL_ADDR; // Axis Neutral Listener
+extern const struct sockaddr * RTXMAN_NEUTRAL_ADDR; // Axis Neutral listener
+extern const struct sockaddr * RTXMAN_DIAG_ADDR;	// Axis Diagnostic listener
 
 /* GPS frontend */
 extern struct lwipthread_opts * GPS_LWIP;

@@ -105,21 +105,25 @@ const struct sockaddr * RNH_PORT_ADDR = make_addr(RNH_IP, RNH_PORT);
 #define RTX_MANUAL 36200  // Manual Control listener
 #define RTX_NEUTRAL 36201 // Axis Neutral data
 #define RTX_FROMSLA 36202 // Sightline listener
+#define RTX_DIAG 36205 // Axis Diagnostic data
 
 struct lwipthread_opts * RTX_LWIP = make_lwipopts(RTX_MAC, RTX_IP, NETMASK, GATEWAY);
 const struct sockaddr * RTX_MANUAL_ADDR = make_addr(RTX_IP, RTX_MANUAL);
 const struct sockaddr * RTX_NEUTRAL_ADDR = make_addr(RTX_IP, RTX_NEUTRAL);
 const struct sockaddr * RTX_FROMSLA_ADDR = make_addr(RTX_IP, RTX_FROMSLA);
+const struct sockaddr * RTX_DIAG_ADDR = make_addr(RTX_IP, RTX_DIAG);
 
 /* Rocket Tracks Manual Control Box */
 #define RTXMAN_IP IPv4(10, 0, 0, 45)
 #define RTXMAN_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0xee}
 #define RTXMAN_OUT 36203     // Manual Control data
 #define RTXMAN_NEUTRAL 36204 // Axis Neutral listener
+#define RTXMAN_DIAG 36206 // Axis Neutral listener
 
 struct lwipthread_opts * RTXMAN_LWIP = make_lwipopts(RTXMAN_MAC, RTXMAN_IP, NETMASK, GATEWAY);
 const struct sockaddr * RTXMAN_OUT_ADDR = make_addr(RTXMAN_IP, RTXMAN_OUT);
 const struct sockaddr * RTXMAN_NEUTRAL_ADDR = make_addr(RTXMAN_IP, RTXMAN_NEUTRAL);
+const struct sockaddr * RTXMAN_DIAG_ADDR = make_addr(RTXMAN_IP, RTXMAN_DIAG);
 
 
 /* GPS frontend */
