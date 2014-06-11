@@ -181,7 +181,6 @@ static msg_t read_thread(void * p UNUSED){
     uint16_t safetyData = 0;
     //crntAlarms - current alarms {safetyAlarm,failureAlert,permanentFailure}
     //cumAlarms - cumulative alarms {safetyAlarm,failureAlert,permanentFailure}
-    uint16_t curSftyAlert;
     static const evhandler_t evhndl[] = {
             read_handler
     };
@@ -195,7 +194,6 @@ static msg_t read_thread(void * p UNUSED){
 	//read the safety alert register (0x50)
 	BQ3060Get(0x50,&safetyData);
 	crntAlarms[0] = safetyData;
-	curSftyAlert = safetyData;
 	cumAlarms[0] = cumAlarms[0] | safetyData;
 	if (safetyData != 0) {
 		chEvtBroadcast(&BQ3060_battery_fault);

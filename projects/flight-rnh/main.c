@@ -32,6 +32,7 @@ static const struct led * LED_ACOK = &BLUE;
 static const char ARM[]     = "#YOLO";
 static const char SAFE[]    = "#SAFE";
 static const char TIME[]    = "#TIME";
+static const char AHST[]    = "#AHST";
 
 void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
@@ -43,7 +44,6 @@ void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     rci_data->return_data[5] = time_ns & (0xFF << 2) >> 2;
     rci_data->return_data[6] = time_ns & (0xFF << 1) >> 1;
     rci_data->return_data[7] = time_ns & (0xFF << 0) >> 0;
-
     rci_data->return_len = 8;
 }
 
@@ -134,12 +134,21 @@ static void batteryFault_Handler(eventid_t id UNUSED) {
 	write(port_socket.socket, buffer, sizeof(buffer));
 }
 
-static void batteryFaultHist_Handler(eventid_t id UNUSED) {
-	uint16_t buffer[3];
-	buffer[0] = htons(cumAlarms[0]);
-	buffer[1] = htons(cumAlarms[1]);
-	buffer[2] = htons(cumAlarms[2]);
-	write(port_socket.socket, buffer, sizeof(buffer));
+static void batteryFaultHist_Handler(struct RCICmdData * rci_data, void * user_data UNUSED) {
+  //rci_data->return_data[7] = time_ns & (0xFF << 0) >> 0;
+  rci_data->return_data[0] = cumAlarms[0] & (0xFF << 0) >> 0;
+  rci_data->return_data[1] = cumAlarms[0] & (0xFF << 8) >> 8;
+  rci_data->return_data[2] = cumAlarms[1] & (0xFF << 0) >> 0;
+  rci_data->return_data[3] = cumAlarms[1] & (0xFF << 8) >> 8;
+  rci_data->return_data[4] = cumAlarms[2] & (0xFF << 0) >> 8;
+  rci_data->return_data[5] = cumAlarms[2] & (0xFF << 8) >> 8;
+  rci_data->return_len = 6;
+
+	//uint16_t buffer[3];
+	//buffer[0] = htons(cumAlarms[0]);
+	//buffer[1] = htons(cumAlarms[1]);
+	//buffer[2] = htons(cumAlarms[2]);
+	//write(port_socket.socket, buffer, sizeof(buffer));
 }
 
 void main(void) {
@@ -172,6 +181,7 @@ void main(void) {
     static struct RCIConfig conf;
     conf.commands = (struct RCICommand[]){
             {TIME, cmd_time, NULL},
+            {AHST, batteryFaultHist_Handler, NULL},
             RCI_CMD_PORT,
             RCI_CMD_VERS,
             {NULL}
