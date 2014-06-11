@@ -19,7 +19,7 @@
 #define WRITE_ADDR(addr) ((addr) |  0x80)
 #define READ_ADDR(addr)  ((addr) & ~0x80)
 
-#define BURST_EXCHANGE_LEN (sizeof(ADIS16405_burst_data)+ 2) //+2 for initial addr
+#define BURST_EXCHANGE_LEN (sizeof(ADIS16405Data)+ 2) //+2 for initial addr
 uint8_t adis_raw_in[BURST_EXCHANGE_LEN];
 EventSource ADIS16405_data_ready;
 
@@ -37,31 +37,6 @@ const ADIS16405Config adis_olimex_e407 = {
         .dio3 = {GPIOD, GPIOD_PIN11},
         .dio4 = {GPIOD, GPIOD_PIN12},
 };
-
-
-static int16_t sign_extend(uint16_t val, int bits) {
-    if((val&(1<<(bits-1))) != 0){
-        val = val - (1<<bits);
-    }
-    return val;
-}
-
-static void buffer_to_burst_data(uint8_t * raw, ADIS16405_burst_data * data){
-    //todo: check nd and ea bits
-
-    data->supply_out = (raw[0] << 8 | raw[1]) & 0x3fff;
-    data->xgyro_out  = sign_extend((raw[2]  << 8 | raw[3]) & 0x3fff, 14);
-    data->ygyro_out  = sign_extend((raw[4]  << 8 | raw[5]) & 0x3fff, 14);
-    data->zgyro_out  = sign_extend((raw[6]  << 8 | raw[7]) & 0x3fff, 14);
-    data->xaccl_out  = sign_extend((raw[8]  << 8 | raw[9]) & 0x3fff, 14);
-    data->yaccl_out  = sign_extend((raw[10] << 8 | raw[11]) & 0x3fff, 14);
-    data->zaccl_out  = sign_extend((raw[12] << 8 | raw[13]) & 0x3fff, 14);
-    data->xmagn_out  = sign_extend((raw[14] << 8 | raw[15]) & 0x3fff, 14);
-    data->ymagn_out  = sign_extend((raw[16] << 8 | raw[17]) & 0x3fff, 14);
-    data->zmagn_out  = sign_extend((raw[18] << 8 | raw[19]) & 0x3fff, 14);
-    data->temp_out   = sign_extend((raw[20] << 8 | raw[21]) & 0x0fff, 12);
-    data->aux_adc    = (raw[22] << 8 | raw[23]) & 0x0fff;
-}
 
 static void adis_data_ready(EXTDriver *extp UNUSED, expchannel_t channel UNUSED)
 {
@@ -147,7 +122,32 @@ void adis_set(adis_regaddr addr, uint16_t value){ //todo:array
     spiReleaseBus(CONF->SPID);
 }
 
-void adis_get_data(ADIS16405_burst_data * data){ // TODO: adis error struct
+
+static int16_t sign_extend(uint16_t val, int bits) {
+    if((val&(1<<(bits-1))) != 0){
+        val = val - (1<<bits);
+    }
+    return val;
+}
+
+static void buffer_to_burst_data(uint8_t * raw, ADIS16405Data * data){
+    //todo: check nd and ea bits
+
+    data->supply_out = (raw[0] << 8 | raw[1]) & 0x3fff;
+    data->xgyro_out  = sign_extend((raw[2]  << 8 | raw[3]) & 0x3fff, 14);
+    data->ygyro_out  = sign_extend((raw[4]  << 8 | raw[5]) & 0x3fff, 14);
+    data->zgyro_out  = sign_extend((raw[6]  << 8 | raw[7]) & 0x3fff, 14);
+    data->xaccl_out  = sign_extend((raw[8]  << 8 | raw[9]) & 0x3fff, 14);
+    data->yaccl_out  = sign_extend((raw[10] << 8 | raw[11]) & 0x3fff, 14);
+    data->zaccl_out  = sign_extend((raw[12] << 8 | raw[13]) & 0x3fff, 14);
+    data->xmagn_out  = sign_extend((raw[14] << 8 | raw[15]) & 0x3fff, 14);
+    data->ymagn_out  = sign_extend((raw[16] << 8 | raw[17]) & 0x3fff, 14);
+    data->zmagn_out  = sign_extend((raw[18] << 8 | raw[19]) & 0x3fff, 14);
+    data->temp_out   = sign_extend((raw[20] << 8 | raw[21]) & 0x0fff, 12);
+    data->aux_adc    = (raw[22] << 8 | raw[23]) & 0x0fff;
+}
+
+void adis_get_data(ADIS16405Data * data){ // TODO: adis error struct
     // provides last sample or 0s if no sample received.
     chSysLock();
     buffer_to_burst_data(adis_raw_in + 2, data); //first 2 bytes are padding

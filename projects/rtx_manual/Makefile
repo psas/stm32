@@ -69,7 +69,7 @@ RTX= $(PSAS)/rtx
 CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-include $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407/board.mk
+include $(CHIBIOS)/boards/OLIMEX_STM32_E407/board.mk
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
@@ -90,13 +90,16 @@ CSRC = $(PORTSRC) \
        $(LWSRC) \
        $(FATFSSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
-       $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/chprintf.c \
+       $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_UTIL)/usbdetail.c \
        $(PSAS_NET)/utils_sockets.c \
+       $(PSAS_NET)/net_addrs.c \
        $(RTX)/enet_api.c \
-	   rtx_manual.c
+       $(PSAS_NET)/utils_shell.c \
+       $(PSAS_UTIL)/utils_led.c \
+       main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

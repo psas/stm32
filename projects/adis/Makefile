@@ -88,6 +88,7 @@ CSRC = $(PORTSRC) \
        main.c \
        $(PSAS_UTIL)/utils_hal.c \
        $(PSAS_UTIL)/utils_led.c \
+       $(PSAS_UTIL)/utils_general.c \
        $(PSAS_NETSRC)
 
 

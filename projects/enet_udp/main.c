@@ -116,7 +116,7 @@ void main(void) {
 	BaseSequentialStream * chp = getUsbStream();
 
 	/* fill out lwipthread_opts with our address*/
-    struct lwipthread_opts ip_opts;
+	struct lwipthread_opts ip_opts;
 	set_lwipthread_opts(&ip_opts, IP_SELF, "255.255.255.0", "0.0.0.0", MAC_ADDR);
 
 	/* Start the lwip thread*/
@@ -125,12 +125,12 @@ void main(void) {
 
 	/* Start the feature threads */
 	chprintf(chp, "tx ");
-    chThdCreateStatic(wa_tx, sizeof(wa_tx), NORMALPRIO, tx_thread, NULL);
-    chprintf(chp, "rx ");
-    chThdCreateStatic(wa_rx, sizeof(wa_rx), NORMALPRIO, rx_thread, NULL);
+	chThdCreateStatic(wa_tx, sizeof(wa_tx), NORMALPRIO, tx_thread, NULL);
+	chprintf(chp, "rx ");
+	chThdCreateStatic(wa_rx, sizeof(wa_rx), NORMALPRIO, rx_thread, NULL);
 
-    chprintf(chp, "\r\n");
-    while (TRUE) {
+	chprintf(chp, "\r\n");
+	while (TRUE) {
 		chThdSleep(TIME_INFINITE);
 	}
 }

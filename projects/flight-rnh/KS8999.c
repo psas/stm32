@@ -5,7 +5,7 @@
 #include "hal.h"
 #include "KS8999.h"
 
-void KS8999_init(void) {
+void KS8999Start(void) {
     palSetPad(GPIOD, GPIO_D14_KSZ_EN);     // enable power
     KS8999_clock(TRUE);                    // enable clock
     palSetPad(GPIOD, GPIO_D4_ETH_N_RST);   // disable reset

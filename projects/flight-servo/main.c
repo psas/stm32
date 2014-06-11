@@ -14,7 +14,6 @@
 #include "utils_led.h"
 
 // servo_control
-#include "launch_detect.h"
 #include "servo_control.h"
 
 void main(void) {
@@ -30,9 +29,6 @@ void main(void) {
 
     /* activate PWM output */
     pwm_start();
-
-    /* initialize launch detection subsystem */
-    launch_detect_init();
 
     while (true) {
         chThdSleep(TIME_INFINITE);

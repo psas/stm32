@@ -122,7 +122,6 @@ static void set_pwm_position(void* u UNUSED) {
 
     // copy the information out of the struct so we can free it ASAP
     uint16_t desired_position = cmd->position;
-    uint32_t cmd_time = cmd->time;
 
     chSysLockFromIsr();
     chPoolFreeI(&pos_cmd_pool, cmd);
@@ -172,7 +171,6 @@ static void set_pwm_position(void* u UNUSED) {
         chSysUnlockFromIsr();
         if (delta == NULL) return; // the pool is empty, so bail
 
-        delta->cmd_time = cmd_time;
         delta->delta = desired_position - output;
         chSysLockFromIsr();
         chMBPostI(&servo_deltas, (msg_t) delta);
@@ -191,8 +189,8 @@ WORKING_AREA(wa_listener_thread, 1024);
 static msg_t listener_thread(void* u UNUSED) {
     chRegSetThreadName("command_listener");
 
-    RCOutput       rc_packet;
-    char data[sizeof(RCOutput)];
+    RCOutput rc_packet;
+    struct SeqSocket socket = DECL_SEQ_SOCKET(sizeof(RCOutput));
 
 #if DEBUG_PWM
     int16_t ticks = 0;
@@ -221,7 +219,6 @@ static msg_t listener_thread(void* u UNUSED) {
 
         PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
         if (cmd == NULL) continue;
-        cmd->time = (uint32_t) 1;
         cmd->position = (uint16_t) pos;
         chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
 
@@ -229,35 +226,40 @@ static msg_t listener_thread(void* u UNUSED) {
         chThdSleepMilliseconds(1);
     }
 #else
-    int socket = get_udp_socket(ROLL_ADDR);
-    if(socket < 0){
+    int s = get_udp_socket(ROLL_ADDR);
+    if (s < 0) {
         return -1;
     }
 
-    while(TRUE){
-        //fixme: throw away anything left
-        read(socket, data, sizeof(data));
-        memcpy(&rc_packet, data, sizeof(RCOutput));
+    seq_socket_init(&socket, s);
 
-        // fixme: once the RNH power issue is fixed servo control can respect
-        // the disable flag
-//        if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
-            PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
-            if (cmd == NULL) continue; // the pool is empty, so bail until next msg
-            cmd->time = ntohl(rc_packet.time);
-            cmd->position = ntohs(rc_packet.u16ServoPulseWidthBin14);
-            chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
+    while (TRUE) {
+        int r;
 
-//        } else {
-//            pwmDisableChannel(&PWMD4, 3);
-//        }
+        r = seq_read(&socket);
+        if (r == sizeof(RCOutput)) {
+            //fixme: throw away anything left
+            memcpy(&rc_packet, socket.buffer, sizeof(RCOutput));
 
-        PositionDelta* delta;
-        msg_t fetch_status = chMBFetch(&servo_deltas, (msg_t *) &delta, TIME_IMMEDIATE);
-        if (fetch_status == RDY_TIMEOUT) continue; // no delta received, so wait for next command
-        memcpy(data, delta, sizeof(PositionDelta));
-        write(socket, data, sizeof(PositionDelta));
-        chPoolFree(&pos_delta_pool, delta);
+            // fixme: once the RNH power issue is fixed servo control can respect
+            // the disable flag
+//          if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
+                PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
+                if (cmd == NULL) continue; // the pool is empty, so bail until next msg
+                cmd->position = ntohs(rc_packet.u16ServoPulseWidthBin14);
+                chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
+
+//            } else {
+//                pwmDisableChannel(&PWMD4, 3);
+//            }
+
+            PositionDelta* delta;
+            msg_t fetch_status = chMBFetch(&servo_deltas, (msg_t *) &delta, TIME_IMMEDIATE);
+            if (fetch_status == RDY_TIMEOUT) continue; // no delta received, so wait for next command
+            memcpy(socket.buffer, delta, sizeof(PositionDelta));
+            seq_write(&socket, sizeof(PositionDelta));
+            chPoolFree(&pos_delta_pool, delta);
+        }
     }
 #endif
 

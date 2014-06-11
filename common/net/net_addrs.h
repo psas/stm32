@@ -16,6 +16,7 @@ extern const struct sockaddr * FC_ADDR;
 
 /* Sensor Node */
 extern struct lwipthread_opts * SENSOR_LWIP;
+extern const struct sockaddr * SENSOR_RCI_ADDR; //RCI
 extern const struct sockaddr * ADIS_ADDR; // ADIS16405
 extern const struct sockaddr * MPU_ADDR;  // MPU1950
 extern const struct sockaddr * MPL_ADDR;  // MPL3115A2
@@ -30,5 +31,22 @@ extern struct lwipthread_opts * RNH_LWIP;
 extern const struct sockaddr * RNH_RCI_ADDR;     // RCI listener
 extern const struct sockaddr * RNH_BATTERY_ADDR; // Battery data
 extern const struct sockaddr * RNH_PORT_ADDR;    // Port data
+
+/* Rocket Tracks Controller */
+extern struct lwipthread_opts * RTX_LWIP;
+extern const struct sockaddr * RTX_MANUAL_ADDR;  // Manual Control listener
+extern const struct sockaddr * RTX_NEUTRAL_ADDR; // Axis Neutral data
+extern const struct sockaddr * RTX_FROMSLA_ADDR; // Sightline listener
+extern const struct sockaddr * RTX_DIAG_ADDR;	// Axis Diagnostic data
+
+/* Rocket Tracks Manual Control Box */
+extern struct lwipthread_opts * RTXMAN_LWIP;
+extern const struct sockaddr * RTXMAN_OUT_ADDR;     // Manual Control data
+extern const struct sockaddr * RTXMAN_NEUTRAL_ADDR; // Axis Neutral listener
+extern const struct sockaddr * RTXMAN_DIAG_ADDR;	// Axis Diagnostic listener
+
+/* GPS frontend */
+extern struct lwipthread_opts * GPS_LWIP;
+extern struct sockaddr * GPS_OUT_ADDR; // Data's gotta be flowing out, right?
 
 #endif /* NET_ADDRS_H_ */

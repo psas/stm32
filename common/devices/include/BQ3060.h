@@ -1,11 +1,7 @@
 #ifndef _BQ3060_H_
 #define _BQ3060_H_
 
-#define BQ3060_ADDR (0x16 >> 1)
-
-#define LOWDATA_BYTE(data) ((data) & 0xFF)
-#define HIGHDATA_BYTE(data) (((data) & 0xFF00) >> 8)
-#define DATA_FROM_BYTES(low, high) (((low) & 0xFF) | ((high) &0xFF) << 8)
+#include "utils_hal.h"
 
 /* BQ3060_ManufacturerAccess commands
 BQ3060_DeviceType = 0x01,
@@ -123,11 +119,12 @@ struct BQ3060Data{
 
 struct BQ3060Config{
     I2CDriver *I2CD;
+    I2CPins   *I2CP;
 };
 
-void BQ3060_init(struct BQ3060Config * conf);
-int BQ3060_Set(uint8_t register_id, uint16_t data);
-int BQ3060_Get(uint8_t register_id, uint16_t* data);
+void BQ3060Start(struct BQ3060Config * conf);
+int BQ3060Set(uint8_t register_id, uint16_t data);
+int BQ3060Get(uint8_t register_id, uint16_t* data);
 
 extern EventSource BQ3060_data_ready;
 extern EventSource BQ3060_battery_fault;

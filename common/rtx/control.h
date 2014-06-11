@@ -12,13 +12,14 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "rocket_tracks.h"
+
 #define LAT_AXIS_LENGTH						//TODO measure length to payload COM
 #define VERT_AXIS_MOTOR_LENGTH				//TODO measure length to lat axis motor from vert axis spindle
 #define MOTOR_I								//TODO calculate motor COM moment of inertia
 #define MASS								//TODO measure mass of payload
 #define MASS_I								//TODO calculate payload COM moment of inertia
 
-typedef uint16_t axissample_t;
 
 typedef struct {
 
@@ -33,8 +34,8 @@ typedef struct {
 
 	int16_t S16OutputCommand;				//PWM on-time
 
-	int16_t S16PositionDesired;
-	int16_t S16PositionActual;
+	uint16_t U16PositionDesired;
+	uint16_t U16PositionActual;
 	int16_t S16PositionError;
 
 	uint16_t S16PositionErrorPrevious;
@@ -63,5 +64,9 @@ typedef struct {
 	int16_t S16VelocityError;
 
 } CONTROL_AXIS_STRUCT;
+
+void controlLoop(CONTROL_AXIS_STRUCT * ptr);
+void Process_SLA(SLAData * data,
+		CONTROL_AXIS_STRUCT * latp, CONTROL_AXIS_STRUCT * vertp);
 
 #endif

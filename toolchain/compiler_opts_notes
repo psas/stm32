@@ -3,10 +3,14 @@ arm-none-eabi-gcc
 opts
 -O2 - probably good. might break asserts?
 -fomit-frame-pointer - on by default with any opts
--falign-functions=16 - requires more research
+-falign-functions=16 - requires more research | Flash data bus is 128 bits (16 bytes) wide, but alignment set in linker script
+
+#brought in by  USE_LINK_GC which seems to imply they're for link time garbage collection. 
+#on flight-rnh it reduced binaries by about 12% and I didn't need memstreams.c
 -ffunction-sections - unneeded
 -fdata-sections - unneeded
 -fno-common - harmless - more research?
+
 #explicitly not using -flto, -Ofast, and other
 #opt flags used only in flight targets but not
 #debugging targets

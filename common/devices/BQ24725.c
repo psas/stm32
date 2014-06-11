@@ -3,115 +3,114 @@
  * ChibiOS HAL driver for using the BQ24725 Battery Charge Controller
  */
 
-//FIXME: change initialized check to assert
-
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
+
 #include "ch.h"
 #include "hal.h"
-#include "chprintf.h"
+
+#include "utils_general.h"
+#include "utils_hal.h"
 #include "BQ24725.h"
 
-static I2CDriver *I2CD;
+#define BQ24725_ADDR    0b0001001
+
+typedef enum {
+	DEVICE_ID       = 0xFF,
+	MANUFACTURE_ID  = 0xFE,
+	CHARGE_CURRENT  = 0x14,
+	CHARGE_VOLTAGE  = 0x15,
+	INPUT_CURRENT   = 0x3F,
+	CHARGE_OPTION   = 0x12
+} BQ24725_register;
+
+#define CHARGE_CURRENT_MASK 0x1FC0
+#define CHARGE_VOLTAGE_MASK 0x7FF0
+#define INPUT_CURRENT_MASK  0x1F80
+
 static struct BQ24725Config * CONF;
 static bool initialized = false;
-static const systime_t I2C_TIMEOUT = MS2ST(400);
+static uint16_t imonbuf = 0;
 
 const BQ24725_charge_options BQ24725_charge_options_POR_default = {
-    .ACOK_deglitch_time = t150ms,
-    .WATCHDOG_timer = t175s,
-    .BAT_depletion_threshold = FT70_97pct,
-    .EMI_sw_freq_adj = dec18pct,
-    .EMI_sw_freq_adj_en = sw_freq_adj_disable,
-    .IFAULT_HI_threshold = l700mV,
-    .LEARN_en = LEARN_disable,
-    .IOUT = adapter_current,
-    .ACOC_threshold = l1_66X,
-    .charge_inhibit = charge_enable
+	.ACOK_deglitch_time = t150ms,
+	.WATCHDOG_timer = t175s,
+	.BAT_depletion_threshold = FT70_97pct,
+	.EMI_sw_freq_adj = dec18pct,
+	.EMI_sw_freq_adj_en = sw_freq_adj_disable,
+	.IFAULT_HI_threshold = l700mV,
+	.LEARN_en = LEARN_disable,
+	.IOUT = adapter_current,
+	.ACOC_threshold = l1_66X,
+	.charge_inhibit = charge_enable
 };
 
-void BQ24725_init(struct BQ24725Config * conf){
-    if(initialized == true)
-        return;
+void BQ24725Start(struct BQ24725Config * conf){
+	chDbgAssert(conf, DBG_PREFIX"No configuration given to BQ24725 init", NULL);
+	// todo: What should re-initialization look like?
+	chDbgAssert(!initialized, DBG_PREFIX"BQ24725 already initialized", NULL);
 
-    if(!conf){
-        return;
-    }
-    CONF = conf;
-    I2CD = CONF->I2CD;
+	CONF = conf;
 
-    //todo: set I2C pins
-    static const I2CConfig i2cfg = {
-        OPMODE_SMBUS_HOST,
-        100000,
-        STD_DUTY_CYCLE,
-    };
-    if(I2CD->state == I2C_STOP){
-        i2cStart(I2CD, &i2cfg);
-    }
+	static const I2CConfig i2cfg = {
+		OPMODE_SMBUS_HOST,
+		100000,
+		STD_DUTY_CYCLE,
+	};
+	i2cUtilsStart(CONF->I2CD, &i2cfg, conf->I2CP);
 
-    palSetPadMode(CONF->ACOK.port, CONF->ACOK.pad, PAL_MODE_INPUT_PULLDOWN | PAL_STM32_OSPEED_HIGHEST);
-    extAddCallback(&(CONF->ACOK), EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART, CONF->ACOK_cb);
-    extUtilsStart();
+	palSetPadMode(CONF->ACOK.port, CONF->ACOK.pad, PAL_MODE_INPUT_PULLDOWN | PAL_STM32_OSPEED_HIGHEST);
+	extAddCallback(&(CONF->ACOK), EXT_CH_MODE_BOTH_EDGES | EXT_CH_MODE_AUTOSTART, CONF->ACOK_cb);
+	extUtilsStart();
 
-	//todo: adc for IMON
-    initialized = true;
+	adcStart(CONF->ADCD, &(ADCConfig){0});
+
+	static ADCConversionGroup group= {
+		.circular = TRUE,
+		.num_channels = 1,
+		.end_cb = NULL,
+		.error_cb = NULL,
+		.cr1 = 0,
+		.cr2 = ADC_CR2_SWSTART,
+		.smpr1 = 0,
+		.smpr2 = ADC_SMPR2_SMP_AN2 (ADC_SAMPLE_480),
+		.sqr1 = ADC_SQR1_NUM_CH(1),
+		.sqr2 = 0,
+		.sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN2)
+	};
+	adcStartConversion(CONF->ADCD, &group, &imonbuf, 1);
+	initialized = true;
 }
 
-//todo: form options data/struct
 static int BQ24725_Get(uint8_t register_id, uint16_t* data){
-    if(initialized == false)
-        return -1;
-
-    uint8_t tx[1] = {register_id};
-    uint8_t rx[2];
-    i2cflags_t errors;
-	i2cAcquireBus(I2CD);
-	msg_t status = i2cMasterTransmitTimeout(I2CD, BQ24725_ADDR, tx, sizeof(tx), rx, sizeof(rx), I2C_TIMEOUT);
-	switch(status){
-	case RDY_OK:
-		i2cReleaseBus(I2CD);
-		break;
-	case RDY_RESET:
-		errors = i2cGetErrors(I2CD);
-		i2cReleaseBus(I2CD);
-		return errors;
-	case RDY_TIMEOUT:
-		i2cReleaseBus(I2CD);
-		return RDY_TIMEOUT;
+	chDbgAssert(initialized, DBG_PREFIX"BQ24725 driver not initialized", NULL);
+	switch(register_id){
+	case DEVICE_ID:
+	case MANUFACTURE_ID:
+	case CHARGE_CURRENT:
+	case CHARGE_VOLTAGE:
+	case INPUT_CURRENT:
+	case CHARGE_OPTION:
+		return SMBusGet(CONF->I2CD, BQ24725_ADDR, register_id, data);
 	default:
-		i2cReleaseBus(I2CD);
+		chDbgPanic(DBG_PREFIX"Unrecognized BQ24725 read register ID");
 	}
-
-	*data = DATA_FROM_BYTES(rx[0], rx[1]);
-	return RDY_OK;
+	return RDY_RESET;
 }
 
 static int BQ24725_Set(uint8_t register_id, uint16_t data){
-    if(initialized == false)
-    	return -1;
-
-    uint8_t tx[3] = {register_id, LOWDATA_BYTE(data), HIGHDATA_BYTE(data)};
-    i2cflags_t errors;
-	i2cAcquireBus(I2CD);
-	msg_t status = i2cMasterTransmitTimeout(I2CD, BQ24725_ADDR, tx, sizeof(tx), NULL, 0, I2C_TIMEOUT);
-    switch(status){
-    case RDY_OK:
-        i2cReleaseBus(I2CD);
-        break;
-    case RDY_RESET:
-        errors = i2cGetErrors(I2CD);
-        i2cReleaseBus(I2CD);
-        return errors;
-    case RDY_TIMEOUT:
-        i2cReleaseBus(I2CD);
-        return RDY_TIMEOUT;
-    default:
-        i2cReleaseBus(I2CD);
-    }
-
-	return RDY_OK;
+	chDbgAssert(initialized, DBG_PREFIX"BQ24725 driver not initialized", NULL);
+	switch(register_id){
+	case CHARGE_CURRENT:
+	case CHARGE_VOLTAGE:
+	case INPUT_CURRENT:
+	case CHARGE_OPTION:
+		return SMBusSet(CONF->I2CD, BQ24725_ADDR, register_id, data);
+	default:
+		chDbgPanic(DBG_PREFIX"Unrecognized BQ24725 write register ID");
+	}
+	return RDY_RESET;
 }
 
 int BQ24725_GetDeviceID(uint16_t* data){
@@ -163,10 +162,6 @@ int BQ24725_ACOK(void){
 }
 
 int BQ24725_IMON(void){
-	return 0;
+	return imonbuf;
 }
-
-//void BQ24725_UpdateChargeOption(uint16_t option){
-//
-//}
 

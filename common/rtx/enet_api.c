@@ -18,136 +18,245 @@
 #include "utils_sockets.h"
 
 #include "enet_api.h"
+#include "rocket_tracks.h"
+#include "net_addrs.h"
 
-static struct sockaddr_in self_addr;
-static struct sockaddr_in manual_addr;
-static struct sockaddr_in sla_addr;
+#define ENABLE_MSG		0
+#define MODE_MSG		1
+#define AUX_MSG			2
+#define LAT_MSG			3
+#define VERT_MSG		4
+#define AXIS3_MSG		5
+#define AXIS4_MSG		6
+#define BYTE_MASK		255
+
+#define MSGU16_LEN		(sizeof(*data)/sizeof(uint16_t))
 
 
-static int ManualSendSocket;
-static int SLASendSocket;
-static int SLAReceiveSocket;
-static int ManualReceiveSocket;
+int RTxtoManualSendSocket;
+int ManualtoRTxSendSocket;
 
-static ManualData RemoteData;
+int RTxfromSLAReceiveSocket;
+int ManualReceiveSocket;
+int NeutralReceiveSocket;
+
+int DiagnosticsSendSocket;
+int DiagnosticsReceiveSocket;
 
 //Functions to create Ethernet sockets
 
-void SendtoManualSocket(){
+void SendRTxtoManualSocket(){
 
-    set_sockaddr(&self_addr, IP_MANUAL, MANUAL_TX_PORT);
-    ManualSendSocket = get_udp_socket((struct sockaddr*)&self_addr);
-
-    //Create the address to send to
-    set_sockaddr(&manual_addr, IP_HOST, MANUAL_TX_PORT);
-}
-void SendtoSLASocket(){
-
-    set_sockaddr(&self_addr, IP_SLA, SLA_TX_PORT);
-    SLASendSocket = get_udp_socket((struct sockaddr*)&self_addr);
+    RTxtoManualSendSocket = get_udp_socket(RTX_NEUTRAL_ADDR);
+    chDbgAssert(RTxtoManualSendSocket >=0, "Neutral socket failed", NULL);
 
     //Create the address to send to
-    set_sockaddr(&sla_addr, IP_HOST, SLA_TX_PORT);
+    if(connect(RTxtoManualSendSocket, RTXMAN_NEUTRAL_ADDR, sizeof(struct sockaddr))){
+        chDbgPanic("Couldn't connect on tx socket");
+    }
 }
-void ReceiveSLASocket() {
 
-    set_sockaddr(&self_addr, IP_SLA, SLA_RX_PORT);
-    SLAReceiveSocket = get_udp_socket((struct sockaddr*)&self_addr);
+void SendDiagnosticsSocket(){
+
+	DiagnosticsSendSocket = get_udp_socket(RTX_DIAG_ADDR);
+    chDbgAssert(DiagnosticsSendSocket >=0, "Neutral socket failed", NULL);
+
+    //Create the address to send to
+    if(connect(DiagnosticsSendSocket, RTXMAN_DIAG_ADDR, sizeof(struct sockaddr))){
+        chDbgPanic("Couldn't connect on tx socket");
+    }
 }
-void ReceiveManualSocket() {
 
-    set_sockaddr(&self_addr, IP_MANUAL, MANUAL_RX_PORT);
-    ManualReceiveSocket = get_udp_socket((struct sockaddr*)&self_addr);
+void ReceiveDiagnosticsSocket(){
+
+	DiagnosticsReceiveSocket = get_udp_socket(RTXMAN_DIAG_ADDR);
+    chDbgAssert(DiagnosticsReceiveSocket >=0, "Neutral socket failed", NULL);
+
+    //Create the address to send to
+    if(connect(DiagnosticsReceiveSocket, RTX_DIAG_ADDR, sizeof(struct sockaddr))){
+        chDbgPanic("Couldn't connect on tx socket");
+    }
+}
+
+void SendManualtoRTxSocket(){
+
+	ManualtoRTxSendSocket = get_udp_socket(RTXMAN_OUT_ADDR);
+    chDbgAssert(ManualtoRTxSendSocket >=0, "Manual socket failed", NULL);
+
+    //Create the address to send to
+    if(connect(ManualtoRTxSendSocket, RTX_MANUAL_ADDR, sizeof(struct sockaddr))){
+        chDbgPanic("Couldn't connect on tx socket");
+    }
+}
+
+void ReceiveRTxfromSLASocket() {
+
+	RTxfromSLAReceiveSocket = get_udp_socket(RTX_FROMSLA_ADDR);
+    chDbgAssert(RTxfromSLAReceiveSocket >=0, "SLA socket failed", NULL);
+
+}
+
+// Create thread for RTx to receive Manual Status from Manual Control Box
+void ReceiveRTxfromManualSocket() {
+
+	ManualReceiveSocket = get_udp_socket(RTX_MANUAL_ADDR);
+    chDbgAssert(ManualReceiveSocket >=0, "Manual socket failed", NULL);
+
+    //Create the address to receive from to
+    if(connect(ManualReceiveSocket, RTXMAN_OUT_ADDR, sizeof(struct sockaddr))){
+        chDbgPanic("Couldn't connect on tx socket");
+    }
+}
+
+// Create thread for Manual Control Box to receive Neutral Status from RTx
+void ReceiveManualfromRTxSocket() {
+
+	NeutralReceiveSocket = get_udp_socket(RTXMAN_NEUTRAL_ADDR);
+    chDbgAssert(NeutralReceiveSocket >=0, "Neutral socket failed", NULL);
+
+    //Create the address to receive from
+    if(connect(NeutralReceiveSocket, RTX_NEUTRAL_ADDR, sizeof(struct sockaddr))){
+        chDbgPanic("Couldn't connect on tx socket");
+    }
 }
 
 //Functions to send Ethernet messages
 
-void SendNeutral(Neutral data) {
+void SendNeutral(Neutral * data) {
 
-char msg[2];
-#ifndef NDEBUG
-BaseSequentialStream *chp = getUsbStream();
-#endif
+uint8_t msg[sizeof(*data)];
 
-	msg[0] = data.latNeutral;
-	msg[1] = data.vertNeutral;
+	msg[LAT_AXIS] = data->latNeutral;
+	msg[VERT_AXIS] = data->vertNeutral;
 
-    if(sendto(ManualSendSocket, msg, sizeof(msg), 0, (struct sockaddr*)&manual_addr, sizeof(manual_addr)) < 0){
-		#ifndef NDEBUG
-        chprintf(chp, "Send socket send failure\r\t");
-		#endif
-    }
+    write(RTxtoManualSendSocket, msg, sizeof(msg));
+
     return;
 }
 
-//void SendSLA(int Command) {
-////TODO Robert send commands to SLA
-//}
-//
-//void ReceiveSLA(SLAData data) {
-////TODO Robert receive data from SLA
-//}
+void SendManual(ManualData * data) {
 
-/*!
- * Stack area for the rtx_controller_receive_thread.
- */
-WORKING_AREA(wa_rtx_controller_receive_thread, RTX_RECEIVE_THREAD_STACK_SIZE);
+uint16_t msg[MSGU16_LEN];
 
-msg_t rtx_controller_receive_thread(void *p __attribute__ ((unused))) {
-    /*
-     * This thread creates a UDP socket and then listens for any incoming
-     * message, printing it out over serial USB
-     */
+	// Insert Manual Control Box switch status
+	msg[ENABLE_MSG] = data->Enable;
+	msg[MODE_MSG] = data->Mode;
+	msg[AUX_MSG] = data->Aux;
 
-uint8_t temp = 0;
+	msg[LAT_MSG] = data->latPosition;
+	msg[VERT_MSG] = data->vertPosition;
+	msg[AXIS3_MSG] = data->Axis3Position;
+	msg[AXIS4_MSG] = data->Axis4Position;
 
-char msg[MANUAL_REMOTE_MESSAGE_SIZE];
-char SLA[SLA_MESSAGE_SIZE];
+    write(ManualtoRTxSendSocket, msg, sizeof(msg));
 
-socklen_t manual_addr_length = sizeof(manual_addr);
-socklen_t sla_addr_length = sizeof(sla_addr);
+    return;
+}
 
-	chRegSetThreadName("rtx_controller_receive_thread");
-	#ifndef NDEBUG
-	BaseSequentialStream *chp = getUsbStream();
-	#endif
+void SendDiagnostics(Diagnostics * lat, Diagnostics * vert) {
 
+int i;
+uint32_t msg[22];
+Diagnostics * data;
 
-    while(TRUE) {
-		if(recvfrom(ManualReceiveSocket, msg, sizeof(msg), 0, (struct sockaddr*)&manual_addr, &manual_addr_length) < 0){
-			#ifndef NDEBUG
-			chprintf(chp, "Manual socket recv failure \r\n");
-			#endif
-		}
-		else {
-			#ifndef NDEBUG
-			chprintf(chp, "%s\r\n", msg);
-			#endif
-			//TODO parse msg into fields of data struct
-			RemoteData.Enable = msg[0];
-			RemoteData.Mode = msg[1];
-			RemoteData.Aux = msg[2];
-			temp = (uint16_t)msg[3] << 8;
-			RemoteData.latPosition = (uint16_t)msg[4] | temp;
-			temp = (uint16_t)msg[5] << 8;
-			RemoteData.vertPosition = (uint16_t)msg[6] | temp;
-			temp = (uint16_t)msg[7] << 8;
-			RemoteData.Axis3Position = (uint16_t)msg[8] | temp;
-			temp = (uint16_t)msg[9] << 8;
-			RemoteData.latPosition = (uint16_t)msg[10] | temp;
-		}
-		if(RemoteData.Mode == '1') {
-			if(recvfrom(SLAReceiveSocket, SLA, sizeof(SLA), 0, (struct sockaddr*)&sla_addr, &sla_addr_length) < 0){
-				#ifndef NDEBUG
-				chprintf(chp, "SLA socket recv failure \r\n");
-				#endif
-			}
-			else {
-				#ifndef NDEBUG
-				chprintf(chp, "%s\r\n", msg);
-				#endif
-				//TODO Robert parse SLA into fields of data struct
-			}
-		}
+	for(i = 0; i < 2; ++i) {
+		if(i == 0)
+			data = lat;
+		else
+			data = vert;
+
+		msg[0 + (i*11)] = (uint32_t)data->U16FeedbackADC;
+		msg[1 + (i*11)] = (uint32_t)data->U16FeedbackADCPrevious;
+		msg[2 + (i*11)] = (uint32_t)data->S16OutputCommand;
+		msg[3 + (i*11)] = (uint32_t)data->U16PositionDesired;
+		msg[4 + (i*11)] = (uint32_t)data->U16PositionActual;
+		msg[5 + (i*11)] = (uint32_t)data->S16PositionError;
+		msg[6 + (i*11)] = (uint32_t)data->S16PositionErrorPrevious;
+		msg[7 + (i*11)] = (uint32_t)data->S32PositionPTerm;
+		msg[8 + (i*11)] = (uint32_t)data->S32PositionITerm;
+		msg[9 + (i*11)] = (uint32_t)data->S32PositionDTerm;
+		msg[10 + (i*11)] = (uint32_t)data->S32PositionIAccumulator;
+
+	}
+    write(DiagnosticsSendSocket, msg, sizeof(msg));
+
+    return;
+}
+
+int ReceiveManual(ManualData * data) {
+
+uint16_t msg[MSGU16_LEN];
+
+	if(recv(ManualReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT) < 0){
+		return -1;
+	}
+	else {
+		//Parse msg into fields of data struct
+		data->Enable = msg[ENABLE_MSG];
+		data->Mode = msg[MODE_MSG];
+		data->Aux = msg[AUX_MSG];
+
+		data->latPosition = msg[LAT_MSG];
+		data->vertPosition = msg[VERT_MSG];
+		data->Axis3Position = msg[AXIS3_MSG];
+		data->Axis4Position = msg[AXIS4_MSG];
+
+		return 1;
     }
+}
+
+int ReceiveDiagnostics(Diagnostics * lat, Diagnostics * vert) {
+
+int i;
+uint32_t msg[22];
+Diagnostics * data;
+
+	if(recv(DiagnosticsReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT) < 0){
+		return -1;
+	}
+	for(i = 0; i < 2; ++i) {
+		if(i == 0)
+			data = lat;
+		else
+			data = vert;
+
+		data->U16FeedbackADC = (uint16_t)msg[0 + (i*11)];
+		data->U16FeedbackADCPrevious = (uint16_t)msg[1 + (i*11)];
+		data->S16OutputCommand = (int16_t)msg[2 + (i*11)];
+		data->U16PositionDesired = (uint16_t)msg[3 + (i*11)];
+		data->U16PositionActual = (uint16_t)msg[4 + (i*11)];
+		data->S16PositionError = (int16_t)msg[5 + (i*11)];
+		data->S16PositionErrorPrevious = (int16_t)msg[6 + (i*11)];
+		data->S32PositionPTerm = (int32_t)msg[7 + (i*11)];
+		data->S32PositionITerm = (int32_t)msg[8 + (i*11)];
+		data->S32PositionDTerm = (int32_t)msg[9 + (i*11)];
+		data->S32PositionIAccumulator = (int32_t)msg[10 + (i*11)];
+
+	}
+
+	return 0;
+}
+
+void ReceiveNeutral(Neutral * data) {
+
+uint8_t msg[sizeof(*data)];
+
+    recv(NeutralReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT);
+
+	data->latNeutral = msg[LAT_AXIS];
+	data->vertNeutral = msg[VERT_AXIS];
+
+    return;
+}
+
+void ReceiveSLA(SLAData * data) {
+
+uint16_t msg[100];
+
+	recv(NeutralReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT);
+
+	data->Column = msg[SLA_COLUMN_OFFSET];
+	data->Row = msg[SLA_ROW_OFFSET];
+
+	return;
 }

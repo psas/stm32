@@ -6,9 +6,13 @@
 #include "hal.h"
 #include "evtimer.h"
 
+#include "utils_general.h"
+#include "utils_hal.h"
 #include "BQ3060.h"
 
-#define UNUSED __attribute__((unused))
+#define BQ3060_ADDR (0x16 >> 1)
+
+//FIXME: have driver structs.
 
 static struct BQ3060Config * CONF;
 static bool initialized = false;
@@ -20,59 +24,14 @@ EventSource BQ3060_battery_fault;
 
 static struct BQ3060Data buffer;
 
-
-int BQ3060_Get(uint8_t register_id, uint16_t* data){
-    if(initialized == false)
-        return -1;
-
-    uint8_t tx[1] = {register_id};
-    uint8_t rx[2];
-    i2cflags_t errors;
-    i2cAcquireBus(I2CD);
-    msg_t status = i2cMasterTransmitTimeout(I2CD, BQ3060_ADDR, tx, sizeof(tx), rx, sizeof(rx), I2C_TIMEOUT);
-    switch(status){
-    case RDY_OK:
-        i2cReleaseBus(I2CD);
-        break;
-    case RDY_RESET:
-        errors = i2cGetErrors(I2CD);
-        i2cReleaseBus(I2CD);
-        return errors;
-    case RDY_TIMEOUT:
-        i2cReleaseBus(I2CD);
-        return RDY_TIMEOUT;
-    default:
-        i2cReleaseBus(I2CD);
-    }
-
-    *data = DATA_FROM_BYTES(rx[0], rx[1]);
-    return RDY_OK;
+int BQ3060Get(uint8_t register_id, uint16_t* data){
+	chDbgAssert(initialized, DBG_PREFIX"BQ3060 not initialized", NULL);
+    return SMBusGet(CONF->I2CD, BQ3060_ADDR, register_id, data);
 }
 
-int BQ3060_Set(uint8_t register_id, uint16_t data){
-    if(initialized == false)
-        return -1;
-
-    uint8_t tx[3] = {register_id, LOWDATA_BYTE(data), HIGHDATA_BYTE(data)};
-    i2cflags_t errors;
-    i2cAcquireBus(I2CD);
-    msg_t status = i2cMasterTransmitTimeout(I2CD, BQ3060_ADDR, tx, sizeof(tx), NULL, 0, I2C_TIMEOUT);
-    switch(status){
-    case RDY_OK:
-        i2cReleaseBus(I2CD);
-        break;
-    case RDY_RESET:
-        errors = i2cGetErrors(I2CD);
-        i2cReleaseBus(I2CD);
-        return errors;
-    case RDY_TIMEOUT:
-        i2cReleaseBus(I2CD);
-        return RDY_TIMEOUT;
-    default:
-        i2cReleaseBus(I2CD);
-    }
-
-    return RDY_OK;
+int BQ3060Set(uint8_t register_id, uint16_t data){
+	chDbgAssert(initialized, DBG_PREFIX"BQ3060 not initialized", NULL);
+    return SMBusSet(CONF->I2CD, BQ3060_ADDR, register_id, data);
 }
 
 /*void AtRate(int16_t rate){
@@ -120,19 +79,19 @@ void Status(){
 }
  */
 static void Physical(struct BQ3060Data * data){
-    BQ3060_Get(BQ3060_Temperature, &(data->Temperature));
-    BQ3060_Get(BQ3060_TS1Temperature, (uint16_t *)&(data->TS1Temperature));
-    BQ3060_Get(BQ3060_TS2Temperature, (uint16_t *)&(data->TS2Temperature));
-    BQ3060_Get(BQ3060_TempRange, &(data->TempRange));
-    BQ3060_Get(BQ3060_Current, (uint16_t *)&(data->Current));
-    BQ3060_Get(BQ3060_AverageCurrent, (uint16_t *)&(data->AverageCurrent));
-    BQ3060_Get(BQ3060_Voltage, &(data->Voltage));
-    BQ3060_Get(BQ3060_CellVoltage4, &(data->CellVoltage4));
-    BQ3060_Get(BQ3060_CellVoltage3, &(data->CellVoltage3));
-    BQ3060_Get(BQ3060_CellVoltage2, &(data->CellVoltage2));
-    BQ3060_Get(BQ3060_CellVoltage1, &(data->CellVoltage1));
-    BQ3060_Get(BQ3060_PackVoltage, &(data->PackVoltage));
-    BQ3060_Get(BQ3060_AverageVoltage, &(data->AverageVoltage));
+    BQ3060Get(BQ3060_Temperature, &(data->Temperature));
+    BQ3060Get(BQ3060_TS1Temperature, (uint16_t *)&(data->TS1Temperature));
+    BQ3060Get(BQ3060_TS2Temperature, (uint16_t *)&(data->TS2Temperature));
+    BQ3060Get(BQ3060_TempRange, &(data->TempRange));
+    BQ3060Get(BQ3060_Current, (uint16_t *)&(data->Current));
+    BQ3060Get(BQ3060_AverageCurrent, (uint16_t *)&(data->AverageCurrent));
+    BQ3060Get(BQ3060_Voltage, &(data->Voltage));
+    BQ3060Get(BQ3060_CellVoltage4, &(data->CellVoltage4));
+    BQ3060Get(BQ3060_CellVoltage3, &(data->CellVoltage3));
+    BQ3060Get(BQ3060_CellVoltage2, &(data->CellVoltage2));
+    BQ3060Get(BQ3060_CellVoltage1, &(data->CellVoltage1));
+    BQ3060Get(BQ3060_PackVoltage, &(data->PackVoltage));
+    BQ3060Get(BQ3060_AverageVoltage, &(data->AverageVoltage));
 }
 /* Danger:
  *
@@ -200,7 +159,7 @@ static void Physical(struct BQ3060Data * data){
 
 void BQ3060_get_data(struct BQ3060Data * data){
 //    chSysLock();
-    memcpy(data, &buffer, sizeof(buffer));
+    *data = buffer;
 //    chSysUnlock();
 }
 
@@ -209,10 +168,7 @@ static void read_handler(eventid_t id UNUSED){
     chEvtBroadcast(&BQ3060_data_ready);
 }
 
-uint16_t crntAlarms[3] = {0};
-uint16_t cumAlarms[3] = {0};
-
-static WORKING_AREA(wa_read, 256);
+static WORKING_AREA(wa_read, 512);
 static msg_t read_thread(void * p UNUSED){
     chRegSetThreadName("BQ3060");
 
@@ -263,22 +219,17 @@ static msg_t read_thread(void * p UNUSED){
     return -1;
 }
 
-void BQ3060_init(struct BQ3060Config * conf){
-    if(!conf){
-        return;
-    }
-    CONF = conf;
-    I2CD = CONF->I2CD;
+void BQ3060Start(struct BQ3060Config * conf){
+	chDbgCheck(conf, __func__);
 
-    //todo: set I2C pins
+    CONF = conf;
+
     static const I2CConfig i2cfg = {
         OPMODE_SMBUS_HOST,
         100000,
         STD_DUTY_CYCLE,
     };
-    if(I2CD->state == I2C_STOP){
-        i2cStart(I2CD, &i2cfg);
-    }
+    i2cUtilsStart(CONF->I2CD, &i2cfg, CONF->I2CP);
 
     chEvtInit(&BQ3060_data_ready);
     chThdCreateStatic(wa_read, sizeof(wa_read), NORMALPRIO, read_thread, NULL);

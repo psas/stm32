@@ -18,11 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stdio.h>
 #include <string.h>
-#include <limits.h>
-#include <stdint.h>
-#include <stdlib.h>
 
 #include "ch.h"
 #include "hal.h"
@@ -31,13 +27,22 @@
 #include "shell.h"
 #include "lwipthread.h"
 #include "lwip/ip_addr.h"
+#include "lwip/sockets.h"
+
+#include "utils_general.h"
 #include "utils_sockets.h"
+#include "utils_shell.h"
+#include "utils_led.h"
 
 #include "usbdetail.h"
 #include "enet_api.h"
-//#include "net_addrs.h"
+#include "net_addrs.h"
 
 #include "rocket_tracks.h"
+
+#define ADC_ACCUM_WT	35
+#define ADC_SAMPLE_WT	45
+#define ADC_ACCUM_DIV	(ADC_ACCUM_WT + ADC_SAMPLE_WT)
 
 /* Total number of feedback channels to be sampled by a single ADC operation.*/
 #define ADC_GRP1_NUM_CHANNELS   1
@@ -61,56 +66,46 @@
 #define GPIOA_VERTINPUT		5
 
 //Function Prototypes
-static void manual_loop(GPTDriver *gptp);
 static void convert_start(GPTDriver *gptp);
 static void adccb1(ADCDriver *adcp, adcsample_t *buffer, size_t n);
 static void adccb2(ADCDriver *adcp, adcsample_t *buffer, size_t n);
-static void processLeds(void);
 
 /*
  * ADC conversion group 1.
  * Mode:
- * Channels:    IN10.
+ * Channels:    IN4.
  */
 static const ADCConversionGroup adcgrpcfg1 = {
-    .circular = FALSE,                                           // circular
-    .num_channels = ADC_GRP1_NUM_CHANNELS,
-    .end_cb = adccb1,                                            // end cb
-    .error_cb = NULL,                                // error cb
-    .cr1 = (ADC_CR1_DISCEN | ADC_CR1_EOCIE),                // CR1
-    .cr2 = ADC_CR2_SWSTART,                                 // CR2  ??
-    .smpr1 = ADC_SMPR1_SMP_AN11(ADC_SAMPLE_56),
-    .smpr2 = 0,                                               // SMPR2
-    .sqr1 = ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
-    .sqr2 = 0,                                               // SQR2
-    .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN4)
+		FALSE,
+		ADC_GRP1_NUM_CHANNELS,
+		adccb1,
+		NULL,
+		/* HW dependent part.*/
+		0,
+		ADC_CR2_SWSTART,
+		0,
+		ADC_SMPR2_SMP_AN4(ADC_SAMPLE_56),
+		ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
+		0,
+		ADC_SQR3_SQ1_N(ADC_CHANNEL_IN4),
 };
 
 static const ADCConversionGroup adcgrpcfg2 = {
-    .circular = FALSE,                                           // circular
-    .num_channels = ADC_GRP1_NUM_CHANNELS,
-    .end_cb = adccb2,                                            // end cb
-    .error_cb = NULL,                                // error cb
-    .cr1 = (ADC_CR1_DISCEN | ADC_CR1_EOCIE),                // CR1
-    .cr2 = ADC_CR2_SWSTART,                                 // CR2  ??
-    .smpr1 = ADC_SMPR1_SMP_AN11(ADC_SAMPLE_56),
-    .smpr2 = 0,                                               // SMPR2
-    .sqr1 = ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
-    .sqr2 = 0,                                               // SQR2
-    .sqr3 = ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5)
+		FALSE,
+		ADC_GRP1_NUM_CHANNELS,
+		adccb2,
+		NULL,
+		/* HW dependent part.*/
+		0,
+		ADC_CR2_SWSTART,
+		0,
+		ADC_SMPR2_SMP_AN5(ADC_SAMPLE_56),
+		ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
+		0,
+		ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5)
 };
 
-static const GPTConfig gpt1cfg = {
-	1000000,
-	manual_loop,
-	0,
-};
 
-static const GPTConfig gpt2cfg = {
-	1000000,
-	convert_start,
-	0,
-};
 
 // Global variables
 
@@ -122,16 +117,46 @@ uint8_t vertAxisFreeze = DISABLED;
 
 // Axis Input Variables
 static adcsample_t Samples[AXIS_ADC_COUNT];
-static uint16_t AxisAccumulator[AXIS_ADC_COUNT];
+static uint32_t AxisAccumulator[AXIS_ADC_COUNT];
+
+static uint8_t vertFreeze;
+static uint8_t latFreeze;
 
 // Message structs
 ManualData ManualInputs;
 Neutral NeutralFeedback;
+Diagnostics latDiagnostics, vertDiagnostics;
+
+static EVENTSOURCE_DECL(ReadyManual);
 
 
 /*===========================================================================*/
 /* Command line related.                                                     */
 /*===========================================================================*/
+
+/******************************************************************************
+ * Function name:	DisplayData
+ *
+ * Description:		Displays axis data
+ *
+ *****************************************************************************/
+void DisplayData(BaseSequentialStream *chp, Diagnostics *axis_p) {
+
+	chprintf(chp, "   FeedbackADC: %d counts \r\n", axis_p->U16FeedbackADC);
+	chprintf(chp, "   PreviousADC: %d counts \r\n", axis_p->U16FeedbackADCPrevious);
+
+	chprintf(chp, "Output Command: %d \r\n", axis_p->S16OutputCommand);
+
+	chprintf(chp, "PositionActual: %d counts \r\n", axis_p->U16PositionActual);
+	chprintf(chp, "       Desired: %d counts\r\n", axis_p->U16PositionDesired);
+	chprintf(chp, " PositionError: %d counts\r\n", axis_p->S16PositionError);
+
+	chprintf(chp, "        P Term: %d counts\r\n", axis_p->S32PositionPTerm);
+	chprintf(chp, "        I Term: %d counts\r\n", axis_p->S32PositionITerm);
+	chprintf(chp, "        D Term: %d counts\r\n", axis_p->S32PositionDTerm);
+	chprintf(chp, "       I Accum: %d counts\r\n", axis_p->S32PositionDTerm);
+
+}
 
 /******************************************************************************
  * Function name:	cmd_data
@@ -164,13 +189,18 @@ static void cmd_data(BaseSequentialStream *chp, int argc, char *argv[]) {
 			chprintf(chp, "Mode : Manual\r\n");
 		}
 	}
+	chprintf(chp, " latPosition: %d\r\n", ManualInputs.latPosition);
+	chprintf(chp, "vertPosition: %d\r\n", ManualInputs.vertPosition);
+
 	// Lateral axis data
 	if(argc == 0 || *argv[0] != 'v') {
 	chprintf(chp, "Lateral Axis : \r\n");
+	DisplayData(chp, &latDiagnostics);
 	}
 	// Vertical axis data
 	if(argc == 0 || *argv[0] != 'l') {
 	chprintf(chp, "Vertical Axis : \r\n");
+	DisplayData(chp, &vertDiagnostics);
 	}
 }
 
@@ -211,86 +241,86 @@ static void cmd_enable(BaseSequentialStream *chp, int argc, char *argv[]) {
 	chprintf(chp, "System Enabled.\r\n");
 }
 
-///******************************************************************************
-// * Function name:	cmd_freeze
-// *
-// * Description:		Switches to position mode and holds axes in current
-// * 					commanded position
-// *
-// * Arguments:		NULL: Freezes all axes
-// * 					l: Freezes lateral axis
-// * 					v: Freezes vertical axis
-// *
-// *****************************************************************************/
-//static void cmd_freeze(BaseSequentialStream *chp, int argc, char *argv[]) {
-//
-//	(void)argv;
-//	if (argc > 1) {
-//		chprintf(chp, "Usage: Freeze\r\n");
-//		return;
-//	}
-//	if (*argv[0] == 'V' || *argv[0] == 'v') {
-//		U8ShellMode = FREEZE_MODE;
-//		vertAxisStruct.U8FreezeAxis = ENABLED;
-//		chprintf(chp, "Vertical Axis ");
-//	}
-//	else if(*argv[0] == 'L' || *argv[0] == 'l') {
-//		U8ShellMode = FREEZE_MODE;
-//		latAxisStruct.U8FreezeAxis = ENABLED;
-//		chprintf(chp, "Lateral Axis ");
-//	}
-//	else {
-//		U8ShellMode = FREEZE_MODE;
-//		latAxisStruct.U8FreezeAxis = ENABLED;
-//		vertAxisStruct.U8FreezeAxis = ENABLED;
-//		chprintf(chp, "Both Axes ");
-//	}
-//	chprintf(chp, "Frozen.\r\n");
-//}
-//
-///******************************************************************************
-// * Function name:	cmd_unfreeze
-// *
-// * Description:		Switches to position mode and holds axes in current
-// * 					commanded position
-// *
-// * Arguments:		NULL: Unfreezes all axes
-// * 					l: Unfreezes lateral axis
-// * 					v: Unfreezes vertical axis
-// *
-// *****************************************************************************/
-//static void cmd_unfreeze(BaseSequentialStream *chp, int argc, char *argv[]) {
-//
-//	(void)argv;
-//	if (argc > 1) {
-//		chprintf(chp, "Usage: Unfreeze\r\n");
-//		return;
-//	}
-//	if (*argv[0] == 'V' || *argv[0] == 'v') {
-//		U8ShellMode = NO_SHELL_MODE;
-//		vertAxisStruct.U8FreezeAxis = DISABLED;
-//		chprintf(chp, "Vertical Axis ");
-//	}
-//	else if(*argv[0] == 'L' || *argv[0] == 'l') {
-//		U8ShellMode = NO_SHELL_MODE;
-//		latAxisStruct.U8FreezeAxis = DISABLED;
-//		chprintf(chp, "Lateral Axis ");
-//	}
-//	else {
-//		U8ShellMode = NO_SHELL_MODE;
-//		latAxisStruct.U8FreezeAxis = DISABLED;
-//		vertAxisStruct.U8FreezeAxis = DISABLED;
-//		chprintf(chp, "Both Axes ");
-//	}
-//	chprintf(chp, "Unfrozen.\r\n");
-//
-//	if(ManualInputs.Mode == MANUAL_MODE) {
-//		chprintf(chp, "Mode : Manual\r\n");
-//	}
-//	else {
-//		chprintf(chp, "Mode : Sightline\r\n");
-//	}
-//}
+/******************************************************************************
+ * Function name:	cmd_freeze
+ *
+ * Description:		Switches to position mode and holds axes in current
+ * 					commanded position
+ *
+ * Arguments:		NULL: Freezes all axes
+ * 					l: Freezes lateral axis
+ * 					v: Freezes vertical axis
+ *
+ *****************************************************************************/
+static void cmd_freeze(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+	(void)argv;
+	if (argc > 1) {
+		chprintf(chp, "Usage: Freeze\r\n");
+		return;
+	}
+	if (*argv[0] == 'V' || *argv[0] == 'v') {
+		U8ShellMode = FREEZE_MODE;
+		vertFreeze = ENABLED;
+		chprintf(chp, "Vertical Axis ");
+	}
+	else if(*argv[0] == 'L' || *argv[0] == 'l') {
+		U8ShellMode = FREEZE_MODE;
+		latFreeze = ENABLED;
+		chprintf(chp, "Lateral Axis ");
+	}
+	else {
+		U8ShellMode = FREEZE_MODE;
+		latFreeze = ENABLED;
+		vertFreeze = ENABLED;
+		chprintf(chp, "Both Axes ");
+	}
+	chprintf(chp, "Frozen.\r\n");
+}
+
+/******************************************************************************
+ * Function name:	cmd_unfreeze
+ *
+ * Description:		Switches to position mode and holds axes in current
+ * 					commanded position
+ *
+ * Arguments:		NULL: Unfreezes all axes
+ * 					l: Unfreezes lateral axis
+ * 					v: Unfreezes vertical axis
+ *
+ *****************************************************************************/
+static void cmd_unfreeze(BaseSequentialStream *chp, int argc, char *argv[]) {
+
+	(void)argv;
+	if (argc > 1) {
+		chprintf(chp, "Usage: Unfreeze\r\n");
+		return;
+	}
+	if (*argv[0] == 'V' || *argv[0] == 'v') {
+		U8ShellMode = NO_SHELL_MODE;
+		vertFreeze = DISABLED;
+		chprintf(chp, "Vertical Axis ");
+	}
+	else if(*argv[0] == 'L' || *argv[0] == 'l') {
+		U8ShellMode = NO_SHELL_MODE;
+		latFreeze = DISABLED;
+		chprintf(chp, "Lateral Axis ");
+	}
+	else {
+		U8ShellMode = NO_SHELL_MODE;
+		latFreeze = DISABLED;
+		vertFreeze = DISABLED;
+		chprintf(chp, "Both Axes ");
+	}
+	chprintf(chp, "Unfrozen.\r\n");
+
+	if(ManualInputs.Mode == MANUAL_MODE) {
+		chprintf(chp, "Mode : Manual\r\n");
+	}
+	else {
+		chprintf(chp, "Mode : Sightline\r\n");
+	}
+}
 
 /******************************************************************************
  * Function name:	cmd_mode
@@ -334,22 +364,6 @@ static void cmd_mode(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 /*
- * Command Line Shell Functions
- */
-static const ShellCommand commands[] = {
-//	{"mem", cmd_mem},
-//	{"threads", cmd_threads},
-	{"data", cmd_data},
-	{"stop", cmd_stop},
-	{"disable", cmd_stop},
-	{"enable", cmd_enable},
-	{"mode", cmd_mode},
-//	{"freeze", cmd_freeze},
-//	{"unfreeze", cmd_unfreeze},
-	{NULL, cmd_stop}
-};
-
-/*
  * ADC1 end conversion callback.
  * The lateral axis control loop is run and PWM updated.
  */
@@ -360,7 +374,7 @@ static void adccb1(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
 	 intermediate callback when the buffer is half full.*/
 	if (adcp->state == ADC_COMPLETE) {
 		// Weighted Moving Average accumulator of axis input samples produces 15-bit value
-		AxisAccumulator[LAT_AXIS] = (AxisAccumulator[LAT_AXIS] * 7) + Samples[LAT_AXIS];
+		AxisAccumulator[LAT_AXIS] = ((AxisAccumulator[LAT_AXIS] * ADC_ACCUM_WT) + (Samples[LAT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
 	}
 }
 
@@ -375,9 +389,108 @@ static void adccb2(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
 	 intermediate callback when the buffer is half full.*/
 	if (adcp->state == ADC_COMPLETE) {
 		// Weighted Moving Average accumulator of axis input samples produces 15-bit value
-		AxisAccumulator[VERT_AXIS] = (AxisAccumulator[VERT_AXIS] * 7) + Samples[VERT_AXIS];
+		AxisAccumulator[VERT_AXIS] = ((AxisAccumulator[VERT_AXIS] * ADC_ACCUM_WT) + (Samples[VERT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
 	}
 }
+
+//static void evtReceiveNeutral(eventid_t id UNUSED){
+//
+//    ReceiveNeutral(&NeutralFeedback);
+//}
+
+static void evtSendManual(eventid_t id UNUSED){
+
+	SendManual(&ManualInputs);
+}
+static void evtProcessLEDs(eventid_t id UNUSED){
+
+	//Update Manual Control Box LEDs
+	// Set Neutral LEDs based on axis Neutral state
+	if(NeutralFeedback.vertNeutral == DISABLED) {
+		palSetPad(GPIOF, GPIOF_VERTNEUTLED);
+	}
+	else {
+		palClearPad(GPIOF, GPIOF_VERTNEUTLED);
+	}
+	if(NeutralFeedback.latNeutral == DISABLED) {
+		palSetPad(GPIOF, GPIOF_LATNEUTLED);
+	}
+	else {
+		palClearPad(GPIOF, GPIOF_LATNEUTLED);
+	}
+
+	// Set Mode LEDs based on Mode Switch state
+	if(ManualInputs.Mode == SIGHTLINE_MODE) {
+		palClearPad(GPIOG, GPIOG_MODE1LED);
+		palSetPad(GPIOG, GPIOG_MODE2LED);
+	}
+	else if(ManualInputs.Mode == MANUAL_MODE) {
+		palSetPad(GPIOG, GPIOG_MODE1LED);
+		palClearPad(GPIOG, GPIOG_MODE2LED);
+	}
+
+	return;
+}
+
+/*
+ * Manual Control Loop.
+ */
+static void manual_loop(GPTDriver *gptp) {
+
+	(void) gptp;
+
+	chSysLockFromIsr();
+
+	// Read Enable switch state
+	if(U8ShellEnable) {
+		ManualInputs.Enable = palReadPad(GPIOA, GPIOA_ENABLE); // PD8
+	}
+	else {
+		ManualInputs.Enable = DISABLED;
+	}
+	// Read Mode Switch
+	ManualInputs.Mode = palReadPad(GPIOE, GPIOE_MODE); // PD9
+
+	if(ManualInputs.Enable) {
+
+		//Send Sightline Mode message to RTx if Enable and Sightline Mode
+		if(ManualInputs.Mode == SIGHTLINE_MODE) {
+			// Send Message to RTx
+			chEvtBroadcastI(&ReadyManual);
+		}
+		else {
+
+			// Set desired position values to send to RTx Controller.
+			// If axis frozen, don't update desired positions.
+			if(latFreeze == DISABLED)
+				ManualInputs.latPosition = (AxisAccumulator[LAT_AXIS]) * 16;
+//				ManualInputs.latPosition = Samples[LAT_AXIS];
+			if(vertFreeze == DISABLED)
+				ManualInputs.vertPosition = (AxisAccumulator[VERT_AXIS]) * 16;
+//				ManualInputs.vertPosition = Samples[VERT_AXIS];
+
+			// Send message to RTx Controller
+			chEvtBroadcastI(&ReadyManual);
+		}
+	}
+	else {
+		// Send disable message to RTx
+		chEvtBroadcastI(&ReadyManual);
+	}
+
+
+	chSysUnlockFromIsr();
+
+	//Update Manual Control Box LEDs
+	evtProcessLEDs(0);
+	return;
+}
+
+static const GPTConfig gpt1cfg = {
+	1000000,
+	manual_loop,
+	0,
+};
 
 /*
  * Starts new conversion of axis input ADCs.
@@ -401,63 +514,36 @@ static void convert_start(GPTDriver *gptp) {
 	}
 }
 
-/*
- * Manual Control Loop.
- */
-static void manual_loop(GPTDriver *gptp) {
+static const GPTConfig gpt2cfg = {
+	1000000,
+	convert_start,
+	0,
+};
 
-	(void) gptp;
+WORKING_AREA(wa_rx, 512);
+msg_t rx_thread(void *p UNUSED) {
+    chRegSetThreadName("rx");
+    /*
+     * This thread creates a UDP socket and then listens for any incoming
+     * message, printing it out over serial USB
+     */
 
-	// Read Enable switch state
-	if(U8ShellEnable) {
-		ManualInputs.Enable = palReadPad(GPIOA, GPIOA_ENABLE); // PD8
-	}
-	else {
-		ManualInputs.Enable = DISABLED;
-	}
 
-	if(ManualInputs.Enable) {
 
-		// Read Mode Switch
-		ManualInputs.Mode = palReadPad(GPIOD, GPIOD_PIN9); // PD9
+    //read data from socket
+    while(TRUE) {
+		ReceiveNeutral(&NeutralFeedback);
+		ReceiveDiagnostics(&latDiagnostics, &vertDiagnostics);
+    	chThdSleepMicroseconds(500);
+    }
 
-		//Send Sightline Mode message to RTx if Enable and Sightline Mode
-		if(ManualInputs.Mode == SIGHTLINE_MODE) {
-			// Send Message to RTx
-//			SendManualtoRTx();
-		}
-		else {
-
-			// Set desired position values to send to RTx Controller.
-			// Accumulator effectively multiplies by 8, so multiply 2 to convert
-			// 12-bit value to 16-bit resolution of RTX axis position ADC's.
-			ManualInputs.latPosition = AxisAccumulator[LAT_AXIS]*2;
-			ManualInputs.vertPosition = AxisAccumulator[VERT_AXIS]*2;
-
-			// Send message to RTx Controller
-//			SendManualtoRTx();
-		}
-	}
-	else {
-		// Send disable message to RTx
-//		SendManualtoRTx();
-	}
-	// Check for neutral message from RTx Controller
-//	if(ReceiveFromRTx() > 0) {
-
-//	}
-	// Update Manual Control Box LEDs
-	processLeds();
-
-	return;
+    return -1;
 }
 
 /*
  * Application entry point.
  */
 int main(void) {
-
-BaseSequentialStream *chp = getUsbStream();
 
 	/*
 	* System initializations.
@@ -470,40 +556,45 @@ BaseSequentialStream *chp = getUsbStream();
 	halInit();
 	chSysInit();
 
-	/* fill out lwipthread_opts with our address*/
-	struct lwipthread_opts   ip_opts;
-	uint8_t macAddress[6] = {0xC2, 0xAF, 0x51, 0x03, 0xCF, 0x46};
-	set_lwipthread_opts(&ip_opts, IP_MANUAL, "255.255.255.0", "192.168.1.2", macAddress);
 
-	//Create sockets
-	SendtoManualSocket();
-	SendtoSLASocket();
-	ReceiveSLASocket();
-	ReceiveManualSocket();
-
-	/* Start the lwip thread*/
-	chprintf(chp, "LWIP ");
-	chThdCreateStatic(wa_lwip_thread, sizeof(wa_lwip_thread), NORMALPRIO + 2,
-	                    lwip_thread, &ip_opts);
-
-    //Receive thread
-    chprintf(chp, "rx ");
-    chThdCreateStatic(wa_rtx_controller_receive_thread, sizeof(wa_rtx_controller_receive_thread), RTX_CONTROLLER_RX_THD_PRIORITY,
-    		rtx_controller_receive_thread, NULL);
+	/* Start diagnostics led */
+	ledStart(NULL);
 
 
-    /*
-    * Shell manager initialization.
-    */
+	/* Start diagnostics shell */
+	const ShellCommand commands[] = {
+			{"mem", cmd_mem},
+			{"threads", cmd_threads},
+			{"data", cmd_data},
+			{"stop", cmd_stop},
+			{"disable", cmd_stop},
+			{"enable", cmd_enable},
+			{"mode", cmd_mode},
+			{"freeze", cmd_freeze},
+			{"unfreeze", cmd_unfreeze},
+			{NULL, cmd_stop}
+	};
 	usbSerialShellStart(commands);
+	BaseSequentialStream * chp = getUsbStream();
 
 	// Enable Continuous GPT for 10ms Interval for control loop
 	gptStart(&GPTD1, &gpt1cfg);
-	gptStartContinuous(&GPTD1, 100000);
+	gptStartContinuous(&GPTD1, 10000);
 
 	// Enable Continuous GPT for 500us Interval for ADC conversions
 	gptStart(&GPTD2, &gpt2cfg);
-	gptStartContinuous(&GPTD2, 5000);
+	gptStartContinuous(&GPTD2, 500);
+
+	/* Start the lwip thread*/
+	chprintf(chp, "LWIP ");
+	lwipThreadStart(RTXMAN_LWIP);
+
+	//Create sockets
+    SendManualtoRTxSocket();
+	ReceiveManualfromRTxSocket();
+	ReceiveDiagnosticsSocket();
+
+	chThdCreateStatic(wa_rx, sizeof(wa_rx), NORMALPRIO, rx_thread, NULL);
 
 	// Configure pins for Input ADC's
 	// PA4: Lat Axis Input
@@ -531,7 +622,7 @@ BaseSequentialStream *chp = getUsbStream();
 
 	// Configure pins for switches
 	// PA6: Drive Enable Switch
-	palSetPadMode(GPIOA, GPIOA_ENABLE, PAL_MODE_INPUT);
+	palSetPadMode(GPIOA, GPIOA_ENABLE, PAL_MODE_INPUT_PULLDOWN);
 	// PE4: Mode Select Switch
 	palSetPadMode(GPIOE, GPIOE_MODE, PAL_MODE_INPUT);
 	// PE6: Aux Select Switch
@@ -540,48 +631,16 @@ BaseSequentialStream *chp = getUsbStream();
 	adcStart(&ADCD1, NULL);
 	adcStart(&ADCD2, NULL);
 
-	/*
-	* Activates the serial driver 6 and SDC driver 1 using default
-	* configuration.
-	*/
-	sdStart(&SD6, NULL);
+    // Set up event system
+    struct EventListener evtManual;
+    chEvtRegister(&ReadyManual, &evtManual, 0);
+
+    const evhandler_t evhndl[] = {
+        evtSendManual,
+    };
 
 
 	while (TRUE) {
-		chThdSleep(TIME_INFINITE);
+		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}
-}
-
-/******************************************************************************
- * Function name:	processLeds
- *
- * Description:		Manages LEDs based on system state
- *
- *****************************************************************************/
-static void processLeds(void){
-
-	// Set Neutral LEDs based on axis Neutral state
-	if(NeutralFeedback.vertNeutral) {
-		palSetPad(GPIOF, GPIOF_VERTNEUTLED);
-	}
-	else {
-		palClearPad(GPIOF, GPIOF_VERTNEUTLED);
-	}
-	if(NeutralFeedback.latNeutral) {
-		palSetPad(GPIOF, GPIOF_LATNEUTLED);
-	}
-	else {
-		palClearPad(GPIOF, GPIOF_LATNEUTLED);
-	}
-
-	// Set Mode LEDs based on Mode Switch state
-	if(ManualInputs.Mode) {
-		palClearPad(GPIOG, GPIOG_MODE2LED);
-		palSetPad(GPIOG, GPIOG_MODE1LED);
-	}
-	else
-		palClearPad(GPIOG, GPIOG_MODE1LED);
-		palSetPad(GPIOG, GPIOG_MODE2LED);
-
-	return;
 }
