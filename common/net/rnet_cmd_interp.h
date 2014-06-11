@@ -12,9 +12,6 @@
 #define RNET_CMD_INTERP_H_
 
 #include "lwip/ip_addr.h"
-#include "BQ3060.h"
-
-
 
 
 /* Contains all the RCI generated data passed to an RCI command handler.
@@ -51,7 +48,6 @@ struct RCIConfig{
  * is required to have been started beforehand.
  */
 void RCICreate(struct RCIConfig * conf);
-extern EventSource BQ3060_battery_fault_hist;
 
 #endif /* RNET_CMD_INTERP_H_ */
 
