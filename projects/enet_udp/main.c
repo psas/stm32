@@ -57,9 +57,10 @@ msg_t tx_thread(void *p UNUSED){
     char msg[MSG_SIZE];
     for(uint8_t count = 0;; ++count){
         chsnprintf(msg, sizeof(msg), "PSAS Rockets! %d", count);
-        if(write(s, msg, sizeof(msg)) < 0){
-            chDbgPanic("tx socket write failure");
-        }
+	if(write(s, msg, sizeof(msg)) < 0){
+		// Tue 10 June 2014 20:52:24 (PDT) Should we have a panic?
+		chDbgPanic("tx socket write failure");
+	}
         chThdSleepMilliseconds(500);
 
     }

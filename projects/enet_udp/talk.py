@@ -35,7 +35,7 @@ def send():
     count = 0
     with udp() as sock:
         while True:
-            msg = 'Shinybit' + count + '/n'
+            msg = 'Shinybit' + str(count) + '/n'
             sock.sendto(msg.encode('ascii', 'ignore'), (IP_DEST, PORT_DEST_RX))
             print("Sent", repr(msg), "To destination")
             count += 1
