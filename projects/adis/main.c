@@ -14,14 +14,11 @@
 #include "lwipthread.h"
 
 #include "utils_sockets.h"
+#include "utils_general.h"
 #include "utils_led.h"
 #include "net_addrs.h"
 
 #include "ADIS16405.h"
-
-#define GPIOF_LED_RED GPIOF_PIN12
-#define GPIOF_LED_GREEN GPIOF_PIN13
-#define GPIOF_LED_BLUE GPIOF_PIN14
 
 static int sendsocket;
 
@@ -40,37 +37,22 @@ void serialize_adis(ADIS16405_burst_data * data, uint16_t * buffer){
     buffer[11] = htons(data->aux_adc);
 }
 
-static void adis_drdy_handler(eventid_t id __attribute__((unused))){
+static void adis_drdy_handler(eventid_t id UNUSED){
     ADIS16405_burst_data data;
     uint16_t buffer[12]; //FIXME: buffer size
-    palSetPad(GPIOF, GPIOF_LED_BLUE);
 
     adis_get_data(&data);
     serialize_adis(&data, buffer);
     if(write(sendsocket, buffer, sizeof(buffer)) < 0){
-        palSetPad(GPIOF, GPIOF_LED_RED);
+        ledError();
     }
-
-    palClearPad(GPIOF, GPIOF_LED_BLUE);
 }
 
 void main(void){
-	halInit();
-	chSysInit();
-	static struct pin leds[] = {
-		{GPIOC, GPIOC_LED},
-		{GPIOF, GPIOF_LED_RED},
-		{GPIOF, GPIOF_LED_GREEN},
-		{GPIOF, GPIOF_LED_BLUE},
-		{0, 0}
-	};
+    halInit();
+    chSysInit();
 
-	static struct led_config led_cfg = {
-	        .cycle_ms = 500,
-	        .start_ms = 0,
-	        .led = 	leds
-	};
-	led_init(&led_cfg);
+    ledStart(NULL);
 
     /* Start lwip */
     lwipThreadStart(SENSOR_LWIP);
@@ -78,9 +60,9 @@ void main(void){
     /* Create the ADIS out socket, connecting as it only sends to one place */
     sendsocket = get_udp_socket(ADIS_ADDR);
     if(sendsocket < 0){
-        palSetPad(GPIOF, GPIOF_LED_RED);
+        ledError();
     } else if(connect(sendsocket, FC_ADDR, sizeof(struct sockaddr)) < 0){
-        palSetPad(GPIOF, GPIOF_LED_RED);
+        ledError();
     }
 
     adis_init(&adis_olimex_e407);
@@ -91,7 +73,7 @@ void main(void){
             adis_drdy_handler
     };
     chEvtRegister(&ADIS16405_data_ready, &drdy, 0);
-	while(TRUE){
+    while(TRUE){
         chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
-	}
+    }
 }

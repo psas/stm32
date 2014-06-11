@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -O0 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
+  USE_OPT = -O0 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main -std=gnu99
 endif
 
 # C specific options here (added to USE_OPT).
@@ -96,7 +96,6 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(PSAS_UTIL)/usbdetail.c \
        $(PSAS_NET)/utils_sockets.c \
-       data_udp.c \
        $(PSAS_UTIL)/utils_shell.c \
        $(PSAS_UTIL)/utils_led.c \
        main.c

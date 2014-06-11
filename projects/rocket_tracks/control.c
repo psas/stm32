@@ -10,10 +10,10 @@
  * Author:		Dan Kirkpatrick
  * Date:		3/10/2012
  *****************************************************************************/
+
 #include <stdint.h>
 #include <math.h>
 #include "control.h"
-
 
 void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 {

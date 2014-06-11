@@ -23,7 +23,7 @@ void main(void) {
     chSysInit();
 
     /* Diagnostic led */
-    led_init(NULL);
+    ledStart(NULL);
 
     /* Start lwip stack */
     lwipThreadStart(ROLL_LWIP);

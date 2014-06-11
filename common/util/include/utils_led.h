@@ -10,13 +10,49 @@
 #include "hal.h"
 #include "utils_hal.h"
 
+struct led {
+    ioportid_t port;
+    uint16_t pad;
+};
+
 struct led_config {
     systime_t cycle_ms;   // Main sequence led toggle time, must be positive
     systime_t start_ms;   // Start pattern duration
-    struct pin * led;     // Null terminated array of led pins,
-                          // must have at least one valid pin.
+    const struct led ** led; // Null terminated array of led pointers
 };
 
+/* Board dependent physical leds */
+#ifdef BOARD_PSAS_ROCKETNET_HUB_1_0
+extern const struct led GREEN;
+extern const struct led RED;
+extern const struct led BLUE;
+#elif defined BOARD_OLIMEX_STM32_E407
+extern const struct led GREEN;
+#endif
+
+
+/* Suggested project code usage:
+ * Each project defines a set of logical leds and then maps physical leds
+ * to the logical leds in a board dependent way.
+
+logical leds (Defining them in this way lets them default to null):
+extern const struct led * behavior_alpha;
+extern const struct led * on_bar;
+
+map:
+#ifdef BOARD_BAR
+const struct led * behavior_alpha = &RED;
+const struct led * on_bar = &BLUE;
+#elif define FOOBOARD
+const struct led * behavior_1 = &GREEN;
+on_bar has no corresponding physical led
+#endif
+*/
+
+/* Functions that operate on LED structures, does nothing if null is passed */
+void ledOn(const struct led * led);
+void ledOff(const struct led * led);
+void ledToggle(const struct led * led);
 
 /*
  * Starts a thread that will:
@@ -31,18 +67,18 @@ struct led_config {
  * BOARD_PSAS_ROCKETNET_HUB_1_0
  * BOARD_OLIMEX_STM32_E407
  */
-void led_init(struct led_config * cfg);
+void ledStart(struct led_config * cfg);
 
 /*
  * Indicate an error has occurred.
  * Will cause the led to flash at twice the normal rate and, if it exists,
  * change the blinking led to the second in the list.
  */
-void led_error(void);
+void ledError(void);
 
 /*
  * Change led blinking to the default behavior.
  */
-void led_nominal(void);
+void ledNominal(void);
 
 #endif /* UTILS_LED_H_ */

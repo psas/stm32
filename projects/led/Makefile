@@ -3,6 +3,10 @@
 # NOTE: Can be overridden externally.
 #
 
+#TODO: -ffreestanding. ChibiOS doesn't use it but it probably should?
+#      main() should be void either way (and shouldn't return either) so
+#      if we don't go with -ffreestanding we need -Wno-main to stop the 
+#      compiler from complaining (-ffreestanding implies -Wno-main) 
 # Compiler options here.
 ifeq ($(USE_OPT),)
   USE_OPT = -O2 -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main
@@ -10,7 +14,7 @@ endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT =
+  USE_COPT = 
 endif
 
 # C++ specific options here (added to USE_OPT).
@@ -65,38 +69,32 @@ PROJECT = ch
 
 # Imported source files and paths
 PSAS= ../../common
-RTX= $(PSAS)/rtx
-CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-include $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407/board.mk
+BOARD ?= OLIMEX_STM32_E407
+ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
+    include $(CHIBIOS)/boards/$(BOARD)/board.mk
+else
+    include $(PSAS)/boards/$(BOARD)/board.mk
+endif
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
-include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
+include $(CHIBIOS)/test/test.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
-#LDSCRIPT= $(PORTLD)/STM32F407xG_CCM.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CSRC = $(PORTSRC) \
        $(KERNSRC) \
+       $(TESTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       $(LWSRC) \
-       $(FATFSSRC) \
-       $(CHIBIOS)/os/various/evtimer.c \
-       $(CHIBIOS)/os/various/memstreams.c \
-       $(CHIBIOS)/os/various/chprintf.c \
-       $(CHIBIOS)/os/various/shell.c \
-       $(PSAS_UTIL)/usbdetail.c \
-       $(PSAS_NET)/utils_sockets.c \
-       $(RTX)/enet_api.c \
-	   rtx_manual.c
+       main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -126,11 +124,8 @@ TCPPSRC =
 ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
-         $(CHIBIOS)/os/various \
-         $(PSAS_DEVICES)/include $(PSAS_UTIL)/include \
-         $(PSAS_NET) $(RTX) \
-         $(CONF)
+         $(HALINC) $(PLATFORMINC) $(BOARDINC) \
+         $(CHIBIOS)/os/various
 
 #
 # Project, sources and paths

@@ -25,6 +25,13 @@ typedef enum {
                    RNH_PORT_6 | RNH_PORT_7
 } RNHPort;
 
+struct rnhPortCurrent {
+    uint16_t current[8];
+};
+
+#define RNH_PORT_CURRENT_MAX_SAMPLE_RATE 9001
+#define RNH_PORT_CURRENT_DEFAULT_SAMPLE_RATE 1000
+
 typedef void (*rnhPortFaultHandler)(RNHPort fault, void * data);
 
 extern const struct RCICommand RCI_CMD_PORT;
@@ -43,7 +50,7 @@ void rnhPortStart(void);
  * bit[n] set 1 indicates on
  * bit[n] set 0 indicates off or not selected.
  */
-RNHPort rnhPortStatus(RNHPort port);
+RNHPort rnhPortStatus(void);
 
 /* Returns a bitfield of the over-current fault status of ports, masked by
  * the port parameter.
@@ -51,7 +58,7 @@ RNHPort rnhPortStatus(RNHPort port);
  * bit[n] set 1 indicates port faulting
  * bit[n] set 0 indicates not faulting or not selected
  */
-RNHPort rnhPortFault(RNHPort port);
+RNHPort rnhPortFault(void);
 
 /* Sets the ports specified in port to on */
 void rnhPortOn(RNHPort port);
@@ -65,9 +72,9 @@ void rnhPortSetFaultHandler(rnhPortFaultHandler handler, void * data);
 /* Copies the most recent set of port current measurements into data.
  * The event rnhPortCurrent signals when new data is ready to be retrieved
  */
-void rnhPortGetCurrentData(uint16_t * data);
+void rnhPortGetCurrentData(struct rnhPortCurrent * measurement);
 
-/* Sets the frequency that port current is sampled at */
+/* Sets the frequency in hertz that port current is sampled at */
 void rnhPortSetCurrentDataRate(unsigned freq);
 
 #endif /* RNH_PORT_H_ */

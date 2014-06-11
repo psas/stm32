@@ -8,6 +8,7 @@
 #include "KS8999.h"
 #include "BQ24725.h"
 #include "BQ3060.h"
+#include "RNHPort.h"
 #include "rnh_shell.h"
 
 #define UNUSED __attribute__((unused))
@@ -131,7 +132,6 @@ void cmd_3060_temp(BaseSequentialStream *chp, int argc, char *argv[] UNUSED){
     }
 }
 
-
 void cmd_acok(BaseSequentialStream *chp, int argc, char *argv[]){
     (void)argv;
     if (argc > 0) {
@@ -201,43 +201,25 @@ static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
         return;
     }
 
-#define NUM_PORT 8
-    int port[NUM_PORT] = {0, 0, 0, 0, 0, 0, 0, 0};
-    //power and fault 0 are left at a safe value instead of NULL or similar
-    uint32_t power[NUM_PORT] =
-        {GPIO_E4_NC, GPIO_E0_NODE1_N_EN, GPIO_E1_NODE2_N_EN,
-         GPIO_E2_NODE3_N_EN, GPIO_E3_NODE4_N_EN, GPIO_E4_NC,
-         GPIO_E5_NODE6_N_EN, GPIO_E6_NODE7_N_EN};
-
-    uint32_t fault[NUM_PORT] =
-        {GPIO_E12_NC, GPIO_E8_NODE1_N_FLT, GPIO_E9_NODE2_N_FLT,
-         GPIO_E10_NODE3_N_FLT, GPIO_E11_NODE4_N_FLT, GPIO_E12_NC,
-         GPIO_E13_NODE6_N_FLT, GPIO_E14_NODE7_N_FLT};
-
     typedef enum {info, on, off} action;
     action act = info;
+    RNHPort port = 0;
     //parse arguments
-    int i;
-    for(i = 0; i < argc; ++i){
+    for(int i = 0; i < argc; ++i){
         if(!strcmp(argv[i], "1")){
-            port[1] = TRUE;
+            port |= RNH_PORT_1;
         }else if(!strcmp(argv[i], "2")){
-            port[2] = TRUE;
+            port |= RNH_PORT_2;
         }else if(!strcmp(argv[i], "3")){
-            port[3] = TRUE;
+            port |= RNH_PORT_3;
         }else if(!strcmp(argv[i], "4")){
-            port[4] = TRUE;
+            port |= RNH_PORT_4;
         }else if(!strcmp(argv[i], "6")){
-            port[6] = TRUE;
+            port |= RNH_PORT_6;
         }else if(!strcmp(argv[i], "7")){
-            port[7] = TRUE;
+            port |= RNH_PORT_7;
         }else if(!strcmp(argv[i], "all")){
-            port[1] = TRUE;
-            port[2] = TRUE;
-            port[3] = TRUE;
-            port[4] = TRUE;
-            port[6] = TRUE;
-            port[7] = TRUE;
+            port |= RNH_PORT_ALL;
         }else if(i != 0 && i == argc - 1) {
             if(!strcmp(argv[i], "on")){
                 act = on;
@@ -254,28 +236,30 @@ static void cmd_power(BaseSequentialStream *chp, int argc, char *argv[]) {
     }
 
     //do actions
-    for(i = 1; i < NUM_PORT; ++i){
-        if(port[i]){
-            switch(act){
-            case on:
-                palClearPad(GPIOE, power[i]);
-                break;
-            case off:
-                palSetPad(GPIOE, power[i]);
-                break;
-            case info:
-            default:
-                chprintf(chp, "%d: ", i);
-                if(palReadPad(GPIOE, power[i])){
-                    chprintf(chp, "off, ");
-                }else{
-                    chprintf(chp, "on, ");
-                }
-                if(palReadPad(GPIOE, fault[i])){
-                    chprintf(chp, "nominal\r\n");
-                }else{
-                    chprintf(chp, "fault\r\n");
-                }
+    RNHPort status = 0;
+    RNHPort fault = 0;
+    switch(act){
+    case on:
+        rnhPortOn(port);
+        break;
+    case off:
+        rnhPortOff(off);
+        break;
+    case info:
+    default:
+        status = rnhPortStatus();
+        fault = rnhPortFault();
+        for(int i = 0; i < 8; ++i){
+            chprintf(chp, "%d: ", i + 1);
+            if(status & 1<<i){
+                chprintf(chp, "off, ");
+            }else{
+                chprintf(chp, "on, ");
+            }
+            if(fault & 1<<i){
+                chprintf(chp, "nominal\r\n");
+            }else{
+                chprintf(chp, "fault\r\n");
             }
         }
     }

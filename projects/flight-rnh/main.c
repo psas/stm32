@@ -18,13 +18,13 @@
 #include "KS8999.h"
 #include "RNHPort.h"
 
-int battery_socket;
-int port_socket;
+static int battery_socket;
+static int port_socket;
+static EVENTSOURCE_DECL(ACOK);
 //these are defined in BQ3060.c
 uint16_t crntAlarms[3];
 uint16_t cumAlarms[3];
-
-EVENTSOURCE_DECL(ACOK);
+static const struct led * LED_ACOK = &BLUE;
 
 /* RCI commands
  *
@@ -61,14 +61,14 @@ void sleep(void){
 
 static void ACOK_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
     if(BQ24725_ACOK()){
-        palClearPad(GPIOD, GPIO_D11_RGB_B);
+        ledOn(LED_ACOK);
         chSysLockFromIsr();
         chEvtBroadcastI(&ACOK);
         chSysUnlockFromIsr();
         //if low power mode is set
         //KS8999_enable(TRUE);
     }else{
-        palSetPad(GPIOD, GPIO_D11_RGB_B);
+    	ledOff(LED_ACOK);
         //if low power mode is set
         //KS8999_enable(FALSE);
         //sleep();
@@ -115,8 +115,17 @@ static void BQ3060_SendData(eventid_t id UNUSED){
 }
 
 static void portCurrent_SendData(eventid_t id UNUSED){
+    struct rnhPortCurrent sample;
     uint16_t buffer[8];
-    rnhPortGetCurrentData(buffer);
+    rnhPortGetCurrentData(&sample);
+    buffer[0] = htons(sample.current[0]);
+    buffer[1] = htons(sample.current[1]);
+    buffer[2] = htons(sample.current[2]);
+    buffer[3] = htons(sample.current[3]);
+    buffer[4] = htons(sample.current[4]);
+    buffer[5] = htons(sample.current[5]);
+    buffer[6] = htons(sample.current[6]);
+    buffer[7] = htons(sample.current[7]);
     write(port_socket, buffer, sizeof(buffer));
 }
 
@@ -146,7 +155,7 @@ void main(void) {
     chSysInit();
 
     // Start Diagnostics
-    led_init(NULL);
+    ledStart(NULL);
     rnh_shell_start();
 
     // Configuration
@@ -173,19 +182,20 @@ void main(void) {
     rnhPortStart();
 
     lwipThreadStart(RNH_LWIP);
-    chThdSleepMilliseconds(100); // because threads suck, lwipthread was starting after rci thread
-                                 // FIXME THIS IS A TERRIBLE HACK
     RCICreate(&conf);
 
     // Set up sockets
     battery_socket = get_udp_socket(RNH_BATTERY_ADDR);
+    chDbgAssert(battery_socket >=0, "Battery socket failed", NULL);
     port_socket = get_udp_socket(RNH_PORT_ADDR);
+    chDbgAssert(port_socket >=0, DBG_PREFIX"Port socket socket failed", NULL);
+
     connect(battery_socket, FC_ADDR, sizeof(struct sockaddr));
     connect(port_socket, FC_ADDR, sizeof(struct sockaddr));
 
     // Start charging if possible
     if(BQ24725_ACOK()){
-        palClearPad(GPIOD, GPIO_D11_RGB_B);
+        ledOn(LED_ACOK);
         BQ24725_SetCharge(0);
     }
 

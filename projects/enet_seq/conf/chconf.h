@@ -19,7 +19,7 @@
 */
 
 /**
- * @file    templates/chconf.h
+ * @file    chconf.h
  * @brief   Configuration file template.
  * @details A copy of this file must be placed in each project directory, it
  *          contains the application specific kernel settings.
@@ -45,7 +45,7 @@
  *          setting also defines the system tick time unit.
  */
 #if !defined(CH_FREQUENCY) || defined(__DOXYGEN__)
-#define CH_FREQUENCY                    1000
+#define CH_FREQUENCY                   1000
 #endif
 
 /**

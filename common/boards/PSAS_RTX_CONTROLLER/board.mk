@@ -1,5 +1,5 @@
 # Required include directories
-BOARDINC = $(PSAS_BOARDS)/PSAS_OLIMEX_STM32_E407
+BOARDINC = $(PSAS_BOARDS)/PSAS_RTX_CONTROLLER
 
 # List of all the board related files.
 BOARDSRC = $(BOARDINC)/board.c
