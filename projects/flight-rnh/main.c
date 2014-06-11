@@ -131,7 +131,7 @@ static void batteryFault_Handler(eventid_t id UNUSED) {
 	buffer[0] = htons(crntAlarms[0]);
 	buffer[1] = htons(crntAlarms[1]);
 	buffer[2] = htons(crntAlarms[2]);
-	write(port_socket, buffer, sizeof(buffer));
+	write(port_socket.socket, buffer, sizeof(buffer));
 }
 
 static void batteryFaultHist_Handler(eventid_t id UNUSED) {
@@ -139,7 +139,7 @@ static void batteryFaultHist_Handler(eventid_t id UNUSED) {
 	buffer[0] = htons(cumAlarms[0]);
 	buffer[1] = htons(cumAlarms[1]);
 	buffer[2] = htons(cumAlarms[2]);
-	write(port_socket, buffer, sizeof(buffer));
+	write(port_socket.socket, buffer, sizeof(buffer));
 }
 
 void main(void) {

@@ -16,7 +16,6 @@
 
 static struct BQ3060Config * CONF;
 static bool initialized = false;
-static I2CDriver *I2CD;
 static const systime_t I2C_TIMEOUT = MS2ST(400);
 
 EventSource BQ3060_data_ready;
@@ -168,6 +167,9 @@ static void read_handler(eventid_t id UNUSED){
     chEvtBroadcast(&BQ3060_data_ready);
 }
 
+uint16_t crntAlarms[3];
+uint16_t cumAlarms[3];
+
 static WORKING_AREA(wa_read, 512);
 static msg_t read_thread(void * p UNUSED){
     chRegSetThreadName("BQ3060");
@@ -191,7 +193,7 @@ static msg_t read_thread(void * p UNUSED){
 	//if any battery issues have occurred we fire
 	//the event associated with BQ3060_battery_fault
 	//read the safety alert register (0x50)
-	BQ3060_Get(0x50,&safetyData);
+	BQ3060Get(0x50,&safetyData);
 	crntAlarms[0] = safetyData;
 	curSftyAlert = safetyData;
 	cumAlarms[0] = cumAlarms[0] | safetyData;
@@ -200,14 +202,14 @@ static msg_t read_thread(void * p UNUSED){
 
 	}
 	//read the pending failure alert register (0x52)
-	BQ3060_Get(0x52,&safetyData);
+	BQ3060Get(0x52,&safetyData);
 	crntAlarms[1] = safetyData;
 	cumAlarms[1] = cumAlarms[1] | safetyData;
 	if (safetyData != 0) {
 		chEvtBroadcast(&BQ3060_battery_fault);
 	}
 	//read the permanent failure status register (0x53)
-	BQ3060_Get(0x53,&safetyData);
+	BQ3060Get(0x53,&safetyData);
 	crntAlarms[2] = safetyData;
 	cumAlarms[2] = cumAlarms[2] | safetyData;
 	if (safetyData != 0) {
@@ -237,7 +239,7 @@ void BQ3060Start(struct BQ3060Config * conf){
 }
 
 
-static void BQ3060_clearFaultHistory(void) {
+void BQ3060_clearFaultHistory(void) {
 	//clear fault history, see BQ3060.c
 	cumAlarms[0] = 0;
 	cumAlarms[1] = 0;
