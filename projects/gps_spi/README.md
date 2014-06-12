@@ -1,7 +1,7 @@
 
-# Development of GPS board SPI interface
+# Development of GPS board SPI interface for MAX2769 Universal GPS Receiver
 
-The SPI interface to the MAXxxxx chip is a 3-wire or 'half-duplex' SPI implementation.
+The SPI interface to the MAX2769 chip is a 3-wire or 'half-duplex' SPI implementation.
 The stm32f4 claims to support this: See p801 of the STM32 reference manual (section 27.3.4)
 
 <p>
