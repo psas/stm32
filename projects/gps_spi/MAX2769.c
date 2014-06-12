@@ -85,9 +85,9 @@ void max2769_init(const MAX2769Config * conf)
 	uint32_t PINMODE = PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST |
 	                   PAL_STM32_PUDR_FLOATING;
 	/* SPI pins setup */
-	palSetPadMode(conf->spi_sck.port, conf->spi_sck.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
-	palSetPadMode(conf->spi_miso.port, conf->spi_miso.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
-	palSetPadMode(conf->spi_mosi.port, conf->spi_mosi.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
+	palSetPadMode(conf->spi_sck.port, conf->spi_sck.pad, PAL_MODE_ALTERNATE(X) | PINMODE);
+	palSetPadMode(conf->spi_miso.port, conf->spi_miso.pad, PAL_MODE_ALTERNATE(X) | PINMODE);
+	palSetPadMode(conf->spi_mosi.port, conf->spi_mosi.pad, PAL_MODE_ALTERNATE(X) | PINMODE);
 	palSetPadMode(conf->spi_cs.port, conf->spi_cs.pad, PAL_MODE_OUTPUT_PUSHPULL | PINMODE);
 	palSetPad(conf->spi_cs.port, conf->spi_cs.pad); //unselect
 	/* GPIO pins setup */
@@ -101,7 +101,7 @@ void max2769_init(const MAX2769Config * conf)
 	              PAL_MODE_INPUT_PULLDOWN | PAL_STM32_OSPEED_HIGHEST);
 	palSetPadMode(conf->dio4.port, conf->dio4.pad,
 	              PAL_MODE_INPUT_PULLDOWN | PAL_STM32_OSPEED_HIGHEST);
-	/* MAX2869 SPI configuration    TBD
+	/* MAX2869 SPI configuration    TBD as of Wed 11 June 2014 21:02:06 (PDT)
 	 * 656250Hz, CPHA=1, CPOL=1, MSb first.
 	 */
 	static SPIConfig spicfg =
@@ -114,4 +114,5 @@ void max2769_init(const MAX2769Config * conf)
 	spiStart(conf->SPID, &spicfg);
 	CONF = conf;
 }
+
 
