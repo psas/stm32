@@ -44,6 +44,9 @@ uint16_t max2769_get(max2769_regaddr addr)  //todo: array
 {
 	uint8_t txbuf[2] = {addr, 0};
 	uint8_t rxbuf[2];
+	
+	CONF->SPID->spi->CR1 &= !SPI_CR1_BIDIOE;
+
 	spiAcquireBus(CONF->SPID);
 	spiSelect(CONF->SPID);
 	spiSend(CONF->SPID, sizeof(txbuf), txbuf);
@@ -60,6 +63,9 @@ void max2769_set(max2769_regaddr addr, uint16_t value)  //todo:array
 		WRITE_ADDR(addr + 1), value >> 8,
 		WRITE_ADDR(addr),   value
 	};
+
+	CONF->SPID->spi->CR1 |= SPI_CR1_BIDIOE;
+
 	spiAcquireBus(CONF->SPID);
 	spiSelect(CONF->SPID);
 	spiSend(CONF->SPID, sizeof(txbuf), txbuf);
@@ -106,7 +112,7 @@ void max2769_init(const MAX2769Config * conf)
 	static SPIConfig spicfg =
 	{
 		.end_cb = spi_complete,
-		.cr1 = SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1
+		.cr1 = SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_BIDIMODE
 	};
 	spicfg.ssport = conf->spi_cs.port;
 	spicfg.sspad = conf->spi_cs.pad;
