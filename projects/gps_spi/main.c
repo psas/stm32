@@ -1,6 +1,6 @@
 /* \file main.c */
 
-#include "max2769.h"
+#include "MAX2769.h"
 
 
 

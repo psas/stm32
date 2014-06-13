@@ -1,4 +1,5 @@
-/* \file max2769.h */
+/*! \file MAX2769.h 
+ */
 
 /* Intended for use with ChibiOS RT */
 

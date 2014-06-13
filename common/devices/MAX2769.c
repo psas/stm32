@@ -26,8 +26,8 @@ static const MAX2769Config * CONF;
 
 const MAX2769Config max2769_gps =
 {
-	.spi_sck     = {GPIOE, GPIOE_PIN13},
-	.spi_mosi    = {GPIOE, GPIOE_PIN14},
+	.spi_sck     = {GPIOE, GPIOB_PIN10},
+	.spi_mosi    = {GPIOE, GPIOB_PIN15},
 	.spi_cs      = {GPIOE, GPIOE_PIN12},
 	.SPID        = &SPID1,
 	.idle        = {GPIOE, GPIOE_PIN11},
@@ -85,9 +85,8 @@ void max2769_init(const MAX2769Config * conf)
 	uint32_t PINMODE = PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST |
 	                   PAL_STM32_PUDR_FLOATING;
 	/* SPI pins setup */
-	palSetPadMode(conf->spi_sck.port, conf->spi_sck.pad, PAL_MODE_ALTERNATE(X) | PINMODE);
-	palSetPadMode(conf->spi_miso.port, conf->spi_miso.pad, PAL_MODE_ALTERNATE(X) | PINMODE);
-	palSetPadMode(conf->spi_mosi.port, conf->spi_mosi.pad, PAL_MODE_ALTERNATE(X) | PINMODE);
+	palSetPadMode(conf->spi_sck.port, conf->spi_sck.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
+	palSetPadMode(conf->spi_mosi.port, conf->spi_mosi.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
 	palSetPadMode(conf->spi_cs.port, conf->spi_cs.pad, PAL_MODE_OUTPUT_PUSHPULL | PINMODE);
 	palSetPad(conf->spi_cs.port, conf->spi_cs.pad); //unselect
 	/* GPIO pins setup */
