@@ -11,8 +11,6 @@
  *  - Because of EEs the physical port number labels are off by one and the
  *    enum labels mirror that here, but not the values.
  *  - The umbilical is where port 5 would be
- *  - Port 8 is not physically connected due to a design overlook. FIXME: When
- *    this is fixed its element should be added.
  */
 typedef enum {
     RNH_PORT_1 = 1<<0,
@@ -21,8 +19,9 @@ typedef enum {
     RNH_PORT_4 = 1<<3,
     RNH_PORT_6 = 1<<5,
     RNH_PORT_7 = 1<<6,
+    RNH_PORT_8 = 1<<7
     RNH_PORT_ALL = RNH_PORT_1 | RNH_PORT_2 | RNH_PORT_3 | RNH_PORT_4 |
-                   RNH_PORT_6 | RNH_PORT_7
+                   RNH_PORT_6 | RNH_PORT_7 | RNH_PORT_8
 } RNHPort;
 
 struct rnhPortCurrent {

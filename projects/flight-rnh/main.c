@@ -33,6 +33,7 @@ static const char ARM[]     = "#YOLO";
 static const char SAFE[]    = "#SAFE";
 static const char TIME[]    = "#TIME";
 static const char AHST[]    = "#AHST";
+static const char RRDY[]    = "#RRDY";
 
 void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
@@ -45,6 +46,14 @@ void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     rci_data->return_data[6] = time_ns & (0xFF << 1) >> 1;
     rci_data->return_data[7] = time_ns & (0xFF << 0) >> 0;
     rci_data->return_len = 8;
+}
+
+void cmd_rocketready(struct RCICmdData * rci_data, void user_data UNUSED){
+    if(rci_data->cmd_data[0] = 0xA5){
+        palClearPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+    } else {
+        palSetPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+    }
 }
 
 /* Hardware handling callbacks
