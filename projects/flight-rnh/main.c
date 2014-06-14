@@ -48,8 +48,8 @@ void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     rci_data->return_len = 8;
 }
 
-void cmd_rocketready(struct RCICmdData * rci_data, void user_data UNUSED){
-    if(rci_data->cmd_data[0] = 0xA5){
+void cmd_rocketready(struct RCICmdData * rci_data, void * user_data UNUSED){
+    if(rci_data->cmd_data[0] == 0xA5){
         palClearPad(GPIOD, GPIO_D2_N_ROCKET_READY);
     } else {
         palSetPad(GPIOD, GPIO_D2_N_ROCKET_READY);
@@ -144,7 +144,6 @@ static void batteryFault_Handler(eventid_t id UNUSED) {
 }
 
 static void batteryFaultHist_Handler(struct RCICmdData * rci_data, void * user_data UNUSED) {
-  //rci_data->return_data[7] = time_ns & (0xFF << 0) >> 0;
   rci_data->return_data[0] = cumAlarms[0] & (0xFF << 0) >> 0;
   rci_data->return_data[1] = cumAlarms[0] & (0xFF << 8) >> 8;
   rci_data->return_data[2] = cumAlarms[1] & (0xFF << 0) >> 0;
@@ -152,14 +151,16 @@ static void batteryFaultHist_Handler(struct RCICmdData * rci_data, void * user_d
   rci_data->return_data[4] = cumAlarms[2] & (0xFF << 0) >> 8;
   rci_data->return_data[5] = cumAlarms[2] & (0xFF << 8) >> 8;
   rci_data->return_len = 6;
-
-	//uint16_t buffer[3];
-	//buffer[0] = htons(cumAlarms[0]);
-	//buffer[1] = htons(cumAlarms[1]);
-	//buffer[2] = htons(cumAlarms[2]);
-	//write(port_socket.socket, buffer, sizeof(buffer));
 }
-
+static struct led_config led_cfg = {
+    .cycle_ms = 500,
+    .start_ms = 2500,
+    .led = (const struct led*[]){
+        &GREEN,
+        &RED,
+        NULL
+    }
+};
 void main(void) {
     int s;
 
@@ -168,8 +169,7 @@ void main(void) {
     chSysInit();
 
     // Start Diagnostics
-    ledStart(NULL);
-    rnh_shell_start();
+    ledStart(&led_cfg);
 
     // Configuration
     static I2CPins I2C1Pins = {

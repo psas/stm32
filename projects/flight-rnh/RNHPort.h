@@ -19,7 +19,7 @@ typedef enum {
     RNH_PORT_4 = 1<<3,
     RNH_PORT_6 = 1<<5,
     RNH_PORT_7 = 1<<6,
-    RNH_PORT_8 = 1<<7
+    RNH_PORT_8 = 1<<7,
     RNH_PORT_ALL = RNH_PORT_1 | RNH_PORT_2 | RNH_PORT_3 | RNH_PORT_4 |
                    RNH_PORT_6 | RNH_PORT_7 | RNH_PORT_8
 } RNHPort;
