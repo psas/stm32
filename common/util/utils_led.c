@@ -54,6 +54,18 @@ static struct led_config led_cfg = {
                 NULL
         }
 };
+#elif defined BOARD_PSAS_RTX_CONTROLLER
+const struct led ORANGE = {GPIOE, GPIOE_PIN1};
+
+static struct led_config led_cfg = {
+        .cycle_ms = 500,
+        .start_ms = 0,
+        .led = (const struct led*[]){
+                &ORANGE,
+                NULL
+        }
+};
+
 #else
 static struct led_config led_cfg = {0};
 #endif
