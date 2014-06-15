@@ -35,7 +35,6 @@
 
 #include "utils_general.h"
 #include "utils_shell.h"
-#include "rtx_shell.h"
 #include "utils_led.h"
 
 #include "usbdetail.h"
