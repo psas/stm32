@@ -32,7 +32,6 @@ static const struct led * LED_ACOK = &BLUE;
 static const char ARM[]     = "#YOLO";
 static const char SAFE[]    = "#SAFE";
 static const char TIME[]    = "#TIME";
-static const char AHST[]    = "#AHST";
 static const char RRDY[]    = "#RRDY";
 
 void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
@@ -49,10 +48,20 @@ void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
 }
 
 void cmd_rocketready(struct RCICmdData * rci_data, void * user_data UNUSED){
-    if(rci_data->cmd_data[0] == 0xA5){
-        palClearPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+    if(rci_data->cmd_len == 1){
+        if(rci_data->cmd_data[0] == 'A'){
+            palClearPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+        } else {
+            palSetPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+        }
     } else {
-        palSetPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+        //no subcommand, return state
+        if(!palReadPad(GPIOD, GPIO_D2_N_ROCKET_READY)){
+            rci_data->return_data[0] = '1';
+        } else {
+            rci_data->return_data[0] = '0';
+        }
+        rci_data->return_len = 1;
     }
 }
 
@@ -143,15 +152,6 @@ static void batteryFault_Handler(eventid_t id UNUSED) {
 	write(port_socket.socket, buffer, sizeof(buffer));
 }
 
-static void batteryFaultHist_Handler(struct RCICmdData * rci_data, void * user_data UNUSED) {
-  rci_data->return_data[0] = cumAlarms[0] & (0xFF << 0) >> 0;
-  rci_data->return_data[1] = cumAlarms[0] & (0xFF << 8) >> 8;
-  rci_data->return_data[2] = cumAlarms[1] & (0xFF << 0) >> 0;
-  rci_data->return_data[3] = cumAlarms[1] & (0xFF << 8) >> 8;
-  rci_data->return_data[4] = cumAlarms[2] & (0xFF << 0) >> 8;
-  rci_data->return_data[5] = cumAlarms[2] & (0xFF << 8) >> 8;
-  rci_data->return_len = 6;
-}
 static struct led_config led_cfg = {
     .cycle_ms = 500,
     .start_ms = 2500,
@@ -190,7 +190,6 @@ void main(void) {
     static struct RCIConfig conf;
     conf.commands = (struct RCICommand[]){
             {TIME, cmd_time, NULL},
-            {AHST, batteryFaultHist_Handler, NULL},
             RCI_CMD_PORT,
             RCI_CMD_VERS,
             {NULL}
