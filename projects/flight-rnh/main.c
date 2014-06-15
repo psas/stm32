@@ -34,6 +34,27 @@ static const char SAFE[]    = "#SAFE";
 static const char TIME[]    = "#TIME";
 static const char RRDY[]    = "#RRDY";
 
+void cmd_arm(struct RCICmdData * rci_data, void * user_data UNUSED){
+    rci_data->return_len = 1;
+    if(rnhPortStatus() != RNH_PORT_ALL){
+        rci_data->return_data[0] = 'P';
+        return;
+    }
+    if(rnhPortFault() != 0){
+        rci_data->return_data[0] = 'F';
+        return;
+    }
+    if(crntAlarms[0] || crntAlarms[1] || crntAlarms[2]){
+        rci_data->return_data[0] = 'A';
+        return;
+    }
+    rci_data->return_data[0] = 'G';
+}
+
+void cmd_safe(struct RCICmdData * rci_data UNUSED, void * user_data UNUSED){
+    palSetPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+}
+
 void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
     uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
     rci_data->return_data[0] = time_ns & (0xFF << 7) >> 7;
@@ -190,6 +211,9 @@ void main(void) {
     static struct RCIConfig conf;
     conf.commands = (struct RCICommand[]){
             {TIME, cmd_time, NULL},
+            {ARM, cmd_arm, NULL},
+            {SAFE, cmd_safe, NULL},
+            {RRDY, cmd_rocketready, NULL},
             RCI_CMD_PORT,
             RCI_CMD_VERS,
             {NULL}
