@@ -34,38 +34,40 @@ static const char SAFE[]    = "#SAFE";
 static const char TIME[]    = "#TIME";
 static const char RRDY[]    = "#RRDY";
 
-void cmd_arm(struct RCICmdData * rci_data, void * user_data UNUSED){
-    rci_data->return_len = 1;
-    if(rnhPortStatus() != RNH_PORT_ALL){
-        rci_data->return_data[0] = 'P';
+void cmd_arm(struct RCICmdData * rci, void * user UNUSED){
+    int status = rnhPortStatus();
+    if(status != RNH_PORT_ALL){
+        rci->return_data[0] = 'P';
+        chsnprintf(rci->return_data+1, 2, "%x", status);
+        rci->return_len = 3;
         return;
     }
-    if(rnhPortFault() != 0){
-        rci_data->return_data[0] = 'F';
+    int fault = rnhPortFault();
+    if(fault != 0){
+        rci->return_data[0] = 'F';
+        chsnprintf(rci->return_data+1, 2, "%x", fault);
+        rci->return_len = 3;
         return;
     }
-    if(crntAlarms[0] || crntAlarms[1] || crntAlarms[2]){
-        rci_data->return_data[0] = 'A';
+    int alarms[3] = {crntAlarms[0], crntAlarms[1], crntAlarms[2]};
+    if(alarms[0] || alarms[1] || alarms[2]){
+        rci->return_data[0] = 'A';
+        chsnprintf(rci->return_data+1, 6, "%x%x%x", alarms[0], alarms[1], alarms[2]);
+        rci->return_len=7;
         return;
     }
-    rci_data->return_data[0] = 'G';
+    rci->return_len = 1;
+    rci->return_data[0] = 'G';
 }
 
 void cmd_safe(struct RCICmdData * rci_data UNUSED, void * user_data UNUSED){
     palSetPad(GPIOD, GPIO_D2_N_ROCKET_READY);
 }
 
-void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
+void cmd_time(struct RCICmdData * rci, void * user UNUSED){
     uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
-    rci_data->return_data[0] = time_ns & (0xFF << 7) >> 7;
-    rci_data->return_data[1] = time_ns & (0xFF << 6) >> 6;
-    rci_data->return_data[2] = time_ns & (0xFF << 5) >> 5;
-    rci_data->return_data[3] = time_ns & (0xFF << 4) >> 4;
-    rci_data->return_data[4] = time_ns & (0xFF << 3) >> 3;
-    rci_data->return_data[5] = time_ns & (0xFF << 2) >> 2;
-    rci_data->return_data[6] = time_ns & (0xFF << 1) >> 1;
-    rci_data->return_data[7] = time_ns & (0xFF << 0) >> 0;
-    rci_data->return_len = 8;
+    chsnprintf(rci->return_data, 16, "%X%X", time_ns >> 32, time_ns);
+    rci->return_len = 16;
 }
 
 void cmd_rocketready(struct RCICmdData * rci_data, void * user_data UNUSED){
