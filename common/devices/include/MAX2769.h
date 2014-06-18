@@ -6,6 +6,8 @@
 #ifndef _MAX2769_H
 #define _MAX2769_H
 
+#include "spi_lld.h"
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -13,6 +15,7 @@ extern "C"
 
 #include "ch.h"
 #include "hal.h"
+#include "spi_lld.h"
 
 #include "utils_hal.h"
 
@@ -36,6 +39,23 @@ typedef enum
 	MAX2769_TEST2           = 0b1001        // 0x14C0402
 } max2769_regaddr;
 
+/* MAX2769 Register defaults */
+typedef enum
+{
+	// Name                               address         default value
+	MAX2769_CONF1_DEF           = 0xA2919A3,
+	MAX2769_CONF2_DEF           = 0x0550288,
+	MAX2769_CONF3_DEF           = 0xEAFF1DC,
+	MAX2769_PLLCONF_DEF         = 0x9EC0008,
+	MAX2769_DIV_DEF             = 0x0C00080,
+	MAX2769_FDIV_DEF            = 0x8000070,
+	MAX2769_STRM_DEF            = 0x8000000,
+	MAX2769_CLK_DEF             = 0x10061B2,
+	MAX2769_TEST1_DEF           = 0x1E0F401,
+	MAX2769_TEST2_DEF           = 0x14C0402
+} max2769_regdefault;
+
+
 /*! \typedef adis_config
  *
  * Configuration for the ADIS connections
@@ -56,11 +76,17 @@ typedef struct
 	struct pin      i0_data_out;
 } MAX2769Config;
 
-extern const MAX2769Config            max2769_gps;
+/*! \typedef
+ */
+typedef struct MAX2769Data {
+		uint32_t some_data_tbd;
+} MAX2769Data;
 
-void max2769_get_data(ADIS16405Data * data);
-uint16_t max2769_get(max2769_regaddr addr);
 
+extern const      MAX2769Config            max2769_gps;
+extern            EventSource              MAX2769_write_done;
+
+void max2769_config(void);
 void max2769_set(max2769_regaddr addr, uint16_t value);
 void max2769_reset(void);
 
