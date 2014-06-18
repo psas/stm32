@@ -95,7 +95,6 @@ CSRC = $(PORTSRC) \
        $(PSAS_NET)/net_addrs.c \
        $(PSAS_NET)/utils_sockets.c \
        $(PSAS_UTIL)/utils_led.c \
-       servo_control.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
