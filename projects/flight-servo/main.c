@@ -9,6 +9,7 @@
 // ChibiOS
 #include "ch.h"
 #include "hal.h"
+#include "evtimer.h"
 
 // PSAS common
 #include "net_addrs.h"
@@ -16,8 +17,6 @@
 #include "utils_sockets.h"
 #include "utils_led.h"
 
-// servo_control
-#include "servo_control.h"
 /*
  * \warning PERIOD setting for PWM is uint16_t (0-65535)
  *
@@ -84,10 +83,12 @@ typedef struct {
 #define PWM_MIN_DIRECTION_CHANGE_PERIOD (1000 / PWM_MAX_OSCILLATION_FREQ)
 
 
-/*
- * Servo Command Mailboxen Parameters
- * ================================== ******************************************
- */
+#define INIT_PWM_FREQ              6000000
+#define INIT_PWM_PERIOD_TICKS      ((pwmcnt_t) 20000)
+#define INIT_PWM_PULSE_WIDTH_TICKS ((pwmcnt_t) 9000)
+
+#define COMMAND_MAILBOX_SIZE 8
+
 
 /*
  * Data Structures
@@ -101,63 +102,6 @@ typedef struct PositionCommand {
 typedef struct PositionDelta {
   uint16_t delta;
 } PositionDelta;
-
-
-/*
- * Function Declarations
- * ===================== *******************************************************
- */
-
-void pwm_start(void);
-void pwm_set_pulse_width_ticks(uint32_t width_ticks);
-uint32_t pwm_get_period_ms(void);
-pwmcnt_t pwm_us_to_ticks(uint32_t us) ;
-
-void main(void) {
-    /* Initialize Chibios */
-    halInit();
-    chSysInit();
-
-    /* Diagnostic led */
-    ledStart(NULL);
-
-    /* Start lwip stack */
-    lwipThreadStart(ROLL_LWIP);
-
-    /* activate PWM output */
-    pwm_start();
-
-    while (true) {
-        chThdSleep(TIME_INFINITE);
-    }
-}
-
-/*
- * Constant Definitions
- * ==================== ********************************************************
- */
-
-#define INIT_PWM_FREQ              6000000
-#define INIT_PWM_PERIOD_TICKS      ((pwmcnt_t) 20000)
-#define INIT_PWM_PULSE_WIDTH_TICKS ((pwmcnt_t) 9000)
-
-#define COMMAND_MAILBOX_SIZE 8
-
-
-// This enum corresponds to the PWM bisable bit in the message received from the
-// flight computer. Since it's a _disable_ bit, when it is zero then the PWM is
-// enabled.
-enum {
-    PWM_ENABLE = 0,
-    PWM_DISABLE
-};
-
-/*
- * Global Variables
- * ================ ***********************************************************
- */
-
-static struct VirtualTimer servo_output_timer;
 
 // This mailbox is how the thread that listens for position commands over the
 // nework sends the commands to the thread that actually sets the PWM output.
@@ -178,6 +122,33 @@ static MAILBOX_DECL(servo_deltas, servo_delta_buffer, COMMAND_MAILBOX_SIZE);
 
 static MemoryPool pos_delta_pool;
 static PositionDelta pos_delta_pool_storage[COMMAND_MAILBOX_SIZE] __attribute__((aligned(sizeof(stkalign_t))));
+
+
+/*
+ * Function Declarations
+ * ===================== *******************************************************
+ */
+
+void pwm_start(void);
+void pwm_set_pulse_width_ticks(uint32_t width_ticks);
+uint32_t pwm_get_period_ms(void);
+pwmcnt_t pwm_us_to_ticks(uint32_t us) ;
+
+
+
+
+// This enum corresponds to the PWM bisable bit in the message received from the
+// flight computer. Since it's a _disable_ bit, when it is zero then the PWM is
+// enabled.
+enum {
+    PWM_ENABLE = 0,
+    PWM_DISABLE
+};
+
+/*
+ * Global Variables
+ * ================ ***********************************************************
+ */
 
 
 
@@ -201,10 +172,7 @@ pwmcnt_t pwm_us_to_ticks(uint32_t us) {
 }
 
 
-static void set_pwm_position(void* u UNUSED) {
-    chSysLockFromIsr();
-    chVTSetI(&servo_output_timer, MS2ST(1), set_pwm_position, 0);
-    chSysUnlockFromIsr();
+static void set_pwm_position(eventid_t id UNUSED) {
 
     static int16_t last_difference = 0;
     static uint16_t last_position = 1500;
@@ -216,9 +184,7 @@ static void set_pwm_position(void* u UNUSED) {
     PositionCommand* cmd;
     msg_t fetch_status;
 
-    chSysLockFromIsr();
-    fetch_status = chMBFetchI(&servo_commands, (msg_t *) &cmd);
-    chSysUnlockFromIsr();
+    fetch_status = chMBFetch(&servo_commands, (msg_t *) &cmd, 0);
     if (fetch_status == RDY_TIMEOUT) {
         // if nobody sent a position to our mailbox, we have nothing to do
         return;
@@ -227,9 +193,7 @@ static void set_pwm_position(void* u UNUSED) {
     // copy the information out of the struct so we can free it ASAP
     uint16_t desired_position = cmd->position;
 
-    chSysLockFromIsr();
-    chPoolFreeI(&pos_cmd_pool, cmd);
-    chSysUnlockFromIsr();
+    chPoolFree(&pos_cmd_pool, cmd);
 
     uint16_t output = desired_position;
     int16_t difference = desired_position - last_position;
@@ -264,21 +228,17 @@ static void set_pwm_position(void* u UNUSED) {
 
     last_difference = output - last_position;
     if (last_difference != 0) {
-        pwmEnableChannelI(&PWMD4, 3, pwm_us_to_ticks(output));
+        pwmEnableChannel(&PWMD4, 3, pwm_us_to_ticks(output));
     }
 
     last_position = output;
 
     if (output != desired_position) {
-        chSysLockFromIsr();
-        PositionDelta* delta = (PositionDelta*) chPoolAllocI(&pos_delta_pool);
-        chSysUnlockFromIsr();
+        PositionDelta* delta = (PositionDelta*) chPoolAlloc(&pos_delta_pool);
         if (delta == NULL) return; // the pool is empty, so bail
 
         delta->delta = desired_position - output;
-        chSysLockFromIsr();
-        chMBPostI(&servo_deltas, (msg_t) delta);
-        chSysUnlockFromIsr();
+        chMBPost(&servo_deltas, (msg_t) delta, 0);
     }
 }
 
@@ -332,7 +292,18 @@ static msg_t listener_thread(void* u UNUSED) {
     return -1;
 }
 
-void pwm_start() {
+void main(void) {
+    /* Initialize Chibios */
+    halInit();
+    chSysInit();
+
+    /* Diagnostic led */
+    ledStart(NULL);
+
+    /* Start lwip stack */
+    lwipThreadStart(ROLL_LWIP);
+
+    /* activate PWM output */
     chPoolInit(&pos_cmd_pool, sizeof(PositionCommand), NULL);
     chPoolLoadArray(&pos_cmd_pool, pos_cmd_pool_storage, COMMAND_MAILBOX_SIZE);
     chPoolInit(&pos_delta_pool, sizeof(PositionDelta), NULL);
@@ -368,5 +339,17 @@ void pwm_start() {
                      , NULL
                      );
 
-    chVTSet(&servo_output_timer, MS2ST(1), set_pwm_position, 0);
+    EvTimer timer;
+    evtInit(&timer, MS2ST(1));
+
+    struct EventListener eltimer;
+    static const evhandler_t evhndl[] = {
+            set_pwm_position
+    };
+    chEvtRegister(&timer.et_es, &eltimer, 0);
+
+    evtStart(&timer);
+    while(TRUE){
+        chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
+    }
 }
