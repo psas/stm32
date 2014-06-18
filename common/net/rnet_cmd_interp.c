@@ -62,7 +62,7 @@ static msg_t rci_thread(void *p){
         }
         //Retrieve command
         do{
-            int len = read(s, rx_buf + data.cmd_len, sizeof(rx_buf - data.cmd_len));
+            int len = read(s, rx_buf + data.cmd_len, sizeof(rx_buf) - data.cmd_len);
             if(len < 0){
                 return -1;
             }
