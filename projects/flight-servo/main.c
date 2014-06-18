@@ -1,7 +1,6 @@
 /*
  * The Roll Control Module is responsible for activating a PWM servo. Commands
- * sent from the FC over ethernet set the pulsewidth. An external pin
- * determines launch detect.
+ * sent from the FC over ethernet set the pulsewidth.
  */
 
 // ChibiOS

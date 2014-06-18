@@ -22,11 +22,10 @@
 // PSAS
 #include "usbdetail.h"
 #include "net_addrs.h"
+#include "utils_general.h"
 #include "utils_sockets.h"
 #include "psas_packet.h"
 #include "servo_control.h"
-
-#define UNUSED __attribute__((unused))
 
 /*
  * Constant Definitions
@@ -192,40 +191,6 @@ static msg_t listener_thread(void* u UNUSED) {
     RCOutput rc_packet;
     struct SeqSocket socket = DECL_SEQ_SOCKET(sizeof(RCOutput));
 
-#if DEBUG_PWM
-    int16_t ticks = 0;
-    while (TRUE) {
-        uint16_t pos = PWM_CENTER;
-
-        // calculate pos
-        if (ticks < 10000) {
-            // move from center out to either side and back over two seconds
-            int16_t offset = 500 - abs(500 - (ticks % 1000));
-            if (ticks % 2000 < 1000) {
-                pos = PWM_CENTER + offset;
-            } else {
-                pos = PWM_CENTER - offset;
-            }
-        } else if (ticks < 20000) {
-            // test speed controls by moving servo as fast as possible
-            if (ticks % 2000 < 1000) {
-                pos = 1000;
-            } else {
-                pos = 2000;
-            }
-        } else {
-            ticks = -1;
-        }
-
-        PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
-        if (cmd == NULL) continue;
-        cmd->position = (uint16_t) pos;
-        chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
-
-        ticks++;
-        chThdSleepMilliseconds(1);
-    }
-#else
     int s = get_udp_socket(ROLL_ADDR);
     if (s < 0) {
         return -1;
@@ -241,17 +206,15 @@ static msg_t listener_thread(void* u UNUSED) {
             //fixme: throw away anything left
             memcpy(&rc_packet, socket.buffer, sizeof(RCOutput));
 
-            // fixme: once the RNH power issue is fixed servo control can respect
-            // the disable flag
-//          if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
+          if(rc_packet.u8ServoDisableFlag == PWM_ENABLE) {
                 PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
                 if (cmd == NULL) continue; // the pool is empty, so bail until next msg
                 cmd->position = ntohs(rc_packet.u16ServoPulseWidthBin14);
                 chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
 
-//            } else {
-//                pwmDisableChannel(&PWMD4, 3);
-//            }
+            } else {
+                pwmDisableChannel(&PWMD4, 3);
+            }
 
             PositionDelta* delta;
             msg_t fetch_status = chMBFetch(&servo_deltas, (msg_t *) &delta, TIME_IMMEDIATE);
@@ -261,7 +224,6 @@ static msg_t listener_thread(void* u UNUSED) {
             chPoolFree(&pos_delta_pool, delta);
         }
     }
-#endif
 
     return -1;
 }
