@@ -28,12 +28,13 @@ static EVENTSOURCE_DECL(ReadyNeutral);
 static EVENTSOURCE_DECL(ReadyManual);
 static EVENTSOURCE_DECL(ReadySLA);
 
+static int count = 0;
+
 /*
  * GMD control thread, times are in microseconds.
  */
 static void ethernet_loop(GPTDriver *gptp) {
 
-int count = 0;
 
 	(void) gptp;
 
@@ -45,10 +46,13 @@ int count = 0;
 
 	chSysUnlockFromIsr();
 
-	if(count % 10) {
+	if(count >= 15) {
 		NeutralStatus.vertNeutral = ~NeutralStatus.vertNeutral;
-    	NeutralStatus.latNeutral = ~NeutralStatus.latNeutral;
+    	NeutralStatus.latNeutral = ~NeutralStatus.vertNeutral;
+		count = 0;
 	}
+	else
+	++count;
 
     return;
 }
@@ -102,11 +106,11 @@ void main(void) {
 	gptStartContinuous(&GPTD1, 2000000);
 
 	/* Start the lwip thread*/
-	chprintf(chp, "LWIP ");
+//	chprintf(chp, "LWIP ");
 	lwipThreadStart(RTX_LWIP);
 
 	//Create sockets
-	ReceiveRTxfromSLASocket();
+//	ReceiveRTxfromSLASocket();
 	SendRTxtoManualSocket();
 	ReceiveRTxfromManualSocket();
 

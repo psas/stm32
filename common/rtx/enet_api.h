@@ -11,27 +11,6 @@
 
 #include "rocket_tracks.h"
 
-#define RTX_RECEIVE_THREAD_STACK_SIZE   	512
-
-#define SLA_TX_PORT              	35005
-#define SLA_RX_PORT					35006
-#define NEUTRAL_TX_PORT       		35008
-#define NEUTRAL_RX_PORT				35009
-#define MANUAL_TX_PORT              35011
-#define MANUAL_RX_PORT				35012
-
-#define RTX_CONTROLLER_RX_THD_PRIORITY             (LOWPRIO)
-
-#define IP_RTX                             	"192.168.0.91"
-#define IP_SLA	                            "192.168.0.196"
-#define IP_MANUAL                           "192.168.0.123"
-
-#define MANUAL_REMOTE_MESSAGE_SIZE			11
-#define SLA_MESSAGE_SIZE					2
-
-#define SLA_COLUMN_OFFSET					7
-#define SLA_ROW_OFFSET						9
-
 extern int RTxtoManualSendSocket;
 extern int ManualtoRTxSendSocket;
 
@@ -90,13 +69,13 @@ void SendDiagnosticsSocket(void);
 void ReceiveDiagnosticsSocket(void);
 
 void SendSLA(int Command);
-void ReceiveSLA(SLAData * data);
+int ReceiveSLA(SLAData * data);
 int ReceiveManual(ManualData * data);
 void SendManual(ManualData * data);
 void ReceiveNeutral(Neutral * data);
 void SendNeutral(Neutral * data);
 
-void SendDiagnostics(Diagnostics * lat, Diagnostics * vert);
-int ReceiveDiagnostics(Diagnostics * lat, Diagnostics * vert);
+void SendDiagnostics(Diagnostics * lat, Diagnostics * vert, uint16_t ref);
+int ReceiveDiagnostics(Diagnostics * lat, Diagnostics * vert, uint16_t * ref);
 
 #endif /* ENET_API_H_ */
