@@ -121,40 +121,39 @@ void cmd_show(BaseSequentialStream *chp, int argc, char *argv[]) {
 //	//
 //}
 
-void cmd_phy_read(BaseSequentialStream *chp, int argc, char *argv[]) {
+void cmd_phy_read(BaseSequentialStream * chp, int argc, char * argv[])
+{
 	uint32_t phy_val     = 0;
 	uint32_t reg_to_ping = 0;
-	//	uint32_t bmcr_val = 0;
-
-	if (argc == 0) {
+	//      uint32_t bmcr_val = 0;
+	if (argc == 0)
+	{
 		goto ERROR;
 	}
 	chprintf(chp, "argv0: %s\r\n", argv[0]);
-
-	if ((argc == 1) && (strcmp(argv[0], "read") == 0)){
-
-
-		if (argc != 1) {
+	if ((argc == 1) && (strcmp(argv[0], "read") == 0))
+	{
+		if (argc > 1)
+		{
 			chprintf(chp, "Usage: phy reg(decimal)\r\n");
 			return;
 		}
-
-		//	bmcr_val = mii_read(&ETHD1, MII_BMCR);
+		//      bmcr_val = mii_read(&ETHD1, MII_BMCR);
 		//
-		//	bmcr_val = mii_read(&ETHD1, MII_BMCR);
+		//      bmcr_val = mii_read(&ETHD1, MII_BMCR);
 		//
-		//	mii_write(&ETHD1, 0x1f,( bmcr_val | 1<<13));
+		//      mii_write(&ETHD1, 0x1f,( bmcr_val | 1<<13));
 		chprintf(chp, "here\r\n");
 		reg_to_ping = atoi(argv[0]);
 		phy_val = mii_read(&ETHD1, reg_to_ping);
 		chprintf(chp, "phy reg 0x%x value:\t0x%x\n\r", reg_to_ping, phy_val);
-
-		ERROR:
+ERROR:
 		chprintf(chp, "Usage: phy_read reg\r\n");
 		chprintf(chp, "where reg is hex address of register\r\n");
 		return;
 	}
 }
+
 #endif
 
 

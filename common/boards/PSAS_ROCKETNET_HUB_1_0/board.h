@@ -112,7 +112,7 @@
 #define GPIO_C10_KSZ_SCK              10
 #define GPIO_C11_NC                   11
 #define GPIO_C12_KSZ_MOSI             12
-#define GPIO_C13_NC                   13
+#define GPIO_C13_UMB_DETECT           13
 #define GPIO_C14_NC                   14
 #define GPIO_C15_NC                   15
 
@@ -141,7 +141,7 @@
 #define GPIO_E5_NODE6_N_EN            5
 #define GPIO_E6_NODE7_N_EN            6
 #define GPIO_E7_NODE8_N_EN            7
-#define GPIO_E8_NODE1_N_FLT           8 
+#define GPIO_E8_NODE1_N_FLT           8
 #define GPIO_E9_NODE2_N_FLT           9
 #define GPIO_E10_NODE3_N_FLT          10
 #define GPIO_E11_NODE4_N_FLT          11
@@ -368,7 +368,7 @@
                                      PIN_MODE_ALTERNATE    ( GPIO_B12_ETH_MTXD0 ) |\
                                      PIN_MODE_ALTERNATE    ( GPIO_B13_ETH_MTXD1 ) |\
                                      PIN_MODE_INPUT    ( GPIO_B14_NC        ) |\
-                                     PIN_MODE_INPUT    ( GPIO_B15_NC))                
+                                     PIN_MODE_INPUT    ( GPIO_B15_NC))
 
 #define VAL_GPIOB_OTYPER            (PIN_OTYPE_PUSHPULL ( GPIO_B0_ETH_MRXD2  ) |\
                                      PIN_OTYPE_PUSHPULL ( GPIO_B1_ETH_MRXD3  ) |\
@@ -385,7 +385,7 @@
                                      PIN_OTYPE_PUSHPULL ( GPIO_B12_ETH_MTXD0 ) |\
                                      PIN_OTYPE_PUSHPULL ( GPIO_B13_ETH_MTXD1 ) |\
                                      PIN_OTYPE_PUSHPULL ( GPIO_B14_NC        ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIO_B15_NC))          
+                                     PIN_OTYPE_PUSHPULL ( GPIO_B15_NC))
 
 #define VAL_GPIOB_OSPEEDR           (PIN_OSPEED_100M    ( GPIO_B0_ETH_MRXD2  ) |\
                                      PIN_OSPEED_100M    ( GPIO_B1_ETH_MRXD3  ) |\
@@ -402,7 +402,7 @@
                                      PIN_OSPEED_100M    ( GPIO_B12_ETH_MTXD0 ) |\
                                      PIN_OSPEED_100M    ( GPIO_B13_ETH_MTXD1 ) |\
                                      PIN_OSPEED_100M    ( GPIO_B14_NC        ) |\
-                                     PIN_OSPEED_100M    ( GPIO_B15_NC))          
+                                     PIN_OSPEED_100M    ( GPIO_B15_NC))
 
 #define VAL_GPIOB_PUPDR             (PIN_PUPDR_FLOATING( GPIO_B0_ETH_MRXD2  ) |\
                                      PIN_PUPDR_FLOATING( GPIO_B1_ETH_MRXD3  ) |\
@@ -419,7 +419,7 @@
                                      PIN_PUPDR_FLOATING( GPIO_B12_ETH_MTXD0 ) |\
                                      PIN_PUPDR_FLOATING( GPIO_B13_ETH_MTXD1 ) |\
                                      PIN_PUPDR_PULLDOWN( GPIO_B14_NC        ) |\
-                                     PIN_PUPDR_PULLDOWN( GPIO_B15_NC))          
+                                     PIN_PUPDR_PULLDOWN( GPIO_B15_NC))
 
 #define VAL_GPIOB_ODR               (PIN_ODR_HIGH      ( GPIO_B0_ETH_MRXD2  ) |\
                                      PIN_ODR_HIGH      ( GPIO_B1_ETH_MRXD3  ) |\
@@ -436,7 +436,7 @@
                                      PIN_ODR_HIGH      ( GPIO_B12_ETH_MTXD0 ) |\
                                      PIN_ODR_HIGH      ( GPIO_B13_ETH_MTXD1 ) |\
                                      PIN_ODR_HIGH      ( GPIO_B14_NC        ) |\
-                                     PIN_ODR_HIGH      ( GPIO_B15_NC))          
+                                     PIN_ODR_HIGH      ( GPIO_B15_NC))
 
 #define VAL_GPIOB_AFRL              (PIN_AFIO_AF       ( GPIO_B0_ETH_MRXD2 , 11  )  |\
                                      PIN_AFIO_AF       ( GPIO_B1_ETH_MRXD3 , 11  )  |\
@@ -454,7 +454,7 @@
                                      PIN_AFIO_AF       ( GPIO_B12_ETH_MTXD0, 11  )  |\
                                      PIN_AFIO_AF       ( GPIO_B13_ETH_MTXD1, 11  )  |\
                                      PIN_AFIO_AF       ( GPIO_B14_NC       , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIO_B15_NC       , 0  )) 
+                                     PIN_AFIO_AF       ( GPIO_B15_NC       , 0  ))
 
 
 /*
@@ -474,9 +474,9 @@
                                      PIN_MODE_INPUT (GPIO_C10_KSZ_SCK           ) |\
                                      PIN_MODE_INPUT (GPIO_C11_NC                ) |\
                                      PIN_MODE_INPUT (GPIO_C12_KSZ_MOSI          ) |\
-                                     PIN_MODE_INPUT (GPIO_C13_NC                ) |\
+                                     PIN_MODE_INPUT (GPIO_C13_UMB_DETECT        ) |\
                                      PIN_MODE_INPUT (GPIO_C14_NC                ) |\
-                                     PIN_MODE_INPUT (GPIO_C15_NC                ))  
+                                     PIN_MODE_INPUT (GPIO_C15_NC                ))
 
 #define VAL_GPIOC_OTYPER            (PIN_OTYPE_PUSHPULL(GPIO_C0_ADC_NODE_1_4_IMON  ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_C1_ADC_NODE_5_8_IMON  ) |\
@@ -491,9 +491,9 @@
                                      PIN_OTYPE_PUSHPULL(GPIO_C10_KSZ_SCK           ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_C11_NC                ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_C12_KSZ_MOSI          ) |\
-                                     PIN_OTYPE_PUSHPULL(GPIO_C13_NC                ) |\
+                                     PIN_OTYPE_PUSHPULL(GPIO_C13_UMB_DETECT        ) |\
                                      PIN_OTYPE_PUSHPULL(GPIO_C14_NC                ) |\
-                                     PIN_OTYPE_PUSHPULL(GPIO_C15_NC                ))  
+                                     PIN_OTYPE_PUSHPULL(GPIO_C15_NC                ))
 
 #define VAL_GPIOC_OSPEEDR           (PIN_OSPEED_100M   (GPIO_C0_ADC_NODE_1_4_IMON  ) |\
                                      PIN_OSPEED_100M   (GPIO_C1_ADC_NODE_5_8_IMON  ) |\
@@ -508,9 +508,9 @@
                                      PIN_OSPEED_100M   (GPIO_C10_KSZ_SCK           ) |\
                                      PIN_OSPEED_100M   (GPIO_C11_NC                ) |\
                                      PIN_OSPEED_100M   (GPIO_C12_KSZ_MOSI          ) |\
-                                     PIN_OSPEED_100M   (GPIO_C13_NC                ) |\
+                                     PIN_OSPEED_100M   (GPIO_C13_UMB_DETECT        ) |\
                                      PIN_OSPEED_100M   (GPIO_C14_NC                ) |\
-                                     PIN_OSPEED_100M   (GPIO_C15_NC                ))  
+                                     PIN_OSPEED_100M   (GPIO_C15_NC                ))
 
 #define VAL_GPIOC_PUPDR             (PIN_PUPDR_PULLDOWN  (GPIO_C0_ADC_NODE_1_4_IMON  ) |\
                                      PIN_PUPDR_PULLDOWN  (GPIO_C1_ADC_NODE_5_8_IMON  ) |\
@@ -525,9 +525,9 @@
                                      PIN_PUPDR_PULLDOWN  (GPIO_C10_KSZ_SCK           ) |\
                                      PIN_PUPDR_PULLDOWN  (GPIO_C11_NC                ) |\
                                      PIN_PUPDR_PULLDOWN  (GPIO_C12_KSZ_MOSI          ) |\
-                                     PIN_PUPDR_PULLDOWN  (GPIO_C13_NC                ) |\
+                                     PIN_PUPDR_PULLUP    (GPIO_C13_UMB_DETECT        ) |\
                                      PIN_PUPDR_PULLDOWN  (GPIO_C14_NC                ) |\
-                                     PIN_PUPDR_PULLDOWN  (GPIO_C15_NC                ))  
+                                     PIN_PUPDR_PULLDOWN  (GPIO_C15_NC                ))
 
 #define VAL_GPIOC_ODR               (PIN_ODR_HIGH        (GPIO_C0_ADC_NODE_1_4_IMON  ) |\
                                      PIN_ODR_HIGH        (GPIO_C1_ADC_NODE_5_8_IMON  ) |\
@@ -542,9 +542,9 @@
                                      PIN_ODR_HIGH        (GPIO_C10_KSZ_SCK           ) |\
                                      PIN_ODR_HIGH        (GPIO_C11_NC                ) |\
                                      PIN_ODR_HIGH        (GPIO_C12_KSZ_MOSI          ) |\
-                                     PIN_ODR_HIGH        (GPIO_C13_NC                ) |\
+                                     PIN_ODR_HIGH        (GPIO_C13_UMB_DETECT        ) |\
                                      PIN_ODR_HIGH        (GPIO_C14_NC                ) |\
-                                     PIN_ODR_HIGH        (GPIO_C15_NC                ))  
+                                     PIN_ODR_HIGH        (GPIO_C15_NC                ))
 
 #define VAL_GPIOC_AFRL              (PIN_AFIO_AF         ( GPIO_C0_ADC_NODE_1_4_IMON  , 0) |\
                                      PIN_AFIO_AF         ( GPIO_C1_ADC_NODE_5_8_IMON  , 0) |\
@@ -560,7 +560,7 @@
                                      PIN_AFIO_AF         ( GPIO_C10_KSZ_SCK           , 0) |\
                                      PIN_AFIO_AF         ( GPIO_C11_NC                , 0) |\
                                      PIN_AFIO_AF         ( GPIO_C12_KSZ_MOSI          , 0) |\
-                                     PIN_AFIO_AF         ( GPIO_C13_NC                , 0) |\
+                                     PIN_AFIO_AF         ( GPIO_C13_UMB_DETECT        , 0) |\
                                      PIN_AFIO_AF         ( GPIO_C14_NC                , 0) |\
                                      PIN_AFIO_AF         ( GPIO_C15_NC                , 0))
 
@@ -583,7 +583,7 @@
                                      PIN_MODE_OUTPUT    ( GPIO_D12_RGB_G         )|\
                                      PIN_MODE_OUTPUT    ( GPIO_D13_RGB_R         )|\
                                      PIN_MODE_OUTPUT    ( GPIO_D14_KSZ_EN        )|\
-                                     PIN_MODE_INPUT     ( GPIO_D15_NC            )) 
+                                     PIN_MODE_INPUT     ( GPIO_D15_NC            ))
 #define VAL_GPIOD_OTYPER            (PIN_OTYPE_PUSHPULL ( GPIO_D0_BQ24_ACOK      )|\
                                      PIN_OTYPE_PUSHPULL ( GPIO_D1_NC             )|\
                                      PIN_OTYPE_PUSHPULL ( GPIO_D2_N_ROCKET_READY )|\
@@ -599,7 +599,7 @@
                                      PIN_OTYPE_PUSHPULL ( GPIO_D12_RGB_G         )|\
                                      PIN_OTYPE_PUSHPULL ( GPIO_D13_RGB_R         )|\
                                      PIN_OTYPE_PUSHPULL ( GPIO_D14_KSZ_EN        )|\
-                                     PIN_OTYPE_PUSHPULL ( GPIO_D15_NC            )) 
+                                     PIN_OTYPE_PUSHPULL ( GPIO_D15_NC            ))
 
 #define VAL_GPIOD_OSPEEDR           (PIN_OSPEED_100M    ( GPIO_D0_BQ24_ACOK      )|\
                                      PIN_OSPEED_100M    ( GPIO_D1_NC             )|\
@@ -616,7 +616,7 @@
                                      PIN_OSPEED_100M    ( GPIO_D12_RGB_G         )|\
                                      PIN_OSPEED_100M    ( GPIO_D13_RGB_R         )|\
                                      PIN_OSPEED_100M    ( GPIO_D14_KSZ_EN        )|\
-                                     PIN_OSPEED_100M    ( GPIO_D15_NC            )) 
+                                     PIN_OSPEED_100M    ( GPIO_D15_NC            ))
 
 #define VAL_GPIOD_PUPDR             (PIN_PUPDR_FLOATING ( GPIO_D0_BQ24_ACOK      )|\
                                      PIN_PUPDR_PULLDOWN ( GPIO_D1_NC             )|\
@@ -633,7 +633,7 @@
                                      PIN_PUPDR_FLOATING ( GPIO_D12_RGB_G         )|\
                                      PIN_PUPDR_FLOATING ( GPIO_D13_RGB_R         )|\
                                      PIN_PUPDR_FLOATING ( GPIO_D14_KSZ_EN        )|\
-                                     PIN_PUPDR_PULLDOWN ( GPIO_D15_NC            )) 
+                                     PIN_PUPDR_PULLDOWN ( GPIO_D15_NC            ))
 
 #define VAL_GPIOD_ODR               (PIN_ODR_HIGH       ( GPIO_D0_BQ24_ACOK      )|\
                                      PIN_ODR_HIGH       ( GPIO_D1_NC             )|\
@@ -650,7 +650,7 @@
                                      PIN_ODR_HIGH       ( GPIO_D12_RGB_G         )|\
                                      PIN_ODR_HIGH       ( GPIO_D13_RGB_R         )|\
                                      PIN_ODR_LOW        ( GPIO_D14_KSZ_EN        )|\
-                                     PIN_ODR_HIGH       ( GPIO_D15_NC            )) 
+                                     PIN_ODR_HIGH       ( GPIO_D15_NC            ))
 
 #define VAL_GPIOD_AFRL              (PIN_AFIO_AF        ( GPIO_D0_BQ24_ACOK      , 0) |\
                                      PIN_AFIO_AF        ( GPIO_D1_NC             , 0) |\
@@ -1029,7 +1029,7 @@
                                      PIN_OSPEED_100M(GPIOH_PIN12)      |\
                                      PIN_OSPEED_100M(GPIOH_PIN13)      |\
                                      PIN_OSPEED_100M(GPIOH_PIN14)      |\
-                                     PIN_OSPEED_100M(GPIOH_PIN15)) 
+                                     PIN_OSPEED_100M(GPIOH_PIN15))
 #define VAL_GPIOH_PUPDR             (PIN_PUPDR_FLOATING(GPIO_H0_OSC_IN)  |\
                                      PIN_PUPDR_FLOATING(GPIO_H1_OSC_OUT) |\
                                      PIN_PUPDR_PULLUP(GPIOH_PIN2)      |\

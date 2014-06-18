@@ -23,7 +23,6 @@ static struct SeqSocket battery_socket = DECL_SEQ_SOCKET(13*2);
 static struct SeqSocket port_socket = DECL_SEQ_SOCKET(8*2);
 
 static EVENTSOURCE_DECL(ACOK);
-
 static const struct led * LED_ACOK = &BLUE;
 
 /* RCI commands
@@ -33,19 +32,60 @@ static const struct led * LED_ACOK = &BLUE;
 static const char ARM[]     = "#YOLO";
 static const char SAFE[]    = "#SAFE";
 static const char TIME[]    = "#TIME";
+static const char RRDY[]    = "#RRDY";
 
-void cmd_time(struct RCICmdData * rci_data, void * user_data UNUSED){
+void cmd_arm(struct RCICmdData * rci, void * user UNUSED){
+    int status = rnhPortStatus();
+    if(status != RNH_PORT_ALL){
+        rci->return_data[0] = 'P';
+        chsnprintf(rci->return_data+1, 2, "%x", status);
+        rci->return_len = 3;
+        return;
+    }
+    int fault = rnhPortFault();
+    if(fault != 0){
+        rci->return_data[0] = 'F';
+        chsnprintf(rci->return_data+1, 2, "%x", fault);
+        rci->return_len = 3;
+        return;
+    }
+    int alarms[3] = {crntAlarms[0], crntAlarms[1], crntAlarms[2]};
+    if(alarms[0] || alarms[1] || alarms[2]){
+        rci->return_data[0] = 'A';
+        chsnprintf(rci->return_data+1, 6, "%x%x%x", alarms[0], alarms[1], alarms[2]);
+        rci->return_len=7;
+        return;
+    }
+    rci->return_len = 1;
+    rci->return_data[0] = 'G';
+}
+
+void cmd_safe(struct RCICmdData * rci_data UNUSED, void * user_data UNUSED){
+    palSetPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+}
+
+void cmd_time(struct RCICmdData * rci, void * user UNUSED){
     uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
-    rci_data->return_data[0] = time_ns & (0xFF << 7) >> 7;
-    rci_data->return_data[1] = time_ns & (0xFF << 6) >> 6;
-    rci_data->return_data[2] = time_ns & (0xFF << 5) >> 5;
-    rci_data->return_data[3] = time_ns & (0xFF << 4) >> 4;
-    rci_data->return_data[4] = time_ns & (0xFF << 3) >> 3;
-    rci_data->return_data[5] = time_ns & (0xFF << 2) >> 2;
-    rci_data->return_data[6] = time_ns & (0xFF << 1) >> 1;
-    rci_data->return_data[7] = time_ns & (0xFF << 0) >> 0;
+    chsnprintf(rci->return_data, 16, "%X%X", time_ns >> 32, time_ns);
+    rci->return_len = 16;
+}
 
-    rci_data->return_len = 8;
+void cmd_rocketready(struct RCICmdData * rci_data, void * user_data UNUSED){
+    if(rci_data->cmd_len == 1){
+        if(rci_data->cmd_data[0] == 'A'){
+            palClearPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+        } else {
+            palSetPad(GPIOD, GPIO_D2_N_ROCKET_READY);
+        }
+    } else {
+        //no subcommand, return state
+        if(!palReadPad(GPIOD, GPIO_D2_N_ROCKET_READY)){
+            rci_data->return_data[0] = '1';
+        } else {
+            rci_data->return_data[0] = '0';
+        }
+        rci_data->return_len = 1;
+    }
 }
 
 /* Hardware handling callbacks
@@ -124,6 +164,26 @@ static void portCurrent_SendData(eventid_t id UNUSED){
     seq_write(&port_socket, 8*2);
 }
 
+static void batteryFault_Handler(eventid_t id UNUSED) {
+	//this handler will set a flag to prevent the
+	//rocket from arming if it is tripped
+	//it will then send the fault data onto the wire
+	uint16_t buffer[3];
+	buffer[0] = htons(crntAlarms[0]);
+	buffer[1] = htons(crntAlarms[1]);
+	buffer[2] = htons(crntAlarms[2]);
+	write(port_socket.socket, buffer, sizeof(buffer));
+}
+
+static struct led_config led_cfg = {
+    .cycle_ms = 500,
+    .start_ms = 2500,
+    .led = (const struct led*[]){
+        &GREEN,
+        &RED,
+        NULL
+    }
+};
 void main(void) {
     int s;
 
@@ -132,8 +192,7 @@ void main(void) {
     chSysInit();
 
     // Start Diagnostics
-    ledStart(NULL);
-    rnh_shell_start();
+    ledStart(&led_cfg);
 
     // Configuration
     static I2CPins I2C1Pins = {
@@ -154,6 +213,9 @@ void main(void) {
     static struct RCIConfig conf;
     conf.commands = (struct RCICommand[]){
             {TIME, cmd_time, NULL},
+            {ARM, cmd_arm, NULL},
+            {SAFE, cmd_safe, NULL},
+            {RRDY, cmd_rocketready, NULL},
             RCI_CMD_PORT,
             RCI_CMD_VERS,
             {NULL}
@@ -188,14 +250,16 @@ void main(void) {
     }
 
     // Set up event system
-    struct EventListener batt0, batt1, port0;
+    struct EventListener batt0, batt1, port0, batt_fault;
     chEvtRegister(&ACOK, &batt0, 0);
     chEvtRegister(&BQ3060_data_ready, &batt1, 1);
     chEvtRegister(&rnhPortCurrent, &port0, 2);
+    chEvtRegister(&BQ3060_battery_fault, &batt_fault, 3);
     const evhandler_t evhndl[] = {
         BQ24725_SetCharge,
         BQ3060_SendData,
-        portCurrent_SendData
+        portCurrent_SendData,
+        batteryFault_Handler,
     };
 
     while (TRUE) {

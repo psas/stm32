@@ -453,7 +453,7 @@ static msg_t usbSerialShellThread(void *arg){
     while (TRUE) {
         if (!shelltp && (SDU_PSAS.config->usbp->state == USB_ACTIVE))
             shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-        else if (chThdTerminated(shelltp)) {
+        else if (shelltp && chThdTerminated(shelltp)) {
             chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
             shelltp = NULL;           /* Triggers spawning of a new shell.        */
         }
