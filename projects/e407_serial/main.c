@@ -25,7 +25,7 @@
  * In the halconf.h enable the serial system
  * #define HAL_USE_SERIAL                      TRUE
  */
-#define SHELL_WA_SIZE   THD_WA_SIZE(2048)
+#define SHELL_WA_SIZE THD_WA_SIZE(2048)
 void cmd_show(BaseSequentialStream *chp, int argc UNUSED, char *argv[] UNUSED) {
 	chprintf(chp, "I am the E407 Board.\r\n");
 }
@@ -44,27 +44,27 @@ static const ShellConfig shell_cfg1 = {
 
 void main(void) {
 
-    halInit();
-    chSysInit();
-    ledStart(NULL);
-    // start the serial port
-    sdStart(&SD6, NULL);
-    // Shell manager initialization.
-    shellInit();
+	halInit();
+	chSysInit();
+	ledStart(NULL);
+	// start the serial port
+	sdStart(&SD6, NULL);
+	// Shell manager initialization.
+	shellInit();
 
-    /*
-     * Normal main() thread activity, does something with the shell it looks like
-     */
+	/*
+	 * Normal main() thread activity, does something with the shell it looks like
+	 */
 
-    static Thread *shelltp = NULL;
-    while (true) {
-        if (!shelltp )
-            shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
-        else if (chThdTerminated(shelltp)) {
-            chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
-            shelltp = NULL;           /* Triggers spawning of a new shell.        */
-        }
-        chThdSleepMilliseconds(1000);
-    }
+	static Thread *shelltp = NULL;
+	while (true) {
+		if (!shelltp )
+			shelltp = shellCreate(&shell_cfg1, SHELL_WA_SIZE, NORMALPRIO);
+		else if (chThdTerminated(shelltp)) {
+			chThdRelease(shelltp);    /* Recovers memory of the previous shell.   */
+			shelltp = NULL;           /* Triggers spawning of a new shell.        */
+		}
+		chThdSleepMilliseconds(1000);
+	}
 }
 
