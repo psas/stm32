@@ -99,10 +99,6 @@ typedef struct PositionCommand {
   uint16_t position;
 } PositionCommand;
 
-typedef struct PositionDelta {
-  uint16_t delta;
-} PositionDelta;
-
 // This mailbox is how the thread that listens for position commands over the
 // nework sends the commands to the thread that actually sets the PWM output.
 // The mailbox stores pointers to PositionCommand structs that are stored in the
@@ -112,16 +108,6 @@ static MAILBOX_DECL(servo_commands, servo_command_buffer, COMMAND_MAILBOX_SIZE);
 
 static MemoryPool pos_cmd_pool;
 static PositionCommand pos_cmd_pool_storage[COMMAND_MAILBOX_SIZE] __attribute__((aligned(sizeof(stkalign_t))));
-
-// This mailbox is how the PWM output setter thread sends back deltas between
-// commanded position and the actual position that it set.
-// The mailbox stores pointers to PositionDelta structs that are stored in the
-// pos_delta_pool memory pool.
-static msg_t servo_delta_buffer[COMMAND_MAILBOX_SIZE];
-static MAILBOX_DECL(servo_deltas, servo_delta_buffer, COMMAND_MAILBOX_SIZE);
-
-static MemoryPool pos_delta_pool;
-static PositionDelta pos_delta_pool_storage[COMMAND_MAILBOX_SIZE] __attribute__((aligned(sizeof(stkalign_t))));
 
 
 /*
@@ -150,6 +136,7 @@ enum {
  * ================ ***********************************************************
  */
 
+struct SeqSocket socket = DECL_SEQ_SOCKET(sizeof(RCOutput));
 
 
 void pwm_set_pulse_width_ticks(uint32_t ticks){
@@ -234,11 +221,9 @@ static void set_pwm_position(eventid_t id UNUSED) {
     last_position = output;
 
     if (output != desired_position) {
-        PositionDelta* delta = (PositionDelta*) chPoolAlloc(&pos_delta_pool);
-        if (delta == NULL) return; // the pool is empty, so bail
-
-        delta->delta = desired_position - output;
-        chMBPost(&servo_deltas, (msg_t) delta, 0);
+        uint16_t delta = desired_position - output;
+        memcpy(socket.buffer, &delta, sizeof(delta));
+        seq_write(&socket, sizeof(delta));
     }
 }
 
@@ -254,7 +239,6 @@ static msg_t listener_thread(void* u UNUSED) {
     chRegSetThreadName("command_listener");
 
     RCOutput rc_packet;
-    struct SeqSocket socket = DECL_SEQ_SOCKET(sizeof(RCOutput));
 
     int s = get_udp_socket(ROLL_ADDR);
     if (s < 0) {
@@ -279,13 +263,6 @@ static msg_t listener_thread(void* u UNUSED) {
             } else {
                 pwmDisableChannel(&PWMD4, 3);
             }
-
-            PositionDelta* delta;
-            msg_t fetch_status = chMBFetch(&servo_deltas, (msg_t *) &delta, TIME_IMMEDIATE);
-            if (fetch_status == RDY_TIMEOUT) continue; // no delta received, so wait for next command
-            memcpy(socket.buffer, delta, sizeof(PositionDelta));
-            seq_write(&socket, sizeof(PositionDelta));
-            chPoolFree(&pos_delta_pool, delta);
         }
     }
 
@@ -306,8 +283,6 @@ void main(void) {
     /* activate PWM output */
     chPoolInit(&pos_cmd_pool, sizeof(PositionCommand), NULL);
     chPoolLoadArray(&pos_cmd_pool, pos_cmd_pool_storage, COMMAND_MAILBOX_SIZE);
-    chPoolInit(&pos_delta_pool, sizeof(PositionDelta), NULL);
-    chPoolLoadArray(&pos_delta_pool, pos_delta_pool_storage, COMMAND_MAILBOX_SIZE);
 
     // Static because pwmStart doesn't deep copy PWMConfigs
     static PWMConfig pwmcfg = {
