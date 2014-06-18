@@ -1,8 +1,10 @@
+#include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
 
 #include "ch.h"
 #include "hal.h"
+#include "chprintf.h"
 #include "utils_general.h"
 #include "utils_hal.h"
 
@@ -208,16 +210,26 @@ void rnhPortSetCurrentDataRate(unsigned freq){
     gptStartContinuous(&GPTD2, portGPTfreq / 8 / freq);
 }
 
-static void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
-    if(rci_data->cmd_len < 1){
+static void cmd_port(struct RCICmdData * rci, void * user UNUSED){
+    if(rci->cmd_len < 1){
         return;
     }
 
-    RNHAction action = rci_data->cmd_data[0];
+    RNHAction action = 0;
+    if(rci->cmd_data[0] == 'S'){ action = RNH_PORT_STATUS;
+    } else if(rci->cmd_data[0] == 'F'){ action = RNH_PORT_FAULT;
+    } else if(rci->cmd_data[0] == 'O'){ action = RNH_PORT_ON;
+    } else if(rci->cmd_data[0] == 'X'){ action = RNH_PORT_OFF;
+    } else if(rci->cmd_data[0] == 'Q'){ action = RNH_PORT_CURRENT_FREQ;
+    }
     int data = 0;
-    for(int i = 1; i < rci_data->cmd_len; ++i){
+    char tmp[3];
+    tmp[2] = '\0';
+    for(int i = 1; i < rci->cmd_len; i+=2){
         data <<= 8;
-        data |= rci_data->cmd_data[i];
+        tmp[0] = rci->cmd_data[i];
+        tmp[1] = rci->cmd_data[i+1];
+        data |= (uint8_t) strtol(tmp, NULL, 16);
     }
     RNHPort ret = 0;
 
@@ -247,7 +259,7 @@ static void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED){
         return;
     }
 
-    rci_data->return_data[0] = ret;
-    rci_data->return_len = 1;
+    chsnprintf(rci->return_data, 2, "%x", ret);
+    rci->return_len = 2;
 }
 

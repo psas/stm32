@@ -25,10 +25,12 @@
 #define MODE_MSG		1
 #define AUX_MSG			2
 #define LAT_MSG			3
-#define VERT_MSG		5
-#define AXIS3_MSG		7
-#define AXIS4_MSG		9
+#define VERT_MSG		4
+#define AXIS3_MSG		5
+#define AXIS4_MSG		6
 #define BYTE_MASK		255
+
+#define MSGU16_LEN		(sizeof(*data)/sizeof(uint16_t))
 
 
 int RTxtoManualSendSocket;
@@ -37,6 +39,9 @@ int ManualtoRTxSendSocket;
 int RTxfromSLAReceiveSocket;
 int ManualReceiveSocket;
 int NeutralReceiveSocket;
+
+int DiagnosticsSendSocket;
+int DiagnosticsReceiveSocket;
 
 //Functions to create Ethernet sockets
 
@@ -47,6 +52,28 @@ void SendRTxtoManualSocket(){
 
     //Create the address to send to
     if(connect(RTxtoManualSendSocket, RTXMAN_NEUTRAL_ADDR, sizeof(struct sockaddr))){
+        chDbgPanic("Couldn't connect on tx socket");
+    }
+}
+
+void SendDiagnosticsSocket(){
+
+	DiagnosticsSendSocket = get_udp_socket(RTX_DIAG_ADDR);
+    chDbgAssert(DiagnosticsSendSocket >=0, "Neutral socket failed", NULL);
+
+    //Create the address to send to
+    if(connect(DiagnosticsSendSocket, RTXMAN_DIAG_ADDR, sizeof(struct sockaddr))){
+        chDbgPanic("Couldn't connect on tx socket");
+    }
+}
+
+void ReceiveDiagnosticsSocket(){
+
+	DiagnosticsReceiveSocket = get_udp_socket(RTXMAN_DIAG_ADDR);
+    chDbgAssert(DiagnosticsReceiveSocket >=0, "Neutral socket failed", NULL);
+
+    //Create the address to send to
+    if(connect(DiagnosticsReceiveSocket, RTX_DIAG_ADDR, sizeof(struct sockaddr))){
         chDbgPanic("Couldn't connect on tx socket");
     }
 }
@@ -75,7 +102,7 @@ void ReceiveRTxfromManualSocket() {
 	ManualReceiveSocket = get_udp_socket(RTX_MANUAL_ADDR);
     chDbgAssert(ManualReceiveSocket >=0, "Manual socket failed", NULL);
 
-    //Create the address to send to
+    //Create the address to receive from to
     if(connect(ManualReceiveSocket, RTXMAN_OUT_ADDR, sizeof(struct sockaddr))){
         chDbgPanic("Couldn't connect on tx socket");
     }
@@ -97,141 +124,139 @@ void ReceiveManualfromRTxSocket() {
 
 void SendNeutral(Neutral * data) {
 
-char msg[sizeof(*data)];
-#ifndef NDEBUG
-BaseSequentialStream *chp = getUsbStream();
-#endif
+uint8_t msg[sizeof(*data)];
 
-	msg[LAT_AXIS] = (char)data->latNeutral;
-	msg[VERT_AXIS] = (char)data->vertNeutral;
+	msg[LAT_AXIS] = data->latNeutral;
+	msg[VERT_AXIS] = data->vertNeutral;
 
-    if(write(RTxtoManualSendSocket, msg, sizeof(msg)) < 0){
-		#ifndef NDEBUG
-        chprintf(chp, "Neutral Send socket send failure\r\t");
-		#endif
-    }
+    write(RTxtoManualSendSocket, msg, sizeof(msg));
+
     return;
 }
 
 void SendManual(ManualData * data) {
 
-char msg[sizeof(*data)];
-uint8_t temp = 0;
-#ifndef NDEBUG
-BaseSequentialStream *chp = getUsbStream();
-#endif
+uint16_t msg[MSGU16_LEN];
 
 	// Insert Manual Control Box switch status
-	msg[ENABLE_MSG] = (char)data->Enable;
-	msg[MODE_MSG] = (char)data->Mode;
-	msg[AUX_MSG] =(char) data->Aux;
+	msg[ENABLE_MSG] = data->Enable;
+	msg[MODE_MSG] = data->Mode;
+	msg[AUX_MSG] = data->Aux;
 
-	// Separate bytes of Lat Axis Desired Position and insert in msg
-	temp = (uint8_t)(BYTE_MASK & data->latPosition);
-	msg[LAT_MSG] = (char)temp;
-	temp = (uint8_t)(BYTE_MASK & (data->latPosition >> 8));
-	msg[LAT_MSG + 1] = (char)temp;
+	msg[LAT_MSG] = data->latPosition;
+	msg[VERT_MSG] = data->vertPosition;
+	msg[AXIS3_MSG] = data->Axis3Position;
+	msg[AXIS4_MSG] = data->Axis4Position;
 
-	// Separate bytes of Vert Axis Desired Position and insert in msg
-	temp = (uint8_t)(BYTE_MASK & data->vertPosition);
-	msg[VERT_MSG] = (char)temp;
-	temp = (uint8_t)(BYTE_MASK & (data->vertPosition >> 8));
-	msg[VERT_MSG + 1] = (char)temp;
+    write(ManualtoRTxSendSocket, msg, sizeof(msg));
 
-	// Separate bytes of Axis3 Desired Position and insert in msg
-	temp = (uint8_t)(BYTE_MASK & data->Axis3Position);
-	msg[AXIS3_MSG] = (char)temp;
-	temp = (uint8_t)(BYTE_MASK & (data->Axis3Position >> 8));
-	msg[AXIS3_MSG + 1] = (char)temp;
+    return;
+}
 
-	// Separate bytes of Axis4 Desired Position and insert in msg
-	temp = (uint8_t)(BYTE_MASK & data->Axis4Position);
-	msg[AXIS4_MSG] = (char)temp;
-	temp = (uint8_t)(BYTE_MASK & (data->Axis4Position >> 8));
-	msg[AXIS4_MSG + 1] = (char)temp;
+void SendDiagnostics(Diagnostics * lat, Diagnostics * vert) {
 
-    if(write(ManualtoRTxSendSocket, msg, sizeof(msg)) < 0){
-		#ifndef NDEBUG
-        chprintf(chp, "Send socket send failure\r\t");
-		#endif
-    }
+int i;
+uint32_t msg[22];
+Diagnostics * data;
+
+	for(i = 0; i < 2; ++i) {
+		if(i == 0)
+			data = lat;
+		else
+			data = vert;
+
+		msg[0 + (i*11)] = (uint32_t)data->U16FeedbackADC;
+		msg[1 + (i*11)] = (uint32_t)data->U16FeedbackADCPrevious;
+		msg[2 + (i*11)] = (uint32_t)data->S16OutputCommand;
+		msg[3 + (i*11)] = (uint32_t)data->U16PositionDesired;
+		msg[4 + (i*11)] = (uint32_t)data->U16PositionActual;
+		msg[5 + (i*11)] = (uint32_t)data->S16PositionError;
+		msg[6 + (i*11)] = (uint32_t)data->S16PositionErrorPrevious;
+		msg[7 + (i*11)] = (uint32_t)data->S32PositionPTerm;
+		msg[8 + (i*11)] = (uint32_t)data->S32PositionITerm;
+		msg[9 + (i*11)] = (uint32_t)data->S32PositionDTerm;
+		msg[10 + (i*11)] = (uint32_t)data->S32PositionIAccumulator;
+
+	}
+    write(DiagnosticsSendSocket, msg, sizeof(msg));
+
     return;
 }
 
 int ReceiveManual(ManualData * data) {
 
-char msg[sizeof(*data)];
-uint16_t temp = 0;
-//#ifndef NDEBUG
-//BaseSequentialStream *chp = getUsbStream();
-//#endif
+uint16_t msg[MSGU16_LEN];
 
-	if(read(ManualReceiveSocket, msg, sizeof(msg)) < 0){
-//		#ifndef NDEBUG
-//		chprintf(chp, "Manual socket recv failure \r\n");
-//		#endif
+	if(recv(ManualReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT) < 0){
 		return -1;
 	}
 	else {
-//		#ifndef NDEBUG
-//		chprintf(chp, "%s\r\n", msg);
-//		#endif
 		//Parse msg into fields of data struct
-		data->Enable = (uint8_t)msg[ENABLE_MSG];
-		data->Mode = (uint8_t)msg[MODE_MSG];
-		data->Aux = (uint8_t)msg[AUX_MSG];
+		data->Enable = msg[ENABLE_MSG];
+		data->Mode = msg[MODE_MSG];
+		data->Aux = msg[AUX_MSG];
 
-		temp = (uint16_t)msg[LAT_MSG] << 8;
-		data->latPosition = (uint16_t)msg[LAT_MSG + 1] | temp;
-		temp = (uint16_t)msg[VERT_MSG] << 8;
-		data->vertPosition = (uint16_t)msg[VERT_MSG + 1] | temp;
-		temp = (uint16_t)msg[AXIS3_MSG] << 8;
-		data->Axis3Position = (uint16_t)msg[AXIS3_MSG + 1] | temp;
-		temp = (uint16_t)msg[AXIS4_MSG] << 8;
-		data->Axis4Position = (uint16_t)msg[AXIS4_MSG + 1] | temp;
+		data->latPosition = msg[LAT_MSG];
+		data->vertPosition = msg[VERT_MSG];
+		data->Axis3Position = msg[AXIS3_MSG];
+		data->Axis4Position = msg[AXIS4_MSG];
 
 		return 1;
     }
 }
 
+int ReceiveDiagnostics(Diagnostics * lat, Diagnostics * vert) {
+
+int i;
+uint32_t msg[22];
+Diagnostics * data;
+
+	if(recv(DiagnosticsReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT) < 0){
+		return -1;
+	}
+	for(i = 0; i < 2; ++i) {
+		if(i == 0)
+			data = lat;
+		else
+			data = vert;
+
+		data->U16FeedbackADC = (uint16_t)msg[0 + (i*11)];
+		data->U16FeedbackADCPrevious = (uint16_t)msg[1 + (i*11)];
+		data->S16OutputCommand = (int16_t)msg[2 + (i*11)];
+		data->U16PositionDesired = (uint16_t)msg[3 + (i*11)];
+		data->U16PositionActual = (uint16_t)msg[4 + (i*11)];
+		data->S16PositionError = (int16_t)msg[5 + (i*11)];
+		data->S16PositionErrorPrevious = (int16_t)msg[6 + (i*11)];
+		data->S32PositionPTerm = (int32_t)msg[7 + (i*11)];
+		data->S32PositionITerm = (int32_t)msg[8 + (i*11)];
+		data->S32PositionDTerm = (int32_t)msg[9 + (i*11)];
+		data->S32PositionIAccumulator = (int32_t)msg[10 + (i*11)];
+
+	}
+
+	return 0;
+}
+
 void ReceiveNeutral(Neutral * data) {
 
-char msg[sizeof(*data)];
-//#ifndef NDEBUG
-//BaseSequentialStream *chp = getUsbStream();
-//#endif
+uint8_t msg[sizeof(*data)];
 
-    if(read(NeutralReceiveSocket, msg, sizeof(msg)) < 0){
-//		#ifndef NDEBUG
-//        chprintf(chp, "Neutral socket recv failure \r\n");
-//		#endif
-    }
-	data->latNeutral = (uint8_t)msg[LAT_AXIS];
-	data->vertNeutral = (uint8_t)msg[VERT_AXIS];
+    recv(NeutralReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT);
+
+	data->latNeutral = msg[LAT_AXIS];
+	data->vertNeutral = msg[VERT_AXIS];
 
     return;
 }
 
 void ReceiveSLA(SLAData * data) {
 
-	char msg[20];
-	uint16_t temp = 0;
-	#ifndef NDEBUG
-	BaseSequentialStream *chp = getUsbStream();
-	#endif
+uint16_t msg[100];
 
-		msg[LAT_AXIS] = '\0';
-		msg[VERT_AXIS] = '\0';
+	recv(NeutralReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT);
 
-	    if(read(NeutralReceiveSocket, msg, sizeof(msg)) < 0){
-			#ifndef NDEBUG
-	        chprintf(chp, "Neutral socket recv failure \r\n");
-			#endif
-	    }
-		temp = (uint16_t)msg[SLA_COLUMN_OFFSET] << 8;
-		data->Column = (uint16_t)msg[SLA_COLUMN_OFFSET + 1] | temp;
-		temp = (uint16_t)msg[SLA_ROW_OFFSET] << 8;
-		data->Row = (uint16_t)msg[SLA_ROW_OFFSET + 1] | temp;
+	data->Column = msg[SLA_COLUMN_OFFSET];
+	data->Row = msg[SLA_ROW_OFFSET];
 
-	    return;
+	return;
 }

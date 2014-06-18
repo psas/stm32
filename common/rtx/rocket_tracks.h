@@ -45,7 +45,7 @@
 
 #define GPIOA_CS_SPI			4
 
-#define VERTICAL_COMMAND_LIMIT	300
+#define VERTICAL_COMMAND_LIMIT	350
 #define LATERAL_COMMAND_LIMIT	250
 
 #define ENABLED					1
@@ -60,21 +60,29 @@
 
 #define REFMONITOR_THRESH		4000
 
-#define LAT_HIGH_POS_MAX		0xfff0
-#define LAT_LOW_POS_MAX			0x000f
-#define VERT_HIGH_POS_MAX		0xfff0
-#define VERT_LOW_POS_MAX		0x000f
 
-#define POSITION_OFFSET			2048
+#define LAT_HIGH_MAX		60000
+#define LAT_LOW_MAX			8000
+#define VERT_HIGH_MAX		62000
+#define VERT_LOW_MAX		12000
 
-#define OUT_OF_RANGE_TIMEOUT	3
-#define MANUAL_WATCHDOG_TIMEOUT	3
+#define LAT_HIGH_POS_MAX		47500
+#define LAT_LOW_POS_MAX			13900
+#define VERT_HIGH_POS_MAX		53000
+#define VERT_LOW_POS_MAX		17800
+
+#define POSITION_OFFSET			1024
+
+#define OUT_OF_RANGE_TIMEOUT	5
+#define MANUAL_WATCHDOG_TIMEOUT	20000
 
 #define COL_PIXELS				1900
 #define ROW_PIXELS				1080
 
 #define COORD_TO_LAT			1
 #define COORD_TO_VERT			1
+
+typedef uint16_t axissample_t;
 
 
 #endif

@@ -12,7 +12,6 @@
  *****************************************************************************/
 
 #include <stdint.h>
-//#include <math.h>
 
 #include "rocket_tracks.h"
 #include "enet_api.h"
@@ -20,35 +19,39 @@
 
 void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 {
-	// Accumulator scaling multiplier
-//	const uint16_t U16PosDesAccumMultiplyer = 2048;
-//	const uint16_t U16PosDesAccumExponentialDivisor = 1024;
-//	const uint16_t U16VelocityDeadband = 80;
 
 	// ************* Position Loop *************
 
-	// Compute Desired Position
-	//ptr->S16PositionDesired
+	// Limit Desired position
+	if(ptr->U16PositionDesired > ptr->U16HighPosnLimit) {
+		ptr->U16PositionDesired = ptr->U16HighPosnLimit;
+//		ptr->U16PositionDesired = ptr->U16HighPosnLimit - POSITION_OFFSET;
+	}
+	else if(ptr->U16PositionDesired < ptr->U16LowPosnLimit) {
+		ptr->U16PositionDesired = ptr->U16LowPosnLimit;
+//		ptr->U16PositionDesired = ptr->U16LowPosnLimit + POSITION_OFFSET;
+	}
 
 	// Compute actual position
-	ptr->S16PositionActual = (adcsample_t)ptr->U16FeedbackADC + POSITION_OFFSET;
+	ptr->U16PositionActual = (adcsample_t)ptr->U16FeedbackADC;
 
 	// Compute position error Negative to deal with potentiometer direction
-	ptr->S16PositionError = -(ptr->S16PositionDesired - ptr->S16PositionActual);
+//	ptr->S16PositionError = (ptr->U16PositionDesired - ptr->U16PositionActual);
+	ptr->S16PositionError = -(ptr->U16PositionDesired - ptr->U16PositionActual);
 
 	// Compute Proportional Term
-	ptr->S32PositionPTerm = ptr->S16PositionError * ptr->U16PositionPGain;
+	ptr->S32PositionPTerm = (ptr->S16PositionError * ptr->U16PositionPGain)/2048;
 
 	// Compute Integral Term and Saturate Result
 	ptr->S32PositionIAccumulator = ptr->S32PositionIAccumulator +
 			((int32_t)ptr->S16PositionError * (int32_t)ptr->U16PositionIGain);
-	if(ptr->S32PositionIAccumulator > (1024*ptr->U16CommandLimit)){
-		ptr->S32PositionIAccumulator = (1024*ptr->U16CommandLimit);
+	if(ptr->S32PositionIAccumulator > (2048*ptr->U16CommandLimit)){
+		ptr->S32PositionIAccumulator = (2048*ptr->U16CommandLimit);
 	}
-	else if(ptr->S32PositionIAccumulator < (-1024*ptr->U16CommandLimit)){
-		ptr->S32PositionIAccumulator = (-1024*ptr->U16CommandLimit);
+	else if(ptr->S32PositionIAccumulator < (-2048*ptr->U16CommandLimit)){
+		ptr->S32PositionIAccumulator = (-2048*ptr->U16CommandLimit);
 	}
-	ptr->S32PositionITerm = ptr->S32PositionIAccumulator / 1024;
+	ptr->S32PositionITerm = ptr->S32PositionIAccumulator / 2048;
 
 	// Compute Derivative Term and Saturate Result
 	ptr->S32PositionDTerm = ( (ptr->S16PositionError - ptr->S16PositionErrorPrevious) *
@@ -77,18 +80,15 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	}
 
 
-	// Limit position and check open circuit on sensor
-	if(ptr->U16FeedbackADC < 5){
-		ptr->S16OutputCommand = 0;
-	}
-	else if( (ptr->S16PositionActual > ptr->U16HighPosnLimit) &&
-			 (ptr->S16OutputCommand < 0) ){
-		ptr->S16OutputCommand = 0;
-	}
-	else if( (ptr->S16PositionActual < ptr->U16LowPosnLimit) &&
-			 (ptr->S16OutputCommand > 0) ){
-		ptr->S16OutputCommand = 0;
-	}
+//	// Limit position
+//	if( (ptr->U16PositionActual > ptr->U16HighPosnLimit) &&
+//			 (ptr->S16OutputCommand < 0) ){
+//		ptr->S16OutputCommand = 0;
+//	}
+//	else if( (ptr->U16PositionActual < ptr->U16LowPosnLimit) &&
+//			 (ptr->S16OutputCommand > 0) ){
+//		ptr->S16OutputCommand = 0;
+//	}
 
 } // End void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 
@@ -100,10 +100,10 @@ int16_t row_coord = 0;
 
 	// Calculate Lateral Axis desired position
 	col_coord = (data->Column-(COL_PIXELS/2));
-	latp->S16PositionDesired = (col_coord * COORD_TO_LAT) + latp->S16PositionActual;
+	latp->U16PositionDesired = (col_coord * COORD_TO_LAT) + latp->U16PositionActual;
 
 	// Calculate Vertical Axis desired position
 	col_coord = (data->Column-(COL_PIXELS/2));
-	vertp->S16PositionDesired = (row_coord * COORD_TO_VERT) + vertp->S16PositionActual;
+	vertp->U16PositionDesired = (row_coord * COORD_TO_VERT) + vertp->U16PositionActual;
 }
 
