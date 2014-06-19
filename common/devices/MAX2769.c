@@ -43,15 +43,14 @@ const MAX2769Config max2769_gps =
 	.i0_data_out = {GPIOB, GPIOB_DATA_OUT}
 };
 
-/* MAX2769 is write only device */
+/* MAX2769 is write only device (!?) */
 void max2769_set(max2769_regaddr addr, uint32_t value)
 {
 	uint8_t txbuf[4] =
 	{
-//		     xxxx xxxx            xxxx xxxx                     xxxx xxxx              xxxx          aaaa
-		value&0xff00000>>20,       value& 0xff000 >> 12,      (val & 0xff0)>>4,     ((val & 0xf) << 4)| addr
+		(value & 0xff0000) >> 16, (value & 0xff00) >> 8, (val & 0xff), (0xff & addr)
 	};
-	CONF->SPID->spi->CR1 |= SPI_CR1_BIDIOE;
+	//CONF->SPID->spi->CR1 |= SPI_CR1_BIDIOE;   This is set in init...
 	spiAcquireBus(CONF->SPID);
 	palClearPad(CONF->spi_cs.port, CONF->spi_cs.pad);
 	spiSelect(CONF->SPID);
@@ -60,7 +59,6 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
 	palSetPad(CONF->spi_cs.port, CONF->spi_cs.pad);
 	spiReleaseBus(CONF->SPID);
 }
-
 
 /*! \brief Reset the MAX2769
  *
@@ -75,35 +73,38 @@ void max2769_reset()
 	palSetPad(CONF->shdn.port, CONF->shdn.pad);
 }
 
-static void spi_complete(SPIDriver * SPID){
-    chSysLockFromIsr();
-    spiUnselectI(SPID);
-    chEvtBroadcastI(&MAX2769_write_done);
-    chSysUnlockFromIsr();
-//    spiReleaseBus(CONF->SPID); TODO
+static void spi_complete(SPIDriver * SPID)
+{
+	chSysLockFromIsr();
+	spiUnselectI(SPID);
+	chEvtBroadcastI(&MAX2769_write_done);
+	chSysUnlockFromIsr();
+	//    spiReleaseBus(CONF->SPID); TODO
 }
 
-void  max2769_config()
+void  max2769_test_lna()
 {
-	int i = 0;
-	// max2769_set(MAX2769_CONF1, 0b0000 1011 1100 1111 0101 0001 1010 0011 )
-	//max2769_set(MAX2769_CONF1, 0x0BCF51A3 )
+	int new_conf1 = MAX2769_CONF1_DEF;
 	// Turn on LNA1
 	while(1)
 	{
-		max2769_set(MAX2769_CONF1, (MAX2769_CONF1_DEF & (1 << 14)) );
+		new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
+		new_conf1 |=  (0b01 << MAX2769_CONF1_LNAMODE);
+		max2769_set(MAX2769_CONF1, new_conf1 );
 		// Turn on LNA2
-		max2769_set(MAX2769_CONF1, (MAX2769_CONF1_DEF & (1 << 13)) );
+		new_conf1 |=  (0b11 << MAX2769_CONF1_LNAMODE);
+		max2769_set(MAX2769_CONF1, new_conf1 );
 		chThdSleepMilliseconds(3000);
-		// Turn on LNA1
-		max2769_set(MAX2769_CONF1, (MAX2769_CONF1_DEF & ~(1 << 14)) );
-		// Turn on LNA2
-		max2769_set(MAX2769_CONF1, (MAX2769_CONF1_DEF & ~(1 << 13)) );
+		// Turn off LNA1
+		new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
+		new_conf1 |=  (0b10 << MAX2769_CONF1_LNAMODE);
+		max2769_set(MAX2769_CONF1, new_conf1 );
+		// Turn off LNA2
+		new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
+		max2769_set(MAX2769_CONF1, new_conf1 );
 		chThdSleepMilliseconds(3000);
 	}
 }
-
-
 
 void max2769_init(const MAX2769Config * conf)
 {
@@ -128,6 +129,4 @@ void max2769_init(const MAX2769Config * conf)
 	spiStart(conf->SPID, &spicfg);
 	CONF = conf;
 }
-
-
 
