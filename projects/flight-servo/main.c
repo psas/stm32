@@ -37,6 +37,7 @@
 #define PWM_HI 1900
 #define PWM_CENTER (PWM_HI + PWM_LO) / 2
 
+#ifndef FLIGHT
 // Slew rate limit, in microseconds/millisecond. This limit corresponds to being
 // able to go from center to far mechanical limit in 100 ms.
 #define PWM_MAX_RATE 5
@@ -45,6 +46,7 @@
 // direction any faster than this.
 #define PWM_MAX_OSCILLATION_FREQ 50
 #define PWM_MIN_DIRECTION_CHANGE_PERIOD (PWM_PERIOD_HZ / PWM_MAX_OSCILLATION_FREQ)
+#endif
 
 /*
  * Global Variables
@@ -64,6 +66,7 @@ typedef struct {
 
 int s; // Servo socket
 
+#ifndef FLIGHT
 static uint16_t last_last_position = PWM_CENTER;
 static uint16_t last_position = PWM_CENTER;
 static uint16_t last_command = PWM_CENTER;
@@ -98,6 +101,7 @@ static uint16_t oscillationlimit(uint16_t position){
 	}
 	return position;
 }
+#endif
 
 static uint16_t softstop(uint16_t position){
 	if (position < PWM_LO) {
@@ -116,6 +120,7 @@ static uint16_t positionlimit(uint16_t position){
 	return position;
 }
 
+#ifndef FLIGHT
 void pwmcallback(PWMDriver * driver UNUSED){
 	last_last_position = last_position;
 	last_position = PWMD4.tim->CCR[3];
@@ -123,6 +128,9 @@ void pwmcallback(PWMDriver * driver UNUSED){
 
 	pwmEnableChannelI(&PWMD4, 3, positionlimit(last_command));
 }
+#else
+#define pwmcallback NULL
+#endif
 
 void handle_command(RCCommand * packet){
 	if(packet->disableFlag){
