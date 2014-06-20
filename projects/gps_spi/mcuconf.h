@@ -61,6 +61,7 @@
 #define STM32_PPRE1                         STM32_PPRE1_DIV4
 #define STM32_PPRE2                         STM32_PPRE2_DIV2
 #define STM32_RTCSEL                        STM32_RTCSEL_LSI
+//#define STM32_RTCSEL                        STM32_RTCSEL_LSE
 #define STM32_RTCPRE_VALUE                  8
 #define STM32_MCO1SEL                       STM32_MCO1SEL_HSE
 #define STM32_MCO1PRE                       STM32_MCO1PRE_DIV1
@@ -177,7 +178,7 @@
 #define STM32_MAC_RECEIVE_BUFFERS           4
 #define STM32_MAC_BUFFERS_SIZE              1522
 #define STM32_MAC_PHY_TIMEOUT               100
-#define STM32_MAC_ETH1_CHANGE_PHY_STATE     TRUE
+#define STM32_MAC_ETH1_CHANGE_PHY_STATE     FALSE
 #define STM32_MAC_ETH1_IRQ_PRIORITY         13
 #define STM32_MAC_IP_CHECKSUM_OFFLOAD       0
 
@@ -263,7 +264,7 @@
  * USB driver system settings.
  */
 #define STM32_USB_USE_OTG1                  TRUE
-#define STM32_USB_USE_OTG2                  FALSE
+#define STM32_USB_USE_OTG2                  TRUE
 #define STM32_USB_OTG1_IRQ_PRIORITY         14
 #define STM32_USB_OTG2_IRQ_PRIORITY         14
 #define STM32_USB_OTG1_RX_FIFO_SIZE         512

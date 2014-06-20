@@ -147,6 +147,7 @@ typedef struct
 {
 	struct pin      spi_sck;                /*! \brief The SPI SCK wire */
 	struct pin      spi_mosi;               /*! \brief The SPI MOSI wire */
+	struct pin      spi_miso;               /*! \brief The SPI MISO wire */
 	struct pin      spi_cs;                 /*! \brief The SPI CS wire */
 	SPIDriver   *   SPID;                   /*! \brief the SPI driver */
 	struct pin      idle;                   /*! \brief low power idle */

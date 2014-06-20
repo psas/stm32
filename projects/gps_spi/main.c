@@ -62,36 +62,36 @@ void main(void) {
 
     ledStart(NULL);
 
-    static struct RCIConfig conf;
+	static struct RCIConfig conf;
 
-    conf.commands = (struct RCICommand[]){
-            RCI_CMD_VERS,
-            {NULL}
-    };
-    conf.address = SENSOR_RCI_ADDR;
+	conf.commands = (struct RCICommand[]){
+			RCI_CMD_VERS,
+			{NULL}
+	};
+	conf.address = SENSOR_RCI_ADDR;
 
-    lwipThreadStart(GPS_LWIP);
-    RCICreate(&conf);
+	lwipThreadStart(GPS_LWIP);
 
-    /* Create the GPS out socket, connecting as it only sends to one place */
-    int s = get_udp_socket(GPS_OUT_ADDR);
-    chDbgAssert(s >= 0, "GPS socket failed", NULL);
-    seq_socket_init(&gps_socket, s);
+	RCICreate(&conf);
+	//Create the GPS out socket, connecting as it only sends to one place 
+	int s = get_udp_socket(GPS_OUT_ADDR);
+	chDbgAssert(s >= 0, "GPS socket failed", NULL);
+	seq_socket_init(&gps_socket, s);
 
-    connect(gps_socket.socket, FC_ADDR, sizeof(struct sockaddr));
+	connect(gps_socket.socket, FC_ADDR, sizeof(struct sockaddr));
 
-    max2769_init(&max2769_gps);
+	max2769_init(&max2769_gps);
 
-    const ShellCommand commands[] = {
-            {"mem", cmd_mem},
-            {"threads", cmd_threads},
-            {NULL, NULL}
-    };
-    usbSerialShellStart(commands);
+	const ShellCommand commands[] = {
+			{"mem", cmd_mem},
+			{"threads", cmd_threads},
+			{NULL, NULL}
+	};
+	usbSerialShellStart(commands);
 
-    chThdCreateStatic(wa_tx, sizeof(wa_tx), NORMALPRIO, tx_thread, NULL);
+	//chThdCreateStatic(wa_tx, sizeof(wa_tx), NORMALPRIO, tx_thread, NULL);
 
-    max2769_test_lna();
+	//max2769_test_lna();
     /* Manage MAX2769 events */
     struct EventListener ddone;
     static const evhandler_t evhndl[] = {

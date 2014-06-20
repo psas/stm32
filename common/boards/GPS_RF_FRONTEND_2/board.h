@@ -95,12 +95,15 @@ void mac_phy_reset(void);
 #define GPIOB_PIN7                    7
 #define GPIOB_PIN8                    8
 #define GPIOB_PIN9                    9
-#define GPIOB_MAX_CFG_SCLK                   10
+#define GPIOB_PIN10                    10
+#define GPIOB_MAX_CFG_SCLK            10
 #define GPIOB_ETH_RMII_TX_EN          11
 #define GPIOB_ETH_RMII_TXD0           12
 #define GPIOB_ETH_RMII_TXD1           13
 #define GPIOB_PIN14                   14
-#define GPIOB_MAX_CFG_MOSI                   15
+#define GPIOB_MAX_CFG_MISO            14
+#define GPIOB_PIN15                   15
+#define GPIOB_MAX_CFG_MOSI            15
 
 #define GPIOC_PIN0                    0
 #define GPIOC_ETH_RMII_MDC            1
@@ -623,8 +626,8 @@ void mac_phy_reset(void);
                                      PIN_MODE_OUTPUT (GPIOE_MAX_SHDN ) |\
                                      PIN_MODE_OUTPUT (GPIOE_MAX_IDLE ) |\
                                      PIN_MODE_OUTPUT (GPIOE_MAX_CFG_CS          ) |\
-                                     PIN_MODE_OUTPUT (GPIOE_MAX_CFG_CLK ) |\
-                                     PIN_MODE_OUTPUT (GPIOE_MAX_CFG_MOSI ) |\
+                                     PIN_MODE_INPUT (GPIOE_MAX_CFG_CLK ) |\
+                                     PIN_MODE_INPUT (GPIOE_MAX_CFG_MOSI ) |\
                                      PIN_MODE_INPUT (GPIOE_PIN15 ))
 
 #define VAL_GPIOE_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOE_PIN0   ) |\
@@ -674,8 +677,8 @@ void mac_phy_reset(void);
                                      PIN_PUPDR_PULLUP  (GPIOE_MAX_SHDN ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_MAX_IDLE ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_MAX_CFG_CS          ) |\
-                                     PIN_PUPDR_PULLUP  (GPIOE_MAX_CFG_CLK ) |\
-                                     PIN_PUPDR_PULLUP  (GPIOE_MAX_CFG_MOSI ) |\
+                                     PIN_PUPDR_FLOATING  (GPIOE_MAX_CFG_CLK ) |\
+                                     PIN_PUPDR_FLOATING  (GPIOE_MAX_CFG_MOSI ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN15 ))
 
 #define VAL_GPIOE_ODR               (PIN_ODR_HIGH      (GPIOE_PIN0   ) |\
@@ -708,7 +711,7 @@ void mac_phy_reset(void);
                                      PIN_AFIO_AF       (GPIOE_TIMESYNC , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_MAX_SHDN, 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_MAX_IDLE, 0 ) |\
-                                     PIN_AFIO_AF       (GPIOE_MAX_CFG_CS         , 0 ) |\
+                                     PIN_AFIO_AF       (GPIOE_MAX_CFG_CS         , 5 ) |\
                                      PIN_AFIO_AF       (GPIOE_MAX_CFG_CLK, 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_MAX_CFG_MOSI, 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN15, 0 ))

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file    templates/halconf.h
+ * @file    halconf.h
  * @brief   HAL configuration header.
  * @details HAL configuration file, this file allows to enable or disable the
  *          various device drivers from your application. You may also use
@@ -303,7 +303,8 @@
  *          default configuration.
  */
 #if !defined(SERIAL_DEFAULT_BITRATE) || defined(__DOXYGEN__)
-#define SERIAL_DEFAULT_BITRATE      38400
+// #define SERIAL_DEFAULT_BITRATE      38400
+#define SERIAL_DEFAULT_BITRATE      115200
 #endif
 
 /**
