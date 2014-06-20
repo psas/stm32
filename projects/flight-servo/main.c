@@ -14,7 +14,6 @@
 // ChibiOS
 #include "ch.h"
 #include "hal.h"
-#include "evtimer.h"
 
 // PSAS common
 #include "net_addrs.h"
@@ -52,27 +51,23 @@
  * ================ ***********************************************************
  */
 typedef struct {
-	uint16_t u16ServoPulseWidthBin14; // PWM on-time in milliseconds x 2^14 e.g. 1.5 msec = 1.5 x 2^14 = 24576
-	uint8_t u8ServoDisableFlag;       // Disable servo (turn off PWM) when this flag is not 0
-} __attribute__((packed)) RCOutput;
+	uint32_t seqCounter; // Packet sequence counter
+	uint16_t pulseWidth; // PWM on-time in milliseconds x 2^14 e.g. 1.5 msec = 1.5 x 2^14 = 24576
+	uint8_t disableFlag; // Disable servo (turn off PWM) when this flag is not 0
+} __attribute__((packed)) RCCommand;
 
-struct SeqSocket socket = DECL_SEQ_SOCKET(sizeof(RCOutput));
+typedef struct {
+	uint32_t seqCounter; // Packet sequence counter
+	uint32_t seqError;   // Sequence number of error packet
+	uint16_t pwmError;   // Value PWM has been set to instead
+} __attribute__((packed)) RCError;
+
+int s; // Servo socket
 
 static uint16_t last_last_position = PWM_CENTER;
 static uint16_t last_position = PWM_CENTER;
 static uint16_t last_command = PWM_CENTER;
 static int ticks;
-static int last_direction_change_tick;
-
-static uint16_t softstop(uint16_t position){
-	if (position < PWM_LO) {
-		return PWM_LO;
-	}
-	if (position > PWM_HI) {
-		return PWM_HI;
-	}
-	return position;
-}
 
 static uint16_t ratelimit(uint16_t position){
 	int32_t difference = position - last_position;
@@ -87,6 +82,7 @@ static uint16_t ratelimit(uint16_t position){
 }
 
 static uint16_t oscillationlimit(uint16_t position){
+	static int last_direction_change_tick = 0;
 	int32_t difference = position - last_position;
 	int32_t last_difference = last_position - last_last_position;
 	if (   (difference > 0 && last_difference <= 0)
@@ -103,11 +99,20 @@ static uint16_t oscillationlimit(uint16_t position){
 	return position;
 }
 
-static uint16_t set_pwm(uint16_t position){
+static uint16_t softstop(uint16_t position){
+	if (position < PWM_LO) {
+		return PWM_LO;
+	}
+	if (position > PWM_HI) {
+		return PWM_HI;
+	}
+	return position;
+}
+
+static uint16_t positionlimit(uint16_t position){
 	position = softstop(position);
 	position = ratelimit(position);
 	position = oscillationlimit(position);
-	pwmEnableChannel(&PWMD4, 3, position);
 	return position;
 }
 
@@ -115,20 +120,28 @@ void pwmcallback(PWMDriver * driver UNUSED){
 	last_last_position = last_position;
 	last_position = PWMD4.tim->CCR[3];
 	++ticks;
-	set_pwm(last_command);
+
+	pwmEnableChannelI(&PWMD4, 3, positionlimit(last_command));
 }
 
-void handle_command(RCOutput * packet){
-	if(packet->u8ServoDisableFlag){
+void handle_command(RCCommand * packet){
+	if(packet->disableFlag){
 		pwmDisableChannel(&PWMD4, 3);
-	} else {
-		last_command = ntohs(packet->u16ServoPulseWidthBin14);
-		uint16_t set = set_pwm(last_command);
-		if (set != last_command) {
-			set = htons(set);
-			memcpy(socket.buffer, &set, sizeof(set));
-			seq_write(&socket, sizeof(set));
-		}
+		return;
+	}
+
+	last_command = packet->pulseWidth;
+	uint16_t position = positionlimit(packet->pulseWidth);
+	pwmEnableChannel(&PWMD4, 3, position);
+
+	if (position != packet->pulseWidth) {
+		static uint32_t sendCounter = 0;
+		RCError error;
+		error.seqCounter = htonl(sendCounter);
+		error.seqError = htonl(packet->seqCounter);
+		error.pwmError = htons(position);
+		write(s, &error, sizeof(error));
+		++sendCounter;
 	}
 }
 
@@ -161,16 +174,22 @@ void main(void) {
 	/* activate PWM output */
 	pwmStart(&PWMD4, &pwmcfg);
 
-	int s = get_udp_socket(ROLL_ADDR);
+	/* Set up socket */
+	s = get_udp_socket(ROLL_ADDR);
 	chDbgAssert(s >= 0, "Couldn't get roll socket", NULL);
-	seq_socket_init(&socket, s);
+	connect(s, FC_ADDR, sizeof(struct sockaddr_in));
 
-	RCOutput packet;
+	RCCommand packet;
+	uint32_t recvCounter = 0;
 	while (TRUE) {
-		int r = seq_read(&socket);
-		if (r == sizeof(RCOutput)) {
-			memcpy(&packet, socket.buffer, sizeof(RCOutput));
-			handle_command(&packet);
+		int r = read(s, &packet, sizeof(RCCommand));
+		if (r == sizeof(RCCommand)) {
+			packet.seqCounter = ntohl(packet.seqCounter);
+			packet.pulseWidth = ntohs(packet.pulseWidth);
+			if(packet.seqCounter > recvCounter){
+				handle_command(&packet);
+			}
+			recvCounter = packet.seqCounter;
 		}
 	}
 }
