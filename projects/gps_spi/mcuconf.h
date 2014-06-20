@@ -45,7 +45,15 @@
 #define STM32_CLOCK48_REQUIRED              TRUE
 #define STM32_SW                            STM32_SW_PLL
 #define STM32_PLLSRC                        STM32_PLLSRC_HSE
+#ifdef BOARD_PSAS_ROCKETNET_HUB_1_0
 #define STM32_PLLM_VALUE                    25
+#elif defined BOARD_OLIMEX_STM32_E407
+#define STM32_PLLM_VALUE                    12
+#elif defined BOARD_PSAS_RTX_CONTROLLER
+#define STM32_PLLM_VALUE                    25
+#elif defined BOARD_GPS_RF_FRONTEND_2
+#define STM32_PLLM_VALUE                    25
+#endif
 #define STM32_PLLN_VALUE                    336
 #define STM32_PLLP_VALUE                    2
 #define STM32_PLLQ_VALUE                    7
@@ -169,7 +177,7 @@
 #define STM32_MAC_RECEIVE_BUFFERS           4
 #define STM32_MAC_BUFFERS_SIZE              1522
 #define STM32_MAC_PHY_TIMEOUT               100
-#define STM32_MAC_ETH1_CHANGE_PHY_STATE     FALSE
+#define STM32_MAC_ETH1_CHANGE_PHY_STATE     TRUE
 #define STM32_MAC_ETH1_IRQ_PRIORITY         13
 #define STM32_MAC_IP_CHECKSUM_OFFLOAD       0
 
@@ -209,7 +217,7 @@
 /*
  * SPI driver system settings.
  */
-#define STM32_SPI_USE_SPI1                  TRUE
+#define STM32_SPI_USE_SPI1                  FALSE
 #define STM32_SPI_USE_SPI2                  TRUE
 #define STM32_SPI_USE_SPI3                  FALSE
 #define STM32_SPI_SPI1_RX_DMA_STREAM        STM32_DMA_STREAM_ID(2, 0)
