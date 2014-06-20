@@ -24,7 +24,7 @@ extern const struct sockaddr * MPL_ADDR;  // MPL3115A2
 /* Servo Node */
 extern struct lwipthread_opts * ROLL_LWIP;
 extern const struct sockaddr * ROLL_ADDR;    // Servo control
-extern const struct sockaddr * TEATHER_ADDR; // Launch Detect
+extern const struct sockaddr * ROLL_RCI_ADDR;
 
 /* Rocket Net Hub */
 extern struct lwipthread_opts * RNH_LWIP;

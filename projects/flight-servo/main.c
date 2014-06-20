@@ -17,6 +17,8 @@
 
 // PSAS common
 #include "net_addrs.h"
+#include "rnet_cmd_interp.h"
+#include "utils_rci.h"
 #include "utils_general.h"
 #include "utils_sockets.h"
 #include "utils_led.h"
@@ -163,6 +165,15 @@ void main(void) {
 
 	/* Start lwip stack */
 	lwipThreadStart(ROLL_LWIP);
+
+	/* Set up RCI for the version command */
+	static struct RCIConfig conf;
+	conf.commands = (struct RCICommand[]){
+		RCI_CMD_VERS,
+		{NULL}
+	};
+	conf.address = ROLL_RCI_ADDR;
+	RCICreate(&conf);
 
 	/* Configure PWM. Static because pwmStart doesn't deep copy PWMConfigs */
 	static PWMConfig pwmcfg = {
