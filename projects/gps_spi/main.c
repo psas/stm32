@@ -91,7 +91,7 @@ void main(void) {
 
     chThdCreateStatic(wa_tx, sizeof(wa_tx), NORMALPRIO, tx_thread, NULL);
 
-    max2769_config();
+    max2769_test_lna();
     /* Manage MAX2769 events */
     struct EventListener ddone;
     static const evhandler_t evhndl[] = {
@@ -101,6 +101,4 @@ void main(void) {
     while(TRUE){
         chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
     }
-
 }
-

@@ -171,7 +171,7 @@ extern const      MAX2769Config            max2769_gps;
 extern            EventSource              MAX2769_write_done;
 
 void max2769_test_lna(void);
-void max2769_set(max2769_regaddr addr, uint16_t value);
+void max2769_set(max2769_regaddr addr, uint32_t value);
 void max2769_reset(void);
 
 void max2769_init(const MAX2769Config * conf);
