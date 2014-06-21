@@ -134,3 +134,7 @@ const struct sockaddr * RTXMAN_DIAG_ADDR = make_addr(RTXMAN_IP, RTXMAN_DIAG);
 
 struct lwipthread_opts * GPS_LWIP = make_lwipopts(GPS_MAC, GPS_IP, NETMASK, GATEWAY);
 const struct sockaddr * GPS_OUT_ADDR = make_addr(GPS_IP, GPS_OUT);
+const struct sockaddr * GPS_RCI_ADDR = make_addr(GPS_IP, GPS_RCI);
+
+
+

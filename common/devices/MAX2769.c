@@ -47,21 +47,17 @@ const MAX2769Config max2769_gps =
 /* MAX2769 is write only device (!?) */
 void max2769_set(max2769_regaddr addr, uint32_t value)
 {
-	BaseSequentialStream *chp;
-    chp = getUsbStream();
+	//BaseSequentialStream *chp;
+    //chp = getUsbStream();
 	uint8_t txbuf[4] =
 	{
 		(value & 0xff0000) >> 16, (value & 0xff00) >> 8, (value & 0xff), (0xff & addr)
 	};
 	//CONF->SPID->spi->CR1 |= SPI_CR1_BIDIOE;   This is set in init...
 	spiAcquireBus(CONF->SPID);
-	chprintf(chp, "1\r\n");
 	palClearPad(CONF->spi_cs.port, CONF->spi_cs.pad);
-	chprintf(chp, "2\r\n");
 	spiSelect(CONF->SPID);
-	chprintf(chp, "3\r\n");
 	spiSend(CONF->SPID, sizeof(txbuf), txbuf);
-	chprintf(chp, "4\r\n");
 	spiUnselect(CONF->SPID);
 	palSetPad(CONF->spi_cs.port, CONF->spi_cs.pad);
 	spiReleaseBus(CONF->SPID);
@@ -101,26 +97,25 @@ void  max2769_test_lna()
 	// Turn on LNA1
 	while(1)
 	{
-		//palClearPad(CONF->spi_cs.port, CONF->spi_cs.pad);
-		//chThdSleepMilliseconds(1000);
+		// Turn on LNA1
 		new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
 		new_conf1 |=  (0b01 << MAX2769_CONF1_LNAMODE);
 		chprintf(chp, "new_conf1: 0x%x\r\n", new_conf1);
 		max2769_set(MAX2769_CONF1, new_conf1 );
-		//chThdSleepMilliseconds(1000);
-		//// Turn on LNA2
-		//new_conf1 |=  (0b11 << MAX2769_CONF1_LNAMODE);
-		//max2769_set(MAX2769_CONF1, new_conf1 );
-		//chThdSleepMilliseconds(1000);
-		//// Turn off LNA1
-		//new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
-		//new_conf1 |=  (0b10 << MAX2769_CONF1_LNAMODE);
-		//max2769_set(MAX2769_CONF1, new_conf1 );
-		//chThdSleepMilliseconds(1000);
-		//// Turn off LNA2
-		//new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
-		//max2769_set(MAX2769_CONF1, new_conf1 );
-		//palSetPad(CONF->spi_cs.port, CONF->spi_cs.pad);
+		chThdSleepMilliseconds(1000);
+		// Turn on LNA2
+		new_conf1 |=  (0b11 << MAX2769_CONF1_LNAMODE);
+		max2769_set(MAX2769_CONF1, new_conf1 );
+		chThdSleepMilliseconds(1000);
+		// Turn off LNA1
+		new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
+		new_conf1 |=  (0b10 << MAX2769_CONF1_LNAMODE);
+		max2769_set(MAX2769_CONF1, new_conf1 );
+		chThdSleepMilliseconds(1000);
+		// Turn off LNA2
+		new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
+		max2769_set(MAX2769_CONF1, new_conf1 );
+		palSetPad(CONF->spi_cs.port, CONF->spi_cs.pad);
 		chThdSleepMilliseconds(1000);
 	}
 }
@@ -141,7 +136,7 @@ void max2769_init(const MAX2769Config * conf)
 	 */
 	static SPIConfig spicfg =
 	{
-		.end_cb = spi_complete,
+		.end_cb = NULL,
 		//.cr1    = SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE
 		.cr1    = SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1 
 	};
