@@ -67,7 +67,7 @@ typedef enum
 #define  MAX2769_CONF1_ILO           ((uint8_t)(19))    /* LO buffer current */
 #define  MAX2769_CONF1_IMIX          ((uint8_t)(17))    /* Mixer Current */
 #define  MAX2769_CONF1_MIXPOLE       ((uint8_t)(15))    /* Mixer Pole selection */
-#define  MAX2769_CONF1_LNAMODE       ((uint8_t)(14))    /* LNA Mode Select */
+#define  MAX2769_CONF1_LNAMODE       ((uint8_t)(13))    /* LNA Mode Select */
 #define  MAX2769_CONF1_MIXEN         ((uint8_t)(12))    /* Mixer enable */
 #define  MAX2769_CONF1_ANTEN         ((uint8_t)(11))    /* Antenna Bias Enable */
 #define  MAX2769_CONF1_FCEN          ((uint8_t)(10))    /* IF Center Frequency */

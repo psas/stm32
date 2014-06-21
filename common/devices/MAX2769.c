@@ -49,9 +49,13 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
 {
 	//BaseSequentialStream *chp;
     //chp = getUsbStream();
+		//Xxxxxxxx
+	value  = value << 4;
+		//X xxxxxxx0
+    value |= (addr & 0xf);
 	uint8_t txbuf[4] =
 	{
-		(value & 0xff0000) >> 16, (value & 0xff00) >> 8, (value & 0xff), (0xff & addr)
+			(value & 0xff000000) >> 24, (value & 0xff0000) >> 16, (value & 0xff00) >> 8, (value & 0xff)
 	};
 	//CONF->SPID->spi->CR1 |= SPI_CR1_BIDIOE;   This is set in init...
 	spiAcquireBus(CONF->SPID);
@@ -97,26 +101,17 @@ void  max2769_test_lna()
 	// Turn on LNA1
 	while(1)
 	{
-		// Turn on LNA1
-		new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
-		new_conf1 |=  (0b01 << MAX2769_CONF1_LNAMODE);
-		chprintf(chp, "new_conf1: 0x%x\r\n", new_conf1);
+		// Turn off ANTEN
+		new_conf1 &= ~(0b1 << MAX2769_CONF1_ANTEN);
+		chprintf(chp, "ANTEN OFF: 0x%x\r\n", new_conf1);
 		max2769_set(MAX2769_CONF1, new_conf1 );
 		chThdSleepMilliseconds(1000);
-		// Turn on LNA2
-		new_conf1 |=  (0b11 << MAX2769_CONF1_LNAMODE);
-		max2769_set(MAX2769_CONF1, new_conf1 );
-		chThdSleepMilliseconds(1000);
-		// Turn off LNA1
-		new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
-		new_conf1 |=  (0b10 << MAX2769_CONF1_LNAMODE);
-		max2769_set(MAX2769_CONF1, new_conf1 );
-		chThdSleepMilliseconds(1000);
-		// Turn off LNA2
-		new_conf1 &= ~(0b11 << MAX2769_CONF1_LNAMODE);
-		max2769_set(MAX2769_CONF1, new_conf1 );
-		palSetPad(CONF->spi_cs.port, CONF->spi_cs.pad);
-		chThdSleepMilliseconds(1000);
+
+		// Turn on ANTEN
+		//new_conf1 |= (0b1 << MAX2769_CONF1_ANTEN);
+		//chprintf(chp, "ANTEN ON: 0x%x\r\n", new_conf1);
+		//max2769_set(MAX2769_CONF1, new_conf1 );
+		//chThdSleepMilliseconds(1000);
 	}
 }
 
