@@ -59,11 +59,9 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
 	};
 	//CONF->SPID->spi->CR1 |= SPI_CR1_BIDIOE;   This is set in init...
 	spiAcquireBus(CONF->SPID);
-	palClearPad(CONF->spi_cs.port, CONF->spi_cs.pad);
 	spiSelect(CONF->SPID);
 	spiSend(CONF->SPID, sizeof(txbuf), txbuf);
 	spiUnselect(CONF->SPID);
-	palSetPad(CONF->spi_cs.port, CONF->spi_cs.pad);
 	spiReleaseBus(CONF->SPID);
 }
 
@@ -74,10 +72,12 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
  */
 void max2769_reset()
 {
-	const unsigned int MAX2769_RESET_MSECS = 500;
-	palClearPad(CONF->shdn.port, CONF->shdn.pad);
+	const unsigned int MAX2769_RESET_MSECS = 5000;
+	palClearPad(CONF->idle.port, CONF->idle.pad);
+	//palClearPad(CONF->shdn.port, CONF->shdn.pad);
 	chThdSleepMilliseconds(MAX2769_RESET_MSECS);
-	palSetPad(CONF->shdn.port, CONF->shdn.pad);
+	//palSetPad(CONF->shdn.port, CONF->shdn.pad);
+	palSetPad(CONF->idle.port, CONF->idle.pad);
 }
 
 static void spi_complete(SPIDriver * SPID)
@@ -91,19 +91,19 @@ static void spi_complete(SPIDriver * SPID)
 
 void  max2769_test_lna()
 {
-	BaseSequentialStream *chp;
-    chp = getUsbStream();
-
+	//BaseSequentialStream *chp;
+    //chp = getUsbStream();
 	int new_conf1 = MAX2769_CONF1_DEF;
-
+        new_conf1 = 0b1010001010010111000110100011;
 	chThdSleepMilliseconds(4000);
-
+	max2769_reset();
+	chThdSleepMilliseconds(1000);
 	// Turn on LNA1
 	while(1)
 	{
 		// Turn off ANTEN
-		new_conf1 &= ~(0b1 << MAX2769_CONF1_ANTEN);
-		chprintf(chp, "ANTEN OFF: 0x%x\r\n", new_conf1);
+		//new_conf1 &= ~(0b1 << MAX2769_CONF1_ANTEN);
+		//chprintf(chp, "ANTEN OFF: 0x%x\r\n", new_conf1);
 		max2769_set(MAX2769_CONF1, new_conf1 );
 		chThdSleepMilliseconds(1000);
 
@@ -126,18 +126,19 @@ void max2769_init(const MAX2769Config * conf)
 	palSetPadMode(conf->spi_cs.port, conf->spi_cs.pad, PAL_MODE_OUTPUT_PUSHPULL | PINMODE);
 	palSetPad(conf->spi_cs.port, conf->spi_cs.pad); //unselect
 	/* GPIO pins setup */
-	/* MAX2869 SPI configuration 
+	/* MAX2869 SPI configuration
 	 * 656250Hz, CPHA=1, CPOL=1, MSb first.
 	 */
 	static SPIConfig spicfg =
 	{
 		.end_cb = NULL,
 		//.cr1    = SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1 | SPI_CR1_BIDIMODE | SPI_CR1_BIDIOE
-		.cr1    = SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BR_2 | SPI_CR1_BR_1 
+		.cr1 = SPI_CR1_BR_2 | SPI_CR1_BR_1
 	};
 	spicfg.ssport = conf->spi_cs.port;
 	spicfg.sspad  = conf->spi_cs.pad;
 	spiStart(conf->SPID, &spicfg);
+
 	CONF = conf;
 }
 
