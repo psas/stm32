@@ -13,6 +13,7 @@
 #include "lwip/sockets.h"
 #include "lwipthread.h"
 
+#include "chprintf.h"
 #include "rnet_cmd_interp.h"
 #include "utils_sockets.h"
 #include "utils_general.h"
@@ -52,9 +53,8 @@ static void adis_drdy_handler(eventid_t id UNUSED){
 
 static void self_test(struct RCICmdData *rci_data, void *user_data UNUSED) {
     uint16_t result = adis_self_test();
-    rci_data->return_data[0] = (result & 0xFF00)>>8;
-    rci_data->return_data[1] = result;
-    rci_data->return_len = 2;
+    chsnprintf(rci_data->return_data, 4, "%x", result);
+    rci_data->return_len = 4;
 }
 
 void main(void){
