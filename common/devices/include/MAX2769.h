@@ -20,7 +20,10 @@ extern "C"
 #include "utils_hal.h"
 
 #if !defined(MAX2769_DEBUG) || defined(__DOXYGEN__)
-#define         MAX2769_DEBUG                   0
+#define         MAX2769_DEBUG                       0
+#endif
+#if !defined(MAX2769_DEBUG) || defined(__DOXYGEN__)
+#define         MAX2769_SPI_DEBUG                   0
 #endif
 
 /* MAX2769 Register addresses */
@@ -60,34 +63,34 @@ typedef enum
  *MAX2769 Register bit positions
  */
 /* CONF1 */
-#define  MAX2769_CONF1_CHIPEN            ((uint8_t)(27))    /* Chip enable */
+#define  MAX2769_CONF1_CHIPEN        ((uint8_t)(27))    /* Chip enable */
 #define  MAX2769_CONF1_IDLE          ((uint8_t)(26))    /* Idle enable */
-#define  MAX2769_CONF1_ILNA1         ((uint8_t)(25))    /* LNA1 current */
-#define  MAX2769_CONF1_ILNA2         ((uint8_t)(21))    /* LNA2 current */
-#define  MAX2769_CONF1_ILO           ((uint8_t)(19))    /* LO buffer current */
-#define  MAX2769_CONF1_IMIX          ((uint8_t)(17))    /* Mixer Current */
+#define  MAX2769_CONF1_ILNA1         ((uint8_t)(22))    /* LNA1 current */
+#define  MAX2769_CONF1_ILNA2         ((uint8_t)(20))    /* LNA2 current */
+#define  MAX2769_CONF1_ILO           ((uint8_t)(18))    /* LO buffer current */
+#define  MAX2769_CONF1_IMIX          ((uint8_t)(16))    /* Mixer Current */
 #define  MAX2769_CONF1_MIXPOLE       ((uint8_t)(15))    /* Mixer Pole selection */
 #define  MAX2769_CONF1_LNAMODE       ((uint8_t)(13))    /* LNA Mode Select */
 #define  MAX2769_CONF1_MIXEN         ((uint8_t)(12))    /* Mixer enable */
 #define  MAX2769_CONF1_ANTEN         ((uint8_t)(11))    /* Antenna Bias Enable */
-#define  MAX2769_CONF1_FCEN          ((uint8_t)(10))    /* IF Center Frequency */
-#define  MAX2769_CONF1_FPW           ((uint8_t)(4))     /* IF Filter Center Bandwidth */
+#define  MAX2769_CONF1_FCEN          ((uint8_t)(5))    /* IF Center Frequency */
+#define  MAX2769_CONF1_FPW           ((uint8_t)(3))     /* IF Filter Center Bandwidth */
 #define  MAX2769_CONF1_F3OR5         ((uint8_t)(2))     /* Filter Order Select */
 #define  MAX2769_CONF1_FCENX         ((uint8_t)(1))     /* Polyphase filter Select */
 #define  MAX2769_CONF1_FGAIN         ((uint8_t)(0))     /* IF Filter Gain Select */
 
 /* CONF2 */
 #define  MAX2769_CONF2_IQEN          ((uint8_t)(27))    /* I and Q Channels Enable */
-#define  MAX2769_CONF2_GAINREF       ((uint8_t)(26))    /* AGC Gain */
-#define  MAX2769_CONF2_AGCMODE       ((uint8_t)(12))    /* AGC Mode */
-#define  MAX2769_CONF2_FORMAT        ((uint8_t)(10))    /* Output Data Format */
-#define  MAX2769_CONF2_BITS          ((uint8_t)(8))     /* Num of bits in ADC */
-#define  MAX2769_CONF2_DRVCFG        ((uint8_t)(5))     /* Output Driver Configuration */
+#define  MAX2769_CONF2_GAINREF       ((uint8_t)(15))    /* AGC Gain */
+#define  MAX2769_CONF2_AGCMODE       ((uint8_t)(11))    /* AGC Mode */
+#define  MAX2769_CONF2_FORMAT        ((uint8_t)(9))    /* Output Data Format */
+#define  MAX2769_CONF2_BITS          ((uint8_t)(6))     /* Num of bits in ADC */
+#define  MAX2769_CONF2_DRVCFG        ((uint8_t)(4))     /* Output Driver Configuration */
 #define  MAX2769_CONF2_LOEN          ((uint8_t)(3))     /* LO buffer enable */
-#define  MAX2769_CONF2_DIEID         ((uint8_t)(1))     /* Identify version of IC */
+#define  MAX2769_CONF2_DIEID         ((uint8_t)(0))     /* Identify version of IC */
 
 /* CONF3 */
-#define  MAX2769_CONF3_GAININ        ((uint8_t)(27))   /* PGA Gain */
+#define  MAX2769_CONF3_GAININ        ((uint8_t)(22))   /* PGA Gain */
 #define  MAX2769_CONF3_FSLOWEN       ((uint8_t)(21))   /* Low value of ADC full-scale...*/
 #define  MAX2769_CONF3_HILOADEN      ((uint8_t)(20))   /* Output driver strength HI-load*/
 #define  MAX2769_CONF3_ADCEN         ((uint8_t)(19))   /* ADC Enable */
@@ -100,8 +103,8 @@ typedef enum
 #define  MAX2769_CONF3_STRMEN        ((uint8_t)(11))   /* DSP interface... */
 #define  MAX2769_CONF3_STRMSTART     ((uint8_t)(10))   /* ... */
 #define  MAX2769_CONF3_STRMSTOP      ((uint8_t)(9))    /* ... */
-#define  MAX2769_CONF3_STRMCOUNT     ((uint8_t)(8))    /* ... */
-#define  MAX2769_CONF3_STRMBITS      ((uint8_t)(5))    /* ... */
+#define  MAX2769_CONF3_STRMCOUNT     ((uint8_t)(6))    /* ... */
+#define  MAX2769_CONF3_STRMBITS      ((uint8_t)(4))    /* ... */
 #define  MAX2769_CONF3_STRMPEN       ((uint8_t)(3))    /* ... */
 #define  MAX2769_CONF3_TIMESYNCEN    ((uint8_t)(2))    /* ... */
 #define  MAX2769_CONF3_DATASYNCEN    ((uint8_t)(1))    /* ... */
@@ -111,29 +114,29 @@ typedef enum
 #define  MAX2769_PLL_VCOEN           ((uint8_t)(27))   /* VCO Enable */
 #define  MAX2769_PLL_IVCO            ((uint8_t)(26))   /* VCO Current Select */
 #define  MAX2769_PLL_REFOUTEN        ((uint8_t)(24))   /* Clock buffer enable */
-#define  MAX2769_PLL_REFDIV          ((uint8_t)(22))   /* Clock Output Divider Ratio */
-#define  MAX2769_PLL_IXTAL           ((uint8_t)(20))   /* Current for XTAL */
-#define  MAX2769_PLL_XTALCAP         ((uint8_t)(18))   /* Digital Load Cap for XTAL */
-#define  MAX2769_PLL_LDMUX           ((uint8_t)(13))   /* LD pin output select */
+#define  MAX2769_PLL_REFDIV          ((uint8_t)(21))   /* Clock Output Divider Ratio */
+#define  MAX2769_PLL_IXTAL           ((uint8_t)(19))   /* Current for XTAL */
+#define  MAX2769_PLL_XTALCAP         ((uint8_t)(14))   /* Digital Load Cap for XTAL */
+#define  MAX2769_PLL_LDMUX           ((uint8_t)(10))   /* LD pin output select */
 #define  MAX2769_PLL_ICP             ((uint8_t)(9))    /* Charge Pump current */
 #define  MAX2769_PLL_PFDEN           ((uint8_t)(8))    /* ...  */
-#define  MAX2769_PLL_CPTEST          ((uint8_t)(6))    /* Charge Pump Test  */
+#define  MAX2769_PLL_CPTEST          ((uint8_t)(4))    /* Charge Pump Test  */
 #define  MAX2769_PLL_INT_PLL         ((uint8_t)(3))    /* PLL Mode Ctl */
 #define  MAX2769_PLL_PWRSAV          ((uint8_t)(2))    /* PLL Power Save */
 
 /* PLL Integer Division Ratio */
-#define  MAX2769_PLLIDR_NDIV         ((uint8_t)(27))    /* PLL Integer Division Ratio */
-#define  MAX2769_PLLIDR_RDIV         ((uint8_t)(12))    /* PLL Reference Division Ratio */
+#define  MAX2769_PLLIDR_NDIV         ((uint8_t)(13))    /* PLL Integer Division Ratio */
+#define  MAX2769_PLLIDR_RDIV         ((uint8_t)(3))    /* PLL Reference Division Ratio */
 
 /* PLL Integer Division Ratio */
-#define  MAX2769_PLLDR_FDIV          ((uint8_t)(27))    /* PLL Fractional Divider Ratio */
+#define  MAX2769_PLLDR_FDIV          ((uint8_t)(8))    /* PLL Fractional Divider Ratio */
 
 /* DSP Interface */
 #define  MAX2769_DSP_FRAMECOUNT      ((uint8_t)(27))    /* ... */
 
 /* Clock Fractional Division Ratio */
-#define  MAX2769_CFDR_L_CNT          ((uint8_t)(27))    /* L Counter Value */
-#define  MAX2769_CFDR_M_CNT          ((uint8_t)(15))    /* M Counter Value */
+#define  MAX2769_CFDR_L_CNT          ((uint8_t)(16))    /* L Counter Value */
+#define  MAX2769_CFDR_M_CNT          ((uint8_t)(4))    /* M Counter Value */
 #define  MAX2769_CFDR_FCLKIN         ((uint8_t)(3))     /* Frac. Clock Divider */
 #define  MAX2769_CFDR_ADCCLK         ((uint8_t)(2))     /* ADC Clock Selection */
 #define  MAX2769_CFDR_SERCLK         ((uint8_t)(1))     /* Serializer Clock Selection */
@@ -171,9 +174,12 @@ typedef struct MAX2769Data
 extern const      MAX2769Config            max2769_gps;
 extern            EventSource              MAX2769_write_done;
 
-void max2769_test_lna(void);
-void max2769_set(max2769_regaddr addr, uint32_t value);
+#if MAX2769_SPI_DEBUG
+void max2769_test_spi(void);
+#endif
+
 void max2769_reset(void);
+void max2769_set(max2769_regaddr addr, uint32_t value);
 
 void max2769_init(const MAX2769Config * conf);
 
@@ -182,4 +188,6 @@ void max2769_init(const MAX2769Config * conf);
 #endif
 
 #endif
+
+
 

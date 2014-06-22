@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -Og -ggdb -std=gnu99 -fomit-frame-pointer -falign-functions=16 -Wno-main
+  USE_OPT = -Og -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main -std=gnu99
 endif
 
 # C specific options here (added to USE_OPT).
@@ -69,7 +69,6 @@ CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
 BOARD ?= GPS_RF_FRONTEND_2
-#BOARD ?= OLIMEX_STM32_E407
 ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
     include $(CHIBIOS)/boards/$(BOARD)/board.mk
 else
@@ -79,11 +78,9 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
-include $(CHIBIOS)/os/various/lwip_bindings/lwip.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
-#LDSCRIPT= $(PORTLD)/STM32F407xG_CCM.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -92,18 +89,14 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       $(LWSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
        $(PSAS_DEVICES)/MAX2769.c \
-       $(PSAS_NETSRC) \
-       $(PSAS_UTIL)/utils_general.c \
        $(PSAS_UTIL)/utils_led.c \
        $(PSAS_UTIL)/utils_hal.c \
-       $(PSAS_UTIL)/utils_rci.c \
        $(PSAS_UTIL)/usbdetail.c \
        $(PSAS_UTIL)/utils_shell.c \
        main.c
@@ -136,9 +129,8 @@ TCPPSRC =
 ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC) \
+         $(HALINC) $(PLATFORMINC) $(BOARDINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_NET)\
          $(PSAS_DEVICES)/include \
          $(CONF) \
          $(PSAS_UTIL)/include
@@ -152,7 +144,6 @@ INCDIR = $(PORTINC) $(KERNINC) \
 
 MCU  = cortex-m4
 
-#TRGT = arm-elf-
 TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
@@ -174,8 +165,11 @@ AOPT =
 TOPT = -mthumb -DTHUMB
 
 # Define C warning options here
-#CWARN = -Wall -Wextra -Wstrict-prototypes
-CWARN = -Wall -Wextra -Wstrict-prototypes -Wno-unused-function -Wno-unused-variable
+CWARN = -Wall -Wextra -Wstrict-prototypes -Wdisabled-optimization \
+	-Wdouble-promotion -Wformat=2 -Wfloat-equal \
+	-Waggressive-loop-optimizations -Wunsafe-loop-optimizations \
+	-Waggregate-return -Wlogical-op -Wmissing-include-dirs \
+	-Wpointer-arith -Wredundant-decls 
 
 # Define C++ warning options here
 CPPWARN = -Wall -Wextra
@@ -212,7 +206,8 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = -DMAX2769_SPI_DEBUG 
+UDEFS += -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
 
 # Define ASM defines here
 UADEFS =
