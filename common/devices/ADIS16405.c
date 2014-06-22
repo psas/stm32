@@ -155,14 +155,25 @@ void adis_get_data(ADIS16405Data * data){ // TODO: adis error struct
 }
 
 
-//void adis_auto_diagnostic(){
-//    uint16_t msc = adis_get(ADIS_MSC_CTRL);
-//    adis_set(ADIS_MSC_CTRL, msc | 1<<10);
-//}
+uint16_t adis_self_test(void){
+    // DIAG_STAT clears after each read so we read to clear it
+    uint16_t diagstat = adis_get(ADIS_DIAG_STAT);
+
+    uint16_t msc = adis_get(ADIS_MSC_CTRL);
+    adis_set(ADIS_MSC_CTRL, msc | 1<<10);
+
+    do {
+        msc = adis_get(ADIS_MSC_CTRL);
+    } while (msc & 1<< 10);
+
+    diagstat = adis_get(ADIS_DIAG_STAT);
+
+    return diagstat; 
+}
 
 /*! \brief Reset the ADIS
  */
-void adis_reset() {
+void adis_reset(void) {
     const unsigned int ADIS_RESET_MSECS = 500;
 	palClearPad(CONF->reset.port, CONF->reset.pad);
 	chThdSleepMilliseconds(ADIS_RESET_MSECS);
