@@ -34,10 +34,10 @@ typedef enum
 	MAX2769_CONF2           = 0b0001,       // 0x0550288
 	MAX2769_CONF3           = 0b0010,       // 0xEAFF1DC
 	MAX2769_PLLCONF         = 0b0011,       // 0x9EC0008
-	MAX2769_DIV             = 0b0100,       // 0x0C00080
+	MAX2769_PLLIDR          = 0b0100,       // 0x0C00080
 	MAX2769_FDIV            = 0b0101,       // 0x8000070
 	MAX2769_STRM            = 0b0110,       // 0x8000000
-	MAX2769_CLK             = 0b0111,       // 0x10061B2
+	MAX2769_CFDR            = 0b0111,       // 0x10061B2
 	MAX2769_TEST1           = 0b1000,       // 0x1E0F401
 	MAX2769_TEST2           = 0b1001        // 0x14C0402
 } max2769_regaddr;
@@ -50,10 +50,10 @@ typedef enum
 	MAX2769_CONF2_DEF           = 0x0550288,
 	MAX2769_CONF3_DEF           = 0xEAFF1DC,
 	MAX2769_PLLCONF_DEF         = 0x9EC0008,
-	MAX2769_DIV_DEF             = 0x0C00080,
+	MAX2769_PLLIDR_DEF          = 0x0C00080,
 	MAX2769_FDIV_DEF            = 0x8000070,
 	MAX2769_STRM_DEF            = 0x8000000,
-	MAX2769_CLK_DEF             = 0x10061B2,
+	MAX2769_CFDR_DEF            = 0x10061B2,
 	MAX2769_TEST1_DEF           = 0x1E0F401,
 	MAX2769_TEST2_DEF           = 0x14C0402
 } max2769_regdefault;
