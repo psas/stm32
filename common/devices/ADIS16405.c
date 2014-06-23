@@ -156,6 +156,9 @@ void adis_get_data(ADIS16405Data * data){ // TODO: adis error struct
 
 
 uint16_t adis_self_test(void){
+
+    extChannelDisable(&EXTD1,CONF->dio1.pad);
+
     // DIAG_STAT clears after each read so we read to clear it
     uint16_t diagstat = adis_get(ADIS_DIAG_STAT);
 
@@ -167,6 +170,8 @@ uint16_t adis_self_test(void){
     } while (msc & 1<< 10);
 
     diagstat = adis_get(ADIS_DIAG_STAT);
+
+    extChannelEnable(&EXTD1,CONF->dio1.pad);
 
     return diagstat; 
 }
