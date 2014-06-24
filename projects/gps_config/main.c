@@ -32,29 +32,29 @@ static void     max2769_config(void)
 
 	conf1 = 0xbcf51a3;
 	max2769_set(MAX2769_CONF1, conf1 );
-	chprintf(chp, "\tCONF1: 0x%x\r\n", conf1);
+	chprintf(chp, "\tCONF1:\t\t0x%x\r\n", conf1);
 
 	conf2 = 0x550288;
 	max2769_set(MAX2769_CONF2, conf2 );
-	chprintf(chp, "\tCONF2: 0x%x\r\n", conf2);
+	chprintf(chp, "\tCONF2:\t\t0x%x\r\n", conf2);
 
 	conf3 = 0xeaff83a;
 	max2769_set(MAX2769_CONF3, conf3 );
-	chprintf(chp, "\tCONF3: 0x%x\r\n", conf3);
+	chprintf(chp, "\tCONF3:\t\t0x%x\r\n", conf3);
 
 	pllconf = 0x9ac0008;
 	max2769_set(MAX2769_PLLCONF, pllconf );
-	chprintf(chp, "\tPLLCONF: 0x%x\r\n", pllconf);
+	chprintf(chp, "\tPLLCONF:\t0x%x\r\n", pllconf);
 
 	pllidr = (1536 << MAX2769_PLLIDR_NDIV) | (16 << MAX2769_PLLIDR_RDIV);
 	max2769_set(MAX2769_PLLIDR, pllidr );
-	chprintf(chp, "\tPLLIDR: 0x%x\r\n", pllidr);
+	chprintf(chp, "\tPLLIDR:\t\t0x%x\r\n", pllidr);
 
 	cfdr = (256 << MAX2769_CFDR_L_CNT) | (1563 << MAX2769_CFDR_M_CNT) |
 	       (0 << MAX2769_CFDR_FCLKIN) | (0 << MAX2769_CFDR_ADCCLK) | (1 << MAX2769_CFDR_SERCLK) |
 	       (1 << MAX2769_CFDR_MODE);
 	max2769_set(MAX2769_CFDR, pllidr );
-	chprintf(chp, "\tCFDR: 0x%x\r\n", cfdr);
+	chprintf(chp, "\tCFDR:\t\t0x%x\r\n", cfdr);
 
 	chprintf(chp, "End configuration...\r\n");
 }
