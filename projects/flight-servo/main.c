@@ -27,16 +27,21 @@
  * Servo PWM Constants
  * ===================
  */
-#define PWM_PERIOD_HZ 300
-#define PWM_PERIOD_TICKS 65535 /* 2^16-1 */
-#define PWM_FREQ (PWM_PERIOD_HZ * PWM_PERIOD_TICKS)
-//#define PWM_PERIOD_TICKS 20000 /* PWM period_ticks in ticks(T) in ticks * us/tick = 20000 ticks * 167nS/tick = 3.34mS period =>  300 Hz  */
-//#define PWM_FREQ 6000000 /* 6Mhz PWM clock frequency; (1/f) = 'ticks' => 167ns/tick */
+// These two values were chosen such that  the PWM frequency is at
+// exactly 300hz and PWM_PERIOD_TICKS is as large as possible
+// The equation is freq = PWM_CLK / (PWM_PERIOD_TICKS + 1)
+// and PWM_FREQ_HZ must divide 84000000 (timer clock)
+#define PWM_PERIOD_TICKS 55999
+#define PWM_CLK 16800000
+#define PWM_FREQ (PWM_CLK / (PWM_PERIOD_TICKS + 1))
 
 // Absolute position limits, in microseconds (us).
 // Verified empirically by DLP, K, and Dave 3/25/14
-#define PWM_LO 1100
-#define PWM_HI 1900
+#define PWM_LO_US 1100
+#define PWM_HI_US 1900
+// Limits in ticks. Division by 1e6 is broken up here to avoid over/underflows
+#define PWM_LO ((PWM_LO_US * PWM_FREQ) / 1000 * (PWM_PERIOD_TICKS + 1) / 1000)
+#define PWM_HI ((PWM_HI_US * PWM_FREQ) / 1000 * (PWM_PERIOD_TICKS + 1) / 1000)
 #define PWM_CENTER (PWM_HI + PWM_LO) / 2
 
 #ifndef FLIGHT
@@ -47,7 +52,7 @@
 // Maximum allowable oscillation frequency. We prevent the servo from changing
 // direction any faster than this.
 #define PWM_MAX_OSCILLATION_FREQ 50
-#define PWM_MIN_DIRECTION_CHANGE_PERIOD (PWM_PERIOD_HZ / PWM_MAX_OSCILLATION_FREQ)
+#define PWM_MIN_DIRECTION_CHANGE_PERIOD (PWM_FREQ / PWM_MAX_OSCILLATION_FREQ)
 #endif
 
 /*
@@ -156,17 +161,12 @@ void handle_command(RCCommand * packet){
 }
 
 void main(void) {
-	/* Initialize Chibios */
 	halInit();
 	chSysInit();
-
-	/* Diagnostic led */
 	ledStart(NULL);
 
-	/* Start lwip stack */
 	lwipThreadStart(ROLL_LWIP);
 
-	/* Set up RCI for the version command */
 	static struct RCIConfig conf;
 	conf.commands = (struct RCICommand[]){
 		RCI_CMD_VERS,
@@ -177,7 +177,7 @@ void main(void) {
 
 	/* Configure PWM. Static because pwmStart doesn't deep copy PWMConfigs */
 	static PWMConfig pwmcfg = {
-		.frequency = PWM_FREQ,
+		.frequency = PWM_CLK,
 		.period = PWM_PERIOD_TICKS,
 		.callback = pwmcallback,
 		.channels = {
@@ -189,11 +189,8 @@ void main(void) {
 		.cr2 = 0
 	};
 	palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));
-
-	/* activate PWM output */
 	pwmStart(&PWMD4, &pwmcfg);
 
-	/* Set up socket */
 	s = get_udp_socket(ROLL_ADDR);
 	chDbgAssert(s >= 0, "Couldn't get roll socket", NULL);
 	connect(s, FC_ADDR, sizeof(struct sockaddr_in));
