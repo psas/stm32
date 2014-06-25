@@ -72,14 +72,12 @@ static msg_t rci_thread(void *p){
 
         handle_command(&data, conf->commands);
 
-		if(data.return_len >= ETH_MTU-2) {
-				data.return_len = ETH_MTU-2;
-		}
+        data.return_len = MIN(data.return_len, ETH_MTU-2);
         //if there's data to return, return it to the address it came from
         if(data.return_len > 0){
             data.return_data[data.return_len] = '\r';
             data.return_data[data.return_len+1] = '\n';
-            if(write(socket, data.return_data, MAX(data.return_len + 2, ETH_MTU)) < 0){
+            if(write(s, data.return_data, MIN(data.return_len + 2, ETH_MTU)) < 0){
                 return -1;
             }
         }
