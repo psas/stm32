@@ -82,11 +82,11 @@ const struct sockaddr *MPL_ADDR = make_addr(SENSOR_IP, MPL_PORT);
 #define ROLL_IP IPv4(10, 0, 0, 30)
 #define ROLL_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0xbb}
 #define ROLL_PORT 35003    // Servo control
-#define TEATHER_PORT 35004 // Launch detect
+#define ROLL_RCI_PORT 35004 // Launch detect
 
 struct lwipthread_opts * ROLL_LWIP = make_lwipopts(ROLL_MAC, ROLL_IP, NETMASK, GATEWAY);
 const struct sockaddr * ROLL_ADDR = make_addr(ROLL_IP, ROLL_PORT);
-const struct sockaddr * TEATHER_ADDR = make_addr(ROLL_IP, TEATHER_PORT);
+const struct sockaddr * ROLL_RCI_ADDR = make_addr(ROLL_IP, ROLL_RCI_PORT);
 
 /* Rocket Net Hub */
 #define RNH_IP IPv4(10, 0, 0, 5)

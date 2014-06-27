@@ -21,16 +21,19 @@
 #include "rocket_tracks.h"
 #include "net_addrs.h"
 
-#define ENABLE_MSG		0
-#define MODE_MSG		1
-#define AUX_MSG			2
-#define LAT_MSG			3
-#define VERT_MSG		4
-#define AXIS3_MSG		5
-#define AXIS4_MSG		6
-#define BYTE_MASK		255
+#define ENABLE_MSG			0
+#define MODE_MSG			1
+#define AUX_MSG				2
+#define LAT_MSG				3
+#define VERT_MSG			4
+#define AXIS3_MSG			5
+#define AXIS4_MSG			6
+#define BYTE_MASK			255
 
-#define MSGU16_LEN		(sizeof(*data)/sizeof(uint16_t))
+#define SLA_COLUMN_OFFSET	7
+#define SLA_ROW_OFFSET		9
+
+#define MSGU16_LEN			(sizeof(*data)/sizeof(uint16_t))
 
 
 int RTxtoManualSendSocket;
@@ -153,10 +156,10 @@ uint16_t msg[MSGU16_LEN];
     return;
 }
 
-void SendDiagnostics(Diagnostics * lat, Diagnostics * vert) {
+void SendDiagnostics(Diagnostics * lat, Diagnostics * vert, uint16_t ref) {
 
 int i;
-uint32_t msg[22];
+uint32_t msg[23];
 Diagnostics * data;
 
 	for(i = 0; i < 2; ++i) {
@@ -177,7 +180,10 @@ Diagnostics * data;
 		msg[9 + (i*11)] = (uint32_t)data->S32PositionDTerm;
 		msg[10 + (i*11)] = (uint32_t)data->S32PositionIAccumulator;
 
+
 	}
+	msg[22] = (uint32_t)ref;
+
     write(DiagnosticsSendSocket, msg, sizeof(msg));
 
     return;
@@ -186,8 +192,11 @@ Diagnostics * data;
 int ReceiveManual(ManualData * data) {
 
 uint16_t msg[MSGU16_LEN];
+int ret;
 
-	if(recv(ManualReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT) < 0){
+	ret = read(ManualReceiveSocket, msg, sizeof(msg));
+
+	if(ret < 0){
 		return -1;
 	}
 	else {
@@ -201,17 +210,17 @@ uint16_t msg[MSGU16_LEN];
 		data->Axis3Position = msg[AXIS3_MSG];
 		data->Axis4Position = msg[AXIS4_MSG];
 
-		return 1;
     }
+	return ret;
 }
 
-int ReceiveDiagnostics(Diagnostics * lat, Diagnostics * vert) {
+int ReceiveDiagnostics(Diagnostics * lat, Diagnostics * vert, uint16_t * ref) {
 
 int i;
-uint32_t msg[22];
+uint32_t msg[23];
 Diagnostics * data;
 
-	if(recv(DiagnosticsReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT) < 0){
+	if(read(DiagnosticsReceiveSocket, msg, sizeof(msg)) < 0){
 		return -1;
 	}
 	for(i = 0; i < 2; ++i) {
@@ -220,28 +229,32 @@ Diagnostics * data;
 		else
 			data = vert;
 
-		data->U16FeedbackADC = (uint16_t)msg[0 + (i*11)];
-		data->U16FeedbackADCPrevious = (uint16_t)msg[1 + (i*11)];
-		data->S16OutputCommand = (int16_t)msg[2 + (i*11)];
-		data->U16PositionDesired = (uint16_t)msg[3 + (i*11)];
-		data->U16PositionActual = (uint16_t)msg[4 + (i*11)];
-		data->S16PositionError = (int16_t)msg[5 + (i*11)];
-		data->S16PositionErrorPrevious = (int16_t)msg[6 + (i*11)];
-		data->S32PositionPTerm = (int32_t)msg[7 + (i*11)];
-		data->S32PositionITerm = (int32_t)msg[8 + (i*11)];
-		data->S32PositionDTerm = (int32_t)msg[9 + (i*11)];
-		data->S32PositionIAccumulator = (int32_t)msg[10 + (i*11)];
+		if(data) {
+			data->U16FeedbackADC = (uint16_t)msg[0 + (i*11)];
+			data->U16FeedbackADCPrevious = (uint16_t)msg[1 + (i*11)];
+			data->S16OutputCommand = (int16_t)msg[2 + (i*11)];
+			data->U16PositionDesired = (uint16_t)msg[3 + (i*11)];
+			data->U16PositionActual = (uint16_t)msg[4 + (i*11)];
+			data->S16PositionError = (int16_t)msg[5 + (i*11)];
+			data->S16PositionErrorPrevious = (int16_t)msg[6 + (i*11)];
+			data->S32PositionPTerm = (int32_t)msg[7 + (i*11)];
+			data->S32PositionITerm = (int32_t)msg[8 + (i*11)];
+			data->S32PositionDTerm = (int32_t)msg[9 + (i*11)];
+			data->S32PositionIAccumulator = (int32_t)msg[10 + (i*11)];
+		}
 
 	}
+	if(ref)
+		*ref = (uint16_t)msg[22];
 
 	return 0;
 }
 
 void ReceiveNeutral(Neutral * data) {
 
-uint8_t msg[sizeof(*data)];
+uint8_t msg[sizeof(*data)] = {0};
 
-    recv(NeutralReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT);
+    read(NeutralReceiveSocket, msg, sizeof(msg));
 
 	data->latNeutral = msg[LAT_AXIS];
 	data->vertNeutral = msg[VERT_AXIS];
@@ -249,14 +262,15 @@ uint8_t msg[sizeof(*data)];
     return;
 }
 
-void ReceiveSLA(SLAData * data) {
+int ReceiveSLA(SLAData * data) {
 
 uint16_t msg[100];
+int ret;
 
-	recv(NeutralReceiveSocket, msg, sizeof(msg), MSG_DONTWAIT);
+	ret = read(NeutralReceiveSocket, msg, sizeof(msg));
 
 	data->Column = msg[SLA_COLUMN_OFFSET];
 	data->Row = msg[SLA_ROW_OFFSET];
 
-	return;
+	return ret;
 }

@@ -162,12 +162,26 @@ void BQ3060_get_data(struct BQ3060Data * data){
 //    chSysUnlock();
 }
 
+//crntAlarms - current alarms {safetyAlarm,failureAlert,permanentFailure}
+uint16_t crntAlarms[3];
+
 static void read_handler(eventid_t id UNUSED){
+	//if any battery issues have occurred we fire
+	//the event associated with BQ3060_battery_fault
+	//read the safety alert register (0x50)
+	BQ3060Get(0x50,scrntAlarms[0]);
+	//read the pending failure alert register (0x52)
+	BQ3060Get(0x52,&crntAlarms[1]);
+	//read the permanent failure status register (0x53)
+	BQ3060Get(0x53,&crntAlarms[2]);
+	if (crntAlarms[0] || crntAlarms[1] || crntAlarms[2]) {
+		chEvtBroadcast(&BQ3060_battery_fault);
+	}
+
     Physical(&buffer);
     chEvtBroadcast(&BQ3060_data_ready);
 }
 
-uint16_t crntAlarms[3];
 
 static WORKING_AREA(wa_read, 512);
 static msg_t read_thread(void * p UNUSED){
@@ -177,8 +191,6 @@ static msg_t read_thread(void * p UNUSED){
     evtInit(&timer, S2ST(1));
 
     struct EventListener eltimer;
-    uint16_t safetyData = 0;
-    //crntAlarms - current alarms {safetyAlarm,failureAlert,permanentFailure}
     static const evhandler_t evhndl[] = {
             read_handler
     };
@@ -187,28 +199,6 @@ static msg_t read_thread(void * p UNUSED){
     evtStart(&timer);
     while(TRUE){
         chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
-	//if any battery issues have occurred we fire
-	//the event associated with BQ3060_battery_fault
-	//read the safety alert register (0x50)
-	BQ3060Get(0x50,&safetyData);
-	crntAlarms[0] = safetyData;
-	if (safetyData != 0) {
-		chEvtBroadcast(&BQ3060_battery_fault);
-
-	}
-	//read the pending failure alert register (0x52)
-	BQ3060Get(0x52,&safetyData);
-	crntAlarms[1] = safetyData;
-	if (safetyData != 0) {
-		chEvtBroadcast(&BQ3060_battery_fault);
-	}
-	//read the permanent failure status register (0x53)
-	BQ3060Get(0x53,&safetyData);
-	crntAlarms[2] = safetyData;
-	if (safetyData != 0) {
-		chEvtBroadcast(&BQ3060_battery_fault);
-	}
-	chThdSleepMilliseconds(1000);
     }
 
     return -1;

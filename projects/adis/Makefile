@@ -84,6 +84,8 @@ CSRC = $(PORTSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(LWSRC) $(CHIBIOS)/os/various/evtimer.c \
+       $(CHIBIOS)/os/various/chprintf.c \
+       $(CHIBIOS)/os/various/memstreams.c \
        $(PSAS_DEVICES)/ADIS16405.c \
        main.c \
        $(PSAS_UTIL)/utils_hal.c \

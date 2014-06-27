@@ -13,6 +13,8 @@
 #include "lwip/sockets.h"
 #include "lwipthread.h"
 
+#include "chprintf.h"
+#include "rnet_cmd_interp.h"
 #include "utils_sockets.h"
 #include "utils_general.h"
 #include "utils_led.h"
@@ -49,14 +51,28 @@ static void adis_drdy_handler(eventid_t id UNUSED){
     }
 }
 
+static void self_test(struct RCICmdData *rci_data, void *user_data UNUSED) {
+    uint16_t result = adis_self_test();
+    chsnprintf(rci_data->return_data, 4, "%x", result);
+    rci_data->return_len = 4;
+}
+
 void main(void){
     halInit();
     chSysInit();
 
     ledStart(NULL);
 
+    static struct RCIConfig conf;
+    conf.commands = (struct RCICommand[]){
+            {"#adst",self_test,NULL}, // adis self test
+            {NULL}
+    };
+    conf.address = SENSOR_RCI_ADDR;
+
     /* Start lwip */
     lwipThreadStart(SENSOR_LWIP);
+    RCICreate(&conf);
 
     /* Create the ADIS out socket, connecting as it only sends to one place */
     sendsocket = get_udp_socket(ADIS_ADDR);

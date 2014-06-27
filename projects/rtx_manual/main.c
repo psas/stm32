@@ -40,18 +40,14 @@
 
 #include "rocket_tracks.h"
 
-#define ADC_ACCUM_WT	35
-#define ADC_SAMPLE_WT	45
+#define ADC_ACCUM_WT	90
+#define ADC_SAMPLE_WT	10
 #define ADC_ACCUM_DIV	(ADC_ACCUM_WT + ADC_SAMPLE_WT)
 
 /* Total number of feedback channels to be sampled by a single ADC operation.*/
 #define ADC_GRP1_NUM_CHANNELS   1
 /* Depth of the conversion buffer, channels are sampled once each.*/
 #define ADC_GRP1_BUF_DEPTH      1
-/* Total number of input channels to be sampled by a single ADC operation.*/
-#define ADC_GRP2_NUM_CHANNELS   1
-/* Depth of the conversion buffer, input channels are sampled once each.*/
-#define ADC_GRP2_BUF_DEPTH      1
 
 #define GPIOA_ENABLE		6
 #define GPIOE_MODE			4
@@ -118,7 +114,6 @@ uint8_t vertAxisFreeze = DISABLED;
 // Axis Input Variables
 static adcsample_t Samples[AXIS_ADC_COUNT];
 static uint32_t AxisAccumulator[AXIS_ADC_COUNT];
-
 static uint8_t vertFreeze;
 static uint8_t latFreeze;
 
@@ -126,6 +121,7 @@ static uint8_t latFreeze;
 ManualData ManualInputs;
 Neutral NeutralFeedback;
 Diagnostics latDiagnostics, vertDiagnostics;
+uint16_t refVoltage;
 
 static EVENTSOURCE_DECL(ReadyManual);
 
@@ -189,17 +185,19 @@ static void cmd_data(BaseSequentialStream *chp, int argc, char *argv[]) {
 			chprintf(chp, "Mode : Manual\r\n");
 		}
 	}
-	chprintf(chp, " latPosition: %d\r\n", ManualInputs.latPosition);
-	chprintf(chp, "vertPosition: %d\r\n", ManualInputs.vertPosition);
+	chprintf(chp, "\nMan latPosition: %d\r\n", ManualInputs.latPosition);
+	chprintf(chp, "Man vertPosition: %d\r\n", ManualInputs.vertPosition);
+
+	chprintf(chp, "\nReference V: %d\r\n", refVoltage);
 
 	// Lateral axis data
 	if(argc == 0 || *argv[0] != 'v') {
-	chprintf(chp, "Lateral Axis : \r\n");
+	chprintf(chp, "\nLateral Axis : \r\n");
 	DisplayData(chp, &latDiagnostics);
 	}
 	// Vertical axis data
 	if(argc == 0 || *argv[0] != 'l') {
-	chprintf(chp, "Vertical Axis : \r\n");
+	chprintf(chp, "\nVertical Axis : \r\n");
 	DisplayData(chp, &vertDiagnostics);
 	}
 }
@@ -374,7 +372,8 @@ static void adccb1(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
 	 intermediate callback when the buffer is half full.*/
 	if (adcp->state == ADC_COMPLETE) {
 		// Weighted Moving Average accumulator of axis input samples produces 15-bit value
-		AxisAccumulator[LAT_AXIS] = ((AxisAccumulator[LAT_AXIS] * ADC_ACCUM_WT) + (Samples[LAT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
+		AxisAccumulator[LAT_AXIS] = ((AxisAccumulator[LAT_AXIS] * ADC_ACCUM_WT)
+				+ (Samples[LAT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
 	}
 }
 
@@ -389,7 +388,8 @@ static void adccb2(ADCDriver *adcp, adcsample_t *buffer, size_t n) {
 	 intermediate callback when the buffer is half full.*/
 	if (adcp->state == ADC_COMPLETE) {
 		// Weighted Moving Average accumulator of axis input samples produces 15-bit value
-		AxisAccumulator[VERT_AXIS] = ((AxisAccumulator[VERT_AXIS] * ADC_ACCUM_WT) + (Samples[VERT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
+		AxisAccumulator[VERT_AXIS] = ((AxisAccumulator[VERT_AXIS] * ADC_ACCUM_WT)
+				+ (Samples[VERT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
 	}
 }
 
@@ -464,10 +464,8 @@ static void manual_loop(GPTDriver *gptp) {
 			// If axis frozen, don't update desired positions.
 			if(latFreeze == DISABLED)
 				ManualInputs.latPosition = (AxisAccumulator[LAT_AXIS]) * 16;
-//				ManualInputs.latPosition = Samples[LAT_AXIS];
 			if(vertFreeze == DISABLED)
 				ManualInputs.vertPosition = (AxisAccumulator[VERT_AXIS]) * 16;
-//				ManualInputs.vertPosition = Samples[VERT_AXIS];
 
 			// Send message to RTx Controller
 			chEvtBroadcastI(&ReadyManual);
@@ -533,8 +531,24 @@ msg_t rx_thread(void *p UNUSED) {
     //read data from socket
     while(TRUE) {
 		ReceiveNeutral(&NeutralFeedback);
-		ReceiveDiagnostics(&latDiagnostics, &vertDiagnostics);
-    	chThdSleepMicroseconds(500);
+    }
+
+    return -1;
+}
+
+WORKING_AREA(wa_diagrx, 512);
+msg_t diagrx_thread(void *p UNUSED) {
+    chRegSetThreadName("rx");
+    /*
+     * This thread creates a UDP socket and then listens for any incoming
+     * message, printing it out over serial USB
+     */
+
+
+
+    //read data from socket
+    while(TRUE) {
+		ReceiveDiagnostics(&latDiagnostics, &vertDiagnostics, &refVoltage);
     }
 
     return -1;
@@ -579,7 +593,7 @@ int main(void) {
 
 	// Enable Continuous GPT for 10ms Interval for control loop
 	gptStart(&GPTD1, &gpt1cfg);
-	gptStartContinuous(&GPTD1, 10000);
+	gptStartContinuous(&GPTD1, 9200);
 
 	// Enable Continuous GPT for 500us Interval for ADC conversions
 	gptStart(&GPTD2, &gpt2cfg);
@@ -595,6 +609,7 @@ int main(void) {
 	ReceiveDiagnosticsSocket();
 
 	chThdCreateStatic(wa_rx, sizeof(wa_rx), NORMALPRIO, rx_thread, NULL);
+	chThdCreateStatic(wa_diagrx, sizeof(wa_diagrx), NORMALPRIO, diagrx_thread, NULL);
 
 	// Configure pins for Input ADC's
 	// PA4: Lat Axis Input
@@ -630,6 +645,9 @@ int main(void) {
 
 	adcStart(&ADCD1, NULL);
 	adcStart(&ADCD2, NULL);
+
+	NeutralFeedback.latNeutral = DISABLED;
+	NeutralFeedback.vertNeutral = DISABLED;
 
     // Set up event system
     struct EventListener evtManual;

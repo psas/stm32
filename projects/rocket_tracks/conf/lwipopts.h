@@ -449,7 +449,7 @@
  * Also notice that this slows down input processing of every IP packet!
  */
 #ifndef ETHARP_TRUST_IP_MAC
-#define ETHARP_TRUST_IP_MAC             0
+#define ETHARP_TRUST_IP_MAC             1
 #endif
 
 /**
@@ -899,7 +899,7 @@
  * LWIP_TCP==1: Turn on TCP.
  */
 #ifndef LWIP_TCP
-#define LWIP_TCP                        1
+#define LWIP_TCP                        0
 #endif
 
 /**
@@ -1782,14 +1782,14 @@
  * CHECKSUM_GEN_IP==1: Generate checksums in software for outgoing IP packets.
  */
 #ifndef CHECKSUM_GEN_IP
-#define CHECKSUM_GEN_IP                 1
+#define CHECKSUM_GEN_IP                 0
 #endif
 
 /**
  * CHECKSUM_GEN_UDP==1: Generate checksums in software for outgoing UDP packets.
  */
 #ifndef CHECKSUM_GEN_UDP
-#define CHECKSUM_GEN_UDP                1
+#define CHECKSUM_GEN_UDP                0
 #endif
 
 /**
@@ -1810,14 +1810,14 @@
  * CHECKSUM_CHECK_IP==1: Check checksums in software for incoming IP packets.
  */
 #ifndef CHECKSUM_CHECK_IP
-#define CHECKSUM_CHECK_IP               1
+#define CHECKSUM_CHECK_IP               0
 #endif
 
 /**
  * CHECKSUM_CHECK_UDP==1: Check checksums in software for incoming UDP packets.
  */
 #ifndef CHECKSUM_CHECK_UDP
-#define CHECKSUM_CHECK_UDP              1
+#define CHECKSUM_CHECK_UDP              0
 #endif
 
 /**

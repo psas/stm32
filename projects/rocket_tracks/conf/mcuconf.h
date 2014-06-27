@@ -166,7 +166,7 @@
  * MAC driver system settings.
  */
 #define STM32_MAC_TRANSMIT_BUFFERS          2
-#define STM32_MAC_RECEIVE_BUFFERS           4
+#define STM32_MAC_RECEIVE_BUFFERS           10
 #define STM32_MAC_BUFFERS_SIZE              1522
 #define STM32_MAC_PHY_TIMEOUT               100
 #define STM32_MAC_ETH1_CHANGE_PHY_STATE     FALSE
@@ -198,7 +198,7 @@
 #define STM32_SERIAL_USE_USART3             FALSE
 #define STM32_SERIAL_USE_UART4              FALSE
 #define STM32_SERIAL_USE_UART5              FALSE
-#define STM32_SERIAL_USE_USART6             TRUE
+#define STM32_SERIAL_USE_USART6             FALSE
 #define STM32_SERIAL_USART1_PRIORITY        12
 #define STM32_SERIAL_USART2_PRIORITY        12
 #define STM32_SERIAL_USART3_PRIORITY        12
@@ -254,7 +254,7 @@
 /*
  * USB driver system settings.
  */
-#define STM32_USB_USE_OTG1                  TRUE
+#define STM32_USB_USE_OTG1                  FALSE
 #define STM32_USB_USE_OTG2                  FALSE
 #define STM32_USB_OTG1_IRQ_PRIORITY         14
 #define STM32_USB_OTG2_IRQ_PRIORITY         14

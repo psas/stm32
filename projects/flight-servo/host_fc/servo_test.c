@@ -73,3 +73,39 @@ int main(void){
         nanosleep(&sleeptime, NULL);
     }
 }
+
+#if 0
+    int16_t ticks = 0;
+    while (TRUE) {
+        uint16_t pos = PWM_CENTER;
+
+        // calculate pos
+        if (ticks < 10000) {
+            // move from center out to either side and back over two seconds
+            int16_t offset = 500 - abs(500 - (ticks % 1000));
+            if (ticks % 2000 < 1000) {
+                pos = PWM_CENTER + offset;
+            } else {
+                pos = PWM_CENTER - offset;
+            }
+        } else if (ticks < 20000) {
+            // test speed controls by moving servo as fast as possible
+            if (ticks % 2000 < 1000) {
+                pos = 1000;
+            } else {
+                pos = 2000;
+            }
+        } else {
+            ticks = -1;
+        }
+
+        PositionCommand* cmd = (PositionCommand*) chPoolAlloc(&pos_cmd_pool);
+        if (cmd == NULL) continue;
+        cmd->position = (uint16_t) pos;
+        chMBPost(&servo_commands, (msg_t) cmd, TIME_IMMEDIATE);
+
+        ticks++;
+        chThdSleepMilliseconds(1);
+    }
+#endif
+

@@ -36,11 +36,10 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	ptr->U16PositionActual = (adcsample_t)ptr->U16FeedbackADC;
 
 	// Compute position error Negative to deal with potentiometer direction
-//	ptr->S16PositionError = (ptr->U16PositionDesired - ptr->U16PositionActual);
 	ptr->S16PositionError = -(ptr->U16PositionDesired - ptr->U16PositionActual);
 
 	// Compute Proportional Term
-	ptr->S32PositionPTerm = (ptr->S16PositionError * ptr->U16PositionPGain)/2048;
+	ptr->S32PositionPTerm = (ptr->S16PositionError * ptr->U16PositionPGain)/1024;
 
 	// Compute Integral Term and Saturate Result
 	ptr->S32PositionIAccumulator = ptr->S32PositionIAccumulator +
@@ -78,22 +77,9 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 	}else if(ptr->S16OutputCommand < -ptr->U16CommandLimit){
 		ptr->S16OutputCommand = -ptr->U16CommandLimit;
 	}
-
-
-//	// Limit position
-//	if( (ptr->U16PositionActual > ptr->U16HighPosnLimit) &&
-//			 (ptr->S16OutputCommand < 0) ){
-//		ptr->S16OutputCommand = 0;
-//	}
-//	else if( (ptr->U16PositionActual < ptr->U16LowPosnLimit) &&
-//			 (ptr->S16OutputCommand > 0) ){
-//		ptr->S16OutputCommand = 0;
-//	}
-
 } // End void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 
-void Process_SLA(SLAData * data,
-		CONTROL_AXIS_STRUCT * latp, CONTROL_AXIS_STRUCT * vertp) {
+void Process_SLA(SLAData * data, CONTROL_AXIS_STRUCT * latp, CONTROL_AXIS_STRUCT * vertp) {
 
 int16_t col_coord = 0;
 int16_t row_coord = 0;
@@ -103,7 +89,7 @@ int16_t row_coord = 0;
 	latp->U16PositionDesired = (col_coord * COORD_TO_LAT) + latp->U16PositionActual;
 
 	// Calculate Vertical Axis desired position
-	col_coord = (data->Column-(COL_PIXELS/2));
+	row_coord = (data->Row-(ROW_PIXELS/2));
 	vertp->U16PositionDesired = (row_coord * COORD_TO_VERT) + vertp->U16PositionActual;
 }
 
