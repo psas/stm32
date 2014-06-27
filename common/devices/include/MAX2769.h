@@ -74,7 +74,7 @@ typedef enum
 #define  MAX2769_CONF1_MIXEN         ((uint8_t)(12))    /* Mixer enable */
 #define  MAX2769_CONF1_ANTEN         ((uint8_t)(11))    /* Antenna Bias Enable */
 #define  MAX2769_CONF1_FCEN          ((uint8_t)(5))    /* IF Center Frequency */
-#define  MAX2769_CONF1_FPW           ((uint8_t)(3))     /* IF Filter Center Bandwidth */
+#define  MAX2769_CONF1_FBW           ((uint8_t)(3))     /* IF Filter Center Bandwidth */
 #define  MAX2769_CONF1_F3OR5         ((uint8_t)(2))     /* Filter Order Select */
 #define  MAX2769_CONF1_FCENX         ((uint8_t)(1))     /* Polyphase filter Select */
 #define  MAX2769_CONF1_FGAIN         ((uint8_t)(0))     /* IF Filter Gain Select */

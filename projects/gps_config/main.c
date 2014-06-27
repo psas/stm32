@@ -24,40 +24,103 @@ static void     max2769_config(void)
 	int pllconf     = MAX2769_PLLCONF_DEF;
 	int pllidr      = MAX2769_PLLIDR_DEF;
 	int cfdr        = MAX2769_CFDR_DEF;
-
-	chprintf(chp, "Reset MAX2769...\r\n");
+	//chprintf(chp, "Reset MAX2769...\r\n");
 	max2769_reset();
+	//chprintf(chp, "Start configuration...\r\n");
 
-	chprintf(chp, "Start configuration...\r\n");
+	// Configuration from Google doc MAX2769RegisterConfiguration
 
-	conf1 = 0xbcf51a3;
+	// CONF1
+	conf1 = (0b1        << MAX2769_CONF1_CHIPEN ) |
+	        (0b0        << MAX2769_CONF1_IDLE   ) |
+	        (0b1111     << MAX2769_CONF1_ILNA1  ) |
+	        (0b00       << MAX2769_CONF1_ILNA2  ) |
+	        (0b11       << MAX2769_CONF1_ILO    ) |
+	        (0b11       << MAX2769_CONF1_IMIX   ) |
+	        (0b0        << MAX2769_CONF1_MIXPOLE) |
+	        (0b10       << MAX2769_CONF1_LNAMODE) |
+	        (0b10       << MAX2769_CONF1_LNAMODE) |
+	        (0b1        << MAX2769_CONF1_MIXEN  ) |
+	        (0b0        << MAX2769_CONF1_ANTEN  ) |
+	        (0b001101   << MAX2769_CONF1_FCEN   ) |
+	        (0b00       << MAX2769_CONF1_FBW    ) |
+	        (0b0        << MAX2769_CONF1_F3OR5  ) |
+	        (0b1        << MAX2769_CONF1_FCENX  ) |
+	        (0b1        << MAX2769_CONF1_FGAIN  );
 	max2769_set(MAX2769_CONF1, conf1 );
 	chprintf(chp, "\tCONF1:\t\t0x%x\r\n", conf1);
 
-	conf2 = 0x550288;
+	// CONF2
+    conf2 = (0b0 		    << MAX2769_CONF2_IQEN    ) |	
+			(0b10101010 	<< MAX2769_CONF2_GAINREF ) |	
+			(0b00 			<< MAX2769_CONF2_AGCMODE ) |	
+			(0b01 			<< MAX2769_CONF2_FORMAT  ) |	
+			(0b010 			<< MAX2769_CONF2_BITS    ) |	
+			(0b00 			<< MAX2769_CONF2_DRVCFG  ) |	
+			(0b1  			<< MAX2769_CONF2_LOEN    ) |	
+			(0b00 			<< MAX2769_CONF2_DIEID   );	
 	max2769_set(MAX2769_CONF2, conf2 );
 	chprintf(chp, "\tCONF2:\t\t0x%x\r\n", conf2);
 
-	conf3 = 0xeaff83a;
+	// CONF3
+	conf3 = (0b111010		<< MAX2769_CONF3_GAININ      ) |
+	        (0b1		    << MAX2769_CONF3_FSLOWEN     ) |
+	        (0b0		    << MAX2769_CONF3_HILOADEN    ) |
+	        (0b1		    << MAX2769_CONF3_ADCEN       ) |
+	        (0b1		    << MAX2769_CONF3_DRVEN       ) |
+	        (0b1		    << MAX2769_CONF3_FOFSTEN     ) |
+	        (0b1		    << MAX2769_CONF3_FILTEN      ) |
+	        (0b1		    << MAX2769_CONF3_FHIPEN      ) |
+	        (0b1		    << MAX2769_CONF3_PGAIEN      ) |
+	        (0b1		    << MAX2769_CONF3_PGAQEN      ) |
+	        (0b1		    << MAX2769_CONF3_STRMEN      ) |
+	        (0b0		    << MAX2769_CONF3_STRMSTART   ) |
+	        (0b0		    << MAX2769_CONF3_STRMSTOP    ) |
+	        (0b000		    << MAX2769_CONF3_STRMCOUNT   ) |
+	        (0b11		    << MAX2769_CONF3_STRMBITS    ) |
+	        (0b1		    << MAX2769_CONF3_STRMPEN     ) |
+	        (0b0		    << MAX2769_CONF3_TIMESYNCEN  ) |
+	        (0b1		    << MAX2769_CONF3_DATASYNCEN  ) |
+	        (0b0		    << MAX2769_CONF3_STRMRST     );
 	max2769_set(MAX2769_CONF3, conf3 );
 	chprintf(chp, "\tCONF3:\t\t0x%x\r\n", conf3);
 
-	pllconf = 0x9ac0008;
+	// PLLCONF
+		pllconf = (0b1		    << MAX2769_PLL_VCOEN)    |
+				  (0b0		    << MAX2769_PLL_IVCO)     |
+				  (0b1		    << MAX2769_PLL_REFOUTEN) |
+				  (0b01		    << MAX2769_PLL_REFDIV)   |
+				  (0b01		    << MAX2769_PLL_IXTAL)    |
+				  (0b1000	    << MAX2769_PLL_XTALCAP)  |
+				  (0b0000	    << MAX2769_PLL_LDMUX)    |
+				  (0b0	        << MAX2769_PLL_ICP)      |
+				  (0b0		    << MAX2769_PLL_PFDEN)    |
+				  (0b000	    << MAX2769_PLL_CPTEST)   |
+				  (0b1		    << MAX2769_PLL_INT_PLL)  |
+				  (0b0		    << MAX2769_PLL_PWRSAV);   
 	max2769_set(MAX2769_PLLCONF, pllconf );
 	chprintf(chp, "\tPLLCONF:\t0x%x\r\n", pllconf);
 
-	pllidr = (1536 << MAX2769_PLLIDR_NDIV) | (16 << MAX2769_PLLIDR_RDIV);
+	// PLLIDR
+	pllidr = (1536 << MAX2769_PLLIDR_NDIV) | 
+			 (16 << MAX2769_PLLIDR_RDIV);
 	max2769_set(MAX2769_PLLIDR, pllidr );
 	chprintf(chp, "\tPLLIDR:\t\t0x%x\r\n", pllidr);
 
-	cfdr = (256 << MAX2769_CFDR_L_CNT) | (1563 << MAX2769_CFDR_M_CNT) |
-	       (0 << MAX2769_CFDR_FCLKIN) | (0 << MAX2769_CFDR_ADCCLK) | (1 << MAX2769_CFDR_SERCLK) |
+	// CFDR
+	cfdr = (256 << MAX2769_CFDR_L_CNT)   | 
+		   (1563 << MAX2769_CFDR_M_CNT) |
+	       (0 << MAX2769_CFDR_FCLKIN)    | 
+		   (0 << MAX2769_CFDR_ADCCLK)    | 
+		   (1 << MAX2769_CFDR_SERCLK)    |
 	       (1 << MAX2769_CFDR_MODE);
 	max2769_set(MAX2769_CFDR, pllidr );
 	chprintf(chp, "\tCFDR:\t\t0x%x\r\n", cfdr);
 
-	chprintf(chp, "End configuration...\r\n");
+	//chprintf(chp, "End configuration...\r\n");
 }
+
+
 
 
 /*! \brief Configure max
@@ -93,6 +156,8 @@ void main(void)
 #if MAX2769_SPI_DEBUG
 	max2769_test_spi();
 #endif
+
+    max2769_config();
 	/* Manage MAX2769 events */
 	//struct EventListener ddone;
 	static const evhandler_t evhndl[] =
