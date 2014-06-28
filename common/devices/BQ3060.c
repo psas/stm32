@@ -169,7 +169,7 @@ static void read_handler(eventid_t id UNUSED){
 	//if any battery issues have occurred we fire
 	//the event associated with BQ3060_battery_fault
 	//read the safety alert register (0x50)
-	BQ3060Get(0x50,scrntAlarms[0]);
+	BQ3060Get(0x50,&crntAlarms[0]);
 	//read the pending failure alert register (0x52)
 	BQ3060Get(0x52,&crntAlarms[1]);
 	//read the permanent failure status register (0x53)
