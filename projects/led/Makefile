@@ -71,7 +71,7 @@ PROJECT = ch
 PSAS= ../../common
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-BOARD ?= PSAS_RTX_CONTROLLER
+BOARD ?= OLIMEX_STM32_E407
 ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
     include $(CHIBIOS)/boards/$(BOARD)/board.mk
 else

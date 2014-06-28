@@ -20,8 +20,8 @@ extern const struct led LED;
 const struct led LED = {GPIOD, GPIO_D12_RGB_G};
 #elif defined BOARD_OLIMEX_STM32_E407 /* Olimex e407 board */
 const struct led LED = {GPIOC, GPIOC_LED};
-#elif defined BOARD_PSAS_RTX_CONTROLLER /* PSAS Rocketnet Hub board */
-const struct led LED = {GPIOE, GPIOE_PIN0};
+#elif defined BOARD_PSAS_RTX_CONTROLLER /* PSAS RTX Controller */
+const struct led LED = {GPIOE, GPIOE_PIN1};
 #endif
 
 
