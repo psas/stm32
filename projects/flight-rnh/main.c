@@ -210,8 +210,7 @@ void main(void) {
             .I2CD = &I2CD1,
             .I2CP = &I2C1Pins
     };
-    static struct RCIConfig conf;
-    conf.commands = (struct RCICommand[]){
+    struct RCICommand commands[] = {
             {TIME, cmd_time, NULL},
             {ARM, cmd_arm, NULL},
             {SAFE, cmd_safe, NULL},
@@ -220,7 +219,6 @@ void main(void) {
             RCI_CMD_VERS,
             {NULL}
     };
-    conf.address = RNH_RCI_ADDR;
 
     //Init hardware
     BQ24725Start(&BQConf);
@@ -229,7 +227,7 @@ void main(void) {
     rnhPortStart();
 
     lwipThreadStart(RNH_LWIP);
-    RCICreate(&conf);
+    RCICreate(commands);
 
     // Set up sockets
     s = get_udp_socket(RNH_BATTERY_ADDR);

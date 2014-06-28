@@ -23,12 +23,7 @@ void main(void) {
 	    {NULL}
     };
 
-    struct RCIConfig cfg = {
-	    .address = RNH_RCI_ADDR,
-	    .commands = cmds
-    };
-    
-    RCICreate(&cfg);
+    RCICreate(cmds);
 
     while(TRUE){
         chThdSleep(TIME_INFINITE);

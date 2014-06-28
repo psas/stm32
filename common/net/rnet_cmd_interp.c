@@ -31,16 +31,19 @@ WORKING_AREA(wa_rci, THD_WA_SIZE(2048 + ETH_MTU*2));
 static msg_t rci_thread(void *p){
     chRegSetThreadName("RCI");
 
-    struct RCIConfig * conf = (struct RCIConfig *)p;
+    struct RCICommand * commands = (struct RCICommand *)p;
     struct sockaddr from;
     socklen_t fromlen;
+
+    struct sockaddr own;
+    set_sockaddr(&own, "0.0.0.0", 23);
 
     char rx_buf[ETH_MTU];
     char tx_buf[ETH_MTU];
 
     int socket = socket(AF_INET, SOCK_STREAM, 0);
     chDbgAssert(socket >= 0, "Could not get RCI socket", NULL);
-    if(bind(socket, conf->address, sizeof(struct sockaddr_in)) < 0){
+    if(bind(socket, &own, sizeof(struct sockaddr_in)) < 0){
         chDbgPanic("Could not bind RCI socket");
     }
     if(listen(socket, 1) < 0){
@@ -70,7 +73,7 @@ static msg_t rci_thread(void *p){
         }while(data.cmd_len >=2 && rx_buf[data.cmd_len-2] !='\r' && rx_buf[data.cmd_len-1] != '\n');
         data.cmd_len -= 2;
 
-        handle_command(&data, conf->commands);
+        handle_command(&data, commands);
 
         data.return_len = MIN(data.return_len, ETH_MTU-2);
         //if there's data to return, return it to the address it came from
@@ -86,8 +89,8 @@ static msg_t rci_thread(void *p){
     return -1;
 }
 
-void RCICreate(struct RCIConfig * conf){
-    chDbgAssert(conf, "RCICreate needs a config", NULL);
+void RCICreate(struct RCICommand * cmd){
+    chDbgAssert(cmd, "RCICreate needs a config", NULL);
 
 #if 0 //FIXME: because of threads this doesn't actually work all the time.
       //       What's a better way of finding lwip has started.
@@ -101,7 +104,7 @@ void RCICreate(struct RCIConfig * conf){
     }
     chDbgAssert(thd, "RCICreate needs lwip started beforehand", NULL);
 #endif
-    chThdCreateStatic(wa_rci, sizeof(wa_rci), NORMALPRIO, rci_thread, (void *)conf);
+    chThdCreateStatic(wa_rci, sizeof(wa_rci), NORMALPRIO, rci_thread, (void *)cmd);
 }
 
 

@@ -167,13 +167,11 @@ void main(void) {
 
 	lwipThreadStart(ROLL_LWIP);
 
-	static struct RCIConfig conf;
-	conf.commands = (struct RCICommand[]){
+	struct RCICommand commands[] = {
 		RCI_CMD_VERS,
 		{NULL}
 	};
-	conf.address = ROLL_RCI_ADDR;
-	RCICreate(&conf);
+	RCICreate(commands);
 
 	/* Configure PWM. Static because pwmStart doesn't deep copy PWMConfigs */
 	static PWMConfig pwmcfg = {

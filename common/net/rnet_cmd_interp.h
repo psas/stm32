@@ -37,17 +37,11 @@ struct RCICommand{
     void * user_data;  //user data to pass to the function
 };
 
-/* Configuration for the RCI */
-struct RCIConfig{
-    const struct sockaddr *address;          // address of the port to listen on
-    struct RCICommand *commands; // list of commands
-};
-
-/* Starts the RCI. Once an RCIConfig has been filled out, this will handle
- * setting up the socket and a thread to run the RCI in. The lwip main thread
- * is required to have been started beforehand.
+/* Starts the RCI. Once a null terminated RCICommand array has been filled out,
+ * this will handle setting up the socket and a thread to run the RCI in. The
+ * lwip main thread is required to have been started beforehand.
  */
-void RCICreate(struct RCIConfig * conf);
+void RCICreate(struct RCICommand * cmd);
 
 #endif /* RNET_CMD_INTERP_H_ */
 

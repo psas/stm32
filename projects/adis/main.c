@@ -63,16 +63,14 @@ void main(void){
 
     ledStart(NULL);
 
-    static struct RCIConfig conf;
-    conf.commands = (struct RCICommand[]){
+    struct RCICommand commands[] = {
             {"#adst",self_test,NULL}, // adis self test
             {NULL}
     };
-    conf.address = SENSOR_RCI_ADDR;
 
     /* Start lwip */
     lwipThreadStart(SENSOR_LWIP);
-    RCICreate(&conf);
+    RCICreate(commands);
 
     /* Create the ADIS out socket, connecting as it only sends to one place */
     sendsocket = get_udp_socket(ADIS_ADDR);
