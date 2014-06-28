@@ -18,12 +18,12 @@ static void     max2769_config(void)
 {
 	BaseSequentialStream * chp;
 	chp = getUsbStream();
-	int conf1       = MAX2769_CONF1_DEF;
-	int conf2       = MAX2769_CONF2_DEF;
-	int conf3       = MAX2769_CONF3_DEF;
-	int pllconf     = MAX2769_PLLCONF_DEF;
-	int pllidr      = MAX2769_PLLIDR_DEF;
-	int cfdr        = MAX2769_CFDR_DEF;
+	int conf1       =  0; 
+	int conf2       =  0;
+	int conf3       =  0;
+	int pllconf     =  0;
+	int pllidr      =  0;
+	int cfdr        =  0;
 	//chprintf(chp, "Reset MAX2769...\r\n");
 	max2769_reset();
 	//chprintf(chp, "Start configuration...\r\n");
@@ -74,7 +74,7 @@ static void     max2769_config(void)
 	        (0b1		    << MAX2769_CONF3_PGAIEN      ) |
 	        (0b1		    << MAX2769_CONF3_PGAQEN      ) |
 	        (0b1		    << MAX2769_CONF3_STRMEN      ) |
-	        (0b0		    << MAX2769_CONF3_STRMSTART   ) |
+	        (0b1		    << MAX2769_CONF3_STRMSTART   ) |
 	        (0b0		    << MAX2769_CONF3_STRMSTOP    ) |
 	        (0b000		    << MAX2769_CONF3_STRMCOUNT   ) |
 	        (0b11		    << MAX2769_CONF3_STRMBITS    ) |
