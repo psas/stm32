@@ -127,7 +127,9 @@ NORETURN static void led(void * arg) {
             chThdSleepMilliseconds(start_blink);
             ledOff(led[i]);
         }
-        chThdSleepMilliseconds(cfg->cycle_ms % num_leds);
+        if(cfg->cycle_ms % num_leds){
+            chThdSleepMilliseconds(cfg->cycle_ms % num_leds);
+        }
     }
 
     /* Run the toggle pattern */
