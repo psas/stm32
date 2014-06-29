@@ -35,22 +35,29 @@ const MAX2769Config max2769_gps =
 	.ld          = {GPIOB, GPIOB_LD},
 	.antflag     = {GPIOB, GPIOB_ANTFLAG},
 	.i1_clk_ser  = {GPIOA, GPIOA_CLK_SER},
-	.i0_data_out = {GPIOB, GPIOB_DATA_OUT}
+	.i0_data_out = {GPIOB, GPIOB_DATA_OUT},
+	.spi1_nss    = {GPIOA, GPIOA_PIN4}
 };
 
 #if MAX2769_SPI_DEBUG
 void  max2769_test_spi()
 {
-	//BaseSequentialStream *chp;
-	//chp = getUsbStream();
-	int new_conf1 = MAX2769_CONF1_DEF;
-	new_conf1 = 0b1010001010010111000110100011;
-	chThdSleepMilliseconds(1500);
-	max2769_reset();
-	chThdSleepMilliseconds(1500);
+	BaseSequentialStream * chp;
+	chp = getUsbStream();
+	chprintf(chp, "toggle SPI1_NSS\r\n");
+	palClearPad(CONF->shdn.port, CONF->shdn.pad);
+	palSetPad(CONF->shdn.port, CONF->shdn.pad);
+	//int new_conf1 = MAX2769_CONF1_DEF;
+	//new_conf1 = 0b1010001010010111000110100011;
+	//chThdSleepMilliseconds(1500);
+	//max2769_reset();
+	//chThdSleepMilliseconds(1500);
 	while(1)
 	{
-		max2769_set(MAX2769_CONF1, new_conf1 );
+		palClearPad(CONF->spi1_nss.port, CONF->spi1_nss.pad);
+		//max2769_set(MAX2769_CONF1, new_conf1 );
+		chThdSleepMilliseconds(1000);
+		palClearPad(CONF->spi1_nss.port, CONF->spi1_nss.pad);
 		chThdSleepMilliseconds(1000);
 	}
 }
@@ -98,6 +105,7 @@ void max2769_init(const MAX2769Config * conf)
 	palSetPadMode(conf->spi_miso.port, conf->spi_miso.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
 	palSetPadMode(conf->spi_cs.port, conf->spi_cs.pad, PAL_MODE_OUTPUT_PUSHPULL | PINMODE);
 	palSetPad(conf->spi_cs.port, conf->spi_cs.pad); //unselect
+	palSetPad(conf->spi1_nss.port, conf->spi1_nss.pad); //unselect
 	/* GPIO pins setup */
 	/*
 	 * MAX2869 SPI configuration

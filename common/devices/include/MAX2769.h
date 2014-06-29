@@ -161,6 +161,7 @@ typedef struct
 	struct pin      antflag;
 	struct pin      i1_clk_ser;
 	struct pin      i0_data_out;
+	struct pin      spi1_nss;
 } MAX2769Config;
 
 /*! \typedef MAX2769Data
