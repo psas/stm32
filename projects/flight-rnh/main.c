@@ -15,7 +15,6 @@
 #include "BQ24725.h"
 #include "BQ3060.h"
 
-#include "rnh_shell.h"
 #include "KS8999.h"
 #include "RNHPort.h"
 
@@ -219,7 +218,6 @@ void main(void) {
             RCI_CMD_VERS,
             {NULL}
     };
-
     //Init hardware
     BQ24725Start(&BQConf);
     BQ3060Start(&rnh3060conf);
@@ -246,7 +244,6 @@ void main(void) {
         ledOn(LED_ACOK);
         BQ24725_SetCharge(0);
     }
-
     // Set up event system
     struct EventListener batt0, batt1, port0, batt_fault;
     chEvtRegister(&ACOK, &batt0, 0);

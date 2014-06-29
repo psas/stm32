@@ -90,18 +90,16 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/chprintf.c \
-       $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/various/chrtclib.c \
-        main.c \
-        rnh_shell.c \
-        KS8999.c \
-        RNHPort.c \
+       $(PSAS_NETSRC) \
        $(PSAS_DEVICES)/BQ24725.c \
        $(PSAS_DEVICES)/BQ3060.c \
-       $(PSAS_NETSRC) \
        $(PSAS_UTIL)/utils_hal.c \
        $(PSAS_UTIL)/utils_led.c \
-       $(PSAS_UTIL)/utils_rci.c
+       $(PSAS_UTIL)/utils_rci.c \
+        main.c \
+        KS8999.c \
+        RNHPort.c 
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
