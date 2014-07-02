@@ -146,9 +146,9 @@ void mac_phy_reset(void);
 #define GPIOE_PIN4                    4
 #define GPIOE_PIN5                    5
 #define GPIOE_PIN6                    6
-#define GPIOE_DATASYNC                7
+#define GPIOE_TIMESYNC                7
 #define GPIOE_PIN8                    8
-#define GPIOE_TIMESYNC                9
+#define GPIOE_DATASYNC                9
 #define GPIOE_MAX_SHDN                10
 #define GPIOE_MAX_IDLE                11
 #define GPIOE_MAX_CFG_CS              12
@@ -620,9 +620,9 @@ void mac_phy_reset(void);
                                      PIN_MODE_INPUT(GPIOE_PIN4           ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN5   ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN6   ) |\
-                                     PIN_MODE_INPUT (GPIOE_DATASYNC   ) |\
+                                     PIN_MODE_INPUT (GPIOE_TIMESYNC   ) |\
                                      PIN_MODE_INPUT (GPIOE_PIN8  ) |\
-                                     PIN_MODE_INPUT (GPIOE_TIMESYNC  ) |\
+                                     PIN_MODE_INPUT (GPIOE_DATASYNC  ) |\
                                      PIN_MODE_OUTPUT (GPIOE_MAX_SHDN ) |\
                                      PIN_MODE_OUTPUT (GPIOE_MAX_IDLE ) |\
                                      PIN_MODE_OUTPUT (GPIOE_MAX_CFG_CS          ) |\
@@ -637,9 +637,9 @@ void mac_phy_reset(void);
                                      PIN_OTYPE_PUSHPULL(GPIOE_PIN4           ) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_PIN5   ) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_PIN6   ) |\
-                                     PIN_OTYPE_PUSHPULL(GPIOE_DATASYNC   ) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOE_TIMESYNC   ) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_PIN8  ) |\
-                                     PIN_OTYPE_PUSHPULL(GPIOE_TIMESYNC  ) |\
+                                     PIN_OTYPE_PUSHPULL(GPIOE_DATASYNC  ) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_MAX_SHDN ) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_MAX_IDLE ) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_MAX_CFG_CS          ) |\
@@ -654,9 +654,9 @@ void mac_phy_reset(void);
                                      PIN_OSPEED_100M   (GPIOE_PIN4           ) |\
                                      PIN_OSPEED_100M   (GPIOE_PIN5   ) |\
                                      PIN_OSPEED_100M   (GPIOE_PIN6   ) |\
-                                     PIN_OSPEED_100M   (GPIOE_DATASYNC   ) |\
+                                     PIN_OSPEED_100M   (GPIOE_TIMESYNC   ) |\
                                      PIN_OSPEED_100M   (GPIOE_PIN8  ) |\
-                                     PIN_OSPEED_100M   (GPIOE_TIMESYNC  ) |\
+                                     PIN_OSPEED_100M   (GPIOE_DATASYNC  ) |\
                                      PIN_OSPEED_100M   (GPIOE_MAX_SHDN ) |\
                                      PIN_OSPEED_100M   (GPIOE_MAX_IDLE ) |\
                                      PIN_OSPEED_100M   (GPIOE_MAX_CFG_CS          ) |\
@@ -671,9 +671,9 @@ void mac_phy_reset(void);
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN4           ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN5   ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN6   ) |\
-                                     PIN_PUPDR_PULLUP  (GPIOE_DATASYNC   ) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOE_TIMESYNC   ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN8  ) |\
-                                     PIN_PUPDR_PULLUP  (GPIOE_TIMESYNC  ) |\
+                                     PIN_PUPDR_PULLDOWN(GPIOE_DATASYNC  ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_MAX_SHDN ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_MAX_IDLE ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_MAX_CFG_CS          ) |\
@@ -688,9 +688,9 @@ void mac_phy_reset(void);
                                      PIN_ODR_HIGH      (GPIOE_PIN4           ) |\
                                      PIN_ODR_HIGH      (GPIOE_PIN5   ) |\
                                      PIN_ODR_HIGH      (GPIOE_PIN6   ) |\
-                                     PIN_ODR_HIGH      (GPIOE_DATASYNC   ) |\
+                                     PIN_ODR_HIGH      (GPIOE_TIMESYNC   ) |\
                                      PIN_ODR_HIGH      (GPIOE_PIN8  ) |\
-                                     PIN_ODR_HIGH      (GPIOE_TIMESYNC  ) |\
+                                     PIN_ODR_HIGH      (GPIOE_DATASYNC  ) |\
                                      PIN_ODR_HIGH      (GPIOE_MAX_SHDN ) |\
                                      PIN_ODR_HIGH      (GPIOE_MAX_IDLE ) |\
                                      PIN_ODR_HIGH      (GPIOE_MAX_CFG_CS          ) |\
@@ -705,10 +705,10 @@ void mac_phy_reset(void);
                                      PIN_AFIO_AF       (GPIOE_PIN4          , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN5  , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN6  , 0 ) |\
-                                     PIN_AFIO_AF       (GPIOE_DATASYNC  , 0 ))
+                                     PIN_AFIO_AF       (GPIOE_TIMESYNC  , 0 ))
 
 #define VAL_GPIOE_AFRH              (PIN_AFIO_AF       (GPIOE_PIN8 , 0 ) |\
-                                     PIN_AFIO_AF       (GPIOE_TIMESYNC , 0 ) |\
+                                     PIN_AFIO_AF       (GPIOE_DATASYNC , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_MAX_SHDN, 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_MAX_IDLE, 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_MAX_CFG_CS         , 5 ) |\
