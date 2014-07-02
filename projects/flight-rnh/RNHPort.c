@@ -159,7 +159,7 @@ RNHPort rnhPortStatus(void){
     for(int i = 0; i < NUM_PORT; ++i){
         return_port |= palReadPad(GPIOE, power[i])<<i;
     }
-    return return_port & RNH_PORT_ALL;
+    return (~return_port) & RNH_PORT_ALL;
 };
 
 RNHPort rnhPortFault(void){
@@ -168,7 +168,7 @@ RNHPort rnhPortFault(void){
     for(int i = 0; i < NUM_PORT; ++i){
         return_port |= palReadPad(GPIOE, fault[i])<<i;
     }
-    return return_port & RNH_PORT_ALL;
+    return (~return_port) & RNH_PORT_ALL;
 }
 
 void rnhPortOn(RNHPort port){
