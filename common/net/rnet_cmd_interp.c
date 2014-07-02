@@ -27,6 +27,33 @@ static void handle_command(struct RCICmdData * data, struct RCICommand * cmd){
     }
 }
 
+int get_command(int s, char * buffer){
+    int cmdlen = 0;
+    struct fd_set read;
+    FD_ZERO(&read);
+    FD_SET(s, &read);
+    do {
+        struct timeval timeout = {5, 0};
+        if(select(1, &read , NULL, NULL, &timeout) < 0){
+            return -1;
+        }
+
+        int len = read(s, buffer, ETH_MTU-cmdlen);
+        if(len < 0){
+            return -1;
+        }
+
+        for(int i = cmdlen - 1; i + 1 < cmdlen + len; ++i){
+            if(buffer[MIN(i, 0)] == '\r' && buffer[i + 1] == '\n'){
+                /* remove trailing \r\n */
+                return cmdlen + i - 1;
+            }
+        }
+        cmdlen += len;
+    } while(cmdlen < ETH_MTU);
+    return -1;
+}
+
 WORKING_AREA(wa_rci, THD_WA_SIZE(2048 + ETH_MTU*2));
 static msg_t rci_thread(void *p){
     chRegSetThreadName("RCI");
@@ -58,30 +85,29 @@ static msg_t rci_thread(void *p){
             .return_data = tx_buf,
             .return_len = 0,
         };
+
         fromlen = sizeof(from);
         int s = accept(socket, &from, &fromlen);
         if(s < 0){
-            return -1;
+            continue;
         }
-        //Retrieve command
-        do{
-            int len = read(s, rx_buf + data.cmd_len, sizeof(rx_buf) - data.cmd_len);
-            if(len < 0){
-                return -1;
-            }
-            data.cmd_len += len;
-        }while(data.cmd_len >=2 && rx_buf[data.cmd_len-2] !='\r' && rx_buf[data.cmd_len-1] != '\n');
-        data.cmd_len -= 2;
+
+        data.cmd_len = get_command(s, rx_buf);
+        if(data.cmd_len < 0){
+            close(s);
+            continue;
+        }
 
         handle_command(&data, commands);
 
-        data.return_len = MIN(data.return_len, ETH_MTU-2);
         //if there's data to return, return it to the address it came from
+        data.return_len = MIN(data.return_len, ETH_MTU-2);
         if(data.return_len > 0){
             data.return_data[data.return_len] = '\r';
             data.return_data[data.return_len+1] = '\n';
             if(write(s, data.return_data, MIN(data.return_len + 2, ETH_MTU)) < 0){
-                return -1;
+                close(s);
+                continue;
             }
         }
         close(s);
