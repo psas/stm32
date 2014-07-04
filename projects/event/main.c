@@ -2,6 +2,7 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "utils_general.h"
 #include "usbdetail.h"
 #include "chprintf.h"
 #include "shell.h"
@@ -11,8 +12,7 @@ static EventSource shell_event;
 //static EventSource timer_event; ?
 
 
-void cmd_event(BaseSequentialStream *chp, int argc __attribute__((unused)),
-               char *argv[] __attribute__((unused))){
+void cmd_event(BaseSequentialStream *chp, int argc UNUSED, char *argv[] UNUSED){
     chprintf(chp, "Sending shell event \r\n");
     /* Call the normal version because we're not in an ISR */
     chEvtBroadcast(&shell_event);
