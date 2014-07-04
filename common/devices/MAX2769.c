@@ -63,11 +63,11 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
 	{
 		(value & 0xff000000) >> 24, (value & 0xff0000) >> 16, (value & 0xff00) >> 8, (value & 0xff)
 	};
-	spiAcquireBus(CONF->SPICONFIG);
-	spiSelect(CONF->SPICONFIG);
-	spiSend(CONF->SPICONFIG, sizeof(txbuf), txbuf);
-	spiUnselect(CONF->SPICONFIG);
-	spiReleaseBus(CONF->SPICONFIG);
+	spiAcquireBus(CONF->SPIDCONFIG);
+	spiSelect(CONF->SPIDCONFIG);
+	spiSend(CONF->SPIDCONFIG, sizeof(txbuf), txbuf);
+	spiUnselect(CONF->SPIDCONFIG);
+	spiReleaseBus(CONF->SPIDCONFIG);
 }
 
 
@@ -93,7 +93,7 @@ void max2769_init(const MAX2769Config * conf)
 	};
 	spicfg.ssport = conf->spi_cs.port;
 	spicfg.sspad  = conf->spi_cs.pad;
-	spiStart(conf->SPICONFIG, &spicfg);
+	spiStart(conf->SPIDCONFIG, &spicfg);
 
 
 	static SPIConfig spiread =
@@ -101,10 +101,10 @@ void max2769_init(const MAX2769Config * conf)
 		.end_cb = NULL,
 		.cr1 = SPI_CR1_DFF
 	};
-	spiStart(conf->SPIREAD, &spiread);
-	conf->SPIREAD->spi->cr1 &= ~SPI_CR1_SPE;
-	conf->SPIREAD->spi->cr1 &= ~SPI_CR1_MSTR;
-	conf->SPIREAD->spi->cr1 |= SPI_CR1_RXONLY | SPI_CR1_CPHA;
+	spiStart(conf->SPIDREAD, &spiread);
+	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_SPE;
+	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_MSTR;
+	conf->SPIDREAD->spi->CR1 |= SPI_CR1_RXONLY | SPI_CR1_CPHA;
 
 
 

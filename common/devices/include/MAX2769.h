@@ -152,7 +152,8 @@ typedef struct
 	struct pin      spi_mosi;               /*! \brief The SPI MOSI wire */
 	struct pin      spi_miso;               /*! \brief The SPI MISO wire */
 	struct pin      spi_cs;                 /*! \brief The SPI CS wire */
-	SPIDriver   *   SPID;                   /*! \brief the SPI driver */
+	SPIDriver   *   SPIDCONFIG;              /*! \brief the SPI configure driver */
+	SPIDriver   *   SPIDREAD;                /*! \brief the SPI read driver */
 	struct pin      idle;                   /*! \brief low power idle */
 	struct pin      shdn;                   /*! \brief Shutdown device */
 	struct pin      q1_timesync;
