@@ -30,6 +30,7 @@ static void     max2769_config(void)
 	//chprintf(chp, "Start configuration...\r\n");
 	// Configuration from Google doc MAX2769RegisterConfiguration
 	// CONF1
+
 	conf1 = (0b1            << MAX2769_CONF1_CHIPEN ) |
 	        (0b0            << MAX2769_CONF1_IDLE   ) |
 	        (0b1111         << MAX2769_CONF1_ILNA1  ) |
@@ -37,7 +38,6 @@ static void     max2769_config(void)
 	        (0b11           << MAX2769_CONF1_ILO    ) |
 	        (0b11           << MAX2769_CONF1_IMIX   ) |
 	        (0b0            << MAX2769_CONF1_MIXPOLE) |
-	        (0b10           << MAX2769_CONF1_LNAMODE) |
 	        (0b10           << MAX2769_CONF1_LNAMODE) |
 	        (0b1            << MAX2769_CONF1_MIXEN  ) |
 	        (0b0            << MAX2769_CONF1_ANTEN  ) |
@@ -49,7 +49,7 @@ static void     max2769_config(void)
 	max2769_set(MAX2769_CONF1, conf1 );
 	chprintf(chp, "\tCONF1:\t\t0x%x\r\n", conf1);
 	// CONF2
-	conf2 = (0b0            << MAX2769_CONF2_IQEN    ) |
+	conf2 = (0b1            << MAX2769_CONF2_IQEN    ) |
 	        (0b10101010     << MAX2769_CONF2_GAINREF ) |
 	        (0b00           << MAX2769_CONF2_AGCMODE ) |
 	        (0b01           << MAX2769_CONF2_FORMAT  ) |
@@ -75,9 +75,9 @@ static void     max2769_config(void)
 	        (0b0            << MAX2769_CONF3_STRMSTOP    ) |
 	        (0b000          << MAX2769_CONF3_STRMCOUNT   ) |
 	        (0b11           << MAX2769_CONF3_STRMBITS    ) |
-	        (0b1            << MAX2769_CONF3_STRMPEN     ) |
+	        (0b0            << MAX2769_CONF3_STRMPEN     ) |
 	        (0b0            << MAX2769_CONF3_TIMESYNCEN  ) |
-	        (0b1            << MAX2769_CONF3_DATASYNCEN  ) |
+	        (0b0            << MAX2769_CONF3_DATASYNCEN  ) |
 	        (0b0            << MAX2769_CONF3_STRMRST     );
 
 	max2769_set(MAX2769_CONF3, conf3 );
@@ -124,7 +124,7 @@ static void max2769_streamstart(void) {
 	chp = getUsbStream();
 	int conf3       =  0;
 
-	conf3 = conf3_state |  (0b1 << MAX2769_CONF3_STRMSTART );
+	conf3 = conf3_state |  (0b1 << MAX2769_CONF3_STRMSTART | 1 << MAX2769_CONF3_DATASYNCEN | 1 << MAX2769_CONF3_TIMESYNCEN );
 	max2769_set(MAX2769_CONF3, conf3 );
 
 	conf3_state = conf3;
@@ -184,7 +184,37 @@ static void cmd_msstop(BaseSequentialStream * chp, int argc, char * argv[])
 	max2769_streamstop();
 }
 
+static void cmd_pull(BaseSequentialStream * chp, int argc, char * argv[]){
+	(void)argc;
+	if(argv[0][0] == 'u'){
+		if(argv[0][1] == 'd'){
+			palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT_PULLUP);
+		}
+		if(argv[0][1] == 't'){
+			palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT_PULLUP);
+		}
+		chprintf(chp, "setting pullup\r\n");
+	}
+	if(argv[0][0] == 'd'){
 
+		if(argv[0][1] == 'd'){
+			palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT_PULLDOWN);
+		}
+		if(argv[0][1] == 't'){
+			palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT_PULLDOWN);
+		}
+		chprintf(chp, "setting pulldown\r\n");
+	}
+	if(argv[0][0] == 'f'){
+		if(argv[0][1] == 'd'){
+			palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT);
+		}
+		if(argv[0][1] == 't'){
+			palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT);
+		}
+		chprintf(chp, "setting float\r\n");
+	}
+}
 
 void main(void)
 {
@@ -199,13 +229,11 @@ void main(void)
 		{"mconfig", cmd_mconfig},
 		{"msstart", cmd_msstart},
 		{"msstop", cmd_msstop},
+		{"pull", cmd_pull},
 		{NULL, NULL}
 	};
 	usbSerialShellStart(commands);
-#if MAX2769_SPI_DEBUG
-	max2769_test_spi();
-#endif
-	/*max2769_config();*/
+	max2769_config();
 	/* Manage MAX2769 events */
 	//struct EventListener ddone;
 	static const evhandler_t evhndl[] =

@@ -175,10 +175,6 @@ typedef struct MAX2769Data
 extern const      MAX2769Config            max2769_gps;
 extern            EventSource              MAX2769_write_done;
 
-#if MAX2769_SPI_DEBUG
-void max2769_test_spi(void);
-#endif
-
 void max2769_reset(void);
 void max2769_set(max2769_regaddr addr, uint32_t value);
 

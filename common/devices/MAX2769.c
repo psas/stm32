@@ -27,7 +27,8 @@ const MAX2769Config max2769_gps =
 	.spi_mosi    = {GPIOB, GPIOB_MAX_CFG_MOSI},
 	.spi_miso    = {GPIOB, GPIOB_MAX_CFG_MISO},
 	.spi_cs      = {GPIOE, GPIOE_MAX_CFG_CS},
-	.SPID        = &SPID2,
+	.SPIDCONFIG  = &SPID2,
+	.SPIDREAD    = &SPID1,
 	.idle        = {GPIOE, GPIOE_MAX_IDLE},
 	.shdn        = {GPIOE, GPIOE_MAX_SHDN},
 	.q1_timesync = {GPIOE, GPIOE_TIMESYNC},
@@ -38,31 +39,6 @@ const MAX2769Config max2769_gps =
 	.i0_data_out = {GPIOB, GPIOB_DATA_OUT},
 	.spi1_nss    = {GPIOA, GPIOA_PIN4}
 };
-
-#if MAX2769_SPI_DEBUG
-void  max2769_test_spi()
-{
-	BaseSequentialStream * chp;
-	chp = getUsbStream();
-	chprintf(chp, "toggle SPI1_NSS\r\n");
-	palClearPad(CONF->shdn.port, CONF->shdn.pad);
-	palSetPad(CONF->shdn.port, CONF->shdn.pad);
-	//int new_conf1 = MAX2769_CONF1_DEF;
-	//new_conf1 = 0b1010001010010111000110100011;
-	//chThdSleepMilliseconds(1500);
-	//max2769_reset();
-	//chThdSleepMilliseconds(1500);
-	while(1)
-	{
-		palClearPad(CONF->spi1_nss.port, CONF->spi1_nss.pad);
-		//max2769_set(MAX2769_CONF1, new_conf1 );
-		chThdSleepMilliseconds(1000);
-		palClearPad(CONF->spi1_nss.port, CONF->spi1_nss.pad);
-		chThdSleepMilliseconds(1000);
-	}
-}
-#endif
-
 
 /*! \brief Reset the MAX2769
  *
@@ -87,11 +63,11 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
 	{
 		(value & 0xff000000) >> 24, (value & 0xff0000) >> 16, (value & 0xff00) >> 8, (value & 0xff)
 	};
-	spiAcquireBus(CONF->SPID);
-	spiSelect(CONF->SPID);
-	spiSend(CONF->SPID, sizeof(txbuf), txbuf);
-	spiUnselect(CONF->SPID);
-	spiReleaseBus(CONF->SPID);
+	spiAcquireBus(CONF->SPICONFIG);
+	spiSelect(CONF->SPICONFIG);
+	spiSend(CONF->SPICONFIG, sizeof(txbuf), txbuf);
+	spiUnselect(CONF->SPICONFIG);
+	spiReleaseBus(CONF->SPICONFIG);
 }
 
 
@@ -117,7 +93,22 @@ void max2769_init(const MAX2769Config * conf)
 	};
 	spicfg.ssport = conf->spi_cs.port;
 	spicfg.sspad  = conf->spi_cs.pad;
-	spiStart(conf->SPID, &spicfg);
+	spiStart(conf->SPICONFIG, &spicfg);
+
+
+	static SPIConfig spiread =
+	{
+		.end_cb = NULL,
+		.cr1 = SPI_CR1_DFF
+	};
+	spiStart(conf->SPIREAD, &spiread);
+	conf->SPIREAD->spi->cr1 &= ~SPI_CR1_SPE;
+	conf->SPIREAD->spi->cr1 &= ~SPI_CR1_MSTR;
+	conf->SPIREAD->spi->cr1 |= SPI_CR1_RXONLY | SPI_CR1_CPHA;
+
+
+
+
 	CONF = conf;
 }
 
