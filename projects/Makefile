@@ -20,7 +20,7 @@ all: $(SUBDIRS)
 #   -C means switch to the directory listed
 #   -w means print the directory to which we are changing
 $(SUBDIRS):
-	$(MAKE) -C $@ -w
+	$(MAKE) -C $@ -w -j5
 
 #Removes output from previous builds
 clean: $(CLEAN_SUBDIRS)
