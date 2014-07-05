@@ -9,13 +9,12 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "utils_general.h"
 #include "utils_hal.h"
 #include "usbdetail.h"
 #include "chprintf.h"
 
 #include "MAX2769.h"
-
-#define                 UNUSED                  __attribute__((unused))
 
 static const MAX2769Config * CONF;
 
@@ -70,6 +69,19 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
 	spiReleaseBus(CONF->SPIDCONFIG);
 }
 
+#define GPS_BUF_SIZE 700
+int16_t gps_buf1[GPS_BUF_SIZE];
+int16_t gps_buf2[GPS_BUF_SIZE];
+void max2769_read(void){
+	conf->SPIDREAD->spi->CR1 |= SPI_CR1_SSI;
+	spiStartReceive(CONF->SPIDREAD, GPS_BUF_SIZE, gps_buf1);
+}
+
+void spireadcb(SPIDriver *spip UNUSED){
+	chSysLockI();
+	spiStartReceiveI(CONF->SPIDREAD, GPS_BUF_SIZE, );
+	chSysUnlockI();
+}
 
 void max2769_init(const MAX2769Config * conf)
 {
@@ -96,20 +108,16 @@ void max2769_init(const MAX2769Config * conf)
 	spiStart(conf->SPIDCONFIG, &spicfg);
 
 
-/*
- *    static SPIConfig spiread =
- *    {
- *        .end_cb = NULL,
- *        .cr1 = SPI_CR1_DFF
- *    };
- *    spiStart(conf->SPIDREAD, &spiread);
- *    conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_SPE;
- *    conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_MSTR;
- *    conf->SPIDREAD->spi->CR1 |= SPI_CR1_RXONLY | SPI_CR1_CPHA;
- *
- *
- */
-
+	static SPIConfig spiread =
+	{
+		.end_cb = spireadcb,
+		.cr1 = SPI_CR1_DFF
+	};
+	spiStart(conf->SPIDREAD, &spiread);
+	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_SPE;
+	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_MSTR;
+	conf->SPIDREAD->spi->CR1 |= SPI_CR1_SSM | SPI_CR1_RXONLY | SPI_CR1_CPHA;
+	conf->SPIDREAD->spi->CR1 &= SPI_CR1_SPE;
 
 	CONF = conf;
 }
