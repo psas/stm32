@@ -89,10 +89,14 @@ const struct sockaddr * ROLL_ADDR = make_addr(ROLL_IP, ROLL_PORT);
 #define RNH_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0xaa}
 #define RNH_BATTERY 36101 // Battery data
 #define RNH_PORT 36102    // Port data
+#define RNH_ALARM 36103   // Battery alarm
+#define RNH_UMBDET 36104  // Umbilical detect
 
 struct lwipthread_opts * RNH_LWIP = make_lwipopts(RNH_MAC, RNH_IP, NETMASK, GATEWAY);
 const struct sockaddr * RNH_BATTERY_ADDR = make_addr(RNH_IP, RNH_BATTERY);
 const struct sockaddr * RNH_PORT_ADDR = make_addr(RNH_IP, RNH_PORT);
+const struct sockaddr * RNH_ALARM_ADDR = make_addr(RNH_IP, RNH_ALARM);
+const struct sockaddr * RNH_UMBDET_ADDR = make_addr(RNH_IP, RNH_UMBDET);
 
 /* Rocket Tracks Controller */
 #define RTX_IP IPv4(10, 0, 0, 40)

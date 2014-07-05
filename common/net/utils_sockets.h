@@ -29,11 +29,11 @@ void set_sockaddr(struct sockaddr * addr, const char * ip, uint16_t port);
 int get_udp_socket(const struct sockaddr *addr);
 
 struct SeqSocket {
-    size_t        maxSize;
-    int           socket;
-    uint32_t   	seqSend;
-    uint32_t  		seqRecv;
-    uint8_t*      buffer;
+    size_t maxSize;
+    int socket;
+    uint32_t seqSend;
+    uint32_t seqRecv;
+    uint8_t* buffer;
 };
 
 #define DECL_SEQ_SOCKET(MAXSIZE) { MAXSIZE, 0, 0, 0, (((uint8_t[MAXSIZE + sizeof(uint32_t)]){ 0 }) + sizeof(uint32_t)) }

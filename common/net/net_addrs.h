@@ -27,7 +27,9 @@ extern const struct sockaddr * ROLL_ADDR;    // Servo control
 /* Rocket Net Hub */
 extern struct lwipthread_opts * RNH_LWIP;
 extern const struct sockaddr * RNH_BATTERY_ADDR; // Battery data
+extern const struct sockaddr * RNH_ALARM_ADDR;   // Battery alarm
 extern const struct sockaddr * RNH_PORT_ADDR;    // Port data
+extern const struct sockaddr * RNH_UMBDET_ADDR;  // Umbilical detect
 
 /* Rocket Tracks Controller */
 extern struct lwipthread_opts * RTX_LWIP;
