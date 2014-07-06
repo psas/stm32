@@ -127,7 +127,7 @@ INCDIR = $(PORTINC) $(KERNINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
          $(CHIBIOS)/os/various \
 	 $(LWINC) \
-	 $(PSAS_NET)
+	 $(PSAS_NET) $(PSAS_UTIL)/include
 
 #
 # Project, sources and paths
