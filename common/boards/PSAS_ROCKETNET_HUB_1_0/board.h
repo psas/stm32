@@ -681,7 +681,7 @@
                                      PIN_MODE_INPUT (GPIO_E4_NC           ) |\
                                      PIN_MODE_OUTPUT(GPIO_E5_NODE6_N_EN   ) |\
                                      PIN_MODE_OUTPUT(GPIO_E6_NODE7_N_EN   ) |\
-                                     PIN_MODE_INPUT (GPIO_E7_NODE8_N_EN   ) |\
+                                     PIN_MODE_OUTPUT(GPIO_E7_NODE8_N_EN   ) |\
                                      PIN_MODE_INPUT (GPIO_E8_NODE1_N_FLT  ) |\
                                      PIN_MODE_INPUT (GPIO_E9_NODE2_N_FLT  ) |\
                                      PIN_MODE_INPUT (GPIO_E10_NODE3_N_FLT ) |\
@@ -732,7 +732,7 @@
                                      PIN_PUPDR_PULLDOWN  (GPIO_E4_NC           ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E5_NODE6_N_EN   ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E6_NODE7_N_EN   ) |\
-                                     PIN_PUPDR_PULLDOWN  (GPIO_E7_NODE8_N_EN   ) |\
+                                     PIN_PUPDR_FLOATING  (GPIO_E7_NODE8_N_EN   ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E8_NODE1_N_FLT  ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E9_NODE2_N_FLT  ) |\
                                      PIN_PUPDR_FLOATING  (GPIO_E10_NODE3_N_FLT ) |\
