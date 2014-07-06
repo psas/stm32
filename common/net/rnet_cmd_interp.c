@@ -1,11 +1,9 @@
 #include <string.h>
 #include "ch.h"
 #include "lwip/sockets.h"
+#include "utils_general.h"
 #include "utils_sockets.h"
 #include "rnet_cmd_interp.h"
-
-#define MIN(a, b) (a) < (b) ? (a) : (b)
-#define MAX(a, b) (a) > (b) ? (a) : (b)
 
 static void handle_command(struct RCICmdData * data, struct RCICommand * cmd){
     for(;cmd->name != NULL; ++cmd){
@@ -27,30 +25,29 @@ static void handle_command(struct RCICmdData * data, struct RCICommand * cmd){
     }
 }
 
-int get_command(int s, char * buffer){
+static int get_command(int s, char * buffer, int buflen){
     int cmdlen = 0;
+    int i = 0;
     struct fd_set read;
     FD_ZERO(&read);
     FD_SET(s, &read);
     do {
         struct timeval timeout = {5, 0};
-        if(select(1, &read , NULL, NULL, &timeout) < 0){
+        if(select(s+1, &read, NULL, NULL, &timeout) < 0){
             return -1;
         }
-
-        int len = read(s, buffer, ETH_MTU-cmdlen);
+        int len = read(s, buffer, buflen-cmdlen);
         if(len < 0){
             return -1;
         }
-
-        for(int i = cmdlen - 1; i + 1 < cmdlen + len; ++i){
-            if(buffer[MIN(i, 0)] == '\r' && buffer[i + 1] == '\n'){
+        cmdlen += len;
+        for(; i + 1 < cmdlen; ++i){
+            if(buffer[i] == '\r' && buffer[i + 1] == '\n'){
                 /* remove trailing \r\n */
-                return cmdlen + i - 1;
+                return i;
             }
         }
-        cmdlen += len;
-    } while(cmdlen < ETH_MTU);
+    } while(cmdlen < buflen);
     return -1;
 }
 
@@ -92,7 +89,7 @@ static msg_t rci_thread(void *p){
             continue;
         }
 
-        data.cmd_len = get_command(s, rx_buf);
+        data.cmd_len = get_command(s, rx_buf, sizeof(rx_buf));
         if(data.cmd_len < 0){
             close(s);
             continue;

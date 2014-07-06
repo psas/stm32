@@ -16,6 +16,10 @@
 #define UNUSED __attribute__((unused))
 #define NORETURN __attribute__((noreturn))
 
+// bah, comments
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 // Prefix string for debugging messages, useful in asserts
 #define _STRINGIFY(line) #line
 #define STRINGIFY(line) _STRINGIFY(line)

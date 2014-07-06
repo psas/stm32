@@ -323,7 +323,7 @@
  * (only needed if you use the sequential API, like api_lib.c)
  */
 #ifndef MEMP_NUM_NETCONN
-#define MEMP_NUM_NETCONN                5
+#define MEMP_NUM_NETCONN                6
 #endif
 
 /**
