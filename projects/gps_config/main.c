@@ -12,6 +12,9 @@
 #include "utils_shell.h"
 #include "usbdetail.h"
 
+//#include "psas_rtc.h"
+#include "psas_sdclog.h"
+
 #include "MAX2769.h"
 static 	int conf3_state       =  MAX2769_CONF3_DEF;
 
@@ -103,8 +106,8 @@ static void     max2769_config(void)
 	max2769_set(MAX2769_PLLCONF, pllconf );
 	chprintf(chp, "\tPLLCONF:\t0x%x\r\n", pllconf);
 	// PLLIDR
-	pllidr = (1536 << MAX2769_PLLIDR_NDIV) |
-	         (16 << MAX2769_PLLIDR_RDIV);
+	pllidr = (1536          << MAX2769_PLLIDR_NDIV) |
+	         (16            << MAX2769_PLLIDR_RDIV);
 	max2769_set(MAX2769_PLLIDR, pllidr );
 	chprintf(chp, "\tPLLIDR:\t\t0x%x\r\n", pllidr);
 	// CFDR
@@ -184,61 +187,92 @@ static void cmd_msstop(BaseSequentialStream * chp, int argc, char * argv[])
 	max2769_streamstop();
 }
 
-static void cmd_pull(BaseSequentialStream * chp, int argc, char * argv[]){
-	(void)argc;
-	if(argv[0][0] == 'u'){
-		if(argv[0][1] == 'd'){
-			palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT_PULLUP);
-		}
-		if(argv[0][1] == 't'){
-			palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT_PULLUP);
-		}
-		chprintf(chp, "setting pullup\r\n");
-	}
-	if(argv[0][0] == 'd'){
-
-		if(argv[0][1] == 'd'){
-			palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT_PULLDOWN);
-		}
-		if(argv[0][1] == 't'){
-			palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT_PULLDOWN);
-		}
-		chprintf(chp, "setting pulldown\r\n");
-	}
-	if(argv[0][0] == 'f'){
-		if(argv[0][1] == 'd'){
-			palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT);
-		}
-		if(argv[0][1] == 't'){
-			palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT);
-		}
-		chprintf(chp, "setting float\r\n");
-	}
-}
+/*
+ *static void cmd_pull(BaseSequentialStream * chp, int argc, char * argv[]){
+ *    (void)argc;
+ *    if(argv[0][0] == 'u'){
+ *        if(argv[0][1] == 'd'){
+ *            palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT_PULLUP);
+ *        }
+ *        if(argv[0][1] == 't'){
+ *            palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT_PULLUP);
+ *        }
+ *        chprintf(chp, "setting pullup\r\n");
+ *    }
+ *    if(argv[0][0] == 'd'){
+ *
+ *        if(argv[0][1] == 'd'){
+ *            palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT_PULLDOWN);
+ *        }
+ *        if(argv[0][1] == 't'){
+ *            palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT_PULLDOWN);
+ *        }
+ *        chprintf(chp, "setting pulldown\r\n");
+ *    }
+ *    if(argv[0][0] == 'f'){
+ *        if(argv[0][1] == 'd'){
+ *            palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT);
+ *        }
+ *        if(argv[0][1] == 't'){
+ *            palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT);
+ *        }
+ *        chprintf(chp, "setting float\r\n");
+ *    }
+ *}
+ */
 
 void main(void)
 {
+
+    struct EventListener insertion_listener, removal_listener;
+
 	halInit();
 	chSysInit();
 	ledStart(NULL);
-	max2769_init(&max2769_gps);
+
+	/*! \brief GPS 
+	  */
+	//max2769_init(&max2769_gps);
+
+    /*!
+     * Activates the SDC driver 1 using default
+     * configuration.
+     */
+    sdcStart(&SDCD1, NULL);
+
+    /*!
+     * Activates SD card insertion monitor & registers SD card events.
+     */
+    sdc_tmr_init(&SDCD1);
+    chEvtRegister(&sdc_inserted_event, &insertion_listener, 0);
+    chEvtRegister(&sdc_removed_event,  &removal_listener,   1);
+
 	const ShellCommand commands[] =
 	{
-		{"mem", cmd_mem},
+		{"mem",     cmd_mem},
 		{"threads", cmd_threads},
-		{"mconfig", cmd_mconfig},
-		{"msstart", cmd_msstart},
-		{"msstop", cmd_msstop},
-		{"pull", cmd_pull},
+        /*
+		 *{"mconfig", cmd_mconfig},
+		 *{"msstart", cmd_msstart},
+		 *{"msstop",  cmd_msstop},
+		 *{"pull",    cmd_pull},
+         */
 		{NULL, NULL}
 	};
+
 	usbSerialShellStart(commands);
-	max2769_config();
+	//max2769_config();
 	/* Manage MAX2769 events */
 	//struct EventListener ddone;
 	static const evhandler_t evhndl[] =
 	{
+		sdc_insert_handler,
+		sdc_remove_handler
 	};
+
+    // It is possible the card is already inserted. Check now by calling insert handler directly.
+    sdc_insert_handler(0);
+
 	while(TRUE)
 	{
 		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));

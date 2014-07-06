@@ -15,10 +15,10 @@
 #include "hal.h"
 #include "chprintf.h"
 
-#include "chrtclib.h"
-#include "psas_rtc.h"
+//#include "chrtclib.h"
+//#include "psas_rtc.h"
 
-#include "MPU9150.h"
+//#include "MPU9150.h"
 
 #include "crc_16_reflect.h"
 #include "ff.h"
@@ -167,7 +167,7 @@ void sdc_insert_handler(eventid_t id) {
             return;
         }
     }
-
+	SDCDEBUG("insert...\r\n");
     err = f_mount(0, &SDC_FS);
     if (err != FR_OK) {
         err = f_mount(0, &SDC_FS);
@@ -193,13 +193,14 @@ void sdc_remove_handler(eventid_t id) {
 
     /*! \todo generate a mailbox event here */
 
+	SDCDEBUG("remove...\r\n");
     /*! \todo test event message system */
     ret = sdcDisconnect(&SDCD1);
     if(ret) {
-        SDCDEBUG("sdcDiscon fail\r\n");   // this happens a lot!
+        SDCDEBUG("sdcDiscon fail:\t%d\r\n", ret);   // this happens a lot!
         ret = sdcDisconnect(&SDCD1);
         if(ret) {
-            SDCDEBUG("sdcDiscon fail2\r\n");
+            SDCDEBUG("sdcDiscon fail2: %d\r\n", ret);
         }
     }
     sdc_reset_fp_index();

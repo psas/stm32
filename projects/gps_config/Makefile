@@ -68,7 +68,8 @@ PSAS= ../../common
 CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-BOARD ?= GPS_RF_FRONTEND_2
+#BOARD ?= GPS_RF_FRONTEND_2
+BOARD ?= PSAS_OLIMEX_STM32_E407
 ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
     include $(CHIBIOS)/boards/$(BOARD)/board.mk
 else
@@ -78,27 +79,31 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
+include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
+#       $(PSAS_DEVICES)/MAX2769.c 
 CSRC = $(PORTSRC) \
        $(KERNSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
+       $(FATFSSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
-       $(PSAS_DEVICES)/MAX2769.c \
+       $(PSAS_DEVICES)/psas_sdclog.c \
        $(PSAS_UTIL)/utils_led.c \
        $(PSAS_UTIL)/utils_hal.c \
        $(PSAS_UTIL)/usbdetail.c \
        $(PSAS_UTIL)/utils_shell.c \
+       $(PSAS_UTIL)/crc_16_reflect.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -130,8 +135,10 @@ ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC)\
+         $(FATFSINC) \
          $(CHIBIOS)/os/various \
          $(PSAS_DEVICES)/include \
+		 $(PSAS_COMMON) \
          $(CONF) \
          $(PSAS_UTIL)/include
 #
@@ -169,7 +176,7 @@ CWARN = -Wall -Wextra -Wstrict-prototypes -Wdisabled-optimization \
 	-Wdouble-promotion -Wformat=2 -Wfloat-equal \
 	-Waggressive-loop-optimizations -Wunsafe-loop-optimizations \
 	-Waggregate-return -Wlogical-op -Wmissing-include-dirs \
-	-Wpointer-arith -Wredundant-decls 
+	-Wpointer-arith
 
 # Define C++ warning options here
 CPPWARN = -Wall -Wextra
