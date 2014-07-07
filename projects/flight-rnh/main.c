@@ -100,14 +100,13 @@ static void cmd_time(struct RCICmdData * rci, void * user UNUSED){
 static void cmd_rocketready(struct RCICmdData * rci, void * user UNUSED){
     if(rci->cmd_len == 1){
         rrdySet(rci->cmd_data[0] == 'A');
+
+    if(rrdyStatus()){
+        rci->return_data[0] = '1';
     } else {
-        if(rrdyStatus()){
-            rci->return_data[0] = '1';
-        } else {
-            rci->return_data[0] = '0';
-        }
-        rci->return_len = 1;
+        rci->return_data[0] = '0';
     }
+    rci->return_len = 1;
 }
 
 static void cmd_sleep(struct RCICmdData * rci, void * user UNUSED){
@@ -122,6 +121,15 @@ static void cmd_sleep(struct RCICmdData * rci, void * user UNUSED){
         return;
     }
     KS8999_enable(FALSE);
+}
+
+static void cmd_umbdet(struct RCICmdData * rci, void * user UNUSED){
+    if(umbilical()){
+        rci->return_data[0] = '1';
+    } else {
+        rci->return_data[0] = '0';
+    }
+    rci->return_len = 1;
 }
 
 /* Hardware handling callbacks  */
@@ -253,6 +261,7 @@ void main(void) {
             {SAFE, cmd_safe, NULL},
             {RRDY, cmd_rocketready, NULL},
             {SLEP, cmd_sleep, NULL},
+            {UMBD, cmd_umbdet, NULL},
             RCI_CMD_PORT,
             RCI_CMD_VERS,
             {NULL}
