@@ -100,7 +100,7 @@ static void cmd_time(struct RCICmdData * rci, void * user UNUSED){
 static void cmd_rocketready(struct RCICmdData * rci, void * user UNUSED){
     if(rci->cmd_len == 1){
         rrdySet(rci->cmd_data[0] == 'A');
-
+    }
     if(rrdyStatus()){
         rci->return_data[0] = '1';
     } else {
