@@ -96,17 +96,19 @@ void max2769_init(const MAX2769Config * conf)
 	spiStart(conf->SPIDCONFIG, &spicfg);
 
 
-	static SPIConfig spiread =
-	{
-		.end_cb = NULL,
-		.cr1 = SPI_CR1_DFF
-	};
-	spiStart(conf->SPIDREAD, &spiread);
-	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_SPE;
-	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_MSTR;
-	conf->SPIDREAD->spi->CR1 |= SPI_CR1_RXONLY | SPI_CR1_CPHA;
-
-
+/*
+ *    static SPIConfig spiread =
+ *    {
+ *        .end_cb = NULL,
+ *        .cr1 = SPI_CR1_DFF
+ *    };
+ *    spiStart(conf->SPIDREAD, &spiread);
+ *    conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_SPE;
+ *    conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_MSTR;
+ *    conf->SPIDREAD->spi->CR1 |= SPI_CR1_RXONLY | SPI_CR1_CPHA;
+ *
+ *
+ */
 
 
 	CONF = conf;

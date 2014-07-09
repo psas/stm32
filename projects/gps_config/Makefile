@@ -68,8 +68,8 @@ PSAS= ../../common
 CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-#BOARD ?= GPS_RF_FRONTEND_2
-BOARD ?= PSAS_OLIMEX_STM32_E407
+BOARD ?= GPS_RF_FRONTEND_2
+#BOARD ?= PSAS_OLIMEX_STM32_E407
 ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
     include $(CHIBIOS)/boards/$(BOARD)/board.mk
 else
@@ -86,7 +86,6 @@ LDSCRIPT= $(PORTLD)/STM32F407xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
-#       $(PSAS_DEVICES)/MAX2769.c 
 CSRC = $(PORTSRC) \
        $(KERNSRC) \
        $(HALSRC) \
@@ -98,6 +97,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
+       $(PSAS_DEVICES)/MAX2769.c \
        $(PSAS_DEVICES)/psas_sdclog.c \
        $(PSAS_UTIL)/utils_led.c \
        $(PSAS_UTIL)/utils_hal.c \

@@ -187,40 +187,6 @@ static void cmd_msstop(BaseSequentialStream * chp, int argc, char * argv[])
 	max2769_streamstop();
 }
 
-/*
- *static void cmd_pull(BaseSequentialStream * chp, int argc, char * argv[]){
- *    (void)argc;
- *    if(argv[0][0] == 'u'){
- *        if(argv[0][1] == 'd'){
- *            palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT_PULLUP);
- *        }
- *        if(argv[0][1] == 't'){
- *            palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT_PULLUP);
- *        }
- *        chprintf(chp, "setting pullup\r\n");
- *    }
- *    if(argv[0][0] == 'd'){
- *
- *        if(argv[0][1] == 'd'){
- *            palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT_PULLDOWN);
- *        }
- *        if(argv[0][1] == 't'){
- *            palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT_PULLDOWN);
- *        }
- *        chprintf(chp, "setting pulldown\r\n");
- *    }
- *    if(argv[0][0] == 'f'){
- *        if(argv[0][1] == 'd'){
- *            palSetPadMode(GPIOE, GPIOE_DATASYNC, PAL_MODE_INPUT);
- *        }
- *        if(argv[0][1] == 't'){
- *            palSetPadMode(GPIOE, GPIOE_TIMESYNC, PAL_MODE_INPUT);
- *        }
- *        chprintf(chp, "setting float\r\n");
- *    }
- *}
- */
-
 void main(void)
 {
 
@@ -232,7 +198,11 @@ void main(void)
 
 	/*! \brief GPS 
 	  */
-	//max2769_init(&max2769_gps);
+	max2769_init(&max2769_gps);
+
+	/*! \brief power to sd card is controlled by N transistor on PD0
+	  */
+	palClearPad(GPIOD, GPIOD_SD_VDD);
 
     /*!
      * Activates the SDC driver 1 using default
@@ -251,12 +221,9 @@ void main(void)
 	{
 		{"mem",     cmd_mem},
 		{"threads", cmd_threads},
-        /*
-		 *{"mconfig", cmd_mconfig},
-		 *{"msstart", cmd_msstart},
-		 *{"msstop",  cmd_msstop},
-		 *{"pull",    cmd_pull},
-         */
+		{"mconfig", cmd_mconfig},
+		{"msstart", cmd_msstart},
+		{"msstop",  cmd_msstop},
 		{NULL, NULL}
 	};
 
