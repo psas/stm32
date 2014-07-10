@@ -12,11 +12,9 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "utils_general.h"
 #include "utils_hal.h"
-
 #include "MPU9150.h"
-
-#define UNUSED __attribute__((unused))
 
 
 static int initialized;
@@ -116,22 +114,14 @@ void MPU9150_init(MPU9150Config  *conf) {
 
     I2CD = conf->I2CD;
 
-    palSetPadMode(conf->sda.port, conf->sda.pad, PAL_MODE_ALTERNATE(4)
-            | PAL_STM32_OTYPE_OPENDRAIN | PAL_STM32_OSPEED_HIGHEST |PAL_STM32_PUDR_FLOATING );
-    palSetPadMode(conf->scl.port, conf->scl.pad, PAL_MODE_ALTERNATE(4)
-            | PAL_STM32_OSPEED_HIGHEST  | PAL_STM32_PUDR_FLOATING);
-
     static const I2CConfig i2cfg = {
         OPMODE_I2C,
         400000,
         FAST_DUTY_CYCLE_2,
     };
-    if(I2CD->state == I2C_STOP){
-        i2cStart(I2CD, &i2cfg);
-    }
-
-	chEvtInit(&MPU9150_data_ready);
-	chEvtinit(&interrupt);
+    i2cUtilsStart(I2CD, &i2cfg, &(conf->pins));
+    chEvtInit(&MPU9150_data_ready);
+    chEvtinit(&interrupt);
 
     extAddCallback(conf->interrupt, EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, on_interrupt);
     extUtilsStart();

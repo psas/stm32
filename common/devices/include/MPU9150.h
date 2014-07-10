@@ -16,10 +16,6 @@
 
 #include "utils_hal.h"
 
-#if !defined(DEBUG_MPU9150) || defined(__DOXYGEN__)
-#define 	DEBUG_MPU9150                   1
-#endif
-
 /*! register 55 INT pin/Bypass */
 #define     MPU9150_CLKOUT_EN                     ((mpu9150_reg_data)(1<<0))
 #define     MPU9150_I2C_BYPASS                    ((mpu9150_reg_data)(1<<1))
