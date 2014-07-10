@@ -18,8 +18,8 @@ static struct BQ3060Config * CONF;
 static bool initialized = false;
 static const systime_t I2C_TIMEOUT = MS2ST(400);
 
-EventSource BQ3060_data_ready;
-EventSource BQ3060_battery_fault;
+EVENTSOURCE_DECL(BQ3060_data_ready);
+EVENTSOURCE_DECL(BQ3060_battery_fault);
 
 static struct BQ3060Data buffer;
 
@@ -216,7 +216,6 @@ void BQ3060Start(struct BQ3060Config * conf){
     };
     i2cUtilsStart(CONF->I2CD, &i2cfg, CONF->I2CP);
 
-    chEvtInit(&BQ3060_data_ready);
     chThdCreateStatic(wa_read, sizeof(wa_read), NORMALPRIO, read_thread, NULL);
     initialized = true;
 }
