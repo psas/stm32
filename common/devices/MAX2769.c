@@ -18,7 +18,7 @@
 
 static const MAX2769Config * CONF;
 
-EventSource MAX2769_write_done;
+EVENTSOURCE_DECL(MAX2769_write_done);
 
 const MAX2769Config max2769_gps =
 {
@@ -70,17 +70,27 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
 }
 
 #define GPS_BUF_SIZE 700
-int16_t gps_buf1[GPS_BUF_SIZE];
-int16_t gps_buf2[GPS_BUF_SIZE];
+static int16_t gps_buf1[GPS_BUF_SIZE];
+static int16_t gps_buf2[GPS_BUF_SIZE];
+static int16_t * frontbuf;
+static int16_t * backbuf;
 void max2769_read(void){
-	conf->SPIDREAD->spi->CR1 |= SPI_CR1_SSI;
+	CONF->SPIDREAD->spi->CR1 |= SPI_CR1_SSI;
 	spiStartReceive(CONF->SPIDREAD, GPS_BUF_SIZE, gps_buf1);
 }
 
 void spireadcb(SPIDriver *spip UNUSED){
-	chSysLockI();
-	spiStartReceiveI(CONF->SPIDREAD, GPS_BUF_SIZE, );
-	chSysUnlockI();
+	if(frontbuf == gps_buf1){
+		frontbuf = gps_buf2;
+		backbuf = gps_buf1;
+	} else {
+		frontbuf = gps_buf1;
+		backbuf = gps_buf2;
+	}
+	chSysLockFromIsr();
+	spiStartReceiveI(CONF->SPIDREAD, GPS_BUF_SIZE, frontbuf);
+	chEvtBroadcastI(&MAX2769_write_done);
+	chSysUnlockFromIsr();
 }
 
 void max2769_init(const MAX2769Config * conf)
