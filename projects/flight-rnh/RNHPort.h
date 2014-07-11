@@ -4,7 +4,7 @@
 #ifndef RNH_PORT_H_
 #define RNH_PORT_H_
 
-#include "rnet_cmd_interp.h"
+#include "rci.h"
 
 /* RNHPort is the representation of physical ports in such a way that they can
  * be treated as a bitfield. Note that:

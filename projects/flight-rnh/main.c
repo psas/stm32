@@ -6,7 +6,7 @@
 #include "evtimer.h"
 
 #include "net_addrs.h"
-#include "rnet_cmd_interp.h"
+#include "rci.h"
 #include "utils_rci.h"
 #include "utils_sockets.h"
 #include "utils_general.h"

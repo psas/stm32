@@ -3,7 +3,7 @@
 #include "lwip/sockets.h"
 #include "utils_general.h"
 #include "utils_sockets.h"
-#include "rnet_cmd_interp.h"
+#include "rci.h"
 
 static void handle_command(struct RCICmdData * data, struct RCICommand * cmd){
     for(;cmd->name != NULL; ++cmd){

@@ -1,6 +1,6 @@
 #include "string.h"
 #include "utils_general.h"
-#include "rnet_cmd_interp.h"
+#include "rci.h"
 
 /* GIT_COMMIT_VERSION is inserted by the build system, generated in
  * common/psas.mk

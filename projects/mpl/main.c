@@ -14,7 +14,7 @@
 #include "lwipthread.h"
 
 #include "chprintf.h"
-#include "rnet_cmd_interp.h"
+#include "rci.h"
 #include "utils_sockets.h"
 #include "utils_general.h"
 #include "utils_led.h"
