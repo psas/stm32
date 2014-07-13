@@ -15,6 +15,16 @@ static void swap(int length, const void * in, void * out){
      }
 }
 
+
+int len_swapped(const struct swap *swaps){
+	int len = 0;
+	while(swaps->length){
+		len += swaps->length;
+		++swaps;
+	}
+	return len;
+}
+
 void write_swapped(const struct swap *swaps, const void *data, uint8_t *buffer){
     while(swaps->length){
         const char *current = (const char *) data + swaps->offset;

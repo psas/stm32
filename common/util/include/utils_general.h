@@ -53,4 +53,5 @@ struct swap {
 
 void write_swapped(const struct swap *swaps, const void *data, uint8_t *buffer);
 void read_swapped(const struct swap *swaps, void *data, const uint8_t *buffer);
+int len_swapped(const struct swap *swaps);
 #endif /* UTILS_GENERAL_H_ */
