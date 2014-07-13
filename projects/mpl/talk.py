@@ -8,8 +8,8 @@ from threading import Thread
 import time
 
 IP_SELF = b'10.10.10.10'
-PORT_SELF_RX = 35010
-TIMEOUT = 1
+PORT_SELF_RX = 36000
+TIMEOUT = 1000
 
 @contextmanager
 def udp():
@@ -25,7 +25,8 @@ def receive():
         while True:
             try:
                 data, remote_addr = sock.recvfrom(50)
-                print("Received", repr(data), "from", remote_addr)
+                if(remote_addr[0] == '10.10.10.20'):
+                    print("Received", repr(data), "from", remote_addr)
             except socket.timeout:
                 print ("No responce")
 

@@ -25,22 +25,27 @@
 static int sendsocket;
 
 static const struct swap burst_swaps[] = {
+    SWAP_FIELD(struct MPL3115A2Data, status),
     SWAP_FIELD(struct MPL3115A2Data, pressure),
     SWAP_FIELD(struct MPL3115A2Data, temperature),
     {0},
 };
 
 static void mpl_handler(eventid_t id UNUSED){
-    struct MPL3115A2Data data;
-    uint8_t buffer[sizeof(data)];
 
+    struct MPL3115A2Data data;
+    uint8_t buffer[7];
+
+    palTogglePad(GPIOF, GPIOF_PIN14);
     MPL3115A2GetData(&data);
 
     write_swapped(burst_swaps, &data, buffer);
     if(write(sendsocket, buffer, sizeof(buffer)) < 0){
         ledError();
     }
+
 }
+
 
 void main(void){
     halInit();
@@ -62,11 +67,11 @@ void main(void){
     static struct MPL3115A2Config conf = {
         .i2cd = &I2CD2,
         .pins = {.SDA = {GPIOF, GPIOF_PIN0}, .SCL = {GPIOF, GPIOF_PIN1}},
-        .interrupt = {GPIOF, GPIOF_PIN13}
+        .interrupt = {GPIOF, GPIOF_PIN3}
     };
     MPL3115A2Start(&conf);
 
-    /* Manage ADIS events */
+    /* Manage MPL events */
     struct EventListener drdy;
     static const evhandler_t evhndl[] = {
             mpl_handler
