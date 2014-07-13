@@ -15,10 +15,12 @@
 #include "net_addrs.h"
 
 #include "ADIS16405.h"
+#include "MPL3115A2.h"
 
 static struct SeqSocket adis_socket = DECL_SEQ_SOCKET(sizeof(ADIS16405Data));
+static struct SeqSocket mpl_socket = DECL_SEQ_SOCKET(sizeof(struct MPL3115A2Data));
 
-static const struct swap burst_swaps[] = {
+static const struct swap adis_swaps[] = {
     SWAP_FIELD(ADIS16405Data, supply_out),
     SWAP_FIELD(ADIS16405Data, xgyro_out),
     SWAP_FIELD(ADIS16405Data, ygyro_out),
@@ -33,12 +35,26 @@ static const struct swap burst_swaps[] = {
     {0},
 };
 
+static const struct swap mpl_swaps[] = {
+    SWAP_FIELD(struct MPL3115A2Data, pressure),
+    SWAP_FIELD(struct MPL3115A2Data, temperature),
+    {0},
+};
+
 static void adis_drdy_handler(eventid_t id UNUSED){
     ADIS16405Data data;
     adis_get_data(&data);
 
-    write_swapped(burst_swaps, &data, adis_socket.buffer);
-    seq_write(&adis_socket, sizeof(data));
+    write_swapped(adis_swaps, &data, adis_socket.buffer);
+    seq_write(&adis_socket, len_swapped(adis_swaps));
+}
+
+static void mpl_drdy_handler(eventid_t id UNUSED){
+    struct MPL3115A2Data data;
+    MPL3115A2GetData(&data);
+
+    write_swapped(mpl_swaps, &data, mpl_socket.buffer);
+    seq_write(&mpl_socket, len_swapped(mpl_swaps));
 }
 
 void main(void){
@@ -61,16 +77,29 @@ void main(void){
     chDbgAssert(s >= 0, "ADIS socket failed", NULL);
     seq_socket_init(&adis_socket, s);
 
+    s = get_udp_socket(MPL_ADDR);
+    chDbgAssert(s >= 0, "MPL socket failed", NULL);
+    seq_socket_init(&mpl_socket, s);
+
     connect(adis_socket.socket, FC_ADDR, sizeof(struct sockaddr));
+    connect(mpl_socket.socket, FC_ADDR, sizeof(struct sockaddr));
 
     adis_init(&adis_olimex_e407);
-
-    /* Manage ADIS events */
-    struct EventListener drdy;
-    static const evhandler_t evhndl[] = {
-            adis_drdy_handler
+    static struct MPL3115A2Config conf = {
+        .i2cd = &I2CD2,
+        .pins = {.SDA = {GPIOF, GPIOF_PIN0}, .SCL = {GPIOF, GPIOF_PIN1}},
+        .interrupt = {GPIOF, GPIOF_PIN3}
     };
-    chEvtRegister(&ADIS16405_data_ready, &drdy, 0);
+    MPL3115A2Start(&conf);
+
+    /* Manage data events */
+    struct EventListener adisdrdy, mpldrdy;
+    static const evhandler_t evhndl[] = {
+            adis_drdy_handler,
+            mpl_drdy_handler
+    };
+    chEvtRegister(&ADIS16405_data_ready, &adisdrdy, 0);
+    chEvtRegister(&MPL3115A2DataEvt, &mpldrdy, 1);
     while(TRUE){
         chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
     }
