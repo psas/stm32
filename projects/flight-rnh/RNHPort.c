@@ -18,11 +18,11 @@ typedef enum {
     RNH_PORT_CURRENT_FREQ = 4
 } RNHAction;
 
-static void cmd_port(struct RCICmdData * rci_data, void * user_data UNUSED);
+static void cmd_port(struct RCICmdData * cmd, struct RCIRetData * ret, void * user UNUSED);
 const struct RCICommand RCI_CMD_PORT = {
     .name = "#PORT",
     .function = cmd_port,
-    .user_data = NULL
+    .user = NULL
 };
 
 #define NUM_PORT 8
@@ -210,47 +210,47 @@ void rnhPortSetCurrentDataRate(unsigned freq){
     gptStartContinuous(&GPTD2, portGPTfreq / 8 / freq);
 }
 
-static void cmd_port(struct RCICmdData * rci, void * user UNUSED){
-    if(rci->cmd_len < 1){
+static void cmd_port(struct RCICmdData * cmd, struct RCIRetData * ret, void * user UNUSED){
+    if(cmd->len < 1){
         return;
     }
 
     RNHAction action = 0;
-    if(rci->cmd_data[0] == 'S'){ action = RNH_PORT_STATUS;
-    } else if(rci->cmd_data[0] == 'F'){ action = RNH_PORT_FAULT;
-    } else if(rci->cmd_data[0] == 'O'){ action = RNH_PORT_ON;
-    } else if(rci->cmd_data[0] == 'X'){ action = RNH_PORT_OFF;
-    } else if(rci->cmd_data[0] == 'Q'){ action = RNH_PORT_CURRENT_FREQ;
+    if(cmd->data[0] == 'S'){ action = RNH_PORT_STATUS;
+    } else if(cmd->data[0] == 'F'){ action = RNH_PORT_FAULT;
+    } else if(cmd->data[0] == 'O'){ action = RNH_PORT_ON;
+    } else if(cmd->data[0] == 'X'){ action = RNH_PORT_OFF;
+    } else if(cmd->data[0] == 'Q'){ action = RNH_PORT_CURRENT_FREQ;
     }
     int data = 0;
     char tmp[3];
     tmp[2] = '\0';
-    for(int i = 1; i < rci->cmd_len; i+=2){
+    for(int i = 1; i < cmd->len; i+=2){
         data <<= 8;
-        tmp[0] = rci->cmd_data[i];
-        tmp[1] = rci->cmd_data[i+1];
+        tmp[0] = cmd->data[i];
+        tmp[1] = cmd->data[i+1];
         data |= (uint8_t) strtol(tmp, NULL, 16);
     }
-    RNHPort ret = 0;
 
+    RNHPort status = 0;
     switch(action){
     case RNH_PORT_STATUS:
-        ret = rnhPortStatus();
+        status = rnhPortStatus();
         break;
     case RNH_PORT_FAULT:
-        ret = rnhPortFault();
+        status = rnhPortFault();
         break;
     case RNH_PORT_ON:
         rnhPortOn(data);
-        ret = rnhPortStatus();
+        status = rnhPortStatus();
         break;
     case RNH_PORT_OFF:
         rnhPortOff(data);
-        ret = rnhPortStatus();
+        status = rnhPortStatus();
         break;
     case RNH_PORT_CURRENT_FREQ:
         if(data > RNH_PORT_CURRENT_MAX_SAMPLE_RATE){
-            ret = -1;
+            status = -1;
         }else{
             rnhPortSetCurrentDataRate(data);
         }
@@ -259,7 +259,7 @@ static void cmd_port(struct RCICmdData * rci, void * user UNUSED){
         return;
     }
 
-    chsnprintf(rci->return_data, 2, "%x", ret);
-    rci->return_len = 2;
+    chsnprintf(ret->data, 2, "%x", status);
+    ret->len = 2;
 }
 

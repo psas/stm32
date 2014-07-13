@@ -29,19 +29,19 @@
  */
 // These two values were chosen such that  the PWM frequency is at
 // exactly 300hz and PWM_PERIOD_TICKS is as large as possible
-// The equation is freq = PWM_CLK / (PWM_PERIOD_TICKS + 1)
+// The equation is freq = PWM_CLK / PWM_PERIOD_TICKS
 // and PWM_FREQ_HZ must divide 84000000 (timer clock)
-#define PWM_PERIOD_TICKS 55999
+#define PWM_PERIOD_TICKS 56000
 #define PWM_CLK 16800000
-#define PWM_FREQ (PWM_CLK / (PWM_PERIOD_TICKS + 1))
+#define PWM_FREQ (PWM_CLK / PWM_PERIOD_TICKS)
 
 // Absolute position limits, in microseconds (us).
 // Verified empirically by DLP, K, and Dave 3/25/14
 #define PWM_LO_US 1100
 #define PWM_HI_US 1900
 // Limits in ticks. Division by 1e6 is broken up here to avoid over/underflows
-#define PWM_LO ((PWM_LO_US * PWM_FREQ) / 1000 * (PWM_PERIOD_TICKS + 1) / 1000)
-#define PWM_HI ((PWM_HI_US * PWM_FREQ) / 1000 * (PWM_PERIOD_TICKS + 1) / 1000)
+#define PWM_LO ((PWM_LO_US * PWM_FREQ) / 1000 * PWM_PERIOD_TICKS / 1000)
+#define PWM_HI ((PWM_HI_US * PWM_FREQ) / 1000 * PWM_PERIOD_TICKS / 1000)
 #define PWM_CENTER (PWM_HI + PWM_LO) / 2
 
 #ifndef FLIGHT

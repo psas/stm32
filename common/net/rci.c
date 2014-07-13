@@ -5,21 +5,22 @@
 #include "utils_sockets.h"
 #include "rci.h"
 
-static void handle_command(struct RCICmdData * data, struct RCICommand * cmd){
+static void handle_command(
+        struct RCICmdData * data,
+        struct RCIRetData * ret,
+        struct RCICommand * cmd)
+{
     for(;cmd->name != NULL; ++cmd){
+        if(cmd->function == NULL)
+            break;
         int rclen = strlen(cmd->name);
-        if(!strncmp(data->cmd_data, cmd->name, MIN(data->cmd_len, rclen))){
-            //remove rci command from cmd_data and place it in cmd_name
-            data->cmd_name = cmd->name;
-            data->cmd_len -= rclen;
-            data->cmd_data += rclen;
-            if(!data->cmd_len){
-                data->cmd_data = NULL;
-            }
+        if(!strncmp(data->data, cmd->name, MIN(data->len, rclen))){
+            //remove rci command from data and place it in name
+            data->name = cmd->name;
+            data->len -= rclen;
+            data->data += rclen;
             //call the callback
-            if(cmd->function){
-                cmd->function(data, cmd->user_data);
-            }
+            cmd->function(data, ret, cmd->user);
             break;
         }
     }
@@ -51,6 +52,18 @@ static int get_command(int s, char * buffer, int buflen){
     return -1;
 }
 
+static void send_response( int s, char * buffer, int len, int maxlen){
+    // FIXME: check return of write, and continue to attempt to write if needed
+    len = MIN(len, maxlen-2);
+    if(len > 0){
+        buffer[len] = '\r';
+        buffer[len + 1] = '\n';
+        if(write(s, buffer, MIN(len + 2, maxlen)) < 0){
+            return;
+        }
+    }
+}
+
 WORKING_AREA(wa_rci, THD_WA_SIZE(2048 + ETH_MTU*2));
 static msg_t rci_thread(void *p){
     chRegSetThreadName("RCI");
@@ -75,12 +88,14 @@ static msg_t rci_thread(void *p){
     }
 
     while(TRUE) {
-        struct RCICmdData data = {
-            .cmd_name = NULL,
-            .cmd_data = rx_buf,
-            .cmd_len = 0,
-            .return_data = tx_buf,
-            .return_len = 0,
+        struct RCICmdData cmd = {
+            .name = NULL,
+            .data = rx_buf,
+            .len = 0,
+        };
+        struct RCIRetData ret = {
+            .data = tx_buf,
+            .len = 0,
         };
 
         fromlen = sizeof(from);
@@ -89,24 +104,16 @@ static msg_t rci_thread(void *p){
             continue;
         }
 
-        data.cmd_len = get_command(s, rx_buf, sizeof(rx_buf));
-        if(data.cmd_len < 0){
+        cmd.len = get_command(s, rx_buf, sizeof(rx_buf));
+        if(cmd.len < 0){
             close(s);
             continue;
         }
 
-        handle_command(&data, commands);
+        handle_command(&cmd, &ret, commands);
 
         //if there's data to return, return it to the address it came from
-        data.return_len = MIN(data.return_len, ETH_MTU-2);
-        if(data.return_len > 0){
-            data.return_data[data.return_len] = '\r';
-            data.return_data[data.return_len+1] = '\n';
-            if(write(s, data.return_data, MIN(data.return_len + 2, ETH_MTU)) < 0){
-                close(s);
-                continue;
-            }
-        }
+        send_response(s, ret.data, ret.len, sizeof(tx_buf));
         close(s);
     }
     return -1;

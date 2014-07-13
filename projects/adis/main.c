@@ -51,10 +51,10 @@ static void adis_drdy_handler(eventid_t id UNUSED){
     }
 }
 
-static void self_test(struct RCICmdData *rci_data, void *user_data UNUSED) {
+static void self_test(struct RCICmdData *cmd UNUSED, struct RCIRetData * ret, void *user_data UNUSED) {
     uint16_t result = adis_self_test();
-    chsnprintf(rci_data->return_data, 4, "%x", result);
-    rci_data->return_len = 4;
+    chsnprintf(ret->data, 4, "%x", result);
+    ret->len = 4;
 }
 
 void main(void){

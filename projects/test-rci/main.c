@@ -6,7 +6,7 @@
 #include "utils_sockets.h"
 #include "rci.h"
 
-void led(struct RCICmdData *rci_data UNUSED, void * user_data UNUSED){
+void led(struct RCICmdData * cmd UNUSED, struct RCIRetData * ret UNUSED, void * user UNUSED){
     palTogglePad(GPIOC, GPIOC_LED);
 }
 

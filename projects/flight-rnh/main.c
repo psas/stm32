@@ -50,86 +50,86 @@ static const char RRDY[] = "#RRDY";
 static const char UMBD[] = "#UMBD";
 static const char SLEP[] = "#SLEP";
 
-static void cmd_arm(struct RCICmdData * rci, void * user UNUSED){
+static void cmd_arm(struct RCICmdData * cmd UNUSED, struct RCIRetData * ret, void * user UNUSED){
     //Check if all ports are on
     int status = rnhPortStatus();
     if(status != RNH_PORT_ALL){
-        rci->return_data[0] = 'P';
-        chsnprintf(rci->return_data+1, 2, "%x", status);
-        rci->return_len = 3;
+        ret->data[0] = 'P';
+        chsnprintf(ret->data+1, 2, "%x", status);
+        ret->len = 3;
         return;
     }
     //Check if any ports are faulting
     int fault = rnhPortFault();
     if(fault != 0){
-        rci->return_data[0] = 'F';
-        chsnprintf(rci->return_data+1, 2, "%x", fault);
-        rci->return_len = 3;
+        ret->data[0] = 'F';
+        chsnprintf(ret->data+1, 2, "%x", fault);
+        ret->len = 3;
         return;
     }
     //Check if the battery has alarms
     int alarms[3] = {crntAlarms[0], crntAlarms[1], crntAlarms[2]};
     if(alarms[0] || alarms[1] || alarms[2]){
-        rci->return_data[0] = 'A';
-        chsnprintf(rci->return_data+1, 6, "%x%x%x", alarms[0], alarms[1], alarms[2]);
-        rci->return_len=7;
+        ret->data[0] = 'A';
+        chsnprintf(ret->data+1, 6, "%x%x%x", alarms[0], alarms[1], alarms[2]);
+        ret->len=7;
         return;
     }
 
     //Check if shore power is on
     if(BQ24725_ACOK()){
-        rci->return_data[0] = 'S';
-        rci->return_len=1;
+        ret->data[0] = 'S';
+        ret->len=1;
         return;
     }
     //Otherwise in arm state
-    rci->return_len = 9;
-    strncpy(rci->return_data, "go go go!", 9);
+    ret->len = 9;
+    strncpy(ret->data, "go go go!", 9);
 }
 
-static void cmd_safe(struct RCICmdData * rci UNUSED, void * user UNUSED){
+static void cmd_safe(struct RCICmdData * cmd UNUSED, struct RCIRetData * ret UNUSED, void * user UNUSED){
     rrdySet(FALSE);
 }
 
-static void cmd_time(struct RCICmdData * rci, void * user UNUSED){
+static void cmd_time(struct RCICmdData * cmd UNUSED, struct RCIRetData * ret, void * user UNUSED){
     uint64_t time_ns = rtcGetTimeUnixUsec(&RTCD1) * 1000;
-    chsnprintf(rci->return_data, 16, "%X%X", time_ns >> 32, time_ns);
-    rci->return_len = 16;
+    chsnprintf(ret->data, 16, "%X%X", time_ns >> 32, time_ns);
+    ret->len = 16;
 }
 
-static void cmd_rocketready(struct RCICmdData * rci, void * user UNUSED){
-    if(rci->cmd_len == 1){
-        rrdySet(rci->cmd_data[0] == 'A');
+static void cmd_rocketready(struct RCICmdData * cmd, struct RCIRetData * ret, void * user UNUSED){
+    if(cmd->len == 1){
+        rrdySet(cmd->data[0] == 'A');
     }
     if(rrdyStatus()){
-        rci->return_data[0] = '1';
+        ret->data[0] = '1';
     } else {
-        rci->return_data[0] = '0';
+        ret->data[0] = '0';
     }
-    rci->return_len = 1;
+    ret->len = 1;
 }
 
-static void cmd_sleep(struct RCICmdData * rci, void * user UNUSED){
+static void cmd_sleep(struct RCICmdData * cmd UNUSED, struct RCIRetData * ret, void * user UNUSED){
     if(rnhPortStatus()){
-        rci->return_data[0] = 'P';
-        rci->return_len = 1;
+        ret->data[0] = 'P';
+        ret->len = 1;
         return;
     }
     if(BQ24725_ACOK()){
-        rci->return_data[0] = 'S';
-        rci->return_len = 1;
+        ret->data[0] = 'S';
+        ret->len = 1;
         return;
     }
     KS8999_enable(FALSE);
 }
 
-static void cmd_umbdet(struct RCICmdData * rci, void * user UNUSED){
+static void cmd_umbdet(struct RCICmdData * cmd UNUSED, struct RCIRetData * ret, void * user UNUSED){
     if(umbilical()){
-        rci->return_data[0] = '1';
+        ret->data[0] = '1';
     } else {
-        rci->return_data[0] = '0';
+        ret->data[0] = '0';
     }
-    rci->return_len = 1;
+    ret->len = 1;
 }
 
 /* Hardware handling callbacks  */
