@@ -47,5 +47,6 @@ extern const struct sockaddr * RTXMAN_DIAG_ADDR;    // Axis Diagnostic listener
 /* GPS frontend */
 extern struct lwipthread_opts * GPS_LWIP;
 extern struct sockaddr * GPS_OUT_ADDR; // Data's gotta be flowing out, right?
+extern struct sockaddr * GPS_COTS_ADDR; // Data from the crescent COTS device
 
 #endif /* NET_ADDRS_H_ */

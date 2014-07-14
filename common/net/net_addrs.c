@@ -129,6 +129,8 @@ const struct sockaddr * RTXMAN_DIAG_ADDR = make_addr(RTXMAN_IP, RTXMAN_DIAG);
 #define GPS_IP IPv4(10, 10, 10, 50)
 #define GPS_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0xff}
 #define GPS_OUT 35050
+#define GPS_COTS 35051
 
 struct lwipthread_opts * GPS_LWIP = make_lwipopts(GPS_MAC, GPS_IP, NETMASK, GATEWAY);
 const struct sockaddr * GPS_OUT_ADDR = make_addr(GPS_IP, GPS_OUT);
+const struct sockaddr * GPS_COTS_ADDR = make_addr(GPS_IP, GPS_COTS);
