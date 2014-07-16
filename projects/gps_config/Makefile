@@ -99,6 +99,8 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/syscalls.c \
        $(PSAS_DEVICES)/MAX2769.c \
        $(PSAS_DEVICES)/psas_sdclog.c \
+       $(PSAS_DEVICES)/psas_rtc.c \
+       $(PSAS_UTIL)/eventlogger.c \
        $(PSAS_UTIL)/utils_led.c \
        $(PSAS_UTIL)/utils_hal.c \
        $(PSAS_UTIL)/usbdetail.c \
@@ -213,7 +215,7 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-#UDEFS = -DMAX2769_SPI_DEBUG 
+#UDEFS = -DMAX2769_SPI_DEBUG
 UDEFS =
 UDEFS += -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
 

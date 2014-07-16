@@ -7,12 +7,13 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "eventlogger.h"
 #include "chprintf.h"
 #include "utils_led.h"
 #include "utils_shell.h"
 #include "usbdetail.h"
 
-//#include "psas_rtc.h"
+#include "psas_rtc.h"
 #include "psas_sdclog.h"
 
 #include "MAX2769.h"
@@ -194,9 +195,11 @@ void main(void)
 
 	halInit();
 	chSysInit();
+
+	psas_rtc_lld_init();
 	ledStart(NULL);
 
-	/*! \brief GPS 
+	/*! \brief GPS
 	  */
 	max2769_init(&max2769_gps);
 
@@ -216,6 +219,11 @@ void main(void)
     sdc_tmr_init(&SDCD1);
     chEvtRegister(&sdc_inserted_event, &insertion_listener, 0);
     chEvtRegister(&sdc_removed_event,  &removal_listener,   1);
+
+	/*!
+	 * Starts the eventlogger
+	 */
+	eventlogger_init();
 
 	const ShellCommand commands[] =
 	{
