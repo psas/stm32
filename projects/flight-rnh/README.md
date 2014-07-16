@@ -11,6 +11,7 @@ This is the flight software for the RocketNet Hub.
    - optional single character subcommand
    - arbitrary binary data of varying lengh encoded in ASCII hex
    - CRLF
+
 ### Implemented commands
  - #PORT  - Manages the RNH power/data ports
    - Subcommands
