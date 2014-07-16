@@ -56,7 +56,7 @@
  */
 
 /* RNet Common */
-#define NETMASK IPv4(255, 0, 0, 0)
+#define NETMASK IPv4(255, 255, 255, 0)
 #define GATEWAY IPv4(10,  10, 10, 1)
 
 /* Flight Computer */
