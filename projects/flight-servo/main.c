@@ -122,8 +122,11 @@ static uint16_t softstop(uint16_t position){
 
 static uint16_t positionlimit(uint16_t position){
 	position = softstop(position);
+
+#ifndef FLIGHT
 	position = ratelimit(position);
 	position = oscillationlimit(position);
+#endif
 	return position;
 }
 
@@ -145,7 +148,9 @@ void handle_command(RCCommand * packet){
 		return;
 	}
 
+#ifndef FLIGHT
 	last_command = packet->pulseWidth;
+#endif
 	uint16_t position = positionlimit(packet->pulseWidth);
 	pwmEnableChannel(&PWMD4, 3, position);
 
@@ -191,7 +196,6 @@ void main(void) {
 
 	s = get_udp_socket(ROLL_ADDR);
 	chDbgAssert(s >= 0, "Couldn't get roll socket", NULL);
-	connect(s, FC_ADDR, sizeof(struct sockaddr_in));
 
 	RCCommand packet;
 	uint32_t recvCounter = 0;
