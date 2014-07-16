@@ -24,6 +24,7 @@ static const struct swap adis_swaps[] = {
     SWAP_FIELD(ADIS16405Data, supply_out),
     SWAP_FIELD(ADIS16405Data, xgyro_out),
     SWAP_FIELD(ADIS16405Data, ygyro_out),
+    SWAP_FIELD(ADIS16405Data, zgyro_out),
     SWAP_FIELD(ADIS16405Data, xaccl_out),
     SWAP_FIELD(ADIS16405Data, yaccl_out),
     SWAP_FIELD(ADIS16405Data, zaccl_out),
