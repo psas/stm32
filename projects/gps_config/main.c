@@ -188,6 +188,20 @@ static void cmd_msstop(BaseSequentialStream * chp, int argc, char * argv[])
 	max2769_streamstop();
 }
 
+static WORKING_AREA(wa_thread_fake_data, 512);
+
+static msg_t fake_data_logger(void *_UNUSED) {
+    chRegSetThreadName("fake data logger");
+    char* coords = "44.97N93.26W";
+
+    while (TRUE) {
+        log_event("GPSC", (uint8_t*) coords, 13);
+        chThdSleepMilliseconds(10);
+    }
+
+    return -1;
+}
+
 void main(void)
 {
 
@@ -247,6 +261,14 @@ void main(void)
 
     // It is possible the card is already inserted. Check now by calling insert handler directly.
     sdc_insert_handler(0);
+
+    chThdCreateStatic( wa_thread_fake_data
+                     , sizeof(wa_thread_fake_data)
+                     , NORMALPRIO
+                     , fake_data_logger
+                     , NULL
+                     );
+
 
 	while(TRUE)
 	{
