@@ -12,19 +12,27 @@ static struct SeqSocket cots_socket = DECL_SEQ_SOCKET(400);
 
 static void cots_handler(eventid_t id UNUSED){
 	static int len = 0;
-
-	len += sdAsynchronousRead(&SD6, cots_socket.buffer + len, MAX(400 - len, 0));
-//	if((cots_socket.buffer[MAX(len - 2, 0)] == '\r' && cots_socket.buffer[MAX(len - 1, 0)] == '\n') || len >= 400){
-		seq_write(&cots_socket, len);
-		len = 0;
-//	}
+	int i = 0;
+	do {
+		len += sdAsynchronousRead(&SD6, cots_socket.buffer + len, 1);
+		if(len <= 0){
+			return;
+		}
+		for(; i+1 < len; ++i){
+			if((cots_socket.buffer[i] == '\r' && cots_socket.buffer[i + 1] == '\n') || len >= 400){
+				seq_write(&cots_socket, len);
+				len = 0;
+				return;
+			}
+		}
+	} while(TRUE);
 }
 
 void main(void) {
 
 	halInit();
 	chSysInit();
-	ledStart(NULL);
+	//ledStart(NULL);
 	lwipThreadStart(GPS_LWIP);
 
 	struct RCICommand commands[] = {
@@ -49,7 +57,21 @@ void main(void) {
 
 
 	while(TRUE){
-		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
+		eventmask_t events = chEvtWaitAny(ALL_EVENTS);
+		if(events & 1 << 0){
+			ledToggle(&RED);
+		} else if(events & 1 << 1) {
+			ledToggle(&BLUE);
+		} else if(events & 1 << 2) {
+			ledToggle(&GREEN);
+		} else if(events & 1 << 3) {
+			ledToggle(&LED2);
+		} else if(events & 1 << 4) {
+			ledToggle(&LED4);
+		} else if(events & 1 << 5) {
+			ledToggle(&LED5);
+		}
+		chEvtDispatch(evhndl, events);
 	}
 }
 
