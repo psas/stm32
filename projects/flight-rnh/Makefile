@@ -92,6 +92,7 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/chrtclib.c \
        $(PSAS_NETSRC) \
+       $(PSAS_DEVICES)/iwdg.c \
        $(PSAS_DEVICES)/BQ24725.c \
        $(PSAS_DEVICES)/BQ3060.c \
        $(PSAS_UTIL)/utils_hal.c \

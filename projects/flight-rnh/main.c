@@ -14,7 +14,7 @@
 #include "utils_hal.h"
 #include "BQ24725.h"
 #include "BQ3060.h"
-
+#include "iwdg.h"
 #include "KS8999.h"
 #include "RNHPort.h"
 
@@ -272,7 +272,7 @@ void main(void) {
     chSysInit();
     // Start Diagnostics
     ledStart(&led_cfg);
-
+    iwdgStart();
     //Init hardware
     BQ24725Start(&BQConf);
     BQ3060Start(&rnh3060conf);
