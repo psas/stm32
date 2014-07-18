@@ -33,21 +33,6 @@ static const ShellCommand commands[] = {
     {NULL, NULL}
 };
 
-static WORKING_AREA(waThread_indwatchdog, 64);
-/*! \brief  Watchdog thread
-*/
-static msg_t Thread_indwatchdog(void *arg) {
-    (void)arg;
-
-    chRegSetThreadName("iwatchdog");
-    while (TRUE) {
-        iwdg_lld_reload();
-        chThdSleepMilliseconds(250);
-    }
-    return -1;
-}
-
-
 int main(void) {
     /*
      * System initializations.
@@ -61,9 +46,7 @@ int main(void) {
 
     usbSerialShellStart(commands);
 
-    iwdg_begin();
-
-    chThdCreateStatic(waThread_indwatchdog      , sizeof(waThread_indwatchdog)      , NORMALPRIO    , Thread_indwatchdog     , NULL);
+    iwdgStart();
 
     chThdSleepMilliseconds(2000);
 
