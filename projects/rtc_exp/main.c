@@ -18,7 +18,7 @@
 #include "chprintf.h"
 #include "shell.h"
 
-#include "iwdg_lld.h"
+#include "iwdg.h"
 #include "usbdetail.h"
 #include "cmddetail.h"
 #include "psas_rtc.h"

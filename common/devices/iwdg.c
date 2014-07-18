@@ -13,7 +13,7 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "iwdg_lld.h"
+#include "iwdg.h"
 
 typedef enum {
 	IWDG_PS_DIV4 = 0,
@@ -27,7 +27,7 @@ typedef enum {
 
 /*! \brief Start the independent watchdog timer
  */
-static void iwdg_lld_init() {
+static void iwdg_lld_init(void) {
 	chSysLock();
 	IWDG->KR = (uint16_t)0xCCCC;
 	chSysUnlock();
@@ -37,7 +37,7 @@ static void iwdg_lld_init() {
  *
  * 'Feed' the watchdog
  */
-static void iwdg_lld_reload() {
+static void iwdg_lld_reload(void) {
 	chSysLock();
 	IWDG->KR = (uint16_t)0xAAAA;
 	chSysUnlock();
@@ -53,19 +53,6 @@ static void iwdg_lld_set_prescale(iwdg_ps_val s) {
 	IWDG->KR = (uint16_t)0xAAAA;
 	chSysUnlock();
 }
-
-/*! \brief Set the IWDG Clock prescale value
- */
-static void iwdg_lld_set_reloadval(uint16_t r) {
-	chSysLock();
-	r        = (r & 0xFFF);
-	IWDG->KR = (uint16_t)0x5555;
-	IWDG->PR = r;
-	IWDG->KR = (uint16_t)0xAAAA;
-	chSysUnlock();
-}
-
-
 
 static WORKING_AREA(wa, 64);
 /*! \brief  Watchdog thread
