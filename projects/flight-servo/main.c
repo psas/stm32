@@ -71,7 +71,15 @@ typedef struct {
 	uint16_t pwmError;   // Value PWM has been set to instead
 } __attribute__((packed)) RCError;
 
-int s; // Servo socket
+static uint16_t softstop(uint16_t position){
+	if (position < PWM_LO) {
+		return PWM_LO;
+	}
+	if (position > PWM_HI) {
+		return PWM_HI;
+	}
+	return position;
+}
 
 #ifndef FLIGHT
 static uint16_t last_last_position = PWM_CENTER;
@@ -108,30 +116,15 @@ static uint16_t oscillationlimit(uint16_t position){
 	}
 	return position;
 }
-#endif
-
-static uint16_t softstop(uint16_t position){
-	if (position < PWM_LO) {
-		return PWM_LO;
-	}
-	if (position > PWM_HI) {
-		return PWM_HI;
-	}
-	return position;
-}
 
 static uint16_t positionlimit(uint16_t position){
 	position = softstop(position);
-
-#ifndef FLIGHT
 	position = ratelimit(position);
 	position = oscillationlimit(position);
-#endif
 	return position;
 }
 
-#ifndef FLIGHT
-void pwmcallback(PWMDriver * driver UNUSED){
+static void pwmcallback(PWMDriver * driver UNUSED){
 	last_last_position = last_position;
 	last_position = PWMD4.tim->CCR[3];
 	++ticks;
@@ -142,16 +135,29 @@ void pwmcallback(PWMDriver * driver UNUSED){
 #define pwmcallback NULL
 #endif
 
-void handle_command(RCCommand * packet){
+static void pwdg_handler(void * p UNUSED){
+	chSysLockFromIsr();
+	pwmEnableChannelI(&PWMD4, 3, PWM_CENTER);
+	chSysUnlockFromIsr();
+}
+
+static VirtualTimer pwdg; //Packet WatchDoG
+
+static void handle_command(int socket, RCCommand * packet){
+	chVTReset(&pwdg);
 	if(packet->disableFlag){
 		pwmDisableChannel(&PWMD4, 3);
 		return;
 	}
+	chVTSet(&pwdg, S2ST(1), pwdg_handler, NULL);
 
+	uint16_t position = packet->pulseWidth;
+	position = softstop(position);
 #ifndef FLIGHT
 	last_command = packet->pulseWidth;
+	position = ratelimit(position);
+	position = oscillationlimit(position);
 #endif
-	uint16_t position = positionlimit(packet->pulseWidth);
 	pwmEnableChannel(&PWMD4, 3, position);
 
 	if (position != packet->pulseWidth) {
@@ -160,7 +166,7 @@ void handle_command(RCCommand * packet){
 		error.seqCounter = htonl(sendCounter);
 		error.seqError = htonl(packet->seqCounter);
 		error.pwmError = htons(position);
-		write(s, &error, sizeof(error));
+		write(socket, &error, sizeof(error));
 		++sendCounter;
 	}
 }
@@ -194,7 +200,7 @@ void main(void) {
 	palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));
 	pwmStart(&PWMD4, &pwmcfg);
 
-	s = get_udp_socket(ROLL_ADDR);
+	int s = get_udp_socket(ROLL_ADDR);
 	chDbgAssert(s >= 0, "Couldn't get roll socket", NULL);
 
 	RCCommand packet;
@@ -205,7 +211,7 @@ void main(void) {
 			packet.seqCounter = ntohl(packet.seqCounter);
 			packet.pulseWidth = ntohs(packet.pulseWidth);
 			if(packet.seqCounter > recvCounter){
-				handle_command(&packet);
+				handle_command(s, &packet);
 			}
 			recvCounter = packet.seqCounter;
 		}
