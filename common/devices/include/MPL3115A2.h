@@ -94,7 +94,7 @@ typedef enum {
 struct MPL3115A2Data {
 	uint8_t status;
 	uint32_t pressure;
-	uint16_t temperature;
+	int16_t temperature;
 };
 
 /*! \typedef mpl3115a2_config
