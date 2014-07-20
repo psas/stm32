@@ -14,10 +14,11 @@
 #include "utils_hal.h"
 #include "BQ24725.h"
 #include "BQ3060.h"
-#include "iwdg.h"
 #include "KS8999.h"
 #include "RNHPort.h"
-
+#ifdef FLIGHT
+#include "iwdg.h"
+#endif
 static struct SeqSocket battery_socket = DECL_SEQ_SOCKET(13*2);
 static struct SeqSocket port_socket = DECL_SEQ_SOCKET(8*2);
 static struct SeqSocket alarm_socket = DECL_SEQ_SOCKET(2*3);
@@ -272,7 +273,9 @@ void main(void) {
     chSysInit();
     // Start Diagnostics
     ledStart(&led_cfg);
+#ifdef FLIGHT
     iwdgStart();
+#endif
     //Init hardware
     BQ24725Start(&BQConf);
     BQ3060Start(&rnh3060conf);

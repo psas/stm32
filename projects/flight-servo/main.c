@@ -23,6 +23,9 @@
 #include "utils_sockets.h"
 #include "utils_led.h"
 
+#ifdef FLIGHT
+#include "iwdg.h"
+#endif
 /*
  * Servo PWM Constants
  * ===================
@@ -174,6 +177,9 @@ static void handle_command(int socket, RCCommand * packet){
 void main(void) {
 	halInit();
 	chSysInit();
+#ifdef FLIGHT
+	iwdgStart();
+#endif
 	ledStart(NULL);
 
 	lwipThreadStart(ROLL_LWIP);

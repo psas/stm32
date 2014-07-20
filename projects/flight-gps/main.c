@@ -7,6 +7,9 @@
 #include "utils_general.h"
 #include "utils_sockets.h"
 #include "utils_led.h"
+#ifdef FLIGHT
+#include "iwdg.h"
+#endif
 
 
 #define COTS_BUFFER_SIZE 1400
@@ -16,6 +19,9 @@ void main(void) {
 
 	halInit();
 	chSysInit();
+#ifdef FLIGHT
+	iwdgStart();
+#endif
 	//ledStart(NULL);
 	lwipThreadStart(GPS_LWIP);
 

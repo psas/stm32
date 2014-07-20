@@ -87,6 +87,7 @@ CSRC = $(PORTSRC) \
        $(BOARDSRC) \
        $(LWSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
+       $(PSAS_DEVICES)/iwdg.c \
        $(PSAS_UTIL)/utils_led.c \
        $(PSAS_UTIL)/utils_rci.c \
        $(PSAS_NETSRC) \
@@ -122,7 +123,7 @@ ASMSRC = $(PORTASM)
 INCDIR = $(PORTINC) $(KERNINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC) \
          $(CHIBIOS)/os/various \
-         $(PSAS_UTIL)/include $(PSAS_NET)
+         $(PSAS_UTIL)/include $(PSAS_NET) $(PSAS_DEVICES)/include
 #
 # Project, sources and paths
 ##############################################################################
