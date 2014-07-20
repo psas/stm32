@@ -194,7 +194,7 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DFLIGHT -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
+UDEFS = $(BUILDFLAG) -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
 
 
 # Define ASM defines here
