@@ -15,6 +15,17 @@ The last time ChibiOS was updated: December 2013
     $ git submodule sync
     $ git submodule update
 
+# Firmware for Launch-11
+
+We had 4 STM32 boards on the rocket for Launch-11
+
+ - RNH
+ - IMU
+ - Servo
+ - GPS
+
+The firmware for each is in the Projects directory.
+
 ### Directories:
 
  - projects
