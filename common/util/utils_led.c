@@ -65,6 +65,23 @@ static struct led_config led_cfg = {
                 NULL
         }
 };
+#elif defined BOARD_ST_STM32F4_DISCOVERY
+const struct led LED3 = {GPIOD, GPIOD_LED3};
+const struct led LED4 = {GPIOD, GPIOD_LED4};
+const struct led LED5 = {GPIOD, GPIOD_LED5};
+const struct led LED6 = {GPIOD, GPIOD_LED6};
+
+static struct led_config led_cfg = {
+        .cycle_ms = 500,
+        .start_ms = 4000,
+        .led = (const struct led*[]){
+                &LED3,
+                &LED4,
+                &LED5,
+                &LED6,
+                NULL
+        }
+};
 
 #else
 static struct led_config led_cfg = {0};
