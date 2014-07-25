@@ -8,9 +8,13 @@
 #include "utils_led.h"
 #include "usbdetail.h"
 
-static EventSource button_event;
-static EventSource shell_event;
-//static EventSource timer_event; ?
+/* Event source declaration using a macro to statically initialize it */
+static EVENTSOURCE_DECL(button_event);
+static EVENTSOURCE_DECL(shell_event);
+/* Try it out yourself! uncomment the following event and using a virtual timer,
+ * try to implement a periodic timer event that prints a message.
+ */
+//static EVENTSOURCE_DECL(timer_event);
 
 
 static void cmd_event(BaseSequentialStream *chp, int argc UNUSED, char *argv[] UNUSED){
@@ -22,7 +26,7 @@ static void cmd_event(BaseSequentialStream *chp, int argc UNUSED, char *argv[] U
 /* Triggered when the button is pressed or released. The LED is toggled.*/
 static void ext_cb(EXTDriver *extp UNUSED, expchannel_t channel UNUSED) {
 
-	palTogglePad(GPIOC, GPIOC_LED);
+	ledToggle(&GREEN);
 
 	/* It is good practice to invoke this API before invoking any I-class
 	 * syscall from an interrupt handler.
@@ -53,10 +57,6 @@ void main(void) {
 	 */
 	halInit();
 	chSysInit();
-
-	/* Initialize event structures BEFORE using them */
-	chEvtInit(&button_event);
-	chEvtInit(&shell_event);
 
 	/* As far as I can tell, each event source needs 0 or more unique event listeners
 	 * - that is event listeners can't be shared.

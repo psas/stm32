@@ -1,16 +1,10 @@
-*****************************************************************************
-** ChibiOS/RT HAL - EXT driver demo for STM32F4xx.                         **
-*****************************************************************************
+# ChibiOS/RT event demo
 
-** TARGET **
+## TARGET
 
 The demo runs on an Olimex STM32-E407 board.
 
-** The Demo **
+## The Demo
 
-The application demonstrates the use of the STM32F4xx EXT driver.
-Using the WKUP button, the GREEN LED will light for 500ms before
-turning off. Also briefly demonstrates the use of a virtual timer.
-
-In addition, this demo generates an EVENT from inside the interrupt then
-uses the event handler.
+Demonstrates how to use the event subsystem by implementing a shell commanded
+event and one from an external button
