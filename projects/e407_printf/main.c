@@ -12,14 +12,14 @@
 BaseSequentialStream * chp = NULL;
 
 static void led(void) {
-  chp = getUsbStream();
+	chp = getUsbStream();
 
-    while (1) {
-  chprintf(chp, "hello over USB Serial from the STM32!!\r\n");
+	while (1) {
+		chprintf(chp, "hello over USB Serial from the STM32!!\r\n");
 
-        palTogglePad(GPIOC, GPIOC_LED);
-        chThdSleepMilliseconds(500);
-    }
+		palTogglePad(GPIOC, GPIOC_LED);
+		chThdSleepMilliseconds(500);
+	}
 }
 
 
@@ -28,30 +28,30 @@ static void led(void) {
  */
 void main(void) {
 
-    /*
-     * System initializations.
-     * - HAL initialization, this also initializes the configured device drivers
-     *   and performs the board-specific initializations. Config files for these
-     *   are located in halconf.h and mcuconf.h
-     */
-    halInit();
-    /*
-     * - Kernel initialization, the main() function becomes a thread and the
-     *   RTOS is active. The kernel config file is located in chconf.h
-     */
-    chSysInit();
+	/*
+	 * System initializations.
+	 * - HAL initialization, this also initializes the configured device drivers
+	 *   and performs the board-specific initializations. Config files for these
+	 *   are located in halconf.h and mcuconf.h
+	 */
+	halInit();
+	/*
+	 * - Kernel initialization, the main() function becomes a thread and the
+	 *   RTOS is active. The kernel config file is located in chconf.h
+	 */
+	chSysInit();
 
-    /*
-     * Normal main() thread activity, in this demo it unendingly blinks an LED
-     */
-    led();
+	/*
+	 * Normal main() thread activity, in this demo it unendingly blinks an LED
+	 */
+	led();
 
 
-    /*
-     * main() should never return
-     */
-    while(TRUE){
-        chThdSleep(TIME_INFINITE);
-    }
+	/*
+	 * main() should never return
+	 */
+	while(TRUE){
+		chThdSleep(TIME_INFINITE);
+	}
 }
 

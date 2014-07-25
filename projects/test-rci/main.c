@@ -7,25 +7,25 @@
 #include "rci.h"
 
 void led(struct RCICmdData * cmd UNUSED, struct RCIRetData * ret UNUSED, void * user UNUSED){
-    palTogglePad(GPIOC, GPIOC_LED);
+	palTogglePad(GPIOC, GPIOC_LED);
 }
 
 void main(void) {
 
-    halInit();
-    chSysInit();
+	halInit();
+	chSysInit();
 
-    lwipThreadStart(RNH_LWIP);
+	lwipThreadStart(RNH_LWIP);
 
-    struct RCICommand cmds[] = {
-	    {"#LEDS", led, NULL},
-	    {NULL}
-    };
+	struct RCICommand cmds[] = {
+		{"#LEDS", led, NULL},
+		{NULL}
+	};
 
-    RCICreate(cmds);
+	RCICreate(cmds);
 
-    while(TRUE){
-        chThdSleep(TIME_INFINITE);
-    }
+	while(TRUE){
+		chThdSleep(TIME_INFINITE);
+	}
 }
 

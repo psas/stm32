@@ -25,70 +25,70 @@
 static int sendsocket;
 
 static const struct swap burst_swaps[] = {
-    SWAP_FIELD(ADIS16405Data, supply_out),
-    SWAP_FIELD(ADIS16405Data, xgyro_out),
-    SWAP_FIELD(ADIS16405Data, ygyro_out),
-    SWAP_FIELD(ADIS16405Data, xaccl_out),
-    SWAP_FIELD(ADIS16405Data, yaccl_out),
-    SWAP_FIELD(ADIS16405Data, zaccl_out),
-    SWAP_FIELD(ADIS16405Data, xmagn_out),
-    SWAP_FIELD(ADIS16405Data, ymagn_out),
-    SWAP_FIELD(ADIS16405Data, zmagn_out),
-    SWAP_FIELD(ADIS16405Data, temp_out),
-    SWAP_FIELD(ADIS16405Data, aux_adc),
-    {0},
+	SWAP_FIELD(ADIS16405Data, supply_out),
+	SWAP_FIELD(ADIS16405Data, xgyro_out),
+	SWAP_FIELD(ADIS16405Data, ygyro_out),
+	SWAP_FIELD(ADIS16405Data, xaccl_out),
+	SWAP_FIELD(ADIS16405Data, yaccl_out),
+	SWAP_FIELD(ADIS16405Data, zaccl_out),
+	SWAP_FIELD(ADIS16405Data, xmagn_out),
+	SWAP_FIELD(ADIS16405Data, ymagn_out),
+	SWAP_FIELD(ADIS16405Data, zmagn_out),
+	SWAP_FIELD(ADIS16405Data, temp_out),
+	SWAP_FIELD(ADIS16405Data, aux_adc),
+	{0},
 };
 
 static void adis_drdy_handler(eventid_t id UNUSED){
-    ADIS16405Data data;
-    uint8_t buffer[sizeof(data)];
+	ADIS16405Data data;
+	uint8_t buffer[sizeof(data)];
 
-    adis_get_data(&data);
+	adis_get_data(&data);
 
-    write_swapped(burst_swaps, &data, buffer);
-    if(write(sendsocket, buffer, sizeof(buffer)) < 0){
-        ledError();
-    }
+	write_swapped(burst_swaps, &data, buffer);
+	if(write(sendsocket, buffer, sizeof(buffer)) < 0){
+		ledError();
+	}
 }
 
 static void self_test(struct RCICmdData *cmd UNUSED, struct RCIRetData * ret, void *user_data UNUSED) {
-    uint16_t result = adis_self_test();
-    chsnprintf(ret->data, 4, "%x", result);
-    ret->len = 4;
+	uint16_t result = adis_self_test();
+	chsnprintf(ret->data, 4, "%x", result);
+	ret->len = 4;
 }
 
 void main(void){
-    halInit();
-    chSysInit();
+	halInit();
+	chSysInit();
 
-    ledStart(NULL);
+	ledStart(NULL);
 
-    struct RCICommand commands[] = {
-            {"#adst",self_test,NULL}, // adis self test
-            {NULL}
-    };
+	struct RCICommand commands[] = {
+		{"#adst",self_test,NULL}, // adis self test
+		{NULL}
+	};
 
-    /* Start lwip */
-    lwipThreadStart(SENSOR_LWIP);
-    RCICreate(commands);
+	/* Start lwip */
+	lwipThreadStart(SENSOR_LWIP);
+	RCICreate(commands);
 
-    /* Create the ADIS out socket, connecting as it only sends to one place */
-    sendsocket = get_udp_socket(ADIS_ADDR);
-    if(sendsocket < 0){
-        ledError();
-    } else if(connect(sendsocket, FC_ADDR, sizeof(struct sockaddr)) < 0){
-        ledError();
-    }
+	/* Create the ADIS out socket, connecting as it only sends to one place */
+	sendsocket = get_udp_socket(ADIS_ADDR);
+	if(sendsocket < 0){
+		ledError();
+	} else if(connect(sendsocket, FC_ADDR, sizeof(struct sockaddr)) < 0){
+		ledError();
+	}
 
-    adis_init(&adis_olimex_e407);
+	adis_init(&adis_olimex_e407);
 
-    /* Manage ADIS events */
-    struct EventListener drdy;
-    static const evhandler_t evhndl[] = {
-            adis_drdy_handler
-    };
-    chEvtRegister(&ADIS16405_data_ready, &drdy, 0);
-    while(TRUE){
-        chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
-    }
+	/* Manage ADIS events */
+	struct EventListener drdy;
+	static const evhandler_t evhndl[] = {
+		adis_drdy_handler
+	};
+	chEvtRegister(&ADIS16405_data_ready, &drdy, 0);
+	while(TRUE){
+		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
+	}
 }

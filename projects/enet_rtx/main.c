@@ -48,28 +48,28 @@ static void ethernet_loop(GPTDriver *gptp) {
 
 	if(count >= 15) {
 		NeutralStatus.vertNeutral = ~NeutralStatus.vertNeutral;
-    	NeutralStatus.latNeutral = ~NeutralStatus.vertNeutral;
+		NeutralStatus.latNeutral = ~NeutralStatus.vertNeutral;
 		count = 0;
 	}
 	else
 	++count;
 
-    return;
+	return;
 }
 
 static GPTConfig gptcfg = {
-        .frequency = 100000,
-        .callback = ethernet_loop,
-        .dier = 0,
+	.frequency = 100000,
+	.callback = ethernet_loop,
+	.dier = 0,
 };
 
 static void evtSendNeutral(eventid_t id UNUSED){
 
 BaseSequentialStream *chp = getUsbStream();
 
-    SendNeutral(&NeutralStatus);
-    chprintf(chp, "Neutral: Lat %d Vert %d\r\n",
-    		NeutralStatus.latNeutral, NeutralStatus.vertNeutral);
+	SendNeutral(&NeutralStatus);
+	chprintf(chp, "Neutral: Lat %d Vert %d\r\n",
+		NeutralStatus.latNeutral, NeutralStatus.vertNeutral);
 }
 
 static void evtReceiveManual(eventid_t id UNUSED){
@@ -94,9 +94,9 @@ void main(void) {
 
 	/* Start diagnostics shell */
 	const ShellCommand commands[] = {
-	        {"mem", cmd_mem},
-	        {"threads", cmd_threads},
-	        {NULL, NULL}
+		{"mem", cmd_mem},
+		{"threads", cmd_threads},
+		{NULL, NULL}
 	};
 	usbSerialShellStart(commands);
 	BaseSequentialStream * chp = getUsbStream();
@@ -115,23 +115,23 @@ void main(void) {
 	ReceiveRTxfromManualSocket();
 
 
-    NeutralStatus.latNeutral = 0;
-    NeutralStatus.vertNeutral = 0;
+	NeutralStatus.latNeutral = 0;
+	NeutralStatus.vertNeutral = 0;
 
 
-    // Set up event system
-    struct EventListener evtNeutral, evtManual, evtSLA;
-    chEvtRegister(&ReadyNeutral, &evtNeutral, 0);
-    chEvtRegister(&ReadyManual, &evtManual, 1);
-//    chEvtRegister(&ReadySLA, &evtSLA, 2);
-    const evhandler_t evhndl[] = {
-        evtSendNeutral,
-        evtReceiveManual,
-//        evtReceiveSLA,
-    };
+	// Set up event system
+	struct EventListener evtNeutral, evtManual, evtSLA;
+	chEvtRegister(&ReadyNeutral, &evtNeutral, 0);
+	chEvtRegister(&ReadyManual, &evtManual, 1);
+	//chEvtRegister(&ReadySLA, &evtSLA, 2);
+	const evhandler_t evhndl[] = {
+		evtSendNeutral,
+		evtReceiveManual,
+//		evtReceiveSLA,
+	};
 
 
-    while (TRUE) {
-    	chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
+	while (TRUE) {
+		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}
 }

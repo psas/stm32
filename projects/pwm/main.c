@@ -70,8 +70,8 @@ void main(void) {
 	pwmEnableChannel(&PWMD4, 3, INIT_PWM_WIDTH_TICS);
 
 	const ShellCommand commands[] = {
-			{"pwm", cmd_pwm},
-			{NULL, NULL}
+		{"pwm", cmd_pwm},
+		{NULL, NULL}
 	};
 	usbSerialShellStart(commands);
 

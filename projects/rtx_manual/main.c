@@ -40,26 +40,26 @@
 
 #include "rocket_tracks.h"
 
-#define ADC_ACCUM_WT	90
-#define ADC_SAMPLE_WT	10
-#define ADC_ACCUM_DIV	(ADC_ACCUM_WT + ADC_SAMPLE_WT)
+#define ADC_ACCUM_WT    90
+#define ADC_SAMPLE_WT   10
+#define ADC_ACCUM_DIV   (ADC_ACCUM_WT + ADC_SAMPLE_WT)
 
 /* Total number of feedback channels to be sampled by a single ADC operation.*/
 #define ADC_GRP1_NUM_CHANNELS   1
 /* Depth of the conversion buffer, channels are sampled once each.*/
 #define ADC_GRP1_BUF_DEPTH      1
 
-#define GPIOA_ENABLE		6
-#define GPIOE_MODE			4
-#define GPIOE_AUX			6
-#define GPIOG_MODE1LED		12
-#define GPIOG_MODE2LED		15
-#define GPIOC_AUX1LED		0
-#define GPIOF_AUX2LED		8
-#define GPIOF_LATNEUTLED	10
-#define GPIOF_VERTNEUTLED	9
-#define GPIOA_LATINPUT		4
-#define GPIOA_VERTINPUT		5
+#define GPIOA_ENABLE            6
+#define GPIOE_MODE              4
+#define GPIOE_AUX               6
+#define GPIOG_MODE1LED          12
+#define GPIOG_MODE2LED          15
+#define GPIOC_AUX1LED           0
+#define GPIOF_AUX2LED           8
+#define GPIOF_LATNEUTLED        10
+#define GPIOF_VERTNEUTLED       9
+#define GPIOA_LATINPUT          4
+#define GPIOA_VERTINPUT         5
 
 //Function Prototypes
 static void convert_start(GPTDriver *gptp);
@@ -72,33 +72,33 @@ static void adccb2(ADCDriver *adcp, adcsample_t *buffer, size_t n);
  * Channels:    IN4.
  */
 static const ADCConversionGroup adcgrpcfg1 = {
-		FALSE,
-		ADC_GRP1_NUM_CHANNELS,
-		adccb1,
-		NULL,
-		/* HW dependent part.*/
-		0,
-		ADC_CR2_SWSTART,
-		0,
-		ADC_SMPR2_SMP_AN4(ADC_SAMPLE_56),
-		ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
-		0,
-		ADC_SQR3_SQ1_N(ADC_CHANNEL_IN4),
+	FALSE,
+	ADC_GRP1_NUM_CHANNELS,
+	adccb1,
+	NULL,
+	/* HW dependent part.*/
+	0,
+	ADC_CR2_SWSTART,
+	0,
+	ADC_SMPR2_SMP_AN4(ADC_SAMPLE_56),
+	ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
+	0,
+	ADC_SQR3_SQ1_N(ADC_CHANNEL_IN4),
 };
 
 static const ADCConversionGroup adcgrpcfg2 = {
-		FALSE,
-		ADC_GRP1_NUM_CHANNELS,
-		adccb2,
-		NULL,
-		/* HW dependent part.*/
-		0,
-		ADC_CR2_SWSTART,
-		0,
-		ADC_SMPR2_SMP_AN5(ADC_SAMPLE_56),
-		ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
-		0,
-		ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5)
+	FALSE,
+	ADC_GRP1_NUM_CHANNELS,
+	adccb2,
+	NULL,
+	/* HW dependent part.*/
+	0,
+	ADC_CR2_SWSTART,
+	0,
+	ADC_SMPR2_SMP_AN5(ADC_SAMPLE_56),
+	ADC_SQR1_NUM_CH(ADC_GRP1_NUM_CHANNELS),
+	0,
+	ADC_SQR3_SQ1_N(ADC_CHANNEL_IN5)
 };
 
 
@@ -131,9 +131,9 @@ static EVENTSOURCE_DECL(ReadyManual);
 /*===========================================================================*/
 
 /******************************************************************************
- * Function name:	DisplayData
+ * Function name:       DisplayData
  *
- * Description:		Displays axis data
+ * Description:         Displays axis data
  *
  *****************************************************************************/
 void DisplayData(BaseSequentialStream *chp, Diagnostics *axis_p) {
@@ -155,13 +155,13 @@ void DisplayData(BaseSequentialStream *chp, Diagnostics *axis_p) {
 }
 
 /******************************************************************************
- * Function name:	cmd_data
+ * Function name:       cmd_data
  *
- * Description:		Displays control data
+ * Description:         Displays control data
  *
- * Arguments:		NULL: Displays data for both axes
- * 					l: Displays data for lateral axis
- * 					v: Displays data for vertical axis
+ * Arguments:           NULL: Displays data for both axes
+ *                      l: Displays data for lateral axis
+ *                      v: Displays data for vertical axis
  *
  *****************************************************************************/
 static void cmd_data(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -203,11 +203,11 @@ static void cmd_data(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 /******************************************************************************
- * Function name:	cmd_stop
+ * Function name:       cmd_stop
  *
- * Description:		Disables axes
+ * Description:         Disables axes
  *
- * Arguments:		NULL: Disables all axes
+ * Arguments:           NULL: Disables all axes
  *
  *****************************************************************************/
 static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -221,11 +221,11 @@ static void cmd_stop(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 /******************************************************************************
- * Function name:	cmd_enable
+ * Function name:       cmd_enable
  *
- * Description:		Enables axes
+ * Description:         Enables axes
  *
- * Arguments:		NULL: Enables all axes
+ * Arguments:           NULL: Enables all axes
  *
  *****************************************************************************/
 static void cmd_enable(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -240,14 +240,14 @@ static void cmd_enable(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 /******************************************************************************
- * Function name:	cmd_freeze
+ * Function name:       cmd_freeze
  *
- * Description:		Switches to position mode and holds axes in current
- * 					commanded position
+ * Description:         Switches to position mode and holds axes in current
+ *                      commanded position
  *
- * Arguments:		NULL: Freezes all axes
- * 					l: Freezes lateral axis
- * 					v: Freezes vertical axis
+ * Arguments:           NULL: Freezes all axes
+ *                      l: Freezes lateral axis
+ *                      v: Freezes vertical axis
  *
  *****************************************************************************/
 static void cmd_freeze(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -277,14 +277,14 @@ static void cmd_freeze(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 /******************************************************************************
- * Function name:	cmd_unfreeze
+ * Function name:       cmd_unfreeze
  *
- * Description:		Switches to position mode and holds axes in current
- * 					commanded position
+ * Description:         Switches to position mode and holds axes in current
+ *                      commanded position
  *
- * Arguments:		NULL: Unfreezes all axes
- * 					l: Unfreezes lateral axis
- * 					v: Unfreezes vertical axis
+ * Arguments:           NULL: Unfreezes all axes
+ *                      l: Unfreezes lateral axis
+ *                      v: Unfreezes vertical axis
  *
  *****************************************************************************/
 static void cmd_unfreeze(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -321,14 +321,14 @@ static void cmd_unfreeze(BaseSequentialStream *chp, int argc, char *argv[]) {
 }
 
 /******************************************************************************
- * Function name:	cmd_mode
+ * Function name:       cmd_mode
  *
- * Description:		Selects/displays mode or reverts to mode switch state
+ * Description:         Selects/displays mode or reverts to mode switch state
  *
- * Arguments:		NULL: 			Displays current mode
- * 					MANUAL_MODE: 	Shell Override Mode: Manual
- * 					SIGHTLINE_MODE: Shell Override Mode: Sightline
- * 					NO_SHELL_MODE:	Mode switch
+ * Arguments:           NULL: Displays current mode
+ *                      MANUAL_MODE: Shell Override Mode: Manual
+ *                      SIGHTLINE_MODE: Shell Override Mode: Sightline
+ *                      NO_SHELL_MODE: Mode switch
  *
  *****************************************************************************/
 static void cmd_mode(BaseSequentialStream *chp, int argc, char *argv[]) {
@@ -520,38 +520,38 @@ static const GPTConfig gpt2cfg = {
 
 WORKING_AREA(wa_rx, 512);
 msg_t rx_thread(void *p UNUSED) {
-    chRegSetThreadName("rx");
-    /*
-     * This thread creates a UDP socket and then listens for any incoming
-     * message, printing it out over serial USB
-     */
+	chRegSetThreadName("rx");
+	/*
+	 * This thread creates a UDP socket and then listens for any incoming
+	 * message, printing it out over serial USB
+	 */
 
 
 
-    //read data from socket
-    while(TRUE) {
+	//read data from socket
+	while(TRUE) {
 		ReceiveNeutral(&NeutralFeedback);
-    }
+	}
 
-    return -1;
+	return -1;
 }
 
 WORKING_AREA(wa_diagrx, 512);
 msg_t diagrx_thread(void *p UNUSED) {
-    chRegSetThreadName("rx");
-    /*
-     * This thread creates a UDP socket and then listens for any incoming
-     * message, printing it out over serial USB
-     */
+	chRegSetThreadName("rx");
+	/*
+	 * This thread creates a UDP socket and then listens for any incoming
+	 * message, printing it out over serial USB
+	 */
 
 
 
-    //read data from socket
-    while(TRUE) {
+	//read data from socket
+	while(TRUE) {
 		ReceiveDiagnostics(&latDiagnostics, &vertDiagnostics, &refVoltage);
-    }
+	}
 
-    return -1;
+	return -1;
 }
 
 /*
@@ -577,16 +577,16 @@ int main(void) {
 
 	/* Start diagnostics shell */
 	const ShellCommand commands[] = {
-			{"mem", cmd_mem},
-			{"threads", cmd_threads},
-			{"data", cmd_data},
-			{"stop", cmd_stop},
-			{"disable", cmd_stop},
-			{"enable", cmd_enable},
-			{"mode", cmd_mode},
-			{"freeze", cmd_freeze},
-			{"unfreeze", cmd_unfreeze},
-			{NULL, cmd_stop}
+		{"mem", cmd_mem},
+		{"threads", cmd_threads},
+		{"data", cmd_data},
+		{"stop", cmd_stop},
+		{"disable", cmd_stop},
+		{"enable", cmd_enable},
+		{"mode", cmd_mode},
+		{"freeze", cmd_freeze},
+		{"unfreeze", cmd_unfreeze},
+		{NULL, cmd_stop}
 	};
 	usbSerialShellStart(commands);
 	BaseSequentialStream * chp = getUsbStream();
@@ -604,7 +604,7 @@ int main(void) {
 	lwipThreadStart(RTXMAN_LWIP);
 
 	//Create sockets
-    SendManualtoRTxSocket();
+	SendManualtoRTxSocket();
 	ReceiveManualfromRTxSocket();
 	ReceiveDiagnosticsSocket();
 
@@ -649,13 +649,13 @@ int main(void) {
 	NeutralFeedback.latNeutral = DISABLED;
 	NeutralFeedback.vertNeutral = DISABLED;
 
-    // Set up event system
-    struct EventListener evtManual;
-    chEvtRegister(&ReadyManual, &evtManual, 0);
+	// Set up event system
+	struct EventListener evtManual;
+	chEvtRegister(&ReadyManual, &evtManual, 0);
 
-    const evhandler_t evhndl[] = {
-        evtSendManual,
-    };
+	const evhandler_t evhndl[] = {
+		evtSendManual,
+	};
 
 
 	while (TRUE) {

@@ -33,69 +33,69 @@
 
 WORKING_AREA(wa_tx, 512);
 msg_t tx_thread(void *p UNUSED){
-    chRegSetThreadName("tx");
-    /*
-     * This thread initializes a socket and then sends the message
-     * "PSAS Rockets! <num>" every half second over UDP to a host
-     * socket.
-     */
-    struct sockaddr self;
+	chRegSetThreadName("tx");
+	/*
+	 * This thread initializes a socket and then sends the message
+	 * "PSAS Rockets! <num>" every half second over UDP to a host
+	 * socket.
+	 */
+	struct sockaddr self;
 
-    set_sockaddr(&self, IP_SELF, PORT_TX);
-    int s = get_udp_socket(&self);
-    chDbgAssert(s >= 0, "Couldn't get a tx socket", NULL);
+	set_sockaddr(&self, IP_SELF, PORT_TX);
+	int s = get_udp_socket(&self);
+	chDbgAssert(s >= 0, "Couldn't get a tx socket", NULL);
 
-    //Create the address to send to. Since there is only one destination,
-    //connect() is used here so we wont have to carry the address through.
-    struct sockaddr dest;
-    set_sockaddr(&dest, IP_DEST, PORT_DEST);
-    if(connect(s, &dest, sizeof(dest))){
-        chDbgPanic("Couldn't connect on tx socket");
-    }
+	//Create the address to send to. Since there is only one destination,
+	//connect() is used here so we wont have to carry the address through.
+	struct sockaddr dest;
+	set_sockaddr(&dest, IP_DEST, PORT_DEST);
+	if(connect(s, &dest, sizeof(dest))){
+		chDbgPanic("Couldn't connect on tx socket");
+	}
 
-    //send data to another socket
-    char msg[MSG_SIZE];
-    for(uint8_t count = 0;; ++count){
-        chsnprintf(msg, sizeof(msg), "PSAS Rockets! %d", count);
+	//send data to another socket
+	char msg[MSG_SIZE];
+	for(uint8_t count = 0;; ++count){
+		chsnprintf(msg, sizeof(msg), "PSAS Rockets! %d", count);
 	if(write(s, msg, sizeof(msg)) < 0){
 		// Tue 10 June 2014 20:52:24 (PDT) Should we have a panic?
 		chDbgPanic("tx socket write failure");
 	}
-        chThdSleepMilliseconds(500);
+		chThdSleepMilliseconds(500);
 
-    }
-    return -1;
+	}
+	return -1;
 }
 
 
 WORKING_AREA(wa_rx, 512);
 msg_t rx_thread(void *p UNUSED) {
-    chRegSetThreadName("rx");
-    /*
-     * This thread creates a UDP socket and then listens for any incomming
-     * message, printing it out over serial USB
-     */
+	chRegSetThreadName("rx");
+	/*
+	 * This thread creates a UDP socket and then listens for any incomming
+	 * message, printing it out over serial USB
+	 */
 
-    BaseSequentialStream *chp = getUsbStream();
-    struct sockaddr self;
+	BaseSequentialStream *chp = getUsbStream();
+	struct sockaddr self;
 
-    set_sockaddr(&self, IP_SELF, PORT_RX);
-    int s = get_udp_socket(&self);
-    chDbgAssert(s >= 0, "Couldn't get rx socket", NULL);
+	set_sockaddr(&self, IP_SELF, PORT_RX);
+	int s = get_udp_socket(&self);
+	chDbgAssert(s >= 0, "Couldn't get rx socket", NULL);
 
-    //read data from socket
-    char msg[MSG_SIZE];
-    while(TRUE) {
-        //read is used here because we don't care where the packets came from.
-        //If we did, recvfrom() is the function to use
-        if(read(s, msg, sizeof(msg)) < 0){
-            chDbgPanic("Receive socket recv failure");
-        } else {
-            chprintf(chp, "%s\r\n", msg);
-        }
-    }
+	//read data from socket
+	char msg[MSG_SIZE];
+	while(TRUE) {
+		//read is used here because we don't care where the packets came from.
+		//If we did, recvfrom() is the function to use
+		if(read(s, msg, sizeof(msg)) < 0){
+			chDbgPanic("Receive socket recv failure");
+		} else {
+			chprintf(chp, "%s\r\n", msg);
+		}
+	}
 
-    return -1;
+	return -1;
 }
 
 
@@ -109,9 +109,9 @@ void main(void) {
 
 	/* Start diagnostics shell */
 	const ShellCommand commands[] = {
-	        {"mem", cmd_mem},
-	        {"threads", cmd_threads},
-	        {NULL, NULL}
+		{"mem", cmd_mem},
+		{"threads", cmd_threads},
+		{NULL, NULL}
 	};
 	usbSerialShellStart(commands);
 	BaseSequentialStream * chp = getUsbStream();

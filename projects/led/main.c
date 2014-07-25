@@ -8,8 +8,8 @@
  * a minimum.
  */
 struct led {
-    ioportid_t port;
-    uint16_t pad;
+	ioportid_t port;
+	uint16_t pad;
 };
 
 /* Conditional definition of LED to allow for multiple supported boards by
@@ -27,31 +27,31 @@ const struct led LED = {GPIOE, GPIOE_PIN1};
 
 /* Blinks the LED */
 static void blink(void) {
-    while (1) {
-        palTogglePad(LED.port, LED.pad);
-        chThdSleepMilliseconds(500);
-    }
+	while (1) {
+		palTogglePad(LED.port, LED.pad);
+		chThdSleepMilliseconds(500);
+	}
 }
 
 /* Application entry point */
 void main(void) {
-    /* System initializations.
-     * - HAL initialization, this also initializes the configured device drivers
-     *   and performs the board-specific initializations. Config files for these
-     *   are located in halconf.h and mcuconf.h
-     */
-    halInit();
-    /* - Kernel initialization, the main() function becomes a thread and the
-     *   RTOS is active. The kernel config file is located in chconf.h
-     */
-    chSysInit();
+	/* System initializations.
+	 * - HAL initialization, this also initializes the configured device drivers
+	 *   and performs the board-specific initializations. Config files for these
+	 *   are located in halconf.h and mcuconf.h
+	 */
+	halInit();
+	/* - Kernel initialization, the main() function becomes a thread and the
+	 *   RTOS is active. The kernel config file is located in chconf.h
+	 */
+	chSysInit();
 
-    /* Normal main() thread activity, unendingly blinks an LED */
-    blink();
+	/* Normal main() thread activity, unendingly blinks an LED */
+	blink();
 
-    /* main() should never return */
-    while(TRUE){
-        chThdSleep(TIME_INFINITE);
-    }
+	/* main() should never return */
+	while(TRUE){
+		chThdSleep(TIME_INFINITE);
+	}
 }
 

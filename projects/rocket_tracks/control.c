@@ -1,14 +1,14 @@
 /******************************************************************************
- * File name:		control.c
+ * File name:           control.c
  *
- * Description:		Provides PID position control of an axis in the "Rocket-
- * 					Tracks" antenna pointer system. When in velocity mode,
- * 					this code keeps a desired position variable that is
- * 					increased or decreased based on position of the input
- * 					control lever.
+ * Description:         Provides PID position control of an axis in the "Rocket-
+ *                      Tracks" antenna pointer system. When in velocity mode,
+ *                      this code keeps a desired position variable that is
+ *                      increased or decreased based on position of the input
+ *                      control lever.
  *
- * Author:		Dan Kirkpatrick
- * Date:		3/10/2012
+ * Author:              Dan Kirkpatrick
+ * Date:                3/10/2012
  *****************************************************************************/
 
 #include <stdint.h>
@@ -81,8 +81,8 @@ void controlLoop(CONTROL_AXIS_STRUCT * ptr)
 
 void Process_SLA(SLAData * data, CONTROL_AXIS_STRUCT * latp, CONTROL_AXIS_STRUCT * vertp) {
 
-int16_t col_coord = 0;
-int16_t row_coord = 0;
+	int16_t col_coord = 0;
+	int16_t row_coord = 0;
 
 	// Calculate Lateral Axis desired position
 	col_coord = (data->Column-(COL_PIXELS/2));

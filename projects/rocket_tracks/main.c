@@ -48,11 +48,11 @@ Diagnostics latDiagnostics, vertDiagnostics;
 static EVENTSOURCE_DECL(ReadyNeutral);
 static EVENTSOURCE_DECL(ReadyDiagnostics);
 
-#define ADC_ACCUM_WT	85
-#define ADC_SAMPLE_WT	15
-#define ADC_ACCUM_DIV	(ADC_ACCUM_WT + ADC_SAMPLE_WT)
+#define ADC_ACCUM_WT    85
+#define ADC_SAMPLE_WT   15
+#define ADC_ACCUM_DIV   (ADC_ACCUM_WT + ADC_SAMPLE_WT)
 
-#define NEUTRAL_THRESH	512
+#define NEUTRAL_THRESH  512
 
 /* Total number of feedback channels to be sampled by a single ADC operation.*/
 #define ADC_GRP1_NUM_CHANNELS   1
@@ -72,29 +72,29 @@ static uint8_t DriveEnable (void);
  * PWM configuration structure.
  */
 PWMConfig pwmcfg = {
-		1000000, /* 1Mhz PWM clock frequency */
-		1000,   /* PWM period 1 millisecond */
-		NULL,    /* No callback */
-		/* All 4 channels enabled */
-		{
-				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
-				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
-				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
-				{PWM_OUTPUT_ACTIVE_HIGH, NULL},
-		},
-		0,
-		0
+	1000000, /* 1Mhz PWM clock frequency */
+	1000,   /* PWM period 1 millisecond */
+	NULL,    /* No callback */
+	/* All 4 channels enabled */
+	{
+		{PWM_OUTPUT_ACTIVE_HIGH, NULL},
+		{PWM_OUTPUT_ACTIVE_HIGH, NULL},
+		{PWM_OUTPUT_ACTIVE_HIGH, NULL},
+		{PWM_OUTPUT_ACTIVE_HIGH, NULL},
+	},
+	0,
+	0
 };
 
 /*
  * SPI1 configuration structure.
  */
 static const SPIConfig spi1cfg = {
-  spicb,
-  /* HW dependent part.*/
-  GPIOA,
-  GPIOA_CS_SPI,
-  SPI_CR1_MSTR | SPI_CR1_SSI | SPI_CR1_DFF | SPI_CR1_BR_0 | SPI_CR1_CPOL | SPI_CR1_CPHA,
+	spicb,
+	/* HW dependent part.*/
+	GPIOA,
+	GPIOA_CS_SPI,
+	SPI_CR1_MSTR | SPI_CR1_SSI | SPI_CR1_DFF | SPI_CR1_BR_0 | SPI_CR1_CPOL | SPI_CR1_CPHA,
 };
 
 static const ADCConversionGroup adcgrpcfg1 = {
@@ -141,12 +141,12 @@ static void spicb(SPIDriver *spip) {
 
 	(void)spip;
 
-  /* On transfer end deasserts CONV pin and accumulates results.*/
-  palClearPad(GPIOA, GPIOA_ADC_CNV);
+	/* On transfer end deasserts CONV pin and accumulates results.*/
+	palClearPad(GPIOA, GPIOA_ADC_CNV);
 
-  // Weighted Moving Average accumulator of axis feedback samples
-  AxisAccumulator[LAT_AXIS] = ((AxisAccumulator[LAT_AXIS] * ADC_ACCUM_WT) + (Samples[LAT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
-  AxisAccumulator[VERT_AXIS] = ((AxisAccumulator[VERT_AXIS] * ADC_ACCUM_WT) + (Samples[VERT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
+	// Weighted Moving Average accumulator of axis feedback samples
+	AxisAccumulator[LAT_AXIS] = ((AxisAccumulator[LAT_AXIS] * ADC_ACCUM_WT) + (Samples[LAT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
+	AxisAccumulator[VERT_AXIS] = ((AxisAccumulator[VERT_AXIS] * ADC_ACCUM_WT) + (Samples[VERT_AXIS] * ADC_SAMPLE_WT))/ADC_ACCUM_DIV;
 }
 
 /*
@@ -176,54 +176,51 @@ static const GPTConfig gpt2cfg = {
 };
 
 static void evtSendNeutral(eventid_t id UNUSED){
-
-    SendNeutral(&NeutralStatus);
+	SendNeutral(&NeutralStatus);
 }
 
 static void evtSendDiagnostics(eventid_t id UNUSED){
-
-    SendDiagnostics(&latDiagnostics, &vertDiagnostics, refMonitor);
+	SendDiagnostics(&latDiagnostics, &vertDiagnostics, refMonitor);
 }
 
 WORKING_AREA(wa_rx, 512);
 msg_t rx_thread(void *p UNUSED) {
-    chRegSetThreadName("rx");
-    /*
-     * This thread creates a UDP socket and then listens for any incoming
-     * message, printing it out over serial USB
-     */
+	chRegSetThreadName("rx");
+	/*
+	 * This thread creates a UDP socket and then listens for any incoming
+	 * message, printing it out over serial USB
+	 */
 
 
 
-    //read data from socket
-    while(TRUE) {
-
+	//read data from socket
+	while(TRUE) {
 		if(ReceiveManual(&ManualStatus) > 0) {
 			ManualWatchdog = 0;
 		}
-    }
+	}
 
     return -1;
 }
 
 WORKING_AREA(wa_slarx, 512);
 msg_t slarx_thread(void *p UNUSED) {
-    chRegSetThreadName("rx");
-    /*
-     * This thread creates a UDP socket and then listens for any incoming
-     * message, printing it out over serial USB
-     */
+	chRegSetThreadName("rx");
+	/*
+	 * This thread creates a UDP socket and then listens for any incoming
+	 * message, printing it out over serial USB
+	 */
 
 
 
-    //read data from socket
-    while(TRUE) {
+	//read data from socket
+	while(TRUE) {
 		if(ReceiveSLA(&SLAStatus) > 0) {
 			if(ManualStatus.Mode == SIGHTLINE_MODE) {
 				Process_SLA(&SLAStatus, &latAxisStruct, &vertAxisStruct);
 			}
 		}
-    }
+	}
 
     return -1;
 }
@@ -300,17 +297,17 @@ static const GPTConfig gpt1cfg = {
 
 
 /******************************************************************************
- * Function name:	ControlAxis
+ * Function name:       ControlAxis
  *
- * Description:		Updates PWM outputs based on system state
+ * Description:         Updates PWM outputs based on system state
  *****************************************************************************/
 void ControlAxis(CONTROL_AXIS_STRUCT *axis_p, uint8_t PWM_U_CHAN, uint8_t PWM_V_CHAN) {
 
-uint32_t useconds;
+	uint32_t useconds;
 
-    chSysLockFromIsr();
+	chSysLockFromIsr();
 
-    // Run control loop
+	// Run control loop
 	controlLoop(axis_p);
 
 	// Set axis PWM's
@@ -327,7 +324,7 @@ uint32_t useconds;
 		pwmEnableChannelI(&PWMD4, PWM_U_CHAN-1, usecondsToPWMTicks(0, pwmcfg.frequency));
 		pwmEnableChannelI(&PWMD4, PWM_V_CHAN-1, usecondsToPWMTicks(useconds, pwmcfg.frequency));
 	}
-    chSysUnlockFromIsr();
+	chSysUnlockFromIsr();
 }
 
 /*
@@ -349,7 +346,7 @@ int main(void) {
 	/* Start diagnostics led */
 	ledStart(NULL);
 
-    //Start SPI1 peripheral
+	//Start SPI1 peripheral
 	spiStart(&SPID1, &spi1cfg);
 
 	adcStart(&ADCD1, NULL);
@@ -403,14 +400,14 @@ int main(void) {
 	chThdCreateStatic(wa_rx, sizeof(wa_rx), NORMALPRIO, rx_thread, NULL);
 	chThdCreateStatic(wa_slarx, sizeof(wa_slarx), NORMALPRIO, slarx_thread, NULL);
 
-    // Set up event system
-    struct EventListener evtNeutral, evtDiagnostics;
-    chEvtRegister(&ReadyNeutral, &evtNeutral, 0);
-    chEvtRegister(&ReadyDiagnostics, &evtDiagnostics, 1);
-    const evhandler_t evhndl[] = {
-        evtSendNeutral,
-        evtSendDiagnostics,
-    };
+	// Set up event system
+	struct EventListener evtNeutral, evtDiagnostics;
+	chEvtRegister(&ReadyNeutral, &evtNeutral, 0);
+	chEvtRegister(&ReadyDiagnostics, &evtDiagnostics, 1);
+	const evhandler_t evhndl[] = {
+		evtSendNeutral,
+		evtSendDiagnostics,
+	};
 
 	while (TRUE) {
 		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
@@ -418,9 +415,9 @@ int main(void) {
 }
 
 /******************************************************************************
- * Function name:	watchdog
+ * Function name:       watchdog
  *
- * Description:		Toggles the Watchdog outputs to the GMD's
+ * Description:         Toggles the Watchdog outputs to the GMD's
  *
  *****************************************************************************/
 static void watchdog() {
@@ -436,10 +433,10 @@ static void watchdog() {
 }
 
 /******************************************************************************
- * Function name:	enable_axes
+ * Function name:       enable_axes
  *
- * Description:		Asserts or deasserts all axis Enable outputs to the GMD's
- * 					based on the value of enable.
+ * Description:         Asserts or deasserts all axis Enable outputs to the GMD's
+ *                      based on the value of enable.
  *
  *****************************************************************************/
 static void enable_axes(uint8_t enable) {
@@ -457,23 +454,23 @@ static void enable_axes(uint8_t enable) {
 }
 
 /******************************************************************************
- * Function name:	DriveEnable
+ * Function name:       DriveEnable
  *
- * Description:		DANGER - LIFE-SAFETY CRITICAL CODE - THIS CODE WAS
- * 					DEVELOPED BASED ON RESULTS OF SYSTEM FMEA AND SHOULD BE
- * 					MODIFIED ONLY BY QUALIFIED PERSONNEL.
+ * Description:         DANGER - LIFE-SAFETY CRITICAL CODE - THIS CODE WAS
+ *                      DEVELOPED BASED ON RESULTS OF SYSTEM FMEA AND SHOULD BE
+ *                      MODIFIED ONLY BY QUALIFIED PERSONNEL.
  *
- * 					Performs safety interlock checks before enabling GMDs and
- * 					toggling watchdog as appropriate.
+ *                      Performs safety interlock checks before enabling GMDs and
+ *                      toggling watchdog as appropriate.
  *
- * 					Returns ENABLED for Drives Enabled
- * 					Returns DISABLED for Drives Disabled
+ *                      Returns ENABLED for Drives Enabled
+ *                      Returns DISABLED for Drives Disabled
  *****************************************************************************/
 static uint8_t DriveEnable(void) {
 
-uint8_t UserEnable = DISABLED;
-uint8_t TestEnable = ENABLED;
-uint8_t ApproveEnable = DISABLED;
+	uint8_t UserEnable = DISABLED;
+	uint8_t TestEnable = ENABLED;
+	uint8_t ApproveEnable = DISABLED;
 
 
 	// Increment/saturate Manual Remote Watchdog counter

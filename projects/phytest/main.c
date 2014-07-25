@@ -15,27 +15,26 @@
 #elif (STM32_HCLK >= 100000000)
 #define MACMIIDR_CR ETH_MACMIIAR_CR_Div62
 #elif (STM32_HCLK >= 60000000)
-#define MACMIIDR_CR		ETH_MACMIIAR_CR_Div42
+#define MACMIIDR_CR ETH_MACMIIAR_CR_Div42
 #elif (STM32_HCLK >= 35000000)
-#define MACMIIDR_CR		ETH_MACMIIAR_CR_Div26
+#define MACMIIDR_CR ETH_MACMIIAR_CR_Div26
 #elif (STM32_HCLK >= 20000000)
-#define MACMIIDR_CR		ETH_MACMIIAR_CR_Div16
+#define MACMIIDR_CR ETH_MACMIIAR_CR_Div16
 #else
 #error "STM32_HCLK below minimum frequency for ETH operations (20MHz)"
 #endif
 
 /**
- * @brief	Writes a PHY register.
+ * @brief Writes a PHY register.
  *
- * @param[in] macp		pointer to the @p MACDriver object
- * @param[in] reg		register number
- * @param[in] value		new register value
+ * @param[in] macp   pointer to the @p MACDriver object
+ * @param[in] reg    register number
+ * @param[in] value  new register value
  */
 static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) {
 
 	ETH->MACMIIDR = value;
-	ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR |
-					ETH_MACMIIAR_MW | ETH_MACMIIAR_MB;
+	ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR | ETH_MACMIIAR_MW | ETH_MACMIIAR_MB;
 	while ((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
 		;
 }
@@ -48,10 +47,10 @@ static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) {
  * @return              The PHY register content.
  */
 static uint32_t mii_read(MACDriver *macp, uint32_t reg) {
-  ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR | ETH_MACMIIAR_MB;
-  while ((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
-    ;
-  return ETH->MACMIIDR;
+	ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR | ETH_MACMIIAR_MB;
+	while ((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
+		;
+	return ETH->MACMIIDR;
 }
 
 uint8_t macaddr[6] = {0xE6, 0x10, 0x20, 0x30, 0x40, 0x11};

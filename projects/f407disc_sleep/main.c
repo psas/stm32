@@ -2,53 +2,54 @@
 #include "hal.h"
 #include "ext.h"
 
-void					main(void);
+void main(void);
 
-static void			appMain(void);
-static void			irqButton(EXTDriver* extp, expchannel_t channel);
-static void			osInit(void);
-static void			osShutdown(void);
-static void			stopMode(void);
+static void appMain(void);
+static void irqButton(EXTDriver* extp, expchannel_t channel);
+static void osInit(void);
+static void osShutdown(void);
+static void stopMode(void);
 
-static volatile int	buttonFlag;
+static volatile int buttonFlag;
 
-static const EXTConfig	extConfig = {
-									{
-										{ EXT_CH_MODE_RISING_EDGE | EXT_MODE_GPIOA, irqButton },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL },
-										{ EXT_CH_MODE_DISABLED, NULL }
-									}
-								};
+static const EXTConfig extConfig =
+{
+	{
+		{ EXT_CH_MODE_RISING_EDGE | EXT_MODE_GPIOA, irqButton },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL },
+		{ EXT_CH_MODE_DISABLED, NULL }
+	}
+};
 
-static int	leds[] = {
-					GPIOD_LED4,
-					GPIOD_LED3,
-					GPIOD_LED5,
-					GPIOD_LED6
-				};
+static int leds[] = {
+	GPIOD_LED4,
+	GPIOD_LED3,
+	GPIOD_LED5,
+	GPIOD_LED6
+};
 
 void appMain() {
-	uint32_t	i, led;
+	uint32_t i, led;
 
 	// flash all LEDs a few times
 	for (i = 0 ; i < 5 ; ++i) {

@@ -13,19 +13,19 @@
  *  - The umbilical is where port 5 would be
  */
 typedef enum {
-    RNH_PORT_1 = 1<<0,
-    RNH_PORT_2 = 1<<1,
-    RNH_PORT_3 = 1<<2,
-    RNH_PORT_4 = 1<<3,
-    RNH_PORT_6 = 1<<5,
-    RNH_PORT_7 = 1<<6,
-    RNH_PORT_8 = 1<<7,
-    RNH_PORT_ALL = RNH_PORT_1 | RNH_PORT_2 | RNH_PORT_3 | RNH_PORT_4 |
-                   RNH_PORT_6 | RNH_PORT_7 | RNH_PORT_8
+	RNH_PORT_1 = 1<<0,
+	RNH_PORT_2 = 1<<1,
+	RNH_PORT_3 = 1<<2,
+	RNH_PORT_4 = 1<<3,
+	RNH_PORT_6 = 1<<5,
+	RNH_PORT_7 = 1<<6,
+	RNH_PORT_8 = 1<<7,
+	RNH_PORT_ALL = RNH_PORT_1 | RNH_PORT_2 | RNH_PORT_3 | RNH_PORT_4 |
+	               RNH_PORT_6 | RNH_PORT_7 | RNH_PORT_8
 } RNHPort;
 
 struct rnhPortCurrent {
-    uint16_t current[8];
+	uint16_t current[8];
 };
 
 #define RNH_PORT_CURRENT_MAX_SAMPLE_RATE 9001
