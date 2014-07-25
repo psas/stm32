@@ -6,7 +6,6 @@
 #include "chprintf.h"
 #include "chrtclib.h"
 
-#include "psas_rtc.h"
 #include "psas_sdclog.h"
 #include "usbdetail.h"
 
@@ -132,6 +131,15 @@ void eventlogger_init(void) {
  * Private Function Definitions
  * ============================ ************************************************
  */
+/* Utility to convert nanoseconds to psas time. Should go somewhere else*/
+static to_psas_time(uint8_t * ts, uint64_t time_ns){
+    ts[0] = time_ns >> 40;
+    ts[1] = time_ns >> 32;
+    ts[2] = time_ns >> 24;
+    ts[3] = time_ns >> 16;
+    ts[4] = time_ns >> 8;
+    ts[5] = time_ns >> 0;
+}
 
 /*
  * eventlogger
@@ -217,7 +225,6 @@ static msg_t eventlogger(void *_ UNUSED) {
             int           i;
             int           status;
             crc_t         crc16;
-            RTCTime       logged_time;
             psas_timespec logged_ts;
             uint64_t      posted_ns = 0;
             uint64_t      ns_delay = 0;
@@ -250,11 +257,10 @@ static msg_t eventlogger(void *_ UNUSED) {
 
             // calculate time between when the message was created and when we
             // logged it, in ns
-            psas_rtc_lld_get_time(&RTCD1, &logged_time);
-            logged_time.tv_time = psas_rtc_dr_tr_to_unixtime(&logged_time);
-            psas_rtc_to_psas_ts(&logged_ts, &logged_time);
+            uint64_t now = rtcGetTimeUsec(&RTCD1);
+            to_psas_time(logged_ts.ns, now*1000);
 
-            for (i = 0; i < PSAS_RTC_NS_BYTES; i++) {
+            for (i = 0; i < sizeof(logged_ts.ns); i++) {
                 posted_ns += (uint64_t) posted->mh.ts.ns[i] << (i * 8);
                 ns_delay += (uint64_t) logged_ts.ns[i] << (i * 8);
             }
@@ -279,7 +285,6 @@ msg_cleanup:
 GENERIC_message* make_msg(const char* id, const uint8_t* data, uint16_t data_length) {
     static int msg_index = 0;
 
-    RTCTime         now;
     GENERIC_message* msg = (GENERIC_message*) chPoolAlloc(&msg_pool);
 
     // bail if the pool is empty
@@ -290,10 +295,8 @@ GENERIC_message* make_msg(const char* id, const uint8_t* data, uint16_t data_len
     msg->mh.index = msg_index++;
 
     // fill out message's head timestamp field
-    now.h12 = 1;
-    psas_rtc_lld_get_time(&RTCD1, &now);
-    now.tv_time = psas_rtc_dr_tr_to_unixtime(&now);
-    psas_rtc_to_psas_ts(&msg->mh.ts, &now);
+    uint64_t now = rtcGetTimeUsec(&RTCD1);
+    to_psas_time(msg->mh.ts.ns, now*1000);
 
     // copy the data into the msg
     msg->mh.data_length = data_length;

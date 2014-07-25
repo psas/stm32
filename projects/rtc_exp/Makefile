@@ -84,15 +84,12 @@ CSRC = $(PORTSRC) \
        $(HALSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
-       $(CHIBIOS)/os/various/evtimer.c \
+       $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
-       $(CHIBIOS)/os/various/syscalls.c \
        $(CHIBIOS)/os/various/chrtclib.c \
-       $(PSAS_DEVICES)/iwdg.c \
        $(PSAS_UTIL)/usbdetail.c \
-       $(PSAS_DEVICES)/psas_rtc.c \
-       ./shell_cmd/cmddetail.c \
+       $(PSAS_UTIL)/utils_shell.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -124,11 +121,7 @@ ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) \
-		 $(LWINC)\
-         $(CHIBIOS)/os/various \
-         $(PSAS_NET) \
-         $(PSAS_DEVICES)/include $(PSAS_UTIL)/include \
-          ./data_udp
+         $(CHIBIOS)/os/various $(PSAS_UTIL)/include\
 
 #
 # Project, sources and paths
@@ -207,8 +200,7 @@ DLIBS =
 UADEFS =
 
 # List all user directories here
-UINCDIR = ./shell_cmd \
-	  ./ext_pins
+UINCDIR = 
 
 # List the user directory to look for the libraries here
 ULIBDIR =

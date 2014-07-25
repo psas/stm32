@@ -7,24 +7,62 @@
  * \defgroup mainapp RTC experiments
  * @{
  */
-
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
+#include <time.h>
 
 #include "ch.h"
 #include "hal.h"
-
-#include "chprintf.h"
 #include "shell.h"
+#include "chrtclib.h"
+#include "chprintf.h"
 
-#include "iwdg.h"
+#include "utils_shell.h"
 #include "usbdetail.h"
-#include "cmddetail.h"
-#include "psas_rtc.h"
-#include "rtc_lld.h"
 
-/* see cmddetail.c for testing. Use 'date' in shell */
+/*! test the rtc API
+ */
+void cmd_date(BaseSequentialStream *chp, int argc, char *argv[]){
+    static uint64_t unix_time;
+    struct tm timp;
+
+    if ((argc == 1) && (strcmp(argv[0], "get") == 0)) {
+        unix_time = rtcGetTimeUnixUsec(&RTCD1);
+
+        chprintf(chp, "%Dus - unix time\r\n", unix_time);
+        rtcGetTimeTm(&RTCD1, &timp);
+        chprintf(chp, "%s - formatted time string\r\n", asctime(&timp));
+        return;
+    }
+
+    if ((argc == 1) && (strcmp(argv[0], "test") == 0)) {
+
+        rtcSetTimeUnixSec(&RTCD1, 1382142229);
+        chThdSleepMilliseconds(300);
+        unix_time = rtcGetTimeUnixUsec(&RTCD1)/1000;
+        chprintf(chp, "ms: %u\r\n", unix_time);
+
+        unix_time = rtcGetTimeUnixUsec(&RTCD1);
+        chprintf(chp, "Test:%Dus - unix time\r\n", unix_time);
+        return;
+    }
+
+    if ((argc == 2) && (strcmp(argv[0], "set") == 0)) {
+        unix_time = atol(argv[1]);
+        if (unix_time > 0) {
+            rtcSetTimeUnixSec(&RTCD1, unix_time);
+            return;
+        }
+    }
+
+    chprintf(chp, "Usage: date get\r\n");
+    chprintf(chp, "       date test\r\n");
+    chprintf(chp, "       date set N\r\n");
+    chprintf(chp, "where N is time in seconds sins Unix epoch\r\n");
+    chprintf(chp, "you can get current N value from unix console by the command\r\n");
+    chprintf(chp, "%s", "date +\%s\r\n");
+    return;
+}
 
 static const ShellCommand commands[] = {
     {"mem", cmd_mem},
@@ -34,25 +72,10 @@ static const ShellCommand commands[] = {
 };
 
 int main(void) {
-    /*
-     * System initializations.
-     * - HAL initialization, this also initializes the configured device drivers
-     *   and performs the board-specific initializations.
-     * - Kernel initialization, the main() function becomes a thread and the
-     *   RTOS is active.
-     */
     halInit();
     chSysInit();
 
     usbSerialShellStart(commands);
-
-    iwdgStart();
-
-    chThdSleepMilliseconds(2000);
-
-    /* DONE: Check cal on oscilloscope on RTC_AF1. 64hz */
-    psas_rtc_lld_init();
-
     while (TRUE) {
         chThdSleep(TIME_INFINITE);
     }
