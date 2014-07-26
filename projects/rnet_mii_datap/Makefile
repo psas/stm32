@@ -92,10 +92,9 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/shell.c \
-       $(PSAS_NET)/net_addrs.c \
-       $(PSAS_NET)/utils_sockets.c \
-       ./data_udp/data_udp.c \
-       ./shell_cmd/cmddetail.c \
+       $(PSAS_NETSRC) \
+       $(PSAS_UTIL)/utils_led.c \
+       $(PSAS_UTIL)/utils_shell.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -125,11 +124,10 @@ TCPPSRC =
 # List ASM source files here
 ASMSRC = $(PORTASM)
 
-INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
+INCDIR = $(PORTINC) $(KERNINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
-         $(PSAS_DEVICES)/include  $(PSAS_NET) \
-         ./data_udp
+         $(PSAS_DEVICES)/include  $(PSAS_UTIL)/include $(PSAS_NET) \
 
 #
 # Project, sources and paths
@@ -141,7 +139,6 @@ INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
 
 MCU  = cortex-m4
 
-#TRGT = arm-elf-
 TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
@@ -200,15 +197,13 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-#UDEFS = -DADIS_DEBUG=1
 UDEFS =
 
 # Define ASM defines here
 UADEFS =
 
 # List all user directories here
-# UINCDIR = ./boards/OLIMEX_STM32_E407
-UINCDIR = ./shell_cmd
+UINCDIR = 
 
 # List the user directory to look for the libraries here
 ULIBDIR =

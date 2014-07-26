@@ -38,7 +38,7 @@
  * @brief   Enables the TM subsystem.
  */
 #if !defined(HAL_USE_TM) || defined(__DOXYGEN__)
-#define HAL_USE_TM                  TRUE
+#define HAL_USE_TM                  FALSE
 #endif
 
 /**
@@ -115,28 +115,28 @@
  * @brief   Enables the RTC subsystem.
  */
 #if !defined(HAL_USE_RTC) || defined(__DOXYGEN__)
-#define HAL_USE_RTC                 TRUE
+#define HAL_USE_RTC                 FALSE
 #endif
 
 /**
  * @brief   Enables the SDC subsystem.
  */
 #if !defined(HAL_USE_SDC) || defined(__DOXYGEN__)
-#define HAL_USE_SDC                 TRUE
+#define HAL_USE_SDC                 FALSE
 #endif
 
 /**
  * @brief   Enables the SERIAL subsystem.
  */
 #if !defined(HAL_USE_SERIAL) || defined(__DOXYGEN__)
-#define HAL_USE_SERIAL              TRUE
+#define HAL_USE_SERIAL              FALSE
 #endif
 
 /**
  * @brief   Enables the SERIAL over USB subsystem.
  */
 #if !defined(HAL_USE_SERIAL_USB) || defined(__DOXYGEN__)
-#define HAL_USE_SERIAL_USB          TRUE
+#define HAL_USE_SERIAL_USB          FALSE
 #endif
 
 /**
@@ -157,7 +157,7 @@
  * @brief   Enables the USB subsystem.
  */
 #if !defined(HAL_USE_USB) || defined(__DOXYGEN__)
-#define HAL_USE_USB                 TRUE
+#define HAL_USE_USB                 FALSE
 #endif
 
 /*===========================================================================*/

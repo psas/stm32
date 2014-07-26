@@ -1,6 +1,7 @@
 
 #include "ch.h"
 #include "chprintf.h"
+#include "utils_general.h"
 
 /*! \brief Show memory usage
  *
@@ -8,11 +9,9 @@
  * @param argc
  * @param argv
  */
-void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
+void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[] UNUSED) {
     size_t n, size;
-    (void)chp;
 
-    (void)argv;
     if (argc > 0) {
         chprintf(chp, "Usage: mem\r\n");
         return;
@@ -30,12 +29,10 @@ void cmd_mem(BaseSequentialStream *chp, int argc, char *argv[]) {
  * @param argc
  * @param argv
  */
-void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[]) {
-    (void)chp;
+void cmd_threads(BaseSequentialStream *chp, int argc, char *argv[] UNUSED) {
     static const char *states[] = {THD_STATE_NAMES};
     Thread *tp;
 
-    (void)argv;
     if (argc > 0) {
         chprintf(chp, "Usage: threads\r\n");
         return;

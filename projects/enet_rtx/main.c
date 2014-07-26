@@ -33,12 +33,7 @@ static int count = 0;
 /*
  * GMD control thread, times are in microseconds.
  */
-static void ethernet_loop(GPTDriver *gptp) {
-
-
-	(void) gptp;
-
-
+static void ethernet_loop(GPTDriver *gptp UNUSED) {
 	chSysLockFromIsr();
 
 	chEvtBroadcastI(&ReadyNeutral);
@@ -64,8 +59,7 @@ static GPTConfig gptcfg = {
 };
 
 static void evtSendNeutral(eventid_t id UNUSED){
-
-BaseSequentialStream *chp = getUsbStream();
+	BaseSequentialStream *chp = getUsbStream();
 
 	SendNeutral(&NeutralStatus);
 	chprintf(chp, "Neutral: Lat %d Vert %d\r\n",
@@ -73,8 +67,7 @@ BaseSequentialStream *chp = getUsbStream();
 }
 
 static void evtReceiveManual(eventid_t id UNUSED){
-
-BaseSequentialStream *chp = getUsbStream();
+	BaseSequentialStream *chp = getUsbStream();
 
 	ReceiveManual(&ManualStatus);
 	chprintf(chp, "Manual: EN %d Mode %d Aux %d lat %d vert %d axis3 %d axis4 %d\r\n",

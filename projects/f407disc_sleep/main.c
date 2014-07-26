@@ -1,16 +1,14 @@
 #include "ch.h"
 #include "hal.h"
-#include "ext.h"
 
-void main(void);
+#include "utils_general.h"
+#include "utils_led.h"
 
-static void appMain(void);
-static void irqButton(EXTDriver* extp, expchannel_t channel);
-static void osInit(void);
-static void osShutdown(void);
-static void stopMode(void);
+static volatile bool buttonFlag;
 
-static volatile int buttonFlag;
+static void irqButton(EXTDriver* extp UNUSED, expchannel_t channel UNUSED) {
+	buttonFlag = true;
+}
 
 static const EXTConfig extConfig =
 {
@@ -41,78 +39,56 @@ static const EXTConfig extConfig =
 	}
 };
 
-static int leds[] = {
-	GPIOD_LED4,
-	GPIOD_LED3,
-	GPIOD_LED5,
-	GPIOD_LED6
-};
 
-void appMain() {
-	uint32_t i, led;
+static void appMain(void) {
+	unsigned int i, led = 0;
+
+	struct led const * const leds[] = {
+		&LED4,
+		&LED3,
+		&LED5,
+		&LED6
+	};
+	unsigned int numleds = sizeof(leds)/sizeof(leds[0]);
 
 	// flash all LEDs a few times
 	for (i = 0 ; i < 5 ; ++i) {
-		for (led = 0 ; led < sizeof(leds) / sizeof(leds[0]) ; ++led)
-			palWritePad(GPIOD, leds[led], 1 - (i & 1));
-
+		for (led = 0 ; led < numleds ; ++led)
+			ledToggle(leds[led]);
 		chThdSleepMilliseconds(100);
 	}
 
 	// cycle LED blinking until user button pressed
-	buttonFlag = 0;
-	led = 0;
+	buttonFlag = false;
 	while (!buttonFlag) {
-		palTogglePad(GPIOD, leds[led]);
-		if (++led == sizeof(leds) / sizeof(leds[0]))
-			led = 0;
-
+		ledToggle(leds[led++]);
+		led = led % numleds;
 		chThdSleepMilliseconds(250);
 	}
 
 	// turn on all LEDs
-	for (led = 0 ; led < sizeof(leds) / sizeof(leds[0]) ; ++led)
-		palWritePad(GPIOD, leds[led], 1);
+	for (led = 0 ; led < numleds ; ++led)
+		ledOn(leds[led]);
 
 	// turn off LEDs one by one, in reverse order from blink cycle
-	for (led = sizeof(leds) / sizeof(leds[0]) ; led-- ; ) {
-		palWritePad(GPIOD, leds[led], 0);
-
+	for (led = numleds ; led-- ; ) {
+		ledOff(leds[led]);
 		chThdSleepMilliseconds(250);
 	}
 }
 
-void irqButton(EXTDriver* extp, expchannel_t channel) {
-	(void)extp;
-	(void)channel;
-
-	buttonFlag = true;
-}
-
-void main(void) {
-	while (1) {
-		osInit();
-
-		appMain();
-
-		osShutdown();
-
-		stopMode();
-	}
-}
-
-void osInit() {
+static void osInit(void) {
 	halInit();
 	chSysInit();
 	extStart(&EXTD1, &extConfig);
 	extChannelEnable(&EXTD1, 0);
 }
 
-void osShutdown() {
+static void osShutdown(void) {
 	chSysDisable();
 }
 
-void stopMode() {
+static void stopMode(void) {
 	// configure for STOP mode on WFI
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
 	PWR->CR &= ~PWR_CR_PDDS;
@@ -127,4 +103,13 @@ void stopMode() {
 	stm32_clock_init();
 
 	extStop(&EXTD1);
+}
+
+void main(void) {
+	while (TRUE) {
+		osInit();
+		appMain();
+		osShutdown();
+		stopMode();
+	}
 }

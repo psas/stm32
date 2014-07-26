@@ -133,8 +133,6 @@ INCDIR = $(PORTINC) $(KERNINC) \
 
 MCU  = cortex-m4
 
-#TRGT = arm-elf-
-#TRGT = arm-none-eabi-
 TRGT = arm-none-eabi-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++

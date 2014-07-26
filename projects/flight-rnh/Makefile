@@ -100,7 +100,7 @@ CSRC = $(PORTSRC) \
        $(PSAS_UTIL)/utils_rci.c \
         main.c \
         KS8999.c \
-        RNHPort.c 
+        RNHPort.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -129,12 +129,12 @@ TCPPSRC =
 # List ASM source files here
 ASMSRC = $(PORTASM)
 
-INCDIR = $(PORTINC) $(KERNINC) $(TESTINC) \
+INCDIR = $(PORTINC) $(KERNINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC)\
          $(CHIBIOS)/os/various \
          $(PSAS_DEVICES)/include $(PSAS_UTIL)/include\
          $(PSAS_NET) \
-         $(CONF)         
+         $(CONF)
 #
 # Project, sources and paths
 ##############################################################################
@@ -214,7 +214,6 @@ UDEFS = $(BUILDFLAG) -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
 UADEFS =
 
 # List all user directories here
-# UINCDIR = ./boards/OLIMEX_STM32_E407
 UINCDIR =
 
 # List the user directory to look for the libraries here

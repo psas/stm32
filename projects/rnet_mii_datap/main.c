@@ -1,26 +1,24 @@
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
+
 #include "ch.h"
 #include "hal.h"
-
-#include "lwip/ip_addr.h"
-
-#include "lwipopts.h"
-#include "lwipthread.h"
-
 #include "chprintf.h"
 #include "shell.h"
 
-// Modified configuration files
-#include "board.h"
+#include "lwip/ip_addr.h"
+#include "lwipopts.h"
+#include "lwipthread.h"
+
+#include "net_addrs.h"
+#include "utils_led.h"
+#include "utils_sockets.h"
+#include "utils_shell.h"
+#include "utils_general.h"
 
 // Local header files
-#include "data_udp.h"
-#include "net_addrs.h"
-#include "cmddetail.h"
-
-#include "main.h"
 
 /*! The goal of this code is to run the shell through the serial terminal
  * and not the usb subsystem. Connect an FTDI serial/usb connector to the
@@ -41,15 +39,196 @@
  */
 
 
-static uint32_t           led_wait_time         =        500;
+#define SHELL_WA_SIZE   THD_WA_SIZE(2048)
+#define TEST_WA_SIZE    THD_WA_SIZE(256)
 
+/* MII divider optimal value.*/
+#if (STM32_HCLK >= 150000000)
+#define MACMIIDR_CR ETH_MACMIIAR_CR_Div102
+#elif (STM32_HCLK >= 100000000)
+#define MACMIIDR_CR ETH_MACMIIAR_CR_Div62
+#elif (STM32_HCLK >= 60000000)
+#define MACMIIDR_CR     ETH_MACMIIAR_CR_Div42
+#elif (STM32_HCLK >= 35000000)
+#define MACMIIDR_CR     ETH_MACMIIAR_CR_Div26
+#elif (STM32_HCLK >= 20000000)
+#define MACMIIDR_CR     ETH_MACMIIAR_CR_Div16
+#else
+#error "STM32_HCLK below minimum frequency for ETH operations (20MHz)"
+#endif
+
+#define MII_BMCR                0x00    /**< Basic mode control register.   */
+
+/*! \brief Assert or deassert reset GPIO_D4_ETH_N_RST
+ *
+ * @param chp
+ * @param argc
+ * @param argv
+ */
+void cmd_ksz_rst_n(BaseSequentialStream *chp, int argc, char *argv[]) {
+	bool      pad_state;
+
+	if(argc == 0) {
+		// get current state of pin
+		pad_state = palReadPad(GPIOD, GPIO_D4_ETH_N_RST);
+		chprintf(chp, "GPIO_D4_ETH_N_RST:\t\t%s\r\n", pad_state ? "HIGH" : "LOW");
+		return;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "h", 1)  == 0)) {
+		goto ERROR;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "off", 3)  == 0)) {
+		// deassert
+		chprintf(chp, "deassert\r\n");
+		palSetPad(GPIOD, GPIO_D4_ETH_N_RST);
+		return;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "on", 2) == 0)) {
+		// assert
+		chprintf(chp, "assert\r\n");
+		palClearPad(GPIOD, GPIO_D4_ETH_N_RST);
+		return;
+	}
+
+	ERROR:
+	chprintf(chp, "Usage: ksz_rst_n\r\n");
+	chprintf(chp, "       ksz_rst_n <option>\r\n");
+	chprintf(chp, "       where option may be 'on' or 'off'\r\n");
+	chprintf(chp, "Command without option will return current setting of GPIO_D4_ETH_N_RST.\r\n");
+	return;
+}
+
+
+
+
+/*! \brief Power on or off KSZ through GPIO_D14_KSZ_EN
+ *
+ * @param chp
+ * @param argc
+ * @param argv
+ */
+void cmd_ksz_pwr(BaseSequentialStream *chp, int argc, char *argv[]) {
+	bool      pad_state;
+
+	if(argc == 0) {
+		// get current state of pin
+		pad_state = palReadPad(GPIOD, GPIO_D14_KSZ_EN);
+		chprintf(chp, "GPIO_D14_KSZ_EN:\t\t%s\r\n", pad_state ? "HIGH" : "LOW");
+		return;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "h", 1)  == 0)) {
+		goto ERROR;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "on", 2)  == 0)) {
+		// set to on
+		palSetPad(GPIOD, GPIO_D14_KSZ_EN);
+		return;
+	}
+
+	if ((argc == 1) && (strncmp(argv[0], "off", 3) == 0)) {
+		// set to off
+		palClearPad(GPIOD, GPIO_D14_KSZ_EN);
+		return;
+	}
+
+	ERROR:
+	chprintf(chp, "Usage: ksz_pwr\r\n");
+	chprintf(chp, "       ksz_pwr <option>\r\n");
+	chprintf(chp, "       where option may be 'on' or 'off'\r\n");
+	chprintf(chp, "Command without option will return current setting of GPIO_D14_KSZ_EN.");
+	return;
+}
+
+
+/*! \brief Show reg
+ *
+ * @param chp
+ * @param argc
+ * @param argv
+ */
+void cmd_show(BaseSequentialStream *chp, int argc, char *argv[]) {
+	//uint32_t i = 0;
+	//MACDriver *macp = &ETHD1;
+
+	(void)argv;
+    (void)argc;
+
+    chprintf(chp, "I am the Rocketnet Hub board.\r\n");
+
+	chprintf(chp, "RCC->CFGR:\t0x%x\r\n",   RCC->CFGR);
+	chprintf(chp, "SYSCFG->PMC:\t0x%x\r\n", SYSCFG->PMC);
+
+
+//	chprintf(chp, "BOARD_PHY_ID>>16:\t0x%x\r\n", (BOARD_PHY_ID>>16));
+//	chprintf(chp, "BOARD_PHY_ID&0xFFF0\t0x%x\r\n", (BOARD_PHY_ID & 0xFFF0));
+//	chprintf(chp, "MACMIIDR_CR: 0x%x\tmacp->phyaddr: 0x%x\t\r\n",MACMIIDR_CR, macp->phyaddr);
+
+//	for(i=0; i<32; ++i){
+//		chprintf(chp, "i: %d\tphy1_g:\t0x%x\tphy2_g:\t0x%x\r\n", i, phy1_g[i], phy2_g[i]);
+//	}
+
+
+}
+
+#define DATA_UDP_SEND_THREAD_STACK_SIZE      512
+#define DATA_UDP_RECEIVE_THREAD_STACK_SIZE   512
+
+#define DATA_UDP_RX_THD_PRIORITY             (LOWPRIO)
+#define DATA_UDP_THREAD_PRIORITY             (LOWPRIO + 2)
+
+#define DATA_UDP_MSG_SIZE                    50
+
+
+WORKING_AREA(wa_data_udp_send_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
+
+msg_t data_udp_send_thread(void *p UNUSED) {
+	chRegSetThreadName("data_udp_send_thread");
+
+	int s = get_udp_socket(RNH_BATTERY_ADDR);
+	if(s < 0){
+		return -1;
+	}
+	connect(s, FC_ADDR, sizeof(struct sockaddr));
+
+	char msg[DATA_UDP_MSG_SIZE] ;
+	uint8_t count = 0;
+	while (TRUE) {
+		chsnprintf(msg, sizeof(msg), "rnet tx: %d \r\n", count++);
+		write(s, msg, sizeof(msg));
+		chThdSleepMilliseconds(500);
+	}
+	return -1;
+}
+
+
+WORKING_AREA(wa_data_udp_receive_thread, DATA_UDP_SEND_THREAD_STACK_SIZE);
+
+msg_t data_udp_receive_thread(void *p UNUSED) {
+	chRegSetThreadName("data_udp_receive_thread");
+
+	BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
+	uint8_t count  = 0;
+	uint8_t inbuf [DATA_UDP_MSG_SIZE + 1];
+
+	int s = get_udp_socket(RNH_PORT_ADDR);
+	if (s < 0) {
+		return -1;
+	}
+	while(TRUE) {
+		read(s, inbuf, DATA_UDP_MSG_SIZE);
+		inbuf[DATA_UDP_MSG_SIZE] = '\0';
+		chprintf(chp, "rnet rx:%d:->%s\r\n", count++, inbuf);
+	}
+	return -1;
+}
 static const ShellCommand commands[] = {
-#if DEBUG_KSZ
-		{"ksz_nodes_en_n", cmd_ksz_nodes_en_n},
-		{"ksz_n1en_n", cmd_ksz_n1en_n},
 		{"ksz_rst_n", cmd_ksz_rst_n},
 		{"ksz_pwr", cmd_ksz_pwr},
-#endif
 		{"show"    , cmd_show},
 		{"mem"    , cmd_mem},
 		{"threads", cmd_threads},
@@ -60,41 +239,6 @@ static const ShellConfig shell_cfg1 = {
 		(BaseSequentialStream *)&SD1,
 		commands
 };
-
-static void led_init(void) {
-
-    palClearPad(GPIOD, GPIO_D12_RGB_G);
-    palClearPad(GPIOD, GPIO_D13_RGB_R);
-    palClearPad(GPIOD, GPIO_D11_RGB_B);
-
-    int i = 0;
-    for(i=0; i<5; ++i) {
-        palClearPad(GPIOD, GPIO_D12_RGB_G);
-        chThdSleepMilliseconds(150);
-        palSetPad(GPIOD, GPIO_D12_RGB_G);
-        palClearPad(GPIOD, GPIO_D13_RGB_R);
-        chThdSleepMilliseconds(150);
-        palSetPad(GPIOD, GPIO_D13_RGB_R);
-        palClearPad(GPIOD, GPIO_D11_RGB_B);
-        chThdSleepMilliseconds(150);
-        palSetPad(GPIOD, GPIO_D11_RGB_B);
-        chThdSleepMilliseconds(150);
-    }
-}
-
-/*! \brief Green LED blinker thread
- */
-static WORKING_AREA(waThread_blinker, 64);
-static msg_t Thread_blinker(void *arg __attribute__((unused))) {
-	chRegSetThreadName("blinker");
-        chThdSleepMilliseconds(4000);
-        debug_msg_lwip("blinky\r\n");
-        while (TRUE) {
-		palTogglePad(GPIOD, GPIO_D12_RGB_G);
-		chThdSleepMilliseconds(led_wait_time);
-	}
-	return -1;
-}
 
 void debug_msg_lwip(char* msg) {
     BaseSequentialStream *chp   =  (BaseSequentialStream *)&SD1;
@@ -135,18 +279,11 @@ void init_rnet(void) {
  */
 void main(void) {
 	static Thread            *shelltp       = NULL;
-	/*
-	 * System initializations.
-	 * - HAL initialization, this also initializes the configured device drivers
-	 *   and performs the board-specific initializations.
-	 * - Kernel initialization, the main() function becomes a thread and the
-	 *   RTOS is active.
-	 */
 	halInit();
 	chSysInit();
 
-	led_init();
-    init_rnet();
+	ledStart(NULL);
+	init_rnet();
 
 	// start the serial port
 	sdStart(&SD1, NULL);
@@ -156,17 +293,10 @@ void main(void) {
 	 */
 	shellInit();
 
-	chThdCreateStatic(waThread_blinker  , sizeof(waThread_blinker)          , NORMALPRIO    , Thread_blinker         , NULL);
-
-	chThdCreateStatic(wa_lwip_thread            , sizeof(wa_lwip_thread)            , NORMALPRIO + 2, lwip_thread            , RNH_LWIP);
+	lwipThreadStart(RNH_LWIP);
 	chThdCreateStatic(wa_data_udp_send_thread   , sizeof(wa_data_udp_send_thread)   , NORMALPRIO    , data_udp_send_thread   , NULL);
 	chThdCreateStatic(wa_data_udp_receive_thread, sizeof(wa_data_udp_receive_thread), NORMALPRIO    , data_udp_receive_thread, NULL);
 
-
-	/*
-	 * Normal main() thread activity, in this demo it enables and disables the
-	 * button EXT channel using 5 seconds intervals.
-	 */
 
 	while (true) {
 		if (!shelltp )
