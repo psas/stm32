@@ -50,7 +50,7 @@ static void adis_drdy_handler(eventid_t id UNUSED){
 	adis_get_data(&data);
 
 	write_swapped(adis_swaps, &data, adis_socket.buffer);
-	seq_write(&adis_socket, len_swapped(adis_swaps));
+	seqWrite(&adis_socket, len_swapped(adis_swaps));
 }
 
 static void mpl_drdy_handler(eventid_t id UNUSED){
@@ -58,7 +58,7 @@ static void mpl_drdy_handler(eventid_t id UNUSED){
 	MPL3115A2GetData(&data);
 
 	write_swapped(mpl_swaps, &data, mpl_socket.buffer);
-	seq_write(&mpl_socket, len_swapped(mpl_swaps));
+	seqWrite(&mpl_socket, len_swapped(mpl_swaps));
 }
 
 void main(void){
@@ -79,13 +79,11 @@ void main(void){
 	RCICreate(commands);
 
 	/* Create the ADIS out socket, connecting as it only sends to one place */
-	int s = get_udp_socket(ADIS_ADDR);
-	chDbgAssert(s >= 0, "ADIS socket failed", NULL);
-	seq_socket_init(&adis_socket, s);
+	seqSocket(&adis_socket, ADIS_ADDR);
+	chDbgAssert(adis_socket.socket >= 0, "ADIS socket failed", NULL);
 
-	s = get_udp_socket(MPL_ADDR);
-	chDbgAssert(s >= 0, "MPL socket failed", NULL);
-	seq_socket_init(&mpl_socket, s);
+	seqSocket(&mpl_socket, MPL_ADDR);
+	chDbgAssert(mpl_socket.socket >= 0, "MPL socket failed", NULL);
 
 	connect(adis_socket.socket, FC_ADDR, sizeof(struct sockaddr));
 	connect(mpl_socket.socket, FC_ADDR, sizeof(struct sockaddr));

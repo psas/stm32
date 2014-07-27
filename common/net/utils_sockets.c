@@ -6,10 +6,6 @@
 
 #include "utils_sockets.h"
 
-static int  recvSeqPacket(struct SeqSocket* ss, int packetLen);
-
-static SeqErrorLogger   seqErrorLogger;
-
 void set_lwipthread_opts(struct lwipthread_opts * ip_opts,
     const char * ip, const char * netmask, const char * gateway, uint8_t * mac)
 {
@@ -53,114 +49,91 @@ int get_udp_socket(const struct sockaddr *addr){
     return s;
 }
 
-int recvSeqPacket(struct SeqSocket* ss, int packetLen) {
-   uint32_t	seq;
 
-   if (packetLen < 0)
-      return packetLen;
+/* Sequenced socket utilities */
 
-   if (packetLen < (int)sizeof(uint32_t)) {
-      if (seqErrorLogger)
-         seqErrorLogger(SEQ_noseq, ss->seqRecv, 0, ss->buffer - sizeof(uint32_t), (size_t)packetLen);
+static SeqErrorLogger seqErrorLogger;
 
-      errno = EIO;
-      return -1;
-   }
-
-   seq = ntohl(((uint32_t*)ss->buffer)[-1]);
-
-   if (seq < ss->seqRecv) {
-      if (seqErrorLogger)
-         seqErrorLogger(SEQ_backward, ss->seqRecv, seq, ss->buffer, (size_t)packetLen - sizeof(uint32_t));
-
-      ss->seqRecv = seq + 1;
-      errno = EIO;
-      return -1;
-   } else if (seq > ss->seqRecv) {
-      if (seqErrorLogger)
-         seqErrorLogger(SEQ_skip, ss->seqRecv, seq, ss->buffer, (size_t)packetLen - sizeof(uint32_t));
-   }
-
-   ss->seqRecv = seq + 1;
-
-   return packetLen - sizeof(uint32_t);
-}
-
-int seq_read(struct SeqSocket* ss) {
-   return recvSeqPacket(ss, read(ss->socket, ss->buffer - sizeof(uint32_t), ss->maxSize + sizeof(uint32_t)));
-}
-
-int seq_recv(struct SeqSocket* ss, int flags) {
-   return recvSeqPacket(ss, recv(ss->socket, ss->buffer - sizeof(uint32_t), ss->maxSize + sizeof(uint32_t), flags));
-}
-
-int seq_recvfrom(struct SeqSocket* ss, int flags, struct sockaddr* from, socklen_t* fromlen) {
-   return recvSeqPacket(ss, recvfrom(ss->socket, ss->buffer - sizeof(uint32_t), ss->maxSize + sizeof(uint32_t), flags, from, fromlen));
-}
-
-int seq_send(struct SeqSocket* ss, size_t size, int flags) {
-   int   s;
-
-   if (size > ss->maxSize) {
-      errno = EMSGSIZE;
-      return -1;
-   }
-
-   ((uint32_t*)ss->buffer)[-1] = htonl(ss->seqSend);
-
-   s = send(ss->socket, ss->buffer - sizeof(uint32_t), size + sizeof(uint32_t), flags);
-   if (s < 0)
-      return s;
-
-   ++ss->seqSend;
-
-   return s;
-}
-
-int seq_sendto(struct SeqSocket* ss, size_t size, int flags, const struct sockaddr* to, socklen_t tolen) {
-   int   s;
-
-   if (size > ss->maxSize) {
-      errno = EMSGSIZE;
-      return -1;
-   }
-
-   ((uint32_t*)ss->buffer)[-1] = htonl(ss->seqSend);
-
-   s = sendto(ss->socket, ss->buffer - sizeof(uint32_t), size + sizeof(uint32_t), flags, to, tolen);
-   if (s < 0)
-      return s;
-
-   ++ss->seqSend;
-
-   return s;
-}
-
-void seq_set_error_logger(SeqErrorLogger logger) {
+void seqSetErrorLogger(SeqErrorLogger logger) {
    seqErrorLogger = logger;
 }
 
-void seq_socket_init(struct SeqSocket* ss, int socket) {
-   ss->socket = socket;
-   ss->seqSend = 0;
-   ss->seqRecv = 0;
+int seqSocket(struct SeqSocket* ss, const struct sockaddr * addr) {
+    ss->socket = get_udp_socket(addr);
+    if(ss->socket < 0)
+        return ss->socket;
+    return 0;
 }
 
-int seq_write(struct SeqSocket* ss, size_t size) {
-   int   s;
+int seqRecvfrom(struct SeqSocket* ss, int flags, struct sockaddr* from, socklen_t* fromlen) {
+   int packetLen = recvfrom(ss->socket, ss->buffer - sizeof(uint32_t), ss->maxSize + sizeof(uint32_t), flags, from, fromlen);
+   if (packetLen < 0)
+      return packetLen;
+   unsigned int len = packetLen;
 
+   if (len < sizeof(uint32_t)) {
+      if (seqErrorLogger)
+         seqErrorLogger(0, 0, ss->buffer - sizeof(uint32_t), len);
+      errno = EIO;
+      return -1;
+   }
+
+   uint32_t seq = ntohl(((uint32_t*)ss->buffer)[-1]);
+   if (seq != ss->seqRecv)
+      if (seqErrorLogger)
+         seqErrorLogger(ss->seqRecv, seq, ss->buffer, len - sizeof(uint32_t));
+
+   ss->seqRecv = seq + 1;
+   if(seq < ss->seqRecv) {
+      errno = EIO;
+      return -1;
+   } else {
+      return packetLen - sizeof(uint32_t);
+   }
+}
+
+int seqRecv(struct SeqSocket* ss, int flags) {
+   return seqRecvfrom(ss, flags, NULL, NULL);
+}
+
+int seqRead(struct SeqSocket* ss) {
+   return seqRecvfrom(ss, 0, NULL, NULL);
+}
+
+int seqSendto(struct SeqSocket* ss, size_t size, int flags, const struct sockaddr* to, socklen_t tolen) {
    if (size > ss->maxSize) {
       errno = EMSGSIZE;
       return -1;
    }
 
    ((uint32_t*)ss->buffer)[-1] = htonl(ss->seqSend);
-
-   s = write(ss->socket, ss->buffer - sizeof(uint32_t), size + sizeof(uint32_t));
-   if (s < 0)
-      return s;
+   int ret = sendto(ss->socket, ss->buffer - sizeof(uint32_t), size + sizeof(uint32_t), flags, to, tolen);
+   if (ret < 0)
+      return ret;
 
    ++ss->seqSend;
-
-   return s;
+   return ret;
 }
+
+int seqSend(struct SeqSocket* ss, size_t size, int flags) {
+    if (size > ss->maxSize) {
+      errno = EMSGSIZE;
+      return -1;
+   }
+
+   ((uint32_t*)ss->buffer)[-1] = htonl(ss->seqSend);
+   int ret = send(ss->socket, ss->buffer - sizeof(uint32_t), size + sizeof(uint32_t), flags);
+   if (ret < 0)
+      return ret;
+
+   ++ss->seqSend;
+   return ret;
+}
+
+int seqWrite(struct SeqSocket* ss, size_t size) {
+    return seqSend(ss, size, 0);
+}
+
+
+
+

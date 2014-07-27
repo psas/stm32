@@ -146,14 +146,14 @@ static EvTimer umbdebounce;
 static void umbdet_handler(eventid_t id UNUSED){
 	umbstate = umbilical();
 	umbdet_socket.buffer[0] = umbstate;
-	seq_write(&umbdet_socket, 1);
+	seqWrite(&umbdet_socket, 1);
 	evtStart(&umbdebounce);
 }
 
 static void umbdet_debounce(eventid_t id UNUSED){
 	if(umbstate != umbilical()){
 		umbdet_socket.buffer[0] = !umbstate;
-		seq_write(&umbdet_socket, 1);
+		seqWrite(&umbdet_socket, 1);
 	}
 	evtStop(&umbdebounce);
 }
@@ -205,7 +205,7 @@ static void BQ3060_SendData(eventid_t id UNUSED){
 	((uint16_t *)battery_socket.buffer)[10] = htons(data.CellVoltage4);
 	((uint16_t *)battery_socket.buffer)[11] = htons(data.PackVoltage);
 	((uint16_t *)battery_socket.buffer)[12] = htons(data.AverageVoltage);
-	seq_write(&battery_socket, 13*2);
+	seqWrite(&battery_socket, 13*2);
 }
 
 static void portCurrent_SendData(eventid_t id UNUSED){
@@ -219,14 +219,14 @@ static void portCurrent_SendData(eventid_t id UNUSED){
 	((uint16_t *)port_socket.buffer)[5] = htons(sample.current[5]);
 	((uint16_t *)port_socket.buffer)[6] = htons(sample.current[6]);
 	((uint16_t *)port_socket.buffer)[7] = htons(sample.current[7]);
-	seq_write(&port_socket, 8*2);
+	seqWrite(&port_socket, 8*2);
 }
 
 static void batteryFault_Handler(eventid_t id UNUSED) {
 	alarm_socket.buffer[0] = htons(crntAlarms[0]);
 	alarm_socket.buffer[1] = htons(crntAlarms[1]);
 	alarm_socket.buffer[2] = htons(crntAlarms[2]);
-	seq_write(&port_socket, sizeof(crntAlarms));
+	seqWrite(&port_socket, sizeof(crntAlarms));
 }
 
 void main(void) {
@@ -292,22 +292,17 @@ void main(void) {
 	RCICreate(commands);
 
 	// Set up sockets
-	int s;
-	s = get_udp_socket(RNH_BATTERY_ADDR);
-	chDbgAssert(s >=0, DBG_PREFIX"Battery socket failed", NULL);
-	seq_socket_init(&battery_socket, s);
+	seqSocket(&battery_socket, RNH_BATTERY_ADDR);
+	chDbgAssert(battery_socket.socket >=0, DBG_PREFIX"Battery socket failed", NULL);
 
-	s = get_udp_socket(RNH_PORT_ADDR);
-	chDbgAssert(s >=0, DBG_PREFIX"Port socket failed", NULL);
-	seq_socket_init(&port_socket, s);
+	seqSocket(&port_socket, RNH_PORT_ADDR);
+	chDbgAssert(port_socket.socket >=0, DBG_PREFIX"Port socket failed", NULL);
 
-	s = get_udp_socket(RNH_ALARM_ADDR);
-	chDbgAssert(s >=0, DBG_PREFIX"Alarm socket failed", NULL);
-	seq_socket_init(&alarm_socket, s);
+	seqSocket(&alarm_socket, RNH_ALARM_ADDR);
+	chDbgAssert(alarm_socket.socket >=0, DBG_PREFIX"Alarm socket failed", NULL);
 
-	s = get_udp_socket(RNH_UMBDET_ADDR);
-	chDbgAssert(s >=0, DBG_PREFIX"Umbilical detect socket failed", NULL);
-	seq_socket_init(&umbdet_socket, s);
+	seqSocket(&umbdet_socket, RNH_UMBDET_ADDR);
+	chDbgAssert(umbdet_socket.socket >=0, DBG_PREFIX"Umbilical detect socket failed", NULL);
 
 	connect(battery_socket.socket, FC_ADDR, sizeof(struct sockaddr));
 	connect(port_socket.socket, FC_ADDR, sizeof(struct sockaddr));

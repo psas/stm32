@@ -32,14 +32,13 @@ void main(void) {
 
 	sdStart(&SD6, NULL);
 
-	int s = get_udp_socket(GPS_COTS_ADDR);
-	chDbgAssert(s >= 0, "COTS socket failed", NULL);
-	seq_socket_init(&cots_socket, s);
+	seqSocket(&cots_socket, GPS_COTS_ADDR);
+	chDbgAssert(cots_socket.socket >= 0, "COTS socket failed", NULL);
 	connect(cots_socket.socket, FC_ADDR, sizeof(struct sockaddr));
 
 	while(TRUE){
 		int len = sdReadTimeout(&SD6, cots_socket.buffer, COTS_BUFFER_SIZE, S2ST(1));
-		seq_write(&cots_socket, len);
+		seqWrite(&cots_socket, len);
 		ledToggle(&RED);
 	}
 }
