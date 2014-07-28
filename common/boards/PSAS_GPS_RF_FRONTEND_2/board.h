@@ -28,7 +28,7 @@
 /*
  * Board identifier.
  */
-#define BOARD_GPS_RF_FRONTEND_2
+#define BOARD_PSAS_GPS_RF_FRONTEND_2
 #define BOARD_NAME                  "PSAS GPS RF Frontend v2"
 
 #define  MII_KS8081_ID              0x00221560 /* KSZ8081 r1.1 datasheet p31 */

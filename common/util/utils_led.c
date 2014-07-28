@@ -34,7 +34,7 @@ static struct led_config led_cfg = {
 				NULL
 		}
 };
-#elif defined BOARD_GPS_RF_FRONTEND_2
+#elif defined BOARD_PSAS_GPS_RF_FRONTEND_2
 const struct led LED2 = {GPIOD, GPIOD_LED2};
 const struct led LED4 = {GPIOD, GPIOD_LED4};
 const struct led LED5 = {GPIOD, GPIOD_LED5};
