@@ -4,8 +4,8 @@
 #include "hal.h"
 
 struct pin {
-    ioportid_t port;
-    uint16_t pad;
+	ioportid_t port;
+	uint16_t pad;
 };
 
 #if HAL_USE_EXT
@@ -15,8 +15,8 @@ void extAddCallback(const struct pin * pin, uint32_t mode, extcallback_t cb);
 
 #if HAL_USE_I2C
 typedef struct{
-    struct pin SDA;
-    struct pin SCL;
+	struct pin SDA;
+	struct pin SCL;
 } I2CPins;
 
 void i2cUtilsStart(I2CDriver * driver, const I2CConfig * config, const I2CPins * pins);

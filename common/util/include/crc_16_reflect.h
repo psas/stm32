@@ -55,7 +55,7 @@ crc_t crc_reflect(crc_t data, size_t data_len);
  *****************************************************************************/
 static inline crc_t crc_init(void)
 {
-    return 0xffff;
+	return 0xffff;
 }
 
 
@@ -78,7 +78,7 @@ crc_t crc_update(crc_t crc, const unsigned char *data, size_t data_len);
  *****************************************************************************/
 static inline crc_t crc_finalize(crc_t crc)
 {
-    return crc ^ 0x0000;
+	return crc ^ 0x0000;
 }
 
 

@@ -25,84 +25,84 @@ static EventSource interrupt;
 EventSource MPU9150_data_ready;
 
 int MPU9150_Get(uint8_t register_id, uint8_t* data){
-    if(initialized == false)
-        return -1;
+	if(initialized == false)
+		return -1;
 
-    uint8_t tx[] = {register_id};
-    uint8_t rx[1];
-    i2cflags_t errors;
-    i2cAcquireBus(I2CD);
-    msg_t status = i2cMasterTransmitTimeout(I2CD,  MPU9150_a_g_ADDR, tx, sizeof(tx), rx, sizeof(rx), I2C_TIMEOUT);
-    switch(status){
-    case RDY_OK:
-        i2cReleaseBus(I2CD);
-        break;
-    case RDY_RESET:
-        errors = i2cGetErrors(I2CD);
-        i2cReleaseBus(I2CD);
-        return errors;
-    case RDY_TIMEOUT:
-        i2cReleaseBus(I2CD);
-        return RDY_TIMEOUT;
-    default:
-        i2cReleaseBus(I2CD);
-    }
+	uint8_t tx[] = {register_id};
+	uint8_t rx[1];
+	i2cflags_t errors;
+	i2cAcquireBus(I2CD);
+	msg_t status = i2cMasterTransmitTimeout(I2CD,  MPU9150_a_g_ADDR, tx, sizeof(tx), rx, sizeof(rx), I2C_TIMEOUT);
+	switch(status){
+	case RDY_OK:
+		i2cReleaseBus(I2CD);
+		break;
+	case RDY_RESET:
+		errors = i2cGetErrors(I2CD);
+		i2cReleaseBus(I2CD);
+		return errors;
+	case RDY_TIMEOUT:
+		i2cReleaseBus(I2CD);
+		return RDY_TIMEOUT;
+	default:
+		i2cReleaseBus(I2CD);
+	}
 
-    *data = rx[0];
-    return RDY_OK;
+	*data = rx[0];
+	return RDY_OK;
 }
 int MPU9150_Set(uint8_t register_id, uint8_t data){
-    if(initialized == false)
-        return -1;
+	if(initialized == false)
+		return -1;
 
-    uint8_t tx[] = {register_id, data};
-    i2cflags_t errors;
-    i2cAcquireBus(I2CD);
-    msg_t status = i2cMasterTransmitTimeout(I2CD, MPU9150_a_g_ADDR, tx, sizeof(tx), NULL, 0, I2C_TIMEOUT);
-    switch(status){
-    case RDY_OK:
-        i2cReleaseBus(I2CD);
-        break;
-    case RDY_RESET:
-        errors = i2cGetErrors(I2CD);
-        i2cReleaseBus(I2CD);
-        return errors;
-    case RDY_TIMEOUT:
-        i2cReleaseBus(I2CD);
-        return RDY_TIMEOUT;
-    default:
-        i2cReleaseBus(I2CD);
-    }
+	uint8_t tx[] = {register_id, data};
+	i2cflags_t errors;
+	i2cAcquireBus(I2CD);
+	msg_t status = i2cMasterTransmitTimeout(I2CD, MPU9150_a_g_ADDR, tx, sizeof(tx), NULL, 0, I2C_TIMEOUT);
+	switch(status){
+	case RDY_OK:
+		i2cReleaseBus(I2CD);
+		break;
+	case RDY_RESET:
+		errors = i2cGetErrors(I2CD);
+		i2cReleaseBus(I2CD);
+		return errors;
+	case RDY_TIMEOUT:
+		i2cReleaseBus(I2CD);
+		return RDY_TIMEOUT;
+	default:
+		i2cReleaseBus(I2CD);
+	}
 
-    return RDY_OK;
+	return RDY_OK;
 }
 
 
 static void on_interrupt(EXTDriver *extp UNUSED, expchannel_t channel UNUSED){
-    chSysLockFromIsr();
-    chEvtBroadcastI(&interrupt);
-    chSysUnlockFromIsr();
+	chSysLockFromIsr();
+	chEvtBroadcastI(&interrupt);
+	chSysUnlockFromIsr();
 }
 
 static void get_all_sensors(eventid_t u){
-    i2cMasterTransmitTimeout();
-    chEvtBroadcast(&MPU9150_data_ready);
+	i2cMasterTransmitTimeout();
+	chEvtBroadcast(&MPU9150_data_ready);
 }
 
 static WORKING_AREA(wa_read, 128);
 static msg_t read_thd(void * arg UNUSED){
-    chRegSetThreadName("MPU9150");
+	chRegSetThreadName("MPU9150");
 
-    struct EventListener listener;
-    static const evhandler_t handlers[] = {
-            get_all_sensors
-    };
-    chEvtRegister(&interrupt, &listener, 0);
+	struct EventListener listener;
+	static const evhandler_t handlers[] = {
+		get_all_sensors
+	};
+	chEvtRegister(&interrupt, &listener, 0);
 
-    while (TRUE) {
-        chEvtDispatch(handlers, chEvtWaitOne(ALL_EVENTS));
-    }
-    return -1;
+	while (TRUE) {
+		chEvtDispatch(handlers, chEvtWaitOne(ALL_EVENTS));
+	}
+	return -1;
 }
 
 
@@ -112,23 +112,23 @@ static msg_t read_thd(void * arg UNUSED){
 void MPU9150_init(MPU9150Config  *conf) {
 //TODO: If I2C is active, check if config is correct
 
-    I2CD = conf->I2CD;
+	I2CD = conf->I2CD;
 
-    static const I2CConfig i2cfg = {
-        OPMODE_I2C,
-        400000,
-        FAST_DUTY_CYCLE_2,
-    };
-    i2cUtilsStart(I2CD, &i2cfg, &(conf->pins));
-    chEvtInit(&MPU9150_data_ready);
-    chEvtinit(&interrupt);
+	static const I2CConfig i2cfg = {
+		OPMODE_I2C,
+		400000,
+		FAST_DUTY_CYCLE_2,
+	};
+	i2cUtilsStart(I2CD, &i2cfg, &(conf->pins));
+	chEvtInit(&MPU9150_data_ready);
+	chEvtinit(&interrupt);
 
-    extAddCallback(conf->interrupt, EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, on_interrupt);
-    extUtilsStart();
+	extAddCallback(conf->interrupt, EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART, on_interrupt);
+	extUtilsStart();
 
-    chThdCreateStatic(wa_read, sizeof(wa_read), NORMALPRIO, read_thd, NULL);
+	chThdCreateStatic(wa_read, sizeof(wa_read), NORMALPRIO, read_thd, NULL);
 
-    initialized = true;
+	initialized = true;
 }
 
 void mpu9150_reset(void) {
@@ -142,7 +142,7 @@ void mpu9150_reset(void) {
 
 void MPU9150_set_pm1(mpu9150_reg_data d) {
 	/*! Turn on power */
-    MPU9150_set(A_G_PWR_MGMT_1, &d);
+	MPU9150_set(A_G_PWR_MGMT_1, &d);
 }
 
 void MPU9150_set_pin_cfg(mpu9150_reg_data d) {
@@ -173,7 +173,7 @@ void MPU9150_set_fifo_en(mpu9150_reg_data d) {
  *
  */
 void mpu9150_a_g_read_id(void) {
-    mpu9150_reg_data d;
+	mpu9150_reg_data d;
 	MPU9150_get(A_G_WHO_AM_I, &d);
 }
 
@@ -190,14 +190,14 @@ int16_t mpu9150_temp_to_dC(int16_t raw_temp) {
  *
  */
 int16_t mpu9150_a_g_read_temperature(void) {
-    mpu9150_reg_data d;
+	mpu9150_reg_data d;
 
-	int16_t      raw_temp = 0;
+	int16_t		 raw_temp = 0;
 
 	MPU9150_get(A_G_TEMP_OUT_H, &d);
 	raw_temp = mpu9150_driver.rxbuf[0] << 8;
 
-    MPU9150_get(A_G_TEMP_OUT_L, &d);
+	MPU9150_get(A_G_TEMP_OUT_L, &d);
 	raw_temp = raw_temp | mpu9150_driver.rxbuf[0];
 
 	return raw_temp;
@@ -208,21 +208,21 @@ int16_t mpu9150_a_g_read_temperature(void) {
  * Clears interrupt bits
  */
 void mpu9150_a_g_read_int_status(void) {
-    mpu9150_reg_data d;
-    MPU9150_get(A_G_INT_STATUS, &d);
+	mpu9150_reg_data d;
+	MPU9150_get(A_G_INT_STATUS, &d);
 }
 
 /*! \brief read the accel-gyro fifo count
  *
  */
 uint16_t mpu9150_a_g_fifo_cnt(void) {
-    mpu9150_reg_data d;
+	mpu9150_reg_data d;
 	uint16_t fifo_count = 0;
 
-    MPU9150_get(A_G_FIFO_COUNTH, &d);
+	MPU9150_get(A_G_FIFO_COUNTH, &d);
 	fifo_count = mpu9150_driver.rxbuf[0] << 8;
 
-    MPU9150_get(A_G_FIFO_COUNTL, &d);
+	MPU9150_get(A_G_FIFO_COUNTL, &d);
 	fifo_count = fifo_count | (mpu9150_driver.rxbuf[0] << 8);
 
 	return fifo_count;
@@ -256,11 +256,11 @@ void mpu9150_g_read_x_y_z(MPU9150_gyro_data* d) {
 	mpu9150_reg_data rdata = 0;
 
 	MPU9150_get(A_G_GYRO_XOUT_H, &rdata);
-	d->x            = rdata << 8;
+	d->x = rdata << 8;
 	MPU9150_get(A_G_GYRO_XOUT_L, &rdata);
-	d->x            = (d->x | rdata);
+	d->x= (d->x | rdata);
 	MPU9150_get(A_G_GYRO_YOUT_H, &rdata);
-	d->y            = rdata << 8;
+	d->y= rdata << 8;
 	MPU9150_get(A_G_GYRO_YOUT_L, &rdata);
 	d->y = (d->y | rdata);
 	MPU9150_get(A_G_GYRO_ZOUT_H, &rdata);
@@ -273,7 +273,7 @@ void mpu9150_g_read_x_y_z(MPU9150_gyro_data* d) {
  *
  */
 void mpu9150_magn_read_id(void) {
-    mpu9150_reg_data d;
+	mpu9150_reg_data d;
 	MPU9150_get(MAGN_DEVICE_ID, &d);
 }
 

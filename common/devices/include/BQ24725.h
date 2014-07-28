@@ -18,14 +18,14 @@ typedef enum {disabled=0, t44s=0x2000, t88s=0x4000, t175s=0x6000}
 #define BQ24725_WATCHDOG_timer_MASK 0x6000
 
 typedef enum {FT59_19pct=0, FT62_65pct=0x800, FT66_55pct=0x1000,
-	FT70_97pct=0x1800}  BQ24725_BAT_depletion_threshold;
+	FT70_97pct=0x1800}	BQ24725_BAT_depletion_threshold;
 #define BQ24725_BAT_depletion_threshold_MASK 0x1800
 
 typedef enum {dec18pct=0, inc18pct=0x400}  BQ24725_EMI_sw_freq_adj;
 #define BQ24725_EMI_sw_freq_adj_MASK 0x400
 
 typedef enum {sw_freq_adj_disable=0, sw_freq_adj_enable= 0x200}
-    BQ24725_EMI_sw_freq_adj_en;
+	BQ24725_EMI_sw_freq_adj_en;
 #define BQ24725_EMI_sw_freq_adj_en_MASK 0x200
 
 typedef enum {l300mV=0, l500mV=0x80, l700mV=0x100, l900mV=0x180}
@@ -59,32 +59,32 @@ typedef struct BQ24725_charge_options{
 } BQ24725_charge_options;
 
 static inline uint16_t form_options_data(BQ24725_charge_options * opts){
-    return opts->ACOK_deglitch_time | opts->WATCHDOG_timer |
-            opts->BAT_depletion_threshold | opts->EMI_sw_freq_adj |
-            opts->EMI_sw_freq_adj_en | opts->IFAULT_HI_threshold |
-            opts->LEARN_en | opts->IOUT | opts->ACOC_threshold |
-            opts->charge_inhibit;
+	return opts->ACOK_deglitch_time | opts->WATCHDOG_timer |
+	       opts->BAT_depletion_threshold | opts->EMI_sw_freq_adj |
+	       opts->EMI_sw_freq_adj_en | opts->IFAULT_HI_threshold |
+	       opts->LEARN_en | opts->IOUT | opts->ACOC_threshold |
+	       opts->charge_inhibit;
 }
 
 static inline void form_options_struct(uint16_t data, BQ24725_charge_options* opt){
-    opt->ACOK_deglitch_time = data & BQ24725_ACOK_deglitch_time_MASK;
-    opt->WATCHDOG_timer = data & BQ24725_WATCHDOG_timer_MASK;
-    opt->BAT_depletion_threshold = data & BQ24725_BAT_depletion_threshold_MASK;
-    opt->EMI_sw_freq_adj = data & BQ24725_EMI_sw_freq_adj_MASK;
-    opt->EMI_sw_freq_adj_en = data & BQ24725_EMI_sw_freq_adj_en_MASK;
-    opt->IFAULT_HI_threshold = data & BQ24725_IFAULT_HI_threshold_MASK;
-    opt->LEARN_en = data & BQ24725_LEARN_en_MASK;
-    opt->IOUT = data & BQ24725_IOUT_MASK;
-    opt->ACOC_threshold = data & BQ24725_ACOC_threshold_MASK;
-    opt->charge_inhibit = data & BQ24725_charge_inhibit_MASK;
+	opt->ACOK_deglitch_time = data & BQ24725_ACOK_deglitch_time_MASK;
+	opt->WATCHDOG_timer = data & BQ24725_WATCHDOG_timer_MASK;
+	opt->BAT_depletion_threshold = data & BQ24725_BAT_depletion_threshold_MASK;
+	opt->EMI_sw_freq_adj = data & BQ24725_EMI_sw_freq_adj_MASK;
+	opt->EMI_sw_freq_adj_en = data & BQ24725_EMI_sw_freq_adj_en_MASK;
+	opt->IFAULT_HI_threshold = data & BQ24725_IFAULT_HI_threshold_MASK;
+	opt->LEARN_en = data & BQ24725_LEARN_en_MASK;
+	opt->IOUT = data & BQ24725_IOUT_MASK;
+	opt->ACOC_threshold = data & BQ24725_ACOC_threshold_MASK;
+	opt->charge_inhibit = data & BQ24725_charge_inhibit_MASK;
 }
 
 struct BQ24725Config {
-    struct pin ACOK;
-    extcallback_t ACOK_cb;
-    I2CDriver *I2CD;
-    I2CPins   *I2CP;
-    ADCDriver *ADCD;
+	struct pin ACOK;
+	extcallback_t ACOK_cb;
+	I2CDriver *I2CD;
+	I2CPins   *I2CP;
+	ADCDriver *ADCD;
 };
 
 void BQ24725Start(struct BQ24725Config * conf);

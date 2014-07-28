@@ -8,10 +8,6 @@
 
 #include "utils_hal.h"
 
-#if !defined(ADIS_DEBUG) || defined(__DOXYGEN__)
-#define 	ADIS_DEBUG                   0
-#endif
-
 /* ADIS Register addresses */
 typedef enum {
 	// Name         address         default    function

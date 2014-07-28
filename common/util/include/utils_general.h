@@ -36,8 +36,8 @@
  */
 #define case_chprint(chp, val)\
 case val:\
-    chprintf(chp, #val);\
-    break;
+	chprintf(chp, #val);\
+	break;
 
 /* Utility for converting a struct to a network endian array and back
  * Create an array of swap structs using the SWAP_FIELD macro and pass
@@ -47,8 +47,8 @@ case val:\
 #define SWAP_FIELD(type, field) { offsetof(type, field), sizeof(((type *)0)->field) }
 
 struct swap {
-    size_t offset;
-    size_t length;
+	size_t offset;
+	size_t length;
 };
 
 void write_swapped(const struct swap *swaps, const void *data, uint8_t *buffer);

@@ -14,14 +14,14 @@
  * You probably wont need to create one of these.
  */
 struct RCICmdData{
-    const char * name;  // Name of the command
-    const char * data;  // Data segment of a received command
-    int len;            // Length of valid cmd_data
+	const char * name;  // Name of the command
+	const char * data;  // Data segment of a received command
+	int len;            // Length of valid cmd_data
 };
 
 struct RCIRetData{
-    char * const data;  // Output. Place data here to send to addr in from
-    int len;            // length of data in return_data. Max length is
+	char * const data;  // Output. Place data here to send to addr in from
+	int len;            // length of data in return_data. Max length is
                         // ETH_MTU from utils_socket.h
 };
 
@@ -30,9 +30,9 @@ typedef void (*rcicmd_t)(struct RCICmdData * cmd, struct RCIRetData * ret, void 
 
 /* Data type that ties an rcicmd name to a function */
 struct RCICommand{
-    const char *name;  // Command name
-    rcicmd_t function; // Command handler function to invoke
-    void * user;       // User data to pass to the function
+	const char *name;  // Command name
+	rcicmd_t function; // Command handler function to invoke
+	void * user;       // User data to pass to the function
 };
 
 /* Starts the RCI. Once a null terminated RCICommand array has been filled out,

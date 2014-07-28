@@ -24,30 +24,30 @@
 
 /** Set an IP address given by the four byte-parts */
 #define IPv4(a,b,c,d) \
-        HTONL( \
-            ((uint32_t)((a) & 0xff) << 24) | \
-            ((uint32_t)((b) & 0xff) << 16) | \
-            ((uint32_t)((c) & 0xff) << 8)  | \
-             (uint32_t)((d) & 0xff) \
-        )
+		HTONL( \
+			((uint32_t)((a) & 0xff) << 24) | \
+			((uint32_t)((b) & 0xff) << 16) | \
+			((uint32_t)((c) & 0xff) << 8)  | \
+			 (uint32_t)((d) & 0xff) \
+		)
 
 /* Returns a pointer to a filled anonymous struct sockaddr_in
  * suitable for direct use in bind() and connect()
  */
 #define make_addr(addr, port) \
 (const struct sockaddr *) &(const struct sockaddr_in){ \
-        .sin_family = AF_INET, \
-        .sin_port = HTONS((port)), \
-        .sin_addr = { (addr) } \
+		.sin_family = AF_INET, \
+		.sin_port = HTONS((port)), \
+		.sin_addr = { (addr) } \
 }
 
 /* Returns a pointer to a filled anonymous struct lwipthread_opts */
 #define make_lwipopts(mac, ip, nmask, gway) \
 &(struct lwipthread_opts){ \
-        .macaddress = (mac), \
-        .address = (ip), \
-        .netmask = (nmask), \
-        .gateway = (gway) \
+		.macaddress = (mac), \
+		.address = (ip), \
+		.netmask = (nmask), \
+		.gateway = (gway) \
 }
 
 /*
@@ -68,8 +68,8 @@ const struct sockaddr * FC_ADDR = make_addr(FC_IP, FC_LISTEN_PORT);
 #define SENSOR_IP IPv4(10, 10, 10, 20)
 #define SENSOR_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0x11}
 #define ADIS_PORT 35020 // ADIS16405
-#define MPU_PORT 35002  // MPU1950
-#define MPL_PORT 35010  // MPL3115A2
+#define MPU_PORT 35002	// MPU1950
+#define MPL_PORT 35010	// MPL3115A2
 
 struct lwipthread_opts * SENSOR_LWIP = make_lwipopts(SENSOR_MAC, SENSOR_IP, NETMASK, GATEWAY);
 const struct sockaddr *ADIS_ADDR = make_addr(SENSOR_IP, ADIS_PORT);
@@ -88,7 +88,7 @@ const struct sockaddr * ROLL_ADDR = make_addr(ROLL_IP, ROLL_PORT);
 #define RNH_IP IPv4(10, 10, 10, 5)
 #define RNH_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0xaa}
 #define RNH_BATTERY 36101 // Battery data
-#define RNH_PORT 36102    // Port data
+#define RNH_PORT 36102	  // Port data
 #define RNH_ALARM 36103   // Battery alarm
 #define RNH_UMBDET 36104  // Umbilical detect
 
@@ -115,7 +115,7 @@ const struct sockaddr * RTX_DIAG_ADDR = make_addr(RTX_IP, RTX_DIAG);
 /* Rocket Tracks Manual Control Box */
 #define RTXMAN_IP IPv4(10, 0, 0, 45)
 #define RTXMAN_MAC (uint8_t[6]){0xE6, 0x10, 0x20, 0x30, 0x40, 0xee}
-#define RTXMAN_OUT 36203     // Manual Control data
+#define RTXMAN_OUT 36203	 // Manual Control data
 #define RTXMAN_NEUTRAL 36204 // Axis Neutral listener
 #define RTXMAN_DIAG 36206 // Axis Neutral listener
 
