@@ -39,19 +39,23 @@ case val:\
 	chprintf(chp, #val);\
 	break;
 
+#define ARRAY_SIZE(array) sizeof(array)/sizeof((array)[0])
+
 /* Utility for converting a struct to a network endian array and back
  * Create an array of swap structs using the SWAP_FIELD macro and pass
  * that, the structure, and the array to one of the swapped functions
  */
 
-#define SWAP_FIELD(type, field) { offsetof(type, field), sizeof(((type *)0)->field) }
+#define SWAP_FIELD(type, field) { offsetof(type, field), sizeof(((type *)0)->field), 1}
+#define SWAP_ARRAY(type, field) { offsetof(type, field), sizeof(((type *)0)->field[0]), ARRAY_SIZE(((type *)0)->field)}
 
 struct swap {
 	size_t offset;
 	size_t length;
+	size_t elements;
 };
 
 void write_swapped(const struct swap *swaps, const void *data, uint8_t *buffer);
 void read_swapped(const struct swap *swaps, void *data, const uint8_t *buffer);
-int len_swapped(const struct swap *swaps);
+size_t len_swapped(const struct swap *swaps);
 #endif /* UTILS_GENERAL_H_ */
