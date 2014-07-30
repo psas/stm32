@@ -189,37 +189,42 @@ static void BQ24725_SetCharge(eventid_t id UNUSED){
 	BQ24725_SetChargeOption(&BQ24725_rocket_init);
 }
 
+
+static const struct swap BQ3060_swaps[] = {
+	SWAP_FIELD(struct BQ3060Data, Temperature),
+	SWAP_FIELD(struct BQ3060Data, TS1Temperature),
+	SWAP_FIELD(struct BQ3060Data, TS2Temperature),
+	SWAP_FIELD(struct BQ3060Data, TempRange),
+	SWAP_FIELD(struct BQ3060Data, Voltage),
+	SWAP_FIELD(struct BQ3060Data, Current),
+	SWAP_FIELD(struct BQ3060Data, AverageCurrent),
+	SWAP_FIELD(struct BQ3060Data, CellVoltage1),
+	SWAP_FIELD(struct BQ3060Data, CellVoltage2),
+	SWAP_FIELD(struct BQ3060Data, CellVoltage3),
+	SWAP_FIELD(struct BQ3060Data, CellVoltage4),
+	SWAP_FIELD(struct BQ3060Data, PackVoltage),
+	SWAP_FIELD(struct BQ3060Data, AverageVoltage),
+	{0},
+};
+
 static void BQ3060_SendData(eventid_t id UNUSED){
 	struct BQ3060Data data;
 	BQ3060_get_data(&data);
-	((uint16_t *)battery_socket.buffer)[0] = htons(data.Temperature);
-	((uint16_t *)battery_socket.buffer)[1] = htons(data.TS1Temperature);
-	((uint16_t *)battery_socket.buffer)[2] = htons(data.TS2Temperature);
-	((uint16_t *)battery_socket.buffer)[3] = htons(data.TempRange);
-	((uint16_t *)battery_socket.buffer)[4] = htons(data.Voltage);
-	((uint16_t *)battery_socket.buffer)[5] = htons(data.Current);
-	((uint16_t *)battery_socket.buffer)[6] = htons(data.AverageCurrent);
-	((uint16_t *)battery_socket.buffer)[7] = htons(data.CellVoltage1);
-	((uint16_t *)battery_socket.buffer)[8] = htons(data.CellVoltage2);
-	((uint16_t *)battery_socket.buffer)[9] = htons(data.CellVoltage3);
-	((uint16_t *)battery_socket.buffer)[10] = htons(data.CellVoltage4);
-	((uint16_t *)battery_socket.buffer)[11] = htons(data.PackVoltage);
-	((uint16_t *)battery_socket.buffer)[12] = htons(data.AverageVoltage);
-	seqWrite(&battery_socket, 13*2);
+	write_swapped(BQ3060_swaps, &data, battery_socket.buffer);
+	seqWrite(&battery_socket, len_swapped(BQ3060_swaps));
 }
+
+static const struct swap port_swaps[] = {
+	SWAP_ARRAY(struct rnhPortCurrent, current),
+	{0}
+};
 
 static void portCurrent_SendData(eventid_t id UNUSED){
 	struct rnhPortCurrent sample;
 	rnhPortGetCurrentData(&sample);
-	((uint16_t *)port_socket.buffer)[0] = htons(sample.current[0]);
-	((uint16_t *)port_socket.buffer)[1] = htons(sample.current[1]);
-	((uint16_t *)port_socket.buffer)[2] = htons(sample.current[2]);
-	((uint16_t *)port_socket.buffer)[3] = htons(sample.current[3]);
-	((uint16_t *)port_socket.buffer)[4] = htons(BQ24725_IMON());
-	((uint16_t *)port_socket.buffer)[5] = htons(sample.current[5]);
-	((uint16_t *)port_socket.buffer)[6] = htons(sample.current[6]);
-	((uint16_t *)port_socket.buffer)[7] = htons(sample.current[7]);
-	seqWrite(&port_socket, 8*2);
+	sample.current[4] = BQ24725_IMON();
+	write_swapped(port_swaps, &sample, port_socket.buffer);
+	seqWrite(&port_socket, len_swapped(port_swaps));
 }
 
 static void batteryFault_Handler(eventid_t id UNUSED) {
