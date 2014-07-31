@@ -69,53 +69,6 @@ void __early_init(void) {
 #define RMII_RCLKSEL (1<<7)
 #define BOARD_PHY_HARD_RESET_DELAY US2RTT(100)
 #define BOARD_PHY_RESET_DELAY
-/* mii_read, mii_write and MACMIIDR_CR copyied over from mac_lld */
-
-/* MII divider optimal value.*/
-#if (STM32_HCLK >= 150000000)
-#define MACMIIDR_CR ETH_MACMIIAR_CR_Div102
-#elif (STM32_HCLK >= 100000000)
-#define MACMIIDR_CR ETH_MACMIIAR_CR_Div62
-#elif (STM32_HCLK >= 60000000)
-#define MACMIIDR_CR     ETH_MACMIIAR_CR_Div42
-#elif (STM32_HCLK >= 35000000)
-#define MACMIIDR_CR     ETH_MACMIIAR_CR_Div26
-#elif (STM32_HCLK >= 20000000)
-#define MACMIIDR_CR     ETH_MACMIIAR_CR_Div16
-#else
-#error "STM32_HCLK below minimum frequency for ETH operations (20MHz)"
-#endif
-
-/**
- * @brief   Writes a PHY register.
- *
- * @param[in] macp      pointer to the @p MACDriver object
- * @param[in] reg       register number
- * @param[in] value     new register value
- */
-static void mii_write(MACDriver *macp, uint32_t reg, uint32_t value) {
-
-  ETH->MACMIIDR = value;
-  ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR |
-                  ETH_MACMIIAR_MW | ETH_MACMIIAR_MB;
-  while ((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
-    ;
-}
-
-/**
- * @brief   Reads a PHY register.
- *
- * @param[in] macp      pointer to the @p MACDriver object
- * @param[in] reg       register number
- *
- * @return              The PHY register content.
- */
-static uint32_t mii_read(MACDriver *macp, uint32_t reg) {
-  ETH->MACMIIAR = macp->phyaddr | (reg << 6) | MACMIIDR_CR | ETH_MACMIIAR_MB;
-  while ((ETH->MACMIIAR & ETH_MACMIIAR_MB) != 0)
-    ;
-  return ETH->MACMIIDR;
-}
 
 void mac_phy_reset(void){
   palSetPad(GPIOD, GPIOE_EPHY_NRST);

@@ -48,7 +48,6 @@ static const struct swap mpl_swaps[] = {
 static void adis_drdy_handler(eventid_t id UNUSED){
 	ADIS16405Data data;
 	adis_get_data(&data);
-
 	write_swapped(adis_swaps, &data, adis_socket.buffer);
 	seqWrite(&adis_socket, len_swapped(adis_swaps));
 }
@@ -56,7 +55,6 @@ static void adis_drdy_handler(eventid_t id UNUSED){
 static void mpl_drdy_handler(eventid_t id UNUSED){
 	struct MPL3115A2Data data;
 	MPL3115A2GetData(&data);
-
 	write_swapped(mpl_swaps, &data, mpl_socket.buffer);
 	seqWrite(&mpl_socket, len_swapped(mpl_swaps));
 }

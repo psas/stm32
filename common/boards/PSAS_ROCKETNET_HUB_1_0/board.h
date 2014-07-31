@@ -31,13 +31,14 @@
 #define BOARD_PSAS_ROCKETNET_HUB_1_0
 #define BOARD_NAME                  "PSAS Rocketnet Hub 1.0"
 
-#define  MII_KS8999_ID                       0x0
 /*
- * Ethernet PHY type.
+ * Ethernet PHY settings.
  */
-#define BOARD_PHY_ID                MII_KS8999_ID
-// #define BOARD_PHY_RMII
 
+#define MII_KS8999_ID                       0x0
+#define BOARD_PHY_ID                MII_KS8999_ID
+#define BOARD_PHY_RESET()
+#define BOARD_PHY_ALWAYS_LINKED
 /*
  * Board oscillators-related settings.
  */
