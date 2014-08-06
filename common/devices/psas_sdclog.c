@@ -15,10 +15,10 @@
 #include "hal.h"
 #include "chprintf.h"
 
-#include "chrtclib.h"
-#include "psas_rtc.h"
+//#include "chrtclib.h"
+//#include "psas_rtc.h"
 
-#include "MPU9150.h"
+//#include "MPU9150.h"
 
 #include "crc_16_reflect.h"
 #include "ff.h"
@@ -193,17 +193,18 @@ void sdc_remove_handler(eventid_t id) {
 
 	/*! \todo generate a mailbox event here */
 
-	/*! \todo test event message system */
-	ret = sdcDisconnect(&SDCD1);
-	if(ret) {
-		SDCDEBUG("sdcDiscon fail\r\n");   // this happens a lot!
-		ret = sdcDisconnect(&SDCD1);
-		if(ret) {
-			SDCDEBUG("sdcDiscon fail2\r\n");
-		}
-	}
-	sdc_reset_fp_index();
-	fs_ready = FALSE;
+	SDCDEBUG("remove...\r\n");
+    /*! \todo test event message system */
+    ret = sdcDisconnect(&SDCD1);
+    if(ret) {
+        SDCDEBUG("sdcDiscon fail\r\n");   // this happens a lot!
+        ret = sdcDisconnect(&SDCD1);
+        if(ret) {
+            SDCDEBUG("sdcDiscon fail2\r\n");
+        }
+    }
+    sdc_reset_fp_index();
+    fs_ready = FALSE;
 }
 
 /*! \brief used in cmd_tree function
