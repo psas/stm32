@@ -152,8 +152,8 @@ typedef struct
 	struct pin      spi_mosi;               /*! \brief The SPI MOSI wire */
 	struct pin      spi_miso;               /*! \brief The SPI MISO wire */
 	struct pin      spi_cs;                 /*! \brief The SPI CS wire */
-	SPIDriver   *   SPIDCONFIG;              /*! \brief the SPI configure driver */
-	SPIDriver   *   SPIDREAD;                /*! \brief the SPI read driver */
+	SPIDriver *     SPIDCONFIG;              /*! \brief the SPI configure driver */
+	SPIDriver *     SPIDREAD;                /*! \brief the SPI read driver */
 	struct pin      idle;                   /*! \brief low power idle */
 	struct pin      shdn;                   /*! \brief Shutdown device */
 	struct pin      q1_timesync;
@@ -163,21 +163,20 @@ typedef struct
 	struct pin      i1_clk_ser;
 	struct pin      i0_data_out;
 	struct pin      spi1_nss;
+	uint16_t *      bufs[2];
 } MAX2769Config;
 
-/*! \typedef MAX2769Data
- */
-typedef struct MAX2769Data
-{
-	uint32_t some_data_tbd;
-} MAX2769Data;
 
+#define GPS_BUFFER_SIZE 700
 
 extern const      MAX2769Config            max2769_gps;
+//FIXME: should be read_done
 extern            EventSource              MAX2769_write_done;
 
 void max2769_reset(void);
 void max2769_set(max2769_regaddr addr, uint32_t value);
+uint16_t * max2769_getdata(void);
+void max2769_donewithdata(void);
 
 void max2769_init(const MAX2769Config * conf);
 

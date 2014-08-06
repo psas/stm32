@@ -69,28 +69,30 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
 	spiReleaseBus(CONF->SPIDCONFIG);
 }
 
-#define GPS_BUF_SIZE 700
-static int16_t gps_buf1[GPS_BUF_SIZE];
-static int16_t gps_buf2[GPS_BUF_SIZE];
-static int16_t * frontbuf;
-static int16_t * backbuf;
-void max2769_read(void){
-	CONF->SPIDREAD->spi->CR1 |= SPI_CR1_SSI;
-	spiStartReceive(CONF->SPIDREAD, GPS_BUF_SIZE, gps_buf1);
+static bool frontbuf;
+static bool inuse;
+static void max2769_read(void){
+	spiStartReceive(CONF->SPIDREAD, 5, CONF->bufs[frontbuf]);
 }
 
-void spireadcb(SPIDriver *spip UNUSED){
-	if(frontbuf == gps_buf1){
-		frontbuf = gps_buf2;
-		backbuf = gps_buf1;
-	} else {
-		frontbuf = gps_buf1;
-		backbuf = gps_buf2;
+static void spireadcb(SPIDriver *spip UNUSED){
+	if(!inuse){
+		frontbuf = !frontbuf;
 	}
 	chSysLockFromIsr();
-	spiStartReceiveI(CONF->SPIDREAD, GPS_BUF_SIZE, frontbuf);
+	spiStartReceiveI(CONF->SPIDREAD, GPS_BUFFER_SIZE, CONF->bufs[frontbuf]);
 	chEvtBroadcastI(&MAX2769_write_done);
 	chSysUnlockFromIsr();
+}
+
+
+uint16_t * max2769_getdata(void){
+	inuse = true;
+	return CONF->bufs[!frontbuf];
+}
+
+void max2769_donewithdata(void){
+	inuse = false;
 }
 
 void max2769_init(const MAX2769Config * conf)
@@ -118,6 +120,10 @@ void max2769_init(const MAX2769Config * conf)
 	spiStart(conf->SPIDCONFIG, &spicfg);
 
 
+
+	palSetPadMode(conf->i1_clk_ser.port, conf->i1_clk_ser.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
+	palSetPadMode(conf->i0_data_out.port, conf->i0_data_out.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
+
 	static SPIConfig spiread =
 	{
 		.end_cb = spireadcb,
@@ -125,11 +131,11 @@ void max2769_init(const MAX2769Config * conf)
 	};
 	spiStart(conf->SPIDREAD, &spiread);
 	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_SPE;
-	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_MSTR;
+	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_MSTR & ~SPI_CR1_SSI;
 	conf->SPIDREAD->spi->CR1 |= SPI_CR1_SSM | SPI_CR1_RXONLY | SPI_CR1_CPHA;
-	conf->SPIDREAD->spi->CR1 &= SPI_CR1_SPE;
-
+	conf->SPIDREAD->spi->CR1 |= SPI_CR1_SPE;
 	CONF = conf;
+	max2769_read();
 }
 
 
