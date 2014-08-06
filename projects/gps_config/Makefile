@@ -23,6 +23,16 @@ ifeq ($(USE_LINK_GC),)
   USE_LINK_GC = yes
 endif
 
+# Linker extra options here.
+ifeq ($(USE_LDOPT),)
+  USE_LDOPT = 
+endif
+
+# Enable this if you want link time optimizations (LTO)
+ifeq ($(USE_LTO),)
+  USE_LTO = no
+endif
+
 # If enabled, this option allows to compile the application in THUMB mode.
 ifeq ($(USE_THUMB),)
   USE_THUMB = yes
@@ -41,15 +51,9 @@ endif
 # Architecture or project specific options
 #
 
-# Enables the use of FPU on Cortex-M4.
-# Enable this if you really want to use the STM FWLib.
+# Enables the use of FPU on Cortex-M4 (no, softfp, hard).
 ifeq ($(USE_FPU),)
   USE_FPU = no
-endif
-
-# Enable this if you really want to use the STM FWLib.
-ifeq ($(USE_FWLIB),)
-  USE_FWLIB = no
 endif
 
 #
@@ -68,7 +72,7 @@ PSAS= ../../common
 CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-BOARD ?= GPS_RF_FRONTEND_2
+BOARD ?= PSAS_GPS_RF_FRONTEND_2
 #BOARD ?= PSAS_OLIMEX_STM32_E407
 ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
     include $(CHIBIOS)/boards/$(BOARD)/board.mk
@@ -79,7 +83,6 @@ include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
 include $(CHIBIOS)/os/kernel/kernel.mk
-include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
 
 # Define linker script file here
 LDSCRIPT= $(PORTLD)/STM32F407xG.ld
@@ -98,14 +101,10 @@ CSRC = $(PORTSRC) \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
        $(PSAS_DEVICES)/MAX2769.c \
-       $(PSAS_DEVICES)/psas_sdclog.c \
-       $(PSAS_DEVICES)/psas_rtc.c \
-       $(PSAS_UTIL)/eventlogger.c \
        $(PSAS_UTIL)/utils_led.c \
        $(PSAS_UTIL)/utils_hal.c \
        $(PSAS_UTIL)/usbdetail.c \
        $(PSAS_UTIL)/utils_shell.c \
-       $(PSAS_UTIL)/crc_16_reflect.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -140,7 +139,7 @@ INCDIR = $(PORTINC) $(KERNINC) \
          $(FATFSINC) \
          $(CHIBIOS)/os/various \
          $(PSAS_DEVICES)/include \
-		 $(PSAS_COMMON) \
+         $(PSAS_COMMON) \
          $(CONF) \
          $(PSAS_UTIL)/include
 #
@@ -164,6 +163,7 @@ LD   = $(TRGT)gcc
 CP   = $(TRGT)objcopy
 AS   = $(TRGT)gcc -x assembler-with-cpp
 OD   = $(TRGT)objdump
+SZ   = $(TRGT)size
 HEX  = $(CP) -O ihex
 BIN  = $(CP) -O binary
 
@@ -178,7 +178,7 @@ CWARN = -Wall -Wextra -Wstrict-prototypes -Wdisabled-optimization \
 	-Wdouble-promotion -Wformat=2 -Wfloat-equal \
 	-Waggressive-loop-optimizations -Wunsafe-loop-optimizations \
 	-Waggregate-return -Wlogical-op -Wmissing-include-dirs \
-	-Wpointer-arith
+	-Wpointer-arith -Wredundant-decls 
 
 # Define C++ warning options here
 CPPWARN = -Wall -Wextra
@@ -215,9 +215,7 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-#UDEFS = -DMAX2769_SPI_DEBUG
 UDEFS =
-UDEFS += -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
 
 # Define ASM defines here
 UADEFS =
@@ -235,20 +233,6 @@ ULIBS =
 # End of user defines
 ##############################################################################
 
-ifeq ($(USE_FPU),yes)
-  USE_OPT += -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fsingle-precision-constant
-  DDEFS += -DCORTEX_USE_FPU=TRUE
-else
-  DDEFS += -DCORTEX_USE_FPU=FALSE
-endif
-
-ifeq ($(USE_FWLIB),yes)
-  include $(CHIBIOS)/ext/stm32lib/stm32lib.mk
-  CSRC += $(STM32SRC)
-  INCDIR += $(STM32INC)
-  USE_OPT += -DUSE_STDPERIPH_DRIVER
-endif
-
-include $(CHIBIOS)/os/ports/GCC/ARMCMx/rules.mk
+RULESPATH = $(CHIBIOS)/os/ports/GCC/ARMCMx
+include $(RULESPATH)/rules.mk
 include $(PSAS_RULES)
-

@@ -7,34 +7,22 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "eventlogger.h"
-#include "chprintf.h"
+#include "utils_general.h"
 #include "utils_led.h"
-#include "utils_shell.h"
-#include "usbdetail.h"
-
-#include "psas_rtc.h"
-#include "psas_sdclog.h"
-
 #include "MAX2769.h"
 static 	int conf3_state       =  MAX2769_CONF3_DEF;
 
-static void     max2769_config(void)
-{
-	BaseSequentialStream * chp;
-	chp = getUsbStream();
+static void max2769_config(void) {
 	int conf1       =  0;
 	int conf2       =  0;
 	int conf3       =  0;
 	int pllconf     =  0;
 	int pllidr      =  0;
 	int cfdr        =  0;
-	//chprintf(chp, "Reset MAX2769...\r\n");
+
 	max2769_reset();
-	//chprintf(chp, "Start configuration...\r\n");
 	// Configuration from Google doc MAX2769RegisterConfiguration
 	// CONF1
-
 	conf1 = (0b1            << MAX2769_CONF1_CHIPEN ) |
 	        (0b0            << MAX2769_CONF1_IDLE   ) |
 	        (0b1111         << MAX2769_CONF1_ILNA1  ) |
@@ -51,7 +39,6 @@ static void     max2769_config(void)
 	        (0b1            << MAX2769_CONF1_FCENX  ) |
 	        (0b1            << MAX2769_CONF1_FGAIN  );
 	max2769_set(MAX2769_CONF1, conf1 );
-	chprintf(chp, "\tCONF1:\t\t0x%x\r\n", conf1);
 	// CONF2
 	conf2 = (0b1            << MAX2769_CONF2_IQEN    ) |
 	        (0b10101010     << MAX2769_CONF2_GAINREF ) |
@@ -62,7 +49,6 @@ static void     max2769_config(void)
 	        (0b1            << MAX2769_CONF2_LOEN    ) |
 	        (0b00           << MAX2769_CONF2_DIEID   );
 	max2769_set(MAX2769_CONF2, conf2 );
-	chprintf(chp, "\tCONF2:\t\t0x%x\r\n", conf2);
 	// CONF3
 	conf3 = (0b111010       << MAX2769_CONF3_GAININ      ) |
 	        (0b1            << MAX2769_CONF3_FSLOWEN     ) |
@@ -75,22 +61,16 @@ static void     max2769_config(void)
 	        (0b1            << MAX2769_CONF3_PGAIEN      ) |
 	        (0b1            << MAX2769_CONF3_PGAQEN      ) |
 	        (0b1            << MAX2769_CONF3_STRMEN      ) |
-	        (0b0            << MAX2769_CONF3_STRMSTART   ) |
+	        (0b1            << MAX2769_CONF3_STRMSTART   ) |
 	        (0b0            << MAX2769_CONF3_STRMSTOP    ) |
 	        (0b000          << MAX2769_CONF3_STRMCOUNT   ) |
 	        (0b11           << MAX2769_CONF3_STRMBITS    ) |
 	        (0b0            << MAX2769_CONF3_STRMPEN     ) |
-	        (0b0            << MAX2769_CONF3_TIMESYNCEN  ) |
-	        (0b0            << MAX2769_CONF3_DATASYNCEN  ) |
+	        (0b1            << MAX2769_CONF3_TIMESYNCEN  ) |
+	        (0b1            << MAX2769_CONF3_DATASYNCEN  ) |
 	        (0b0            << MAX2769_CONF3_STRMRST     );
-
 	max2769_set(MAX2769_CONF3, conf3 );
 	conf3_state = conf3;
-	chprintf(chp, "\tCONF3:\t\t0x%x\r\n", conf3);
-
-	// clear conf3-STRMSTART
-	/*conf3 &= ~(0b1          << MAX2769_CONF3_STRMSTART   );*/
-	/*set conf3-STRMSTART*/
 	// PLLCONF
 	pllconf = (0b1          << MAX2769_PLL_VCOEN)    |
 	          (0b0          << MAX2769_PLL_IVCO)     |
@@ -105,173 +85,66 @@ static void     max2769_config(void)
 	          (0b1          << MAX2769_PLL_INT_PLL)  |
 	          (0b0          << MAX2769_PLL_PWRSAV);
 	max2769_set(MAX2769_PLLCONF, pllconf );
-	chprintf(chp, "\tPLLCONF:\t0x%x\r\n", pllconf);
 	// PLLIDR
 	pllidr = (1536          << MAX2769_PLLIDR_NDIV) |
 	         (16            << MAX2769_PLLIDR_RDIV);
 	max2769_set(MAX2769_PLLIDR, pllidr );
-	chprintf(chp, "\tPLLIDR:\t\t0x%x\r\n", pllidr);
 	// CFDR
 	cfdr = (256             << MAX2769_CFDR_L_CNT)   |
 	       (1563            << MAX2769_CFDR_M_CNT)   |
 	       (0               << MAX2769_CFDR_FCLKIN)  |
-	       (0               << MAX2769_CFDR_ADCCLK)  |
-	       (1               << MAX2769_CFDR_SERCLK)  |
+	       (1               << MAX2769_CFDR_ADCCLK)  |
+	       (0               << MAX2769_CFDR_SERCLK)  |
 	       (1               << MAX2769_CFDR_MODE);
-	max2769_set(MAX2769_CFDR, pllidr );
-	chprintf(chp, "\tCFDR:\t\t0x%x\r\n", cfdr);
-	//chprintf(chp, "End configuration...\r\n");
+	max2769_set(MAX2769_CFDR, cfdr );
 }
 
-static void max2769_streamstart(void) {
-	BaseSequentialStream * chp;
-	chp = getUsbStream();
-	int conf3       =  0;
 
-	conf3 = conf3_state |  (0b1 << MAX2769_CONF3_STRMSTART | 1 << MAX2769_CONF3_DATASYNCEN | 1 << MAX2769_CONF3_TIMESYNCEN );
-	max2769_set(MAX2769_CONF3, conf3 );
+uint16_t gpsbuf1[GPS_BUFFER_SIZE];
+uint16_t gpsbuf2[GPS_BUFFER_SIZE];
 
-	conf3_state = conf3;
-	chprintf(chp, "\tstart CONF3:\t\t0x%x\r\n", conf3);
-}
-
-static void max2769_streamstop(void) {
-	BaseSequentialStream * chp;
-	chp = getUsbStream();
-	int conf3       =  0;
-
-	conf3 = conf3_state |  (0b1 << MAX2769_CONF3_STRMSTOP );
-	max2769_set(MAX2769_CONF3, conf3 );
-
-	chprintf(chp, "\tstop CONF3:\t\t0x%x\r\n", conf3);
-}
-
-/*! \brief Configure max
- *
- * @param chp
- * @param argc
- * @param argv
- */
-static void cmd_mconfig(BaseSequentialStream * chp, int argc, char * argv[])
+static const MAX2769Config max2769 =
 {
-	(void)chp;
-	(void)argv;
-	if (argc > 0)
-	{
-		chprintf(chp, "Usage: configure\r\n");
-		return;
-	}
-	max2769_config();
+	.spi_sck     = {GPIOB, GPIOB_MAX_CFG_SCLK},
+	.spi_mosi    = {GPIOB, GPIOB_MAX_CFG_MOSI},
+	.spi_miso    = {GPIOB, GPIOB_MAX_CFG_MISO},
+	.spi_cs      = {GPIOE, GPIOE_MAX_CFG_CS},
+	.SPIDCONFIG  = &SPID2,
+	.SPIDREAD    = &SPID1,
+	.idle        = {GPIOE, GPIOE_MAX_IDLE},
+	.shdn        = {GPIOE, GPIOE_MAX_SHDN},
+	.q1_timesync = {GPIOE, GPIOE_TIMESYNC},
+	.q0_datasync = {GPIOE, GPIOE_DATASYNC},
+	.ld          = {GPIOB, GPIOB_LD},
+	.antflag     = {GPIOB, GPIOB_ANTFLAG},
+	.i1_clk_ser  = {GPIOA, GPIOA_CLK_SER},
+	.i0_data_out = {GPIOB, GPIOB_DATA_OUT},
+	.spi1_nss    = {GPIOA, GPIOA_PIN4},
+	.bufs        = {gpsbuf1, gpsbuf2},
+};
+
+
+static void gps_handler(eventid_t id UNUSED){
+	uint16_t *buf = max2769_getdata();
+	ledToggle(&RED);
+	max2769_donewithdata();
 }
 
-static void cmd_msstart(BaseSequentialStream * chp, int argc, char * argv[])
-{
-	(void)chp;
-	(void)argv;
-	if (argc > 0)
-	{
-		chprintf(chp, "Usage: msstart\r\n");
-		return;
-	}
-	max2769_streamstart();
-}
-
-static void cmd_msstop(BaseSequentialStream * chp, int argc, char * argv[])
-{
-	(void)chp;
-	(void)argv;
-	if (argc > 0)
-	{
-		chprintf(chp, "Usage: msstop\r\n");
-		return;
-	}
-	max2769_streamstop();
-}
-
-static WORKING_AREA(wa_thread_fake_data, 512);
-
-static msg_t fake_data_logger(void *_UNUSED) {
-    chRegSetThreadName("fake data logger");
-    char* coords = "44.97N93.26W";
-
-    while (TRUE) {
-        log_event("GPSC", (uint8_t*) coords, 13);
-        chThdSleepMilliseconds(10);
-    }
-
-    return -1;
-}
-
-void main(void)
-{
-
-    struct EventListener insertion_listener, removal_listener;
-
+void main(void) {
 	halInit();
 	chSysInit();
-
-	psas_rtc_lld_init();
 	ledStart(NULL);
 
-	/*! \brief GPS
-	  */
-	max2769_init(&max2769_gps);
+	max2769_init(&max2769);
+	max2769_config();
 
-	/*! \brief power to sd card is controlled by N transistor on PD0
-	  */
-	palClearPad(GPIOD, GPIOD_SD_VDD);
-
-    /*!
-     * Activates the SDC driver 1 using default
-     * configuration.
-     */
-    sdcStart(&SDCD1, NULL);
-
-    /*!
-     * Activates SD card insertion monitor & registers SD card events.
-     */
-    sdc_tmr_init(&SDCD1);
-    chEvtRegister(&sdc_inserted_event, &insertion_listener, 0);
-    chEvtRegister(&sdc_removed_event,  &removal_listener,   1);
-
-	/*!
-	 * Starts the eventlogger
-	 */
-	eventlogger_init();
-
-	const ShellCommand commands[] =
-	{
-		{"mem",     cmd_mem},
-		{"threads", cmd_threads},
-		{"mconfig", cmd_mconfig},
-		{"msstart", cmd_msstart},
-		{"msstop",  cmd_msstop},
-		{NULL, NULL}
-	};
-
-	usbSerialShellStart(commands);
-	//max2769_config();
 	/* Manage MAX2769 events */
-	//struct EventListener ddone;
-	static const evhandler_t evhndl[] =
-	{
-		sdc_insert_handler,
-		sdc_remove_handler
+	struct EventListener ddone;
+	static const evhandler_t evhndl[] = {
+		gps_handler
 	};
-
-    // It is possible the card is already inserted. Check now by calling insert handler directly.
-    sdc_insert_handler(0);
-
-    chThdCreateStatic( wa_thread_fake_data
-                     , sizeof(wa_thread_fake_data)
-                     , NORMALPRIO
-                     , fake_data_logger
-                     , NULL
-                     );
-
-
-	while(TRUE)
-	{
+	chEvtRegister(&MAX2769_write_done, &ddone, 0);
+	while(TRUE) {
 		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}
 }
