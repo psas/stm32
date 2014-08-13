@@ -183,7 +183,7 @@
 #define STM32_MAC_ETH1_CHANGE_PHY_STATE     FALSE
 #define STM32_MAC_ETH1_IRQ_PRIORITY         13
 #define STM32_MAC_IP_CHECKSUM_OFFLOAD       0
-
+#define STM32_MAC_DMABMR_SR                 TRUE
 /*
  * PWM driver system settings.
  */
