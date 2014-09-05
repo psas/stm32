@@ -141,7 +141,7 @@ static void gps_handler(eventid_t id UNUSED){
 void main(void) {
 	halInit();
 	chSysInit();
-//	ledStart(NULL);
+	ledStart(NULL);
 
 	max2769_init(&max2769);
 	max2769_config();
@@ -152,7 +152,6 @@ void main(void) {
 		gps_handler
 	};
 	chEvtRegister(&MAX2769_write_done, &ddone, 0);
-	ledOn(&LED4);
 	while(TRUE) {
 		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}
