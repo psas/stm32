@@ -47,6 +47,8 @@
 #define STM32_PLLM_VALUE                    12
 #elif defined BOARD_PSAS_RTX_CONTROLLER
 #define STM32_PLLM_VALUE                    25
+#elif defined BOARD_PSAS_GPS_RF_FRONTEND_2
+#define STM32_PLLM_VALUE                    25
 #endif
 #define STM32_PLLN_VALUE                    336
 #define STM32_PLLP_VALUE                    2

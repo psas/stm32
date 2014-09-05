@@ -22,6 +22,8 @@ const struct led LED = {GPIOD, GPIO_D12_RGB_G};
 const struct led LED = {GPIOC, GPIOC_LED};
 #elif defined BOARD_PSAS_RTX_CONTROLLER /* PSAS RTX Controller */
 const struct led LED = {GPIOE, GPIOE_PIN1};
+#elif defined BOARD_PSAS_GPS_RF_FRONTEND_2
+const struct led LED = {GPIOD, GPIOD_RGB_R};
 #endif
 
 
