@@ -20,25 +20,6 @@ static const MAX2769Config * CONF;
 
 EVENTSOURCE_DECL(MAX2769_write_done);
 
-const MAX2769Config max2769_gps =
-{
-	.spi_sck     = {GPIOB, GPIOB_MAX_CFG_SCLK},
-	.spi_mosi    = {GPIOB, GPIOB_MAX_CFG_MOSI},
-	.spi_miso    = {GPIOB, GPIOB_MAX_CFG_MISO},
-	.spi_cs      = {GPIOE, GPIOE_MAX_CFG_CS},
-	.SPIDCONFIG  = &SPID2,
-	.SPIDREAD    = &SPID1,
-	.idle        = {GPIOE, GPIOE_MAX_IDLE},
-	.shdn        = {GPIOE, GPIOE_MAX_SHDN},
-	.q1_timesync = {GPIOE, GPIOE_TIMESYNC},
-	.q0_datasync = {GPIOE, GPIOE_DATASYNC},
-	.ld          = {GPIOB, GPIOB_LD},
-	.antflag     = {GPIOB, GPIOB_ANTFLAG},
-	.i1_clk_ser  = {GPIOA, GPIOA_CLK_SER},
-	.i0_data_out = {GPIOB, GPIOB_DATA_OUT},
-	.spi1_nss    = {GPIOA, GPIOA_PIN4}
-};
-
 /*! \brief Reset the MAX2769
  *
  * Theory: No reset on MAX2769, but there is a shutdown pin
