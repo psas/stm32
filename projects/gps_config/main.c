@@ -7,6 +7,8 @@
 #include "ch.h"
 #include "hal.h"
 
+#include "net_addrs.h"
+#include "utils_sockets.h"
 #include "utils_general.h"
 #include "utils_led.h"
 #include "MAX2769.h"
@@ -132,9 +134,10 @@ static const MAX2769Config max2769 =
 };
 
 
+int gps_socket;
 static void gps_handler(eventid_t id UNUSED){
 	uint16_t *buf = max2769_getdata();
-	ledToggle(&RED);
+	write(gps_socket, buf, GPS_BUFFER_SIZE);
 	max2769_donewithdata();
 }
 
@@ -143,6 +146,9 @@ void main(void) {
 	chSysInit();
 	ledStart(NULL);
 
+	lwipThreadStart(GPS_LWIP);
+	gps_socket = get_udp_socket(GPS_OUT_ADDR);
+	connect(gps_socket, FC_ADDR, sizeof(struct sockaddr));
 	max2769_init(&max2769);
 	max2769_config();
 
