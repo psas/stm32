@@ -36,7 +36,7 @@ void main(void)
 	halInit();
 	chSysInit();
 	ledStart(NULL);
-	max2769_init(&max2769_gps);
+	max2769_init(&max2769);
 	const ShellCommand commands[] =
 	{
 		{"mem", cmd_mem},
