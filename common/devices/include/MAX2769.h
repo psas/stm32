@@ -169,7 +169,6 @@ typedef struct
 
 #define GPS_BUFFER_SIZE 700
 
-extern const      MAX2769Config            max2769_gps;
 //FIXME: should be read_done
 extern            EventSource              MAX2769_write_done;
 
