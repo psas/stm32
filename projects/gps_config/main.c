@@ -14,7 +14,7 @@
 #include "MAX2769.h"
 
 static void max2769_config(void) {
-	max2769_reset();
+	//max2769_reset();
 
 	// Configuration from Google doc MAX2769RegisterConfiguration
 	uint32_t conf1 =
@@ -37,7 +37,7 @@ static void max2769_config(void) {
 	uint32_t conf2 =
 		(0b1            << MAX2769_CONF2_IQEN   ) |
 		(0b10101010     << MAX2769_CONF2_GAINREF) |
-		(0b00           << MAX2769_CONF2_AGCMODE) |
+		(0b01           << MAX2769_CONF2_AGCMODE) |
 		(0b01           << MAX2769_CONF2_FORMAT ) |
 		(0b010          << MAX2769_CONF2_BITS   ) |
 		(0b00           << MAX2769_CONF2_DRVCFG ) |
@@ -45,7 +45,7 @@ static void max2769_config(void) {
 		(0b00           << MAX2769_CONF2_DIEID  );
 
 	uint32_t conf3 =
-		(0b111010       << MAX2769_CONF3_GAININ    ) |
+		(0b111111       << MAX2769_CONF3_GAININ    ) |
 		(0b1            << MAX2769_CONF3_FSLOWEN   ) |
 		(0b0            << MAX2769_CONF3_HILOADEN  ) |
 		(0b1            << MAX2769_CONF3_ADCEN     ) |
@@ -55,12 +55,12 @@ static void max2769_config(void) {
 		(0b1            << MAX2769_CONF3_FHIPEN    ) |
 		(0b1            << MAX2769_CONF3_PGAIEN    ) |
 		(0b1            << MAX2769_CONF3_PGAQEN    ) |
-		(0b1            << MAX2769_CONF3_STRMEN    ) |
+		(0b0            << MAX2769_CONF3_STRMEN    ) |
 		(0b0            << MAX2769_CONF3_STRMSTART ) |
 		(0b0            << MAX2769_CONF3_STRMSTOP  ) |
 		(0b000          << MAX2769_CONF3_STRMCOUNT ) |
 		(0b11           << MAX2769_CONF3_STRMBITS  ) |
-		(0b0            << MAX2769_CONF3_STAMPEN   ) |
+		(0b1            << MAX2769_CONF3_STAMPEN   ) |
 		(0b1            << MAX2769_CONF3_TIMESYNCEN) |
 		(0b1            << MAX2769_CONF3_DATASYNCEN) |
 		(0b0            << MAX2769_CONF3_STRMRST   );
@@ -84,28 +84,34 @@ static void max2769_config(void) {
 		(16           << MAX2769_PLLIDR_RDIV);
 
 	uint32_t cfdr =
-		(256          << MAX2769_CFDR_L_CNT ) |
-		(1563         << MAX2769_CFDR_M_CNT ) |
-		(0            << MAX2769_CFDR_FCLKIN) |
-		(1            << MAX2769_CFDR_ADCCLK) |
+		(512         << MAX2769_CFDR_L_CNT ) |
+		(512         << MAX2769_CFDR_M_CNT ) |
+		(1            << MAX2769_CFDR_FCLKIN) |
+		(0            << MAX2769_CFDR_ADCCLK) |
 		(0            << MAX2769_CFDR_SERCLK) |
 		(1            << MAX2769_CFDR_MODE  );
 
-
+/*
 	max2769_set(MAX2769_CONF1, MAX2769_CONF1_DEF);
 	max2769_set(MAX2769_CONF2, MAX2769_CONF2_DEF);
 	max2769_set(MAX2769_CONF3, MAX2769_CONF3_DEF);
 	max2769_set(MAX2769_PLLCONF, MAX2769_PLLCONF_DEF);
 	max2769_set(MAX2769_PLLIDR, MAX2769_PLLIDR_DEF);
 	max2769_set(MAX2769_CFDR, MAX2769_CFDR_DEF);
-
+	max2769_set(MAX2769_STRM, MAX2769_STRM_DEF);
+*/
+	max2769_set(MAX2769_STRM, 0x0fffffff);
 	max2769_set(MAX2769_CONF1, conf1);
 	max2769_set(MAX2769_CONF2, conf2);
-	max2769_set(MAX2769_CONF3, conf3);
 	max2769_set(MAX2769_PLLCONF, pllconf);
 	max2769_set(MAX2769_PLLIDR, pllidr);
 	max2769_set(MAX2769_CFDR, cfdr);
+
+	max2769_set(MAX2769_CONF3, conf3);
+
+	max2769_set(MAX2769_CONF3, conf3 | (0b1 << MAX2769_CONF3_STRMRST));
 	max2769_set(MAX2769_CONF3, conf3 | (0b1 << MAX2769_CONF3_STRMSTART));
+//	max2769_set(MAX2769_CONF3, conf3 | (0b1 << MAX2769_CONF3_STRMSTOP));
 }
 
 
@@ -141,12 +147,30 @@ static void gps_handler(eventid_t id UNUSED){
 	max2769_donewithdata();
 }
 
+PWMConfig pwmcfg = {
+	84000000,    /* Frequency */
+	2, /* Period */
+	NULL,            /* Callback (Not used here) */
+	{
+		{PWM_OUTPUT_ACTIVE_HIGH, NULL},
+		{PWM_OUTPUT_DISABLED, NULL},
+		{PWM_OUTPUT_DISABLED, NULL},
+		{PWM_OUTPUT_DISABLED, NULL}, /* Only channel 4 enabled */
+	},
+	/* STM32 Specific config options */
+	0, /* TIM_CR2  */
+	0  /* TIM_DIER */
+};
 void main(void) {
 	halInit();
 	chSysInit();
 	ledStart(NULL);
 
 	lwipThreadStart(GPS_LWIP);
+
+	pwmStart(&PWMD9, &pwmcfg);
+	pwmEnableChannel(&PWMD9, 0, 1);
+
 	gps_socket = get_udp_socket(GPS_OUT_ADDR);
 	connect(gps_socket, FC_ADDR, sizeof(struct sockaddr));
 	max2769_init(&max2769);
