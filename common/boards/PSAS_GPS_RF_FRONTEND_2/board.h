@@ -241,7 +241,7 @@ void mac_phy_reset(void);
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_MDIO   ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_MDINT       ) |\
                                      PIN_PUPDR_PULLUP(GPIOA_PIN4             ) |\
-                                     PIN_PUPDR_PULLUP(GPIOA_CLK_SER             ) |\
+                                     PIN_PUPDR_FLOATING(GPIOA_CLK_SER             ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_PIN6             ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_CRS_DV      ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_MCO1_ETH_CLK       ) |\
@@ -348,7 +348,7 @@ void mac_phy_reset(void);
                                      PIN_PUPDR_PULLUP( GPIOB_LD      ) |\
                                      PIN_PUPDR_FLOATING( GPIOB_JTAG_TDO   ) |\
                                      PIN_PUPDR_FLOATING( GPIOB_PIN4  ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_DATA_OUT         ) |\
+                                     PIN_PUPDR_FLOATING( GPIOB_DATA_OUT         ) |\
                                      PIN_PUPDR_PULLUP  ( GPIOB_PIN6    ) |\
                                      PIN_PUPDR_PULLUP  ( GPIOB_PIN7    ) |\
                                      PIN_PUPDR_PULLUP( GPIOB_PIN8  ) |\
