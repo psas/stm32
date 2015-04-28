@@ -68,96 +68,95 @@ void mac_phy_reset(void);
  * IO pins assignments.
  */
 //      GPIO_PORTPIN_FUNCTION
-#define GPIOA_PIN0                    0
+#define GPIOA_PIN0                    0    // NC
 #define GPIOA_ETH_RMII_REF_CLK        1
 #define GPIOA_ETH_RMII_MDIO           2
 #define GPIOA_ETH_RMII_MDINT          3
-#define GPIOA_PIN4                    4
-#define GPIOA_CLK_SER                 5
-#define GPIOA_PIN6                    6
+#define GPIOA_CPLD_OUT_SPI1_NSS       4
+#define GPIOA_CPLD_OUT_SPI1_SCK       5
+#define GPIOA_PIN6                    6    // NC
 #define GPIOA_ETH_RMII_CRS_DV         7
 #define GPIOA_MCO1_ETH_CLK            8
 #define GPIOA_OTG_FS_VBUS             9
-#define GPIOA_PIN10                   10
+#define GPIOA_CPLD_RESET              10
 #define GPIOA_OTG_FS_DM               11
 #define GPIOA_OTG_FS_DP               12
 #define GPIOA_JTAG_TMS                13
 #define GPIOA_JTAG_TCK                14
 #define GPIOA_JTAG_TDI                15
 
-#define GPIOB_PIN0                    0
-#define GPIOB_ANTFLAG                1
+#define GPIOB_PIN0                    0    // NC TP38
+#define GPIOB_ANTFLAG                 1
 #define GPIOB_LD                      2
 #define GPIOB_JTAG_TDO                3
-#define GPIOB_PIN4                    4
-#define GPIOB_DATA_OUT                5
-#define GPIOB_PIN6                    6
-#define GPIOB_PIN7                    7
-#define GPIOB_PIN8                    8
-#define GPIOB_PIN9                    9
-#define GPIOB_PIN10                    10
+#define GPIOB_PIN4                    4    // NC
+#define GPIOB_CPLD_OUT_SPI1_MOSI      5
+#define GPIOB_PIN6                    6    // NC
+#define GPIOB_PIN7                    7    // NC
+#define GPIOB_PIN8                    8    // NC
+#define GPIOB_PIN9                    9    // NC
 #define GPIOB_MAX_CFG_SCLK            10
 #define GPIOB_ETH_RMII_TX_EN          11
 #define GPIOB_ETH_RMII_TXD0           12
 #define GPIOB_ETH_RMII_TXD1           13
-#define GPIOB_PIN14                   14
-#define GPIOB_MAX_CFG_MISO            14
-#define GPIOB_PIN15                   15
+#define GPIOB_CPLD_OUT_SPI_CLK_SRC    14
 #define GPIOB_MAX_CFG_MOSI            15
 
-#define GPIOC_PIN0                    0
+#define GPIOC_PIN0                    0     // NC
 #define GPIOC_ETH_RMII_MDC            1
-#define GPIOC_PIN2                    2
-#define GPIOC_PIN3                    3
+#define GPIOC_PIN2                    2    // NC
+#define GPIOC_PIN3                    3    // NC
 #define GPIOC_ETH_RMII_RXD0           4
 #define GPIOC_ETH_RMII_RXD1           5
-#define GPIOC_USART6_TX               6
-#define GPIOC_USART6_RX               7
+#define GPIOC_USART6_TX               6    // To SKYTRAQ GPS
+#define GPIOC_USART6_RX               7    // To SKYTRAQ GPS
 #define GPIOC_SD_D0                   8
 #define GPIOC_SD_D1                   9
 #define GPIOC_SD_D2                   10
 #define GPIOC_SD_D3                   11
 #define GPIOC_SD_CLK                  12
-#define GPIOC_PIN13                   13
-#define GPIOC_PIN14                   14
-#define GPIOC_PIN15                   15
+#define GPIOC_PIN13                   13   // NC
+#define GPIOC_PIN14                   14   // NC
+#define GPIOC_PIN15                   15   // NC
 
 #define GPIOD_SD_VDD                  0
-#define GPIOD_PIN1                    1
+#define GPIOD_PIN1                    1   // NC
 #define GPIOD_SD_CMD                  2
 #define GPIOD_EPHY_NRST               3
-#define GPIOD_PIN4                    4
-#define GPIOD_PIN5                    5
-#define GPIOD_PIN6                    6
-#define GPIOD_PIN7                    7
+#define GPIOD_PIN4                    4    // NC
+#define GPIOD_PIN5                    5   // TP35
+#define GPIOD_PIN6                    6   // NC
+#define GPIOD_PIN7                    7   // TP36
 #define GPIOD_LED2                    8
 #define GPIOD_LED4                    9
 #define GPIOD_LED5                    10
-#define GPIOD_RGB_R                   11
-#define GPIOD_PIN12                   12
-#define GPIOD_RGB_B                   13
+#define GPIOD_RGB_B                   11
+#define GPIOD_CPLD_DEBUG              12
+#define GPIOD_RGB_R                   13
 #define GPIOD_RGB_G                   14
-#define GPIOD_PIN15                   15
+#define GPIOD_PIN15                   15  // NC
 
-#define GPIOE_PIN0                    0
-#define GPIOE_PIN1                    1
-#define GPIOE_PIN2                    2
-#define GPIOE_PIN3                    3
-#define GPIOE_PIN4                    4
-#define GPIOE_PIN5                    5
-#define GPIOE_PIN6                    6
-#define GPIOE_TIMESYNC                7
-#define GPIOE_PIN8                    8
-#define GPIOE_DATASYNC                9
+#define GPIOE_PIN0                    0    // NC
+#define GPIOE_PIN1                    1    // NC
+#define GPIOE_ETH_DEBUG               2
+#define GPIOE_PIN3                    3   // TP39
+#define GPIOE_PIN4                    4   // NC
+#define GPIOE_PIN5                    5   // TP40
+#define GPIOE_PIN6                    6   // NC
+#define GPIOE_TIMESYNC                7   // NC
+#define GPIOE_PIN8                    8   // NC
+#define GPIOE_DATASYNC                9   // NC
 #define GPIOE_MAX_SHDN                10
 #define GPIOE_MAX_IDLE                11
 #define GPIOE_MAX_CFG_CS              12
-#define GPIOE_MAX_CFG_CLK             13
-#define GPIOE_MAX_CFG_MOSI            14
+#define GPIOE_PIN13                   13
+#define GPIOE_PIN14                   14
 #define GPIOE_PIN15                   15
 
 #define GPIOH_OSC_IN                0
 #define GPIOH_OSC_OUT               1
+
+// Mon 27 April 2015 21:00:18 (PDT) Checked above against schematic
 
 /*
  * I/O ports initial setup, this configuration is established soon after reset
@@ -186,16 +185,16 @@ void mac_phy_reset(void);
  *
  */
 #define VAL_GPIOA_MODER             (PIN_MODE_INPUT(GPIOA_PIN0)               |\
-                                     PIN_MODE_ALTERNATE(GPIOA_ETH_RMII_REF_CLK)|\
-                                     PIN_MODE_ALTERNATE(GPIOA_ETH_RMII_MDIO)  |\
+                                     PIN_MODE_INPUT(GPIOA_ETH_RMII_REF_CLK)|\
+                                     PIN_MODE_INPUT(GPIOA_ETH_RMII_MDIO)  |\
                                      PIN_MODE_INPUT(GPIOA_ETH_RMII_MDINT)     |\
-                                     PIN_MODE_INPUT(GPIOA_PIN4)               |\
-                                     PIN_MODE_INPUT(GPIOA_CLK_SER)            |\
+                                     PIN_MODE_INPUT(GPIOA_CPLD_OUT_SPI1_NSS)               |\
+                                     PIN_MODE_INPUT(GPIOA_CPLD_OUT_SPI1_SCK)            |\
                                      PIN_MODE_INPUT(GPIOA_PIN6)               |\
-                                     PIN_MODE_ALTERNATE(GPIOA_ETH_RMII_CRS_DV)|\
-                                     PIN_MODE_ALTERNATE(GPIOA_MCO1_ETH_CLK)      |\
+                                     PIN_MODE_INPUT(GPIOA_ETH_RMII_CRS_DV)|\
+                                     PIN_MODE_INPUT(GPIOA_MCO1_ETH_CLK)      |\
                                      PIN_MODE_ALTERNATE(GPIOA_OTG_FS_VBUS )   |\
-                                     PIN_MODE_INPUT(GPIOA_PIN10)              |\
+                                     PIN_MODE_INPUT(GPIOA_CPLD_RESET)              |\
                                      PIN_MODE_ALTERNATE(GPIOA_OTG_FS_DM)      |\
                                      PIN_MODE_ALTERNATE(GPIOA_OTG_FS_DP)      |\
                                      PIN_MODE_ALTERNATE(GPIOA_JTAG_TMS)       |\
@@ -206,13 +205,13 @@ void mac_phy_reset(void);
                                      PIN_OTYPE_PUSHPULL(GPIOA_ETH_RMII_REF_CLK)|\
                                      PIN_OTYPE_PUSHPULL(GPIOA_ETH_RMII_MDIO)  |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_ETH_RMII_MDINT) |\
-                                     PIN_OTYPE_PUSHPULL(GPIOA_PIN4)           |\
-                                     PIN_OTYPE_PUSHPULL(GPIOA_CLK_SER)        |\
+                                     PIN_OTYPE_PUSHPULL(GPIOA_CPLD_OUT_SPI1_NSS)           |\
+                                     PIN_OTYPE_PUSHPULL(GPIOA_CPLD_OUT_SPI1_SCK)        |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_PIN6)           |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_ETH_RMII_CRS_DV)|\
                                      PIN_OTYPE_PUSHPULL(GPIOA_MCO1_ETH_CLK)   |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_OTG_FS_VBUS)    |\
-                                     PIN_OTYPE_PUSHPULL(GPIOA_PIN10)          |\
+                                     PIN_OTYPE_PUSHPULL(GPIOA_CPLD_RESET)          |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_OTG_FS_DM)      |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_OTG_FS_DP)      |\
                                      PIN_OTYPE_PUSHPULL(GPIOA_JTAG_TMS)       |\
@@ -223,13 +222,13 @@ void mac_phy_reset(void);
                                      PIN_OSPEED_100M(GPIOA_ETH_RMII_REF_CLK ) |\
                                      PIN_OSPEED_100M(GPIOA_ETH_RMII_MDIO)     |\
                                      PIN_OSPEED_100M(GPIOA_ETH_RMII_MDINT)    |\
-                                     PIN_OSPEED_100M(GPIOA_PIN4             ) |\
-                                     PIN_OSPEED_100M(GPIOA_CLK_SER             ) |\
+                                     PIN_OSPEED_100M(GPIOA_CPLD_OUT_SPI1_NSS             ) |\
+                                     PIN_OSPEED_100M(GPIOA_CPLD_OUT_SPI1_SCK             ) |\
                                      PIN_OSPEED_100M(GPIOA_PIN6             ) |\
                                      PIN_OSPEED_100M(GPIOA_ETH_RMII_CRS_DV      ) |\
                                      PIN_OSPEED_100M(GPIOA_MCO1_ETH_CLK       ) |\
                                      PIN_OSPEED_100M(GPIOA_OTG_FS_VBUS        ) |\
-                                     PIN_OSPEED_100M(GPIOA_PIN10       ) |\
+                                     PIN_OSPEED_100M(GPIOA_CPLD_RESET       ) |\
                                      PIN_OSPEED_100M(GPIOA_OTG_FS_DM            ) |\
                                      PIN_OSPEED_100M(GPIOA_OTG_FS_DP            ) |\
                                      PIN_OSPEED_100M(GPIOA_JTAG_TMS      ) |\
@@ -237,16 +236,16 @@ void mac_phy_reset(void);
                                      PIN_OSPEED_100M(GPIOA_JTAG_TDI))
 
 #define VAL_GPIOA_PUPDR             (PIN_PUPDR_PULLUP(GPIOA_PIN0       ) |\
-                                     PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_REF_CLK       ) |\
-                                     PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_MDIO   ) |\
-                                     PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_MDINT       ) |\
-                                     PIN_PUPDR_PULLUP(GPIOA_PIN4             ) |\
-                                     PIN_PUPDR_PULLUP(GPIOA_CLK_SER             ) |\
+                                     PIN_PUPDR_PULLUP(GPIOA_ETH_RMII_REF_CLK       ) |\
+                                     PIN_PUPDR_PULLUP(GPIOA_ETH_RMII_MDIO   ) |\
+                                     PIN_PUPDR_PULLUP(GPIOA_ETH_RMII_MDINT       ) |\
+                                     PIN_PUPDR_PULLUP(GPIOA_CPLD_OUT_SPI1_NSS             ) |\
+                                     PIN_PUPDR_PULLUP(GPIOA_CPLD_OUT_SPI1_SCK             ) |\
                                      PIN_PUPDR_PULLUP(GPIOA_PIN6             ) |\
-                                     PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_CRS_DV      ) |\
-                                     PIN_PUPDR_FLOATING(GPIOA_MCO1_ETH_CLK       ) |\
+                                     PIN_PUPDR_PULLUP(GPIOA_ETH_RMII_CRS_DV      ) |\
+                                     PIN_PUPDR_PULLUP(GPIOA_MCO1_ETH_CLK       ) |\
                                      PIN_PUPDR_PULLDOWN(GPIOA_OTG_FS_VBUS        ) |\
-                                     PIN_PUPDR_PULLUP  (GPIOA_PIN10       ) |\
+                                     PIN_PUPDR_PULLUP  (GPIOA_CPLD_RESET       ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_OTG_FS_DM            ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_OTG_FS_DP            ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_JTAG_TMS      ) |\
@@ -257,13 +256,13 @@ void mac_phy_reset(void);
                                      PIN_ODR_HIGH(GPIOA_ETH_RMII_REF_CLK             ) |\
                                      PIN_ODR_HIGH(GPIOA_ETH_RMII_MDIO         ) |\
                                      PIN_ODR_HIGH(GPIOA_ETH_RMII_MDINT             ) |\
-                                     PIN_ODR_HIGH(GPIOA_PIN4                   ) |\
-                                     PIN_ODR_HIGH(GPIOA_CLK_SER                   ) |\
+                                     PIN_ODR_HIGH(GPIOA_CPLD_OUT_SPI1_NSS                   ) |\
+                                     PIN_ODR_HIGH(GPIOA_CPLD_OUT_SPI1_NSS                   ) |\
                                      PIN_ODR_HIGH(GPIOA_PIN6                   ) |\
                                      PIN_ODR_HIGH(GPIOA_ETH_RMII_CRS_DV            ) |\
                                      PIN_ODR_HIGH(GPIOA_MCO1_ETH_CLK             ) |\
                                      PIN_ODR_HIGH(GPIOA_OTG_FS_VBUS              ) |\
-                                     PIN_ODR_HIGH(GPIOA_PIN10             ) |\
+                                     PIN_ODR_HIGH(GPIOA_CPLD_RESET             ) |\
                                      PIN_ODR_HIGH(GPIOA_OTG_FS_DM                  ) |\
                                      PIN_ODR_HIGH(GPIOA_OTG_FS_DP                  ) |\
                                      PIN_ODR_HIGH(GPIOA_JTAG_TMS            ) |\
@@ -274,14 +273,14 @@ void mac_phy_reset(void);
                                      PIN_AFIO_AF( GPIOA_ETH_RMII_REF_CLK        , 11  )  |\
                                      PIN_AFIO_AF( GPIOA_ETH_RMII_MDIO    , 11  )  |\
                                      PIN_AFIO_AF( GPIOA_ETH_RMII_MDINT        , 0  )  |\
-                                     PIN_AFIO_AF( GPIOA_PIN4              , 0  )  |\
-                                     PIN_AFIO_AF( GPIOA_CLK_SER              , 0  )  |\
+                                     PIN_AFIO_AF( GPIOA_CPLD_OUT_SPI1_NSS              , 0  )  |\
+                                     PIN_AFIO_AF( GPIOA_CPLD_OUT_SPI1_SCK              , 0  )  |\
                                      PIN_AFIO_AF( GPIOA_PIN6              , 0  )  |\
                                      PIN_AFIO_AF( GPIOA_ETH_RMII_CRS_DV       , 11  ))
 
 #define VAL_GPIOA_AFRH              (PIN_AFIO_AF( GPIOA_MCO1_ETH_CLK        , 0  )  |\
                                      PIN_AFIO_AF( GPIOA_OTG_FS_VBUS         , 0  )  |\
-                                     PIN_AFIO_AF( GPIOA_PIN10        , 0  )  |\
+                                     PIN_AFIO_AF( GPIOA_CPLD_RESET        , 0  )  |\
                                      PIN_AFIO_AF( GPIOA_OTG_FS_DM             , 10  )  |\
                                      PIN_AFIO_AF( GPIOA_OTG_FS_DP             , 10  )  |\
                                      PIN_AFIO_AF( GPIOA_JTAG_TMS       , 0  )  |\
@@ -292,108 +291,110 @@ void mac_phy_reset(void);
  * GPIOB setup:
  *
  */
-#define VAL_GPIOB_MODER             (PIN_MODE_INPUT    ( GPIOB_PIN0  ) |\
-                                     PIN_MODE_INPUT    ( GPIOB_ANTFLAG  ) |\
-                                     PIN_MODE_INPUT    ( GPIOB_LD      ) |\
-                                     PIN_MODE_ALTERNATE( GPIOB_JTAG_TDO   ) |\
-                                     PIN_MODE_ALTERNATE( GPIOB_PIN4  ) |\
-                                     PIN_MODE_INPUT    ( GPIOB_DATA_OUT         ) |\
-                                     PIN_MODE_INPUT( GPIOB_PIN6    ) |\
-                                     PIN_MODE_INPUT( GPIOB_PIN7    ) |\
-                                     PIN_MODE_INPUT    ( GPIOB_PIN8  ) |\
-                                     PIN_MODE_INPUT    ( GPIOB_PIN9         ) |\
-                                     PIN_MODE_ALTERNATE    ( GPIOB_MAX_CFG_SCLK        ) |\
-                                     PIN_MODE_ALTERNATE    ( GPIOB_ETH_RMII_TX_EN ) |\
-                                     PIN_MODE_ALTERNATE    ( GPIOB_ETH_RMII_TXD0 ) |\
-                                     PIN_MODE_ALTERNATE    ( GPIOB_ETH_RMII_TXD1 ) |\
-                                     PIN_MODE_INPUT    ( GPIOB_PIN14        ) |\
-                                     PIN_MODE_INPUT    ( GPIOB_MAX_CFG_MOSI))
+#define VAL_GPIOB_MODER             (PIN_MODE_INPUT        ( GPIOB_PIN0                  ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_ANTFLAG               ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_LD                    ) |\
+                                     PIN_MODE_ALTERNATE    ( GPIOB_JTAG_TDO              ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_PIN4                  ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_CPLD_OUT_SPI1_MOSI    ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_PIN6                  ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_PIN7                  ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_PIN8                  ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_PIN9                  ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_MAX_CFG_SCLK          ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_ETH_RMII_TX_EN        ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_ETH_RMII_TXD0         ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_ETH_RMII_TXD1         ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_CPLD_OUT_SPI_CLK_SRC  ) |\
+                                     PIN_MODE_INPUT        ( GPIOB_MAX_CFG_MOSI             ))
 
-#define VAL_GPIOB_OTYPER            (PIN_OTYPE_PUSHPULL ( GPIOB_PIN0  ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_ANTFLAG  ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_LD      ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_JTAG_TDO   ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_PIN4  ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_DATA_OUT         ) |\
-                                     PIN_OTYPE_PUSHPULL( GPIOB_PIN6    ) |\
-                                     PIN_OTYPE_PUSHPULL( GPIOB_PIN7    ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_PIN8  ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_PIN9         ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_MAX_CFG_SCLK        ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_ETH_RMII_TX_EN ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_ETH_RMII_TXD0 ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_ETH_RMII_TXD1 ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_PIN14        ) |\
-                                     PIN_OTYPE_PUSHPULL ( GPIOB_MAX_CFG_MOSI))
+#define VAL_GPIOB_OTYPER            (PIN_OTYPE_PUSHPULL    ( GPIOB_PIN0                 ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_ANTFLAG               ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_LD                    ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_JTAG_TDO              ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_PIN4                  ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_CPLD_OUT_SPI1_MOSI    ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_PIN6                  ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_PIN7                  ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_PIN8                  ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_PIN9                  ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_MAX_CFG_SCLK          ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_ETH_RMII_TX_EN        ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_ETH_RMII_TXD0         ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_ETH_RMII_TXD1         ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_CPLD_OUT_SPI_CLK_SRC  ) |\
+                                     PIN_OTYPE_PUSHPULL    ( GPIOB_MAX_CFG_MOSI             ))
 
-#define VAL_GPIOB_OSPEEDR           (PIN_OSPEED_100M    ( GPIOB_PIN0  ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_ANTFLAG  ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_LD      ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_JTAG_TDO   ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_PIN4  ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_DATA_OUT         ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_PIN6    ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_PIN7    ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_PIN8  ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_PIN9         ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_MAX_CFG_SCLK        ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_ETH_RMII_TX_EN ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_ETH_RMII_TXD0 ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_ETH_RMII_TXD1 ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_PIN14        ) |\
-                                     PIN_OSPEED_100M    ( GPIOB_MAX_CFG_MOSI))
+#define VAL_GPIOB_OSPEEDR           (PIN_OSPEED_100M       ( GPIOB_PIN0                 ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_ANTFLAG               ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_LD                    ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_JTAG_TDO              ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_PIN4                  ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_CPLD_OUT_SPI1_MOSI    ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_PIN6                  ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_PIN7                  ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_PIN8                  ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_PIN9                  ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_MAX_CFG_SCLK          ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_ETH_RMII_TX_EN        ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_ETH_RMII_TXD0         ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_ETH_RMII_TXD1         ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_CPLD_OUT_SPI_CLK_SRC  ) |\
+                                     PIN_OSPEED_100M       ( GPIOB_MAX_CFG_MOSI             ))
 
-#define VAL_GPIOB_PUPDR             (PIN_PUPDR_PULLUP( GPIOB_PIN0  ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_ANTFLAG  ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_LD      ) |\
-                                     PIN_PUPDR_FLOATING( GPIOB_JTAG_TDO   ) |\
-                                     PIN_PUPDR_FLOATING( GPIOB_PIN4  ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_DATA_OUT         ) |\
-                                     PIN_PUPDR_PULLUP  ( GPIOB_PIN6    ) |\
-                                     PIN_PUPDR_PULLUP  ( GPIOB_PIN7    ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_PIN8  ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_PIN9         ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_MAX_CFG_SCLK        ) |\
-                                     PIN_PUPDR_FLOATING( GPIOB_ETH_RMII_TX_EN ) |\
-                                     PIN_PUPDR_FLOATING( GPIOB_ETH_RMII_TXD0 ) |\
-                                     PIN_PUPDR_FLOATING( GPIOB_ETH_RMII_TXD1 ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_PIN14        ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_MAX_CFG_MOSI))
+#define VAL_GPIOB_PUPDR             (PIN_PUPDR_PULLUP      ( GPIOB_PIN0                 ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_ANTFLAG               ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_LD                    ) |\
+                                     PIN_PUPDR_FLOATING    ( GPIOB_JTAG_TDO              ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_PIN4                  ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_CPLD_OUT_SPI1_MOSI    ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_PIN6                  ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_PIN7                  ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_PIN8                  ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_PIN9                  ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_MAX_CFG_SCLK          ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_ETH_RMII_TX_EN        ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_ETH_RMII_TXD0         ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_ETH_RMII_TXD1         ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_CPLD_OUT_SPI_CLK_SRC  ) |\
+                                     PIN_PUPDR_PULLUP      ( GPIOB_MAX_CFG_MOSI             ))
 
-#define VAL_GPIOB_ODR               (PIN_ODR_HIGH      ( GPIOB_PIN0  ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_ANTFLAG  ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_LD      ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_JTAG_TDO   ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_PIN4  ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_DATA_OUT         ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_PIN6    ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_PIN7    ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_PIN8  ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_PIN9         ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_MAX_CFG_SCLK   ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_ETH_RMII_TX_EN ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_ETH_RMII_TXD0 ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_ETH_RMII_TXD1 ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_PIN14        ) |\
-                                     PIN_ODR_HIGH      ( GPIOB_MAX_CFG_MOSI))
+#define VAL_GPIOB_ODR               (PIN_ODR_HIGH          ( GPIOB_PIN0                 ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_ANTFLAG               ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_LD                    ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_JTAG_TDO              ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_PIN4                  ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_CPLD_OUT_SPI1_MOSI    ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_PIN6                  ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_PIN7                  ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_PIN8                  ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_PIN9                  ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_MAX_CFG_SCLK          ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_ETH_RMII_TX_EN        ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_ETH_RMII_TXD0         ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_ETH_RMII_TXD1         ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_CPLD_OUT_SPI_CLK_SRC  ) |\
+                                     PIN_ODR_HIGH          ( GPIOB_MAX_CFG_MOSI             ))
 
-#define VAL_GPIOB_AFRL              (PIN_AFIO_AF       ( GPIOB_PIN0 , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_ANTFLAG , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_LD     , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_JTAG_TDO  , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_PIN4 , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_DATA_OUT        , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_PIN6   , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_PIN7   , 0  ))
+#define VAL_GPIOB_AFRL              (PIN_AFIO_AF           ( GPIOB_PIN0                  ) |\
+                                     PIN_AFIO_AF           ( GPIOB_ANTFLAG               ) |\
+                                     PIN_AFIO_AF           ( GPIOB_LD                    ) |\
+                                     PIN_AFIO_AF           ( GPIOB_JTAG_TDO              ) |\
+                                     PIN_AFIO_AF           ( GPIOB_PIN4                  ) |\
+                                     PIN_AFIO_AF           ( GPIOB_CPLD_OUT_SPI1_MOSI    ) |\
+                                     PIN_AFIO_AF           ( GPIOB_PIN6                  ) |\
+                                     PIN_AFIO_AF           ( GPIOB_PIN7                  ) |\
 
-#define VAL_GPIOB_AFRH              (PIN_AFIO_AF       ( GPIOB_PIN8 , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_PIN9        , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_MAX_CFG_SCLK       , 5  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_ETH_RMII_TX_EN, 11  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_ETH_RMII_TXD0, 11  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_ETH_RMII_TXD1, 11  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_PIN14       , 0  )  |\
-                                     PIN_AFIO_AF       ( GPIOB_MAX_CFG_MOSI       , 5  ))
+#define VAL_GPIOB_AFRH              (PIN_AFIO_AF           ( GPIOB_PIN8                  ) |\
+                                     PIN_AFIO_AF           ( GPIOB_PIN9                  ) |\
+                                     PIN_AFIO_AF           ( GPIOB_MAX_CFG_SCLK          ) |\
+                                     PIN_AFIO_AF           ( GPIOB_ETH_RMII_TX_EN        ) |\
+                                     PIN_AFIO_AF           ( GPIOB_ETH_RMII_TXD0         ) |\
+                                     PIN_AFIO_AF           ( GPIOB_ETH_RMII_TXD1         ) |\
+                                     PIN_AFIO_AF           ( GPIOB_CPLD_OUT_SPI_CLK_SRC  ) |\
+                                     PIN_AFIO_AF           ( GPIOB_MAX_CFG_MOSI             ))
+
+		// Mon 27 April 2015 21:19:19 (PDT) Got to here...port C next.
 
 
 /*
