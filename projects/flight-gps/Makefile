@@ -71,7 +71,7 @@ PROJECT = ch
 PSAS= ../../common
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-include $(PSAS)/boards/PSAS_GPS_RF_FRONTEND_2/board.mk
+include $(PSAS)/boards/PSAS_GPS_MODULE_3_0/board.mk
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
