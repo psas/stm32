@@ -24,6 +24,8 @@ const struct led LED = {GPIOC, GPIOC_LED};
 const struct led LED = {GPIOE, GPIOE_PIN1};
 #elif defined BOARD_PSAS_GPS_RF_FRONTEND_2
 const struct led LED = {GPIOD, GPIOD_RGB_R};
+#elif defined BOARD_PSAS_GPS_MODULE_3_0
+const struct led LED = {GPIOD, GPIOD_RGB_R};
 #endif
 
 
