@@ -383,7 +383,7 @@ void mac_phy_reset(void);
                                      PIN_AFIO_AF           ( GPIOB_PIN4               , 0) |\
                                      PIN_AFIO_AF           ( GPIOB_CPLD_OUT_SPI1_MOSI , 5) |\
                                      PIN_AFIO_AF           ( GPIOB_PIN6               , 0) |\
-                                     PIN_AFIO_AF           ( GPIOB_PIN7               , 0) |\
+                                     PIN_AFIO_AF           ( GPIOB_PIN7               , 0))
 
 #define VAL_GPIOB_AFRH              (PIN_AFIO_AF           ( GPIOB_PIN8               , 0) |\
                                      PIN_AFIO_AF           ( GPIOB_PIN9               , 0) |\
@@ -400,7 +400,7 @@ void mac_phy_reset(void);
  *
  */
 #define VAL_GPIOC_MODER             (PIN_MODE_INPUT        ( GPIOC_PIN0                  ) |\
-                                     PIN_MODE_ALTERNAGE    ( GPIOC_ETH_RMII_MDC          ) |\
+                                     PIN_MODE_ALTERNATE    ( GPIOC_ETH_RMII_MDC          ) |\
                                      PIN_MODE_INPUT        ( GPIOC_PIN2                  ) |\
                                      PIN_MODE_INPUT        ( GPIOC_PIN3                  ) |\
                                      PIN_MODE_ALTERNATE    ( GPIOC_ETH_RMII_RXD0         ) |\
@@ -700,7 +700,7 @@ void mac_phy_reset(void);
 
 #define VAL_GPIOE_AFRL              (PIN_AFIO_AF       (GPIOE_PIN0            , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN1            , 0 ) |\
-                                     PIN_AFIO_AF       (GPIOE_PIN2            , 0 ) |\
+                                     PIN_AFIO_AF       (GPIOE_ETH_DEBUG       , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN3            , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN4            , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN5            , 0 ) |\
