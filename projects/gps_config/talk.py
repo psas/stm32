@@ -23,20 +23,17 @@ def receive():
     with udp() as sock:
         sock.bind((IP_SELF, PORT_SELF_RX))
         sock.settimeout(TIMEOUT)
+        counter = 0
         while True:
             try:
-                data, remote_addr = sock.recvfrom(50)
+                data, remote_addr = sock.recvfrom(1024)
                 if(remote_addr[0] == '10.10.10.40'):
+                    counter += 1 % 16
                     f.write(data)
-                    print("Received", repr(data), "from", remote_addr)
+                    print("Received", len(data), ":", "".join("{:02x}".format(ord(c)) for c in data), "from", remote_addr)
             except socket.timeout:
                 print ("No responce")
 
 
 if __name__ == "__main__":
-    rx = Thread(target=receive)
-    rx.daemon = True
-    rx.start()
-
-    while True:
-        pass
+    receive()

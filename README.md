@@ -20,10 +20,13 @@ The last time ChibiOS was updated: December 2013
  - projects
    - projects go here. 
    - projects used on the rocket are prefixed by flight-[a-zA-z]
+       - flight-rnh: Handles power distribution, battery management, and networking.
+       - flight-imu: Handles all sensors including accelerometer, gyro, magnetometer, and pressure, and sends samples over ethernet to the Flight Computer.
+       - flight-gps: Manages both the COTS and Bespoke GPS, sending data over ethernet to the Flight Computer.
+       - flight-servo: Receives commands over ethernet to set servo positions.
    - intro projects or tool chain test projects
-       - e407-led
-       - enet-udp (network test)
-       - ??? e407-serial
+       - e407-led: Simple blinking lights demo
+       - enet-udp: Demonstration of how to do networking in ChibiOS.
  - common
    - code that tends to be reused in projects. At the top level it has makefiles and
      is further grouped into
@@ -62,7 +65,7 @@ The last time ChibiOS was updated: December 2013
 ## TOOLCHAIN SETUP
 #### Debugger
 [OpenOCD](http://openocd.sourceforge.net/) is the tool we use to communicate, flash, and debug the microcontroller via JTAG.
-  - Version v0.7.0 as of March 2014
+  - Version v0.8.0 as of February 2015
   - Instillation instructions:
     - The Debian and Ubuntu v0.7.0 packages now have the correct build flags so it's as simple as
       - sudo apt-get install openocd

@@ -241,8 +241,8 @@ void mac_phy_reset(void);
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_MDIO   ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_MDINT       ) |\
                                      PIN_PUPDR_PULLUP(GPIOA_PIN4             ) |\
-                                     PIN_PUPDR_PULLUP(GPIOA_CLK_SER             ) |\
-                                     PIN_PUPDR_PULLUP(GPIOA_PIN6             ) |\
+                                     PIN_PUPDR_FLOATING(GPIOA_CLK_SER             ) |\
+                                     PIN_PUPDR_FLOATING(GPIOA_PIN6             ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_ETH_RMII_CRS_DV      ) |\
                                      PIN_PUPDR_FLOATING(GPIOA_MCO1_ETH_CLK       ) |\
                                      PIN_PUPDR_PULLDOWN(GPIOA_OTG_FS_VBUS        ) |\
@@ -348,7 +348,7 @@ void mac_phy_reset(void);
                                      PIN_PUPDR_PULLUP( GPIOB_LD      ) |\
                                      PIN_PUPDR_FLOATING( GPIOB_JTAG_TDO   ) |\
                                      PIN_PUPDR_FLOATING( GPIOB_PIN4  ) |\
-                                     PIN_PUPDR_PULLUP( GPIOB_DATA_OUT         ) |\
+                                     PIN_PUPDR_FLOATING( GPIOB_DATA_OUT         ) |\
                                      PIN_PUPDR_PULLUP  ( GPIOB_PIN6    ) |\
                                      PIN_PUPDR_PULLUP  ( GPIOB_PIN7    ) |\
                                      PIN_PUPDR_PULLUP( GPIOB_PIN8  ) |\
@@ -616,9 +616,9 @@ void mac_phy_reset(void);
 #define VAL_GPIOE_MODER             (PIN_MODE_INPUT(GPIOE_PIN0   ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN1   ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN2   ) |\
-                                     PIN_MODE_INPUT(GPIOE_PIN3   ) |\
+                                     PIN_MODE_OUTPUT(GPIOE_PIN3   ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN4           ) |\
-                                     PIN_MODE_INPUT(GPIOE_PIN5   ) |\
+                                     PIN_MODE_ALTERNATE(GPIOE_PIN5   ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN6   ) |\
                                      PIN_MODE_INPUT (GPIOE_TIMESYNC   ) |\
                                      PIN_MODE_INPUT (GPIOE_PIN8  ) |\
@@ -669,7 +669,7 @@ void mac_phy_reset(void);
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN2   ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN3   ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN4           ) |\
-                                     PIN_PUPDR_PULLUP  (GPIOE_PIN5   ) |\
+                                     PIN_PUPDR_FLOATING(GPIOE_PIN5   ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN6   ) |\
                                      PIN_PUPDR_PULLDOWN(GPIOE_TIMESYNC   ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN8  ) |\
@@ -703,7 +703,7 @@ void mac_phy_reset(void);
                                      PIN_AFIO_AF       (GPIOE_PIN2  , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN3  , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN4          , 0 ) |\
-                                     PIN_AFIO_AF       (GPIOE_PIN5  , 0 ) |\
+                                     PIN_AFIO_AF       (GPIOE_PIN5  , 3 ) |\
                                      PIN_AFIO_AF       (GPIOE_PIN6  , 0 ) |\
                                      PIN_AFIO_AF       (GPIOE_TIMESYNC  , 0 ))
 
