@@ -616,7 +616,7 @@ void mac_phy_reset(void);
 #define VAL_GPIOE_MODER             (PIN_MODE_INPUT(GPIOE_PIN0   ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN1   ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN2   ) |\
-                                     PIN_MODE_INPUT(GPIOE_PIN3   ) |\
+                                     PIN_MODE_OUTPUT(GPIOE_PIN3   ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN4           ) |\
                                      PIN_MODE_ALTERNATE(GPIOE_PIN5   ) |\
                                      PIN_MODE_INPUT(GPIOE_PIN6   ) |\

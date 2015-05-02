@@ -163,18 +163,18 @@ typedef struct
 	struct pin      i1_clk_ser;
 	struct pin      i0_data_out;
 	struct pin      spi1_nss;
-	uint16_t *      bufs[2];
+	uint8_t *      bufs[2];
 } MAX2769Config;
 
 
-#define GPS_BUFFER_SIZE 700
+#define GPS_BUFFER_SIZE 1024
 
 //FIXME: should be read_done
 extern            EventSource              MAX2769_write_done;
 
 void max2769_reset(void);
 void max2769_set(max2769_regaddr addr, uint32_t value);
-uint16_t * max2769_getdata(void);
+uint8_t * max2769_getdata(void);
 void max2769_donewithdata(void);
 
 void max2769_init(const MAX2769Config * conf);

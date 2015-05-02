@@ -32,7 +32,6 @@ void max2769_reset()
 	chThdSleepMilliseconds(MAX2769_RESET_MSECS);
 	palSetPad(CONF->shdn.port, CONF->shdn.pad);
 }
-
 /* MAX2769 is write only device (!?) */
 void max2769_set(max2769_regaddr addr, uint32_t value)
 {
@@ -53,7 +52,7 @@ void max2769_set(max2769_regaddr addr, uint32_t value)
 static bool frontbuf;
 static bool inuse;
 static void max2769_read(void){
-	spiStartReceive(CONF->SPIDREAD, 5, CONF->bufs[frontbuf]);
+	spiStartReceive(CONF->SPIDREAD, GPS_BUFFER_SIZE, CONF->bufs[frontbuf]);
 }
 
 static void spireadcb(SPIDriver *spip UNUSED){
@@ -67,7 +66,7 @@ static void spireadcb(SPIDriver *spip UNUSED){
 }
 
 
-uint16_t * max2769_getdata(void){
+uint8_t * max2769_getdata(void){
 	inuse = true;
 	return CONF->bufs[!frontbuf];
 }
@@ -78,44 +77,44 @@ void max2769_donewithdata(void){
 
 void max2769_init(const MAX2769Config * conf)
 {
-	uint32_t PINMODE = PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_OSPEED_HIGHEST |
-	                   PAL_STM32_PUDR_FLOATING;
-	/* SPI pins setup */
+	uint32_t PINMODE = PAL_STM32_OTYPE_PUSHPULL | PAL_STM32_PUDR_FLOATING;
+	/* config SPI setup */
 	palSetPadMode(conf->spi_sck.port, conf->spi_sck.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
 	palSetPadMode(conf->spi_mosi.port, conf->spi_mosi.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
 	palSetPadMode(conf->spi_miso.port, conf->spi_miso.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
-	palSetPadMode(conf->spi_cs.port, conf->spi_cs.pad, PAL_MODE_OUTPUT_PUSHPULL | PINMODE);
+	palSetPadMode(conf->spi_cs.port, conf->spi_cs.pad, PAL_MODE_OUTPUT_PUSHPULL | PAL_STM32_OSPEED_HIGHEST | PINMODE);
 	palSetPad(conf->spi_cs.port, conf->spi_cs.pad); //unselect
-	palSetPad(conf->spi1_nss.port, conf->spi1_nss.pad); //unselect
-	/* GPIO pins setup */
-	/*
-	 * MAX2869 SPI configuration
-	 */
+
 	static SPIConfig spicfg =
 	{
 		.end_cb = NULL,
-		.cr1 = SPI_CR1_BR_2 | SPI_CR1_BR_1
+		.cr1 =  SPI_CR1_BR_1
 	};
 	spicfg.ssport = conf->spi_cs.port;
 	spicfg.sspad  = conf->spi_cs.pad;
 	spiStart(conf->SPIDCONFIG, &spicfg);
 
-
-
+	/* Input SPI setup */
 	palSetPadMode(conf->i1_clk_ser.port, conf->i1_clk_ser.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
 	palSetPadMode(conf->i0_data_out.port, conf->i0_data_out.pad, PAL_MODE_ALTERNATE(5) | PINMODE);
+	palSetPadMode(conf->spi1_nss.port, conf->spi1_nss.pad, PAL_MODE_ALTERNATE(5));
 
 	static SPIConfig spiread =
 	{
 		.end_cb = spireadcb,
-		.cr1 = SPI_CR1_DFF
+		.cr1 = 0
 	};
 	spiStart(conf->SPIDREAD, &spiread);
-	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_SPE;
-	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_MSTR & ~SPI_CR1_SSI;
-	conf->SPIDREAD->spi->CR1 |= SPI_CR1_SSM | SPI_CR1_RXONLY | SPI_CR1_CPHA;
-	conf->SPIDREAD->spi->CR1 |= SPI_CR1_SPE;
+	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_SPE; //Disable peripheral
+	conf->SPIDREAD->spi->CR1 &= ~SPI_CR1_MSTR & ~SPI_CR1_SSI & ~SPI_CR1_SSM; //clear
+	conf->SPIDREAD->spi->CR2 &= ~SPI_CR2_SSOE;
+	conf->SPIDREAD->spi->CR1 |= SPI_CR1_RXONLY;// | SPI_CR1_CPHA; //set
+	conf->SPIDREAD->spi->CR1 |= SPI_CR1_SPE; //Re-enable peripheral
 	CONF = conf;
+
+//	palSetPadMode(conf->spi1_nss.port, conf->spi1_nss.pad, PAL_MODE_ALTERNATE(0));
+	while(!palReadPad(conf->spi1_nss.port, conf->spi1_nss.pad));
+//	palSetPadMode(conf->spi1_nss.port, conf->spi1_nss.pad, PAL_MODE_ALTERNATE(5));
 	max2769_read();
 }
 

@@ -100,8 +100,8 @@ static void max2769_config(void) {
 
 
 
-uint16_t gpsbuf1[GPS_BUFFER_SIZE];
-uint16_t gpsbuf2[GPS_BUFFER_SIZE];
+uint8_t gpsbuf1[GPS_BUFFER_SIZE];
+uint8_t gpsbuf2[GPS_BUFFER_SIZE];
 
 static const MAX2769Config max2769 =
 {
@@ -126,7 +126,7 @@ static const MAX2769Config max2769 =
 
 int gps_socket;
 static void gps_handler(eventid_t id UNUSED){
-	uint16_t *buf = max2769_getdata();
+	uint8_t *buf = max2769_getdata();
 	write(gps_socket, buf, GPS_BUFFER_SIZE);
 	max2769_donewithdata();
 }
@@ -145,6 +145,7 @@ PWMConfig pwmcfg = {
 	0, /* TIM_CR2  */
 	0  /* TIM_DIER */
 };
+
 void main(void) {
 	halInit();
 	chSysInit();
@@ -152,14 +153,18 @@ void main(void) {
 
 	lwipThreadStart(GPS_LWIP);
 
+	palClearPad(GPIOE, GPIOE_PIN3);
 	pwmStart(&PWMD9, &pwmcfg);
 	pwmEnableChannel(&PWMD9, 0, 1);
+	//e4
+	//e3
 
 	gps_socket = get_udp_socket(GPS_OUT_ADDR);
 	connect(gps_socket, FC_ADDR, sizeof(struct sockaddr));
 	max2769_init(&max2769);
 	max2769_config();
 
+	palSetPad(GPIOE, GPIOE_PIN3);
 	/* Manage MAX2769 events */
 	struct EventListener ddone;
 	static const evhandler_t evhndl[] = {
@@ -170,3 +175,5 @@ void main(void) {
 		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}
 }
+
+
