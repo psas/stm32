@@ -72,8 +72,7 @@ PSAS= ../../common
 CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-BOARD ?= PSAS_GPS_RF_FRONTEND_2
-#BOARD ?= PSAS_OLIMEX_STM32_E407
+BOARD ?= PSAS_GPS_MODULE_3_0
 ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
     include $(CHIBIOS)/boards/$(BOARD)/board.mk
 else

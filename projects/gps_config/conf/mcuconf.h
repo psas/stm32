@@ -49,6 +49,8 @@
 #define STM32_PLLM_VALUE                    25
 #elif defined BOARD_PSAS_GPS_RF_FRONTEND_2
 #define STM32_PLLM_VALUE                    25
+#elif defined BOARD_PSAS_GPS_MODULE_3_0
+#define STM32_PLLM_VALUE                    25
 #endif
 #define STM32_PLLN_VALUE                    336
 #define STM32_PLLP_VALUE                    2
@@ -202,7 +204,8 @@
 #define STM32_PWM_USE_TIM4                  FALSE
 #define STM32_PWM_USE_TIM5                  FALSE
 #define STM32_PWM_USE_TIM8                  FALSE
-#define STM32_PWM_USE_TIM9                  TRUE
+#define STM32_PWM_USE_TIM9                  FALSE
+#define STM32_PWM_USE_TIM12                 TRUE
 #define STM32_PWM_TIM1_IRQ_PRIORITY         7
 #define STM32_PWM_TIM2_IRQ_PRIORITY         7
 #define STM32_PWM_TIM3_IRQ_PRIORITY         7
@@ -210,6 +213,7 @@
 #define STM32_PWM_TIM5_IRQ_PRIORITY         7
 #define STM32_PWM_TIM8_IRQ_PRIORITY         7
 #define STM32_PWM_TIM9_IRQ_PRIORITY         7
+#define STM32_PWM_TIM12_IRQ_PRIORITY        7
 
 /*
  * SERIAL driver system settings.

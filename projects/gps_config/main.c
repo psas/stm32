@@ -103,24 +103,44 @@ static void max2769_config(void) {
 uint8_t gpsbuf1[GPS_BUFFER_SIZE];
 uint8_t gpsbuf2[GPS_BUFFER_SIZE];
 
-static const MAX2769Config max2769 =
-{
-	.spi_sck     = {GPIOB, GPIOB_MAX_CFG_SCLK},
-	.spi_mosi    = {GPIOB, GPIOB_MAX_CFG_MOSI},
-	.spi_miso    = {GPIOB, GPIOB_MAX_CFG_MISO},
-	.spi_cs      = {GPIOE, GPIOE_MAX_CFG_CS},
-	.SPIDCONFIG  = &SPID2,
-	.SPIDREAD    = &SPID1,
-	.idle        = {GPIOE, GPIOE_MAX_IDLE},
-	.shdn        = {GPIOE, GPIOE_MAX_SHDN},
-	.q1_timesync = {GPIOE, GPIOE_TIMESYNC},
-	.q0_datasync = {GPIOE, GPIOE_DATASYNC},
-	.ld          = {GPIOB, GPIOB_LD},
-	.antflag     = {GPIOB, GPIOB_ANTFLAG},
-	.i1_clk_ser  = {GPIOA, GPIOA_CLK_SER},
-	.i0_data_out = {GPIOB, GPIOB_DATA_OUT},
-	.spi1_nss    = {GPIOA, GPIOA_PIN4},
-	.bufs        = {gpsbuf1, gpsbuf2},
+PWMConfig pwmcfg = {
+	.frequency = 84000000,
+	.period = 2,
+	.callback = NULL,
+	.channels = {
+		{PWM_OUTPUT_ACTIVE_HIGH, NULL},
+		{PWM_OUTPUT_DISABLED, NULL},
+		{PWM_OUTPUT_DISABLED, NULL},
+		{PWM_OUTPUT_DISABLED, NULL},
+	},
+	/* STM32 Specific config options */
+	.cr2 = 0,
+	.dier = 0
+};
+
+static const MAX2769Config max2769 = {
+	.max = {
+		.SPID    = &SPID2,
+		.sck     = {GPIOB, GPIOB_MAX_CFG_SCLK},
+		.mosi    = {GPIOB, GPIOB_MAX_CFG_MOSI},
+		.nss     = {GPIOE, GPIOE_MAX_CFG_CS},
+		.idle    = {GPIOE, GPIOE_MAX_IDLE},
+		.shdn    = {GPIOE, GPIOE_MAX_SHDN},
+		.ld      = {GPIOB, GPIOB_LD},
+		.antflag = {GPIOB, GPIOB_ANTFLAG},
+	},
+	.cpld = {
+		.SPID    = &SPID1,
+		.mosi    = {GPIOB, GPIOB_CPLD_OUT_SPI1_MOSI},
+		.sck     = {GPIOA, GPIOA_CPLD_OUT_SPI1_SCK},
+		.nss     = {GPIOA, GPIOA_CPLD_OUT_SPI1_NSS},
+		.clk_src = {GPIOB, GPIOB_CPLD_OUT_SPI_CLK_SRC},
+		.reset   = {GPIOA, GPIOA_CPLD_RESET},
+		.debug   = {GPIOD, GPIOD_CPLD_DEBUG},
+		.clk_src_cfg = &pwmcfg,
+		.PWMD = &PWMD12,
+	},
+	.bufs = {gpsbuf1, gpsbuf2},
 };
 
 
@@ -131,46 +151,23 @@ static void gps_handler(eventid_t id UNUSED){
 	max2769_donewithdata();
 }
 
-PWMConfig pwmcfg = {
-	84000000,    /* Frequency */
-	2, /* Period */
-	NULL,            /* Callback (Not used here) */
-	{
-		{PWM_OUTPUT_ACTIVE_HIGH, NULL},
-		{PWM_OUTPUT_DISABLED, NULL},
-		{PWM_OUTPUT_DISABLED, NULL},
-		{PWM_OUTPUT_DISABLED, NULL}, /* Only channel 4 enabled */
-	},
-	/* STM32 Specific config options */
-	0, /* TIM_CR2  */
-	0  /* TIM_DIER */
-};
-
 void main(void) {
 	halInit();
 	chSysInit();
 	ledStart(NULL);
 
 	lwipThreadStart(GPS_LWIP);
-
-	palClearPad(GPIOE, GPIOE_PIN3);
-	pwmStart(&PWMD9, &pwmcfg);
-	pwmEnableChannel(&PWMD9, 0, 1);
-	//e4
-	//e3
-
 	gps_socket = get_udp_socket(GPS_OUT_ADDR);
 	connect(gps_socket, FC_ADDR, sizeof(struct sockaddr));
 	max2769_init(&max2769);
 	max2769_config();
 
-	palSetPad(GPIOE, GPIOE_PIN3);
 	/* Manage MAX2769 events */
 	struct EventListener ddone;
 	static const evhandler_t evhndl[] = {
 		gps_handler
 	};
-	chEvtRegister(&MAX2769_write_done, &ddone, 0);
+	chEvtRegister(&MAX2769_read_done, &ddone, 0);
 	while(TRUE) {
 		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}
