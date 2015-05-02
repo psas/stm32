@@ -32,7 +32,7 @@ def receive():
                     f.write(data)
                     print("Received", len(data), ":", "".join("{:02x}".format(ord(c)) for c in data), "from", remote_addr)
             except socket.timeout:
-                print ("No responce")
+                print ("No response")
 
 
 if __name__ == "__main__":
