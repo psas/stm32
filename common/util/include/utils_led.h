@@ -35,6 +35,13 @@ extern const struct led BLUE;
 extern const struct led LED2;
 extern const struct led LED4;
 extern const struct led LED5;
+#elif defined BOARD_PSAS_GPS_MODULE_3_0
+extern const struct led GREEN;
+extern const struct led RED;
+extern const struct led BLUE;
+extern const struct led LED2;
+extern const struct led LED4;
+extern const struct led LED5;
 #elif defined BOARD_PSAS_RTX_CONTROLLER
 extern const struct led ORANGE;
 #elif defined BOARD_ST_STM32F4_DISCOVERY
