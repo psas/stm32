@@ -22,7 +22,7 @@ void main(void) {
 #ifdef FLIGHT
 	iwdgStart();
 #endif
-	//ledStart(NULL);
+	ledStart(NULL);
 	lwipThreadStart(GPS_LWIP);
 
 	struct RCICommand commands[] = {
@@ -38,8 +38,10 @@ void main(void) {
 
 	while(TRUE){
 		int len = sdReadTimeout(&SD6, cots_socket.buffer, COTS_BUFFER_SIZE, S2ST(1));
-		seqWrite(&cots_socket, len);
-		ledToggle(&RED);
+		if(len > 0) {
+			seqWrite(&cots_socket, len);
+			ledToggle(&RED);
+		}
 	}
 }
 
