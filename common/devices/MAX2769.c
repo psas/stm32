@@ -59,8 +59,11 @@ static void spicpldcb(SPIDriver *spip UNUSED) {
 	if(!inuse) {
 		frontbuf = !frontbuf;
 	}
-	chSysLockFromIsr();
+
+	while(!palReadPad(CONF->cpld.nss.port, CONF->cpld.nss.pad));
 	spiStartReceiveI(CONF->cpld.SPID, GPS_BUFFER_SIZE, CONF->bufs[frontbuf]);
+
+	chSysLockFromIsr();
 	chEvtBroadcastI(&MAX2769_read_done);
 	chSysUnlockFromIsr();
 }
@@ -109,17 +112,17 @@ void max2769_init(const MAX2769Config * conf) {
 	conf->cpld.SPID->spi->CR1 |= SPI_CR1_SPE; //Re-enable peripheral
 	CONF = conf;
 
-	palSetPad(conf->cpld.reset.port, conf->cpld.reset.pad);
 	palClearPad(conf->cpld.debug.port, conf->cpld.debug.pad);
+
+	palClearPad(conf->cpld.reset.port, conf->cpld.reset.pad);
+	chThdSleepMilliseconds(1);
 	pwmStart(conf->cpld.PWMD, conf->cpld.clk_src_cfg);
 	pwmEnableChannel(conf->cpld.PWMD, 0, 1);
 	chThdSleepMilliseconds(1);
-	palClearPad(conf->cpld.reset.port, conf->cpld.reset.pad);
+	palSetPad(conf->cpld.reset.port, conf->cpld.reset.pad);
 
-/*
 	while(!palReadPad(conf->cpld.nss.port, conf->cpld.nss.pad));
 	max2769_read();
-*/
 }
 
 
