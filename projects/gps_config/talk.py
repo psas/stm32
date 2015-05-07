@@ -23,14 +23,23 @@ def receive():
     with udp() as sock:
         sock.bind((IP_SELF, PORT_SELF_RX))
         sock.settimeout(TIMEOUT)
-        counter = 0
+        end = 0
+        packetcounter = 0
         while True:
             try:
                 data, remote_addr = sock.recvfrom(1024)
                 if(remote_addr[0] == '10.10.10.40'):
-                    counter += 1 % 16
+                    packetcounter += 1
+                    binary = [ord(c) for c in data]
+
+                    #if (end+1) % 256 != binary[0]:
+                    #    print("packet {} boudary error: {}, {},{}".format(packetcounter, end, (end+1) % 256, binary[0]))
+                    #for index, num in enumerate(binary[:-1]):
+                    #    if binary[index + 1] != (num + 1) % 256:
+                    #        print("out of order sequence found at packet {},{} index {}: {},{}".format(packetcounter, len(binary), index, binary[index], binary[index+1]))
+                    #end = binary[-1]
+                    print("Received", len(data), ":", "".join("{:02x}".format(c) for c in binary), "from", remote_addr)
                     f.write(data)
-                    print("Received", len(data), ":", "".join("{:02x}".format(ord(c)) for c in data), "from", remote_addr)
             except socket.timeout:
                 print ("No response")
 
