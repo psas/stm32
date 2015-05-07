@@ -68,8 +68,8 @@ static void max2769_config(void) {
 	uint32_t pllconf =
 		(0b1          << MAX2769_PLL_VCOEN   ) |
 		(0b0          << MAX2769_PLL_IVCO    ) |
-		(0b0          << MAX2769_PLL_REFOUTEN) |
-		(0b01         << MAX2769_PLL_REFDIV  ) |
+		(0b1          << MAX2769_PLL_REFOUTEN) |
+		(0b11         << MAX2769_PLL_REFDIV  ) |
 		(0b01         << MAX2769_PLL_IXTAL   ) |
 		(0b10000      << MAX2769_PLL_XTALCAP ) |
 		(0b0000       << MAX2769_PLL_LDMUX   ) |
