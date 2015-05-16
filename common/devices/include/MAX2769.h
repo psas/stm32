@@ -168,7 +168,6 @@ extern EventSource MAX2769_read_done;
 void max2769_reset(void);
 void max2769_set(max2769_regaddr addr, uint32_t value);
 uint8_t * max2769_getdata(void);
-void max2769_donewithdata(void);
 
 void max2769_init(const MAX2769Config * conf);
 

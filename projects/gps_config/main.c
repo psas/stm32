@@ -148,7 +148,6 @@ int gps_socket;
 static void gps_handler(eventid_t id UNUSED){
 	uint8_t *buf = max2769_getdata();
 	write(gps_socket, buf, GPS_BUFFER_SIZE);
-	max2769_donewithdata();
 }
 
 void main(void) {

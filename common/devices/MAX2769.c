@@ -11,8 +11,6 @@
 
 #include "utils_general.h"
 #include "utils_hal.h"
-#include "usbdetail.h"
-#include "chprintf.h"
 
 #include "MAX2769.h"
 
@@ -49,19 +47,7 @@ void max2769_set(max2769_regaddr addr, uint32_t value) {
 	spiReleaseBus(CONF->max.SPID);
 }
 
-static bool frontbuf;
-static bool inuse;
-static void max2769_read(void) {
-	spiStartReceive(CONF->cpld.SPID, GPS_BUFFER_SIZE, CONF->bufs[frontbuf]);
-}
-
 static void spicpldcb(SPIDriver *spip UNUSED) {
-	if(!inuse) {
-		frontbuf = !frontbuf;
-	}
-
-	while(!palReadPad(CONF->cpld.nss.port, CONF->cpld.nss.pad));
-	spiStartReceiveI(CONF->cpld.SPID, GPS_BUFFER_SIZE, CONF->bufs[frontbuf]);
 
 	chSysLockFromIsr();
 	chEvtBroadcastI(&MAX2769_read_done);
@@ -69,12 +55,7 @@ static void spicpldcb(SPIDriver *spip UNUSED) {
 }
 
 uint8_t * max2769_getdata(void) {
-	inuse = true;
-	return CONF->bufs[!frontbuf];
-}
-
-void max2769_donewithdata(void) {
-	inuse = false;
+	return CONF->bufs[!(CONF->cpld.SPID->dmarx->stream->CR & STM32_DMA_CR_CT)];
 }
 
 void max2769_init(const MAX2769Config * conf) {
@@ -104,6 +85,9 @@ void max2769_init(const MAX2769Config * conf) {
 		.end_cb = spicpldcb,
 		.cr1 = 0
 	};
+
+	conf->cpld.SPID->rxdmamode |= STM32_DMA_CR_DBM;
+
 	spiStart(conf->cpld.SPID, &spicpld);
 	conf->cpld.SPID->spi->CR1 &= ~SPI_CR1_SPE; //Disable peripheral
 	conf->cpld.SPID->spi->CR1 &= ~SPI_CR1_MSTR & ~SPI_CR1_SSI & ~SPI_CR1_SSM; //clear
@@ -121,8 +105,9 @@ void max2769_init(const MAX2769Config * conf) {
 	chThdSleepMilliseconds(1);
 	palSetPad(conf->cpld.reset.port, conf->cpld.reset.pad);
 
-	while(!palReadPad(conf->cpld.nss.port, conf->cpld.nss.pad));
-	max2769_read();
+
+	dmaStreamSetMemory1(conf->cpld.SPID->dmarx, conf->bufs[1]);
+	spiStartReceive(CONF->cpld.SPID, GPS_BUFFER_SIZE, CONF->bufs[0]);
 }
 
 
