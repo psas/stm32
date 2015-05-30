@@ -122,6 +122,13 @@ int SMBusGet(I2CDriver * driver, uint8_t addr, uint8_t command, uint16_t* data){
         i2cReleaseBus(driver);
         return errors;
     case RDY_TIMEOUT:
+        /* On a timeout ChibiOS will set the bus into I2C_LOCKED, which will
+         * cause an assert to be hit if a bus transfer is tried again.
+         * I2C_LOCKED can only be cleared by i2cStart(), but i2cStart will hit
+         * an assert if i2cStop is not issued before restarting.
+         * This seems like a really terrible way to handle timeous*/
+        i2cStop(driver);
+        i2cStart(driver, driver->config);
         i2cReleaseBus(driver);
         return RDY_TIMEOUT;
     default:
@@ -146,6 +153,8 @@ int SMBusSet(I2CDriver * driver, uint8_t addr, uint8_t command, uint16_t data){
         i2cReleaseBus(driver);
         return errors;
     case RDY_TIMEOUT:
+        i2cStop(driver);
+        i2cStart(driver, driver->config);
         i2cReleaseBus(driver);
         return RDY_TIMEOUT;
     default:
