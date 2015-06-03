@@ -33,7 +33,7 @@ def receive():
         sock.connect((b'10.10.10.40', 35050))
         sock.settimeout(TIMEOUT)
 
-        for i in xrange(100):
+        for i in xrange(2000):
             try:
                 data = sock.recv(1024)
             except socket.timeout:
@@ -59,8 +59,8 @@ initial = join_registers((
         LNAMODE=0b10,
         MIXEN=0b1,
         ANTEN=0b0,
-        FCEN=0b0,
-        FBW=0b10,
+        FCEN=0b000000,
+        FBW=0b00,
         F3OR5=0b0,
         FCENX=0b0,
         FGAIN=0b1,
@@ -111,12 +111,12 @@ initial = join_registers((
         PWRSAV=0b0,
     ),
     DIV(
-        NDIV=1538,
+        NDIV=1540,
         RDIV=16,
     ),
     CLK(
-        L_CNT=512,
-        M_CNT=512,
+        L_CNT=256,
+        M_CNT=1563,
         FCLKIN=0,
         ADCCLK=0,
         SERCLK=1,
