@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -Og -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main -std=gnu99
+  USE_OPT = -Og -ggdb -std=gnu99 -fomit-frame-pointer -falign-functions=16 -Wno-main
 endif
 
 # C specific options here (added to USE_OPT).
@@ -97,15 +97,13 @@ CSRC = $(PORTSRC) \
        $(LWSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(CHIBIOS)/os/various/memstreams.c \
-       $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/syscalls.c \
        $(PSAS_DEVICES)/MAX2769.c \
        $(PSAS_NETSRC) \
        $(PSAS_UTIL)/utils_led.c \
        $(PSAS_UTIL)/utils_hal.c \
-       $(PSAS_UTIL)/usbdetail.c \
-       $(PSAS_UTIL)/utils_shell.c \
+       $(PSAS_UTIL)/utils_rci.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

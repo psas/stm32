@@ -4,18 +4,20 @@
  */
 
 #include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 #include "ch.h"
 #include "hal.h"
 
 #include "net_addrs.h"
+#include "rci.h"
+#include "utils_rci.h"
 #include "utils_sockets.h"
 #include "utils_general.h"
 #include "utils_led.h"
 #include "MAX2769.h"
 
 static void max2769_config(void) {
-	//max2769_reset();
-
 	// Configuration from Google doc MAX2769RegisterConfiguration
 	uint32_t conf1 =
 		(0b1            << MAX2769_CONF1_CHIPEN ) |
@@ -90,6 +92,7 @@ static void max2769_config(void) {
 		(0            << MAX2769_CFDR_ADCCLK) |
 		(1            << MAX2769_CFDR_SERCLK) |
 		(0            << MAX2769_CFDR_MODE  );
+
 	max2769_set(MAX2769_CONF1, conf1);
 	max2769_set(MAX2769_CONF2, conf2);
 	max2769_set(MAX2769_CONF3, conf3);
@@ -143,12 +146,35 @@ static const MAX2769Config max2769 = {
 	.bufs = {gpsbuf1, gpsbuf2},
 };
 
-
 int gps_socket;
 static void gps_handler(eventid_t id UNUSED){
+#if 1
+	static unsigned int i = 0;
+	if(i % 100 == 0) {
+		ledToggle(&RED);
+	}
+	++i;
 	uint8_t *buf = max2769_getdata();
 	write(gps_socket, buf, GPS_BUFFER_SIZE);
+#endif
 }
+
+void setconf(struct RCICmdData * cmd, struct RCIRetData * ret UNUSED, void * user UNUSED) {
+	if(cmd->len != 8) {
+		return;
+	}
+	char regstr[2] = {cmd->data[0], '\0'};
+	int reg  = strtol(regstr, NULL, 16);
+	int data = strtol(cmd->data+1, NULL, 16);
+
+	max2769_set(reg, data);
+}
+
+struct RCICommand RCI_CMD_CONF = {
+	.name = "#CONF",
+	.function = setconf,
+	.user = NULL
+};
 
 void main(void) {
 	halInit();
@@ -160,6 +186,12 @@ void main(void) {
 	connect(gps_socket, FC_ADDR, sizeof(struct sockaddr));
 	max2769_init(&max2769);
 	max2769_config();
+
+	struct RCICommand commands[] = {
+		RCI_CMD_VERS,
+		RCI_CMD_CONF
+	};
+	RCICreate(commands);
 
 	/* Manage MAX2769 events */
 	struct EventListener ddone;
