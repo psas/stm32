@@ -7,6 +7,7 @@ import argparse
 import json
 import socket
 from registers import *
+import struct
 
 IP_SELF = b'10.10.10.10'
 PORT_SELF_RX = 36000
@@ -33,13 +34,18 @@ def receive():
         sock.connect((b'10.10.10.40', 35050))
         sock.settimeout(TIMEOUT)
 
+        counter = 0
         for i in xrange(2000):
             try:
-                data = sock.recv(1024)
+                data = sock.recv(1028)
+                expected_counter = counter + 1
+                counter = struct.unpack("I", data[0:4])[0]
+                if counter != expected_counter:
+                    print("Smooth stream starting at: %i (expected %i)" % (counter, expected_counter))
             except socket.timeout:
                 print ("No response")
                 break
-            yield data
+            yield data[4:]
 
 
 def cmd(string):
