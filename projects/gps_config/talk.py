@@ -115,9 +115,9 @@ initial = join_registers((
         RDIV=16,
     ),
     CLK(
-        L_CNT=256,
-        M_CNT=1563,
-        FCLKIN=0,
+        L_CNT=1024,
+        M_CNT=1024,
+        FCLKIN=1,
         ADCCLK=0,
         SERCLK=1,
         MODE=0,
