@@ -35,7 +35,7 @@ def receive():
         sock.settimeout(TIMEOUT)
 
         counter = 0
-        for i in xrange(2000):
+        for i in xrange(1998*2):
             try:
                 data = sock.recv(1028)
                 expected_counter = counter + 1
