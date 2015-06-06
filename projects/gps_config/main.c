@@ -64,7 +64,7 @@ static void max2769_config(void) {
 		(0b11           << MAX2769_CONF3_STRMBITS  ) |
 		(0b0            << MAX2769_CONF3_STAMPEN   ) |
 		(0b0            << MAX2769_CONF3_TIMESYNCEN) |
-		(0b0            << MAX2769_CONF3_DATASYNCEN) |
+		(0b0            << MAX2769_CONF3_DATSYNCEN) |
 		(0b0            << MAX2769_CONF3_STRMRST   );
 
 	uint32_t pllconf =
@@ -103,8 +103,8 @@ static void max2769_config(void) {
 
 
 
-uint8_t gpsbuf1[GPS_BUFFER_SIZE];
-uint8_t gpsbuf2[GPS_BUFFER_SIZE];
+uint8_t gpsbuf1[4+GPS_BUFFER_SIZE];
+uint8_t gpsbuf2[4+GPS_BUFFER_SIZE];
 
 PWMConfig pwmcfg = {
 	.frequency = 84000000,
@@ -143,20 +143,20 @@ static const MAX2769Config max2769 = {
 		.clk_src_cfg = &pwmcfg,
 		.PWMD = &PWMD12,
 	},
-	.bufs = {gpsbuf1, gpsbuf2},
+	.bufs = {gpsbuf1+4, gpsbuf2+4},
 };
 
 int gps_socket;
 static void gps_handler(eventid_t id UNUSED){
-#if 1
-	static unsigned int i = 0;
+	static uint32_t i = 0;
 	if(i % 100 == 0) {
 		ledToggle(&RED);
 	}
-	++i;
 	uint8_t *buf = max2769_getdata();
-	write(gps_socket, buf, GPS_BUFFER_SIZE);
-#endif
+	buf = buf - 4;
+	((uint32_t*)buf)[0] = i;
+	write(gps_socket, buf, 4+GPS_BUFFER_SIZE);
+	++i;
 }
 
 void setconf(struct RCICmdData * cmd, struct RCIRetData * ret UNUSED, void * user UNUSED) {
