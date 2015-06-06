@@ -30,10 +30,10 @@ static void max2769_config(void) {
 		(0b10           << MAX2769_CONF1_LNAMODE) |
 		(0b1            << MAX2769_CONF1_MIXEN  ) |
 		(0b0            << MAX2769_CONF1_ANTEN  ) |
-		(0b011011       << MAX2769_CONF1_FCEN   ) |
+		(0b000000       << MAX2769_CONF1_FCEN   ) |
 		(0b00           << MAX2769_CONF1_FBW    ) |
 		(0b0            << MAX2769_CONF1_F3OR5  ) |
-		(0b1            << MAX2769_CONF1_FCENX  ) |
+		(0b0            << MAX2769_CONF1_FCENX  ) |
 		(0b1            << MAX2769_CONF1_FGAIN  );
 
 	uint32_t conf2 =
@@ -54,7 +54,7 @@ static void max2769_config(void) {
 		(0b1            << MAX2769_CONF3_DRVEN     ) |
 		(0b1            << MAX2769_CONF3_FOFSTEN   ) |
 		(0b1            << MAX2769_CONF3_FILTEN    ) |
-		(0b1            << MAX2769_CONF3_FHIPEN    ) |
+		(0b0            << MAX2769_CONF3_FHIPEN    ) |
 		(0b1            << MAX2769_CONF3_PGAIEN    ) |
 		(0b1            << MAX2769_CONF3_PGAQEN    ) |
 		(0b0            << MAX2769_CONF3_STRMEN    ) |
@@ -71,7 +71,7 @@ static void max2769_config(void) {
 		(0b1          << MAX2769_PLL_VCOEN   ) |
 		(0b0          << MAX2769_PLL_IVCO    ) |
 		(0b1          << MAX2769_PLL_REFOUTEN) |
-		(0b11         << MAX2769_PLL_REFDIV  ) |
+		(0b01         << MAX2769_PLL_REFDIV  ) |
 		(0b01         << MAX2769_PLL_IXTAL   ) |
 		(0b10000      << MAX2769_PLL_XTALCAP ) |
 		(0b0000       << MAX2769_PLL_LDMUX   ) |
@@ -82,12 +82,12 @@ static void max2769_config(void) {
 		(0b0          << MAX2769_PLL_PWRSAV  );
 
 	uint32_t pllidr =
-		(1538         << MAX2769_PLLIDR_NDIV) |
+		(1540         << MAX2769_PLLIDR_NDIV) |
 		(16           << MAX2769_PLLIDR_RDIV);
 
 	uint32_t cfdr =
-		(512          << MAX2769_CFDR_L_CNT ) |
-		(512          << MAX2769_CFDR_M_CNT ) |
+		(1024         << MAX2769_CFDR_L_CNT ) |
+		(1024         << MAX2769_CFDR_M_CNT ) |
 		(0            << MAX2769_CFDR_FCLKIN) |
 		(0            << MAX2769_CFDR_ADCCLK) |
 		(1            << MAX2769_CFDR_SERCLK) |
