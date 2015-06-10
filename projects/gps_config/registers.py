@@ -1,4 +1,6 @@
 from bitfield import *
+from collections import OrderedDict
+import json
 
 CONF1 = make_bf("CONF1", [
     ("FGAIN", c_uint, 1),
@@ -119,3 +121,6 @@ def join_registers(regs):
 
 def split_registers(current):
     return sorted((idx, reg((current >> (32 * idx)) & 0xFFFFFFFF)) for reg, idx in ALL_REGISTERS.iteritems())
+
+def dump_registers(regs, f):
+    json.dump(OrderedDict((ALL_REGISTERS[reg.__class__], OrderedDict(reversed(list(reg.items())))) for reg in regs), f, indent=2)
