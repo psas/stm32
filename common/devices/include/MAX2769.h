@@ -43,6 +43,13 @@ typedef enum
 	MAX2769_TEST2_DEF           = 0x14C0402
 } max2769_regdefault;
 
+typedef enum
+{
+	MAX2769_CONF3_RESERVED   = (1 << 14),
+	MAX2769_PLLCONF_RESERVED = (1 << 23),
+	MAX2769_FDIV_RESERVED  = 0b01110000
+} max2769_reserved;
+
 /*
  *Ref: MAX2769 Table 6
  *MAX2769 Register bit positions

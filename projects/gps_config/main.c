@@ -47,6 +47,7 @@ static void max2769_config(void) {
 		(0b00           << MAX2769_CONF2_DIEID  );
 
 	uint32_t conf3 =
+		MAX2769_CONF3_RESERVED |
 		(0b111010       << MAX2769_CONF3_GAININ    ) |
 		(0b1            << MAX2769_CONF3_FSLOWEN   ) |
 		(0b0            << MAX2769_CONF3_HILOADEN  ) |
@@ -68,6 +69,7 @@ static void max2769_config(void) {
 		(0b0            << MAX2769_CONF3_STRMRST   );
 
 	uint32_t pllconf =
+		MAX2769_PLLCONF_RESERVED |
 		(0b1          << MAX2769_PLL_VCOEN   ) |
 		(0b0          << MAX2769_PLL_IVCO    ) |
 		(0b1          << MAX2769_PLL_REFOUTEN) |
