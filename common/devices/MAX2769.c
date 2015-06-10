@@ -105,6 +105,7 @@ void max2769_init(const MAX2769Config * conf) {
 	chThdSleepMilliseconds(1);
 	palSetPad(conf->cpld.reset.port, conf->cpld.reset.pad);
 
+	//palSetPad(conf->cpld.debug.port, conf->cpld.debug.pad);
 
 	dmaStreamSetMemory1(conf->cpld.SPID->dmarx, conf->bufs[1]);
 	spiStartReceive(CONF->cpld.SPID, GPS_BUFFER_SIZE, CONF->bufs[0]);
