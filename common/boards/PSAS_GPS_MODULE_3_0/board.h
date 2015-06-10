@@ -218,22 +218,22 @@ void mac_phy_reset(void);
                                      PIN_OTYPE_PUSHPULL    (GPIOA_JTAG_TCK              ) |\
                                      PIN_OTYPE_PUSHPULL    (GPIOA_JTAG_TDI                ))
 
-#define VAL_GPIOA_OSPEEDR           (PIN_OSPEED_100M       (GPIOA_PIN0                  ) |\
-                                     PIN_OSPEED_100M       (GPIOA_ETH_RMII_REF_CLK      ) |\
-                                     PIN_OSPEED_100M       (GPIOA_ETH_RMII_MDIO         ) |\
-                                     PIN_OSPEED_100M       (GPIOA_ETH_RMII_MDINT        ) |\
-                                     PIN_OSPEED_100M       (GPIOA_CPLD_OUT_SPI1_NSS     ) |\
-                                     PIN_OSPEED_100M       (GPIOA_CPLD_OUT_SPI1_SCK     ) |\
-                                     PIN_OSPEED_100M       (GPIOA_PIN6                  ) |\
-                                     PIN_OSPEED_100M       (GPIOA_ETH_RMII_CRS_DV       ) |\
-                                     PIN_OSPEED_100M       (GPIOA_MCO1_ETH_CLK          ) |\
-                                     PIN_OSPEED_100M       (GPIOA_OTG_FS_VBUS           ) |\
-                                     PIN_OSPEED_100M       (GPIOA_CPLD_RESET            ) |\
-                                     PIN_OSPEED_100M       (GPIOA_OTG_FS_DM             ) |\
-                                     PIN_OSPEED_100M       (GPIOA_OTG_FS_DP             ) |\
-                                     PIN_OSPEED_100M       (GPIOA_JTAG_TMS              ) |\
-                                     PIN_OSPEED_100M       (GPIOA_JTAG_TCK              ) |\
-                                     PIN_OSPEED_100M       (GPIOA_JTAG_TDI                ))
+#define VAL_GPIOA_OSPEEDR           (PIN_OSPEED_25M       (GPIOA_PIN0                  ) |\
+                                     PIN_OSPEED_25M       (GPIOA_ETH_RMII_REF_CLK      ) |\
+                                     PIN_OSPEED_25M       (GPIOA_ETH_RMII_MDIO         ) |\
+                                     PIN_OSPEED_25M       (GPIOA_ETH_RMII_MDINT        ) |\
+                                     PIN_OSPEED_25M       (GPIOA_CPLD_OUT_SPI1_NSS     ) |\
+                                     PIN_OSPEED_25M       (GPIOA_CPLD_OUT_SPI1_SCK     ) |\
+                                     PIN_OSPEED_25M       (GPIOA_PIN6                  ) |\
+                                     PIN_OSPEED_25M       (GPIOA_ETH_RMII_CRS_DV       ) |\
+                                     PIN_OSPEED_2M        (GPIOA_MCO1_ETH_CLK          ) |\
+                                     PIN_OSPEED_25M       (GPIOA_OTG_FS_VBUS           ) |\
+                                     PIN_OSPEED_25M       (GPIOA_CPLD_RESET            ) |\
+                                     PIN_OSPEED_25M       (GPIOA_OTG_FS_DM             ) |\
+                                     PIN_OSPEED_25M       (GPIOA_OTG_FS_DP             ) |\
+                                     PIN_OSPEED_25M       (GPIOA_JTAG_TMS              ) |\
+                                     PIN_OSPEED_25M       (GPIOA_JTAG_TCK              ) |\
+                                     PIN_OSPEED_25M       (GPIOA_JTAG_TDI                ))
 
 #define VAL_GPIOA_PUPDR             (PIN_PUPDR_PULLUP     (GPIOA_PIN0                  ) |\
                                      PIN_PUPDR_FLOATING   (GPIOA_ETH_RMII_REF_CLK      ) |\
@@ -325,22 +325,22 @@ void mac_phy_reset(void);
                                      PIN_OTYPE_PUSHPULL    ( GPIOB_CPLD_OUT_SPI_CLK_SRC  ) |\
                                      PIN_OTYPE_PUSHPULL    ( GPIOB_MAX_CFG_MOSI             ))
 
-#define VAL_GPIOB_OSPEEDR           (PIN_OSPEED_100M       ( GPIOB_PIN0                  ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_ANTFLAG               ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_LD                    ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_JTAG_TDO              ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_PIN4                  ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_CPLD_OUT_SPI1_MOSI    ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_PIN6                  ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_PIN7                  ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_PIN8                  ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_PIN9                  ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_MAX_CFG_SCLK          ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_ETH_RMII_TX_EN        ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_ETH_RMII_TXD0         ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_ETH_RMII_TXD1         ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_CPLD_OUT_SPI_CLK_SRC  ) |\
-                                     PIN_OSPEED_100M       ( GPIOB_MAX_CFG_MOSI             ))
+#define VAL_GPIOB_OSPEEDR           (PIN_OSPEED_25M       ( GPIOB_PIN0                  ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_ANTFLAG               ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_LD                    ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_JTAG_TDO              ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_PIN4                  ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_CPLD_OUT_SPI1_MOSI    ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_PIN6                  ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_PIN7                  ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_PIN8                  ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_PIN9                  ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_MAX_CFG_SCLK          ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_ETH_RMII_TX_EN        ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_ETH_RMII_TXD0         ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_ETH_RMII_TXD1         ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_CPLD_OUT_SPI_CLK_SRC  ) |\
+                                     PIN_OSPEED_25M       ( GPIOB_MAX_CFG_MOSI             ))
 
 #define VAL_GPIOB_PUPDR             (PIN_PUPDR_PULLUP      ( GPIOB_PIN0                  ) |\
                                      PIN_PUPDR_PULLUP      ( GPIOB_ANTFLAG               ) |\
@@ -433,22 +433,22 @@ void mac_phy_reset(void);
                                      PIN_OTYPE_PUSHPULL    ( GPIOC_PIN14                 ) |\
                                      PIN_OTYPE_PUSHPULL    ( GPIOC_PIN15                   ))
 
-#define VAL_GPIOC_OSPEEDR           (PIN_OSPEED_100M       ( GPIOC_PIN0                  ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_ETH_RMII_MDC          ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_PIN2                  ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_PIN3                  ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_ETH_RMII_RXD0         ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_ETH_RMII_RXD1         ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_USART6_TX             ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_USART6_RX             ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_SD_D0                 ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_SD_D1                 ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_SD_D2                 ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_SD_D3                 ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_SD_CLK                ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_PIN13                 ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_PIN14                 ) |\
-                                     PIN_OSPEED_100M       ( GPIOC_PIN15                   ))
+#define VAL_GPIOC_OSPEEDR           (PIN_OSPEED_25M       ( GPIOC_PIN0                  ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_ETH_RMII_MDC          ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_PIN2                  ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_PIN3                  ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_ETH_RMII_RXD0         ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_ETH_RMII_RXD1         ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_USART6_TX             ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_USART6_RX             ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_SD_D0                 ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_SD_D1                 ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_SD_D2                 ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_SD_D3                 ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_SD_CLK                ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_PIN13                 ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_PIN14                 ) |\
+                                     PIN_OSPEED_25M       ( GPIOC_PIN15                   ))
 
 #define VAL_GPIOC_PUPDR             (PIN_PUPDR_PULLUP      ( GPIOC_PIN0                  ) |\
                                      PIN_PUPDR_FLOATING    ( GPIOC_ETH_RMII_MDC          ) |\
@@ -540,22 +540,22 @@ void mac_phy_reset(void);
                                      PIN_OTYPE_PUSHPULL    ( GPIOD_RGB_G            )|\
                                      PIN_OTYPE_PUSHPULL    ( GPIOD_PIN15            ))
 
-#define VAL_GPIOD_OSPEEDR           (PIN_OSPEED_100M       ( GPIOD_SD_VDD           )|\
-                                     PIN_OSPEED_100M       ( GPIOD_PIN1             )|\
-                                     PIN_OSPEED_100M       ( GPIOD_SD_CMD           )|\
-                                     PIN_OSPEED_100M       ( GPIOD_EPHY_NRST        )|\
-                                     PIN_OSPEED_100M       ( GPIOD_PIN4             )|\
-                                     PIN_OSPEED_100M       ( GPIOD_PIN5             )|\
-                                     PIN_OSPEED_100M       ( GPIOD_PIN6             )|\
-                                     PIN_OSPEED_100M       ( GPIOD_PIN7             )|\
-                                     PIN_OSPEED_100M       ( GPIOD_LED2             )|\
-                                     PIN_OSPEED_100M       ( GPIOD_LED4             )|\
-                                     PIN_OSPEED_100M       ( GPIOD_LED5             )|\
-                                     PIN_OSPEED_100M       ( GPIOD_RGB_B            )|\
-                                     PIN_OSPEED_100M       ( GPIOD_CPLD_DEBUG       )|\
-                                     PIN_OSPEED_100M       ( GPIOD_RGB_R            )|\
-                                     PIN_OSPEED_100M       ( GPIOD_RGB_G            )|\
-                                     PIN_OSPEED_100M       ( GPIOD_PIN15            ))
+#define VAL_GPIOD_OSPEEDR           (PIN_OSPEED_25M       ( GPIOD_SD_VDD           )|\
+                                     PIN_OSPEED_25M       ( GPIOD_PIN1             )|\
+                                     PIN_OSPEED_25M       ( GPIOD_SD_CMD           )|\
+                                     PIN_OSPEED_25M       ( GPIOD_EPHY_NRST        )|\
+                                     PIN_OSPEED_25M       ( GPIOD_PIN4             )|\
+                                     PIN_OSPEED_25M       ( GPIOD_PIN5             )|\
+                                     PIN_OSPEED_25M       ( GPIOD_PIN6             )|\
+                                     PIN_OSPEED_25M       ( GPIOD_PIN7             )|\
+                                     PIN_OSPEED_25M       ( GPIOD_LED2             )|\
+                                     PIN_OSPEED_25M       ( GPIOD_LED4             )|\
+                                     PIN_OSPEED_25M       ( GPIOD_LED5             )|\
+                                     PIN_OSPEED_25M       ( GPIOD_RGB_B            )|\
+                                     PIN_OSPEED_25M       ( GPIOD_CPLD_DEBUG       )|\
+                                     PIN_OSPEED_25M       ( GPIOD_RGB_R            )|\
+                                     PIN_OSPEED_25M       ( GPIOD_RGB_G            )|\
+                                     PIN_OSPEED_25M       ( GPIOD_PIN15            ))
 
 #define VAL_GPIOD_PUPDR             (PIN_PUPDR_PULLUP      ( GPIOD_SD_VDD           )|\
                                      PIN_PUPDR_PULLUP      ( GPIOD_PIN1             )|\
@@ -647,22 +647,22 @@ void mac_phy_reset(void);
                                      PIN_OTYPE_PUSHPULL(GPIOE_PIN14            ) |\
                                      PIN_OTYPE_PUSHPULL(GPIOE_PIN15            ))
 
-#define VAL_GPIOE_OSPEEDR           (PIN_OSPEED_100M   (GPIOE_PIN0             ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN1             ) |\
-                                     PIN_OSPEED_100M   (GPIOE_ETH_DEBUG        ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN3             ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN4             ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN5             ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN6             ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN7             ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN8             ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN9             ) |\
-                                     PIN_OSPEED_100M   (GPIOE_MAX_SHDN         ) |\
-                                     PIN_OSPEED_100M   (GPIOE_MAX_IDLE         ) |\
-                                     PIN_OSPEED_100M   (GPIOE_MAX_CFG_CS       ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN13            ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN14            ) |\
-                                     PIN_OSPEED_100M   (GPIOE_PIN15            ))
+#define VAL_GPIOE_OSPEEDR           (PIN_OSPEED_25M   (GPIOE_PIN0             ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN1             ) |\
+                                     PIN_OSPEED_25M   (GPIOE_ETH_DEBUG        ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN3             ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN4             ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN5             ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN6             ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN7             ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN8             ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN9             ) |\
+                                     PIN_OSPEED_25M   (GPIOE_MAX_SHDN         ) |\
+                                     PIN_OSPEED_25M   (GPIOE_MAX_IDLE         ) |\
+                                     PIN_OSPEED_25M   (GPIOE_MAX_CFG_CS       ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN13            ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN14            ) |\
+                                     PIN_OSPEED_25M   (GPIOE_PIN15            ))
 
 #define VAL_GPIOE_PUPDR             (PIN_PUPDR_PULLUP  (GPIOE_PIN0             ) |\
                                      PIN_PUPDR_PULLUP  (GPIOE_PIN1             ) |\
@@ -737,8 +737,8 @@ void mac_phy_reset(void);
 #define VAL_GPIOH_OTYPER            (PIN_OTYPE_PUSHPULL(GPIOH_OSC_IN) |     \
                                      PIN_OTYPE_PUSHPULL(GPIOH_OSC_OUT))
 
-#define VAL_GPIOH_OSPEEDR           (PIN_OSPEED_100M(GPIOH_OSC_IN) |        \
-                                     PIN_OSPEED_100M(GPIOH_OSC_OUT))
+#define VAL_GPIOH_OSPEEDR           (PIN_OSPEED_25M(GPIOH_OSC_IN) |        \
+                                     PIN_OSPEED_25M(GPIOH_OSC_OUT))
 
 #define VAL_GPIOH_PUPDR             (PIN_PUPDR_FLOATING(GPIOH_OSC_IN) |     \
                                      PIN_PUPDR_FLOATING(GPIOH_OSC_OUT))
