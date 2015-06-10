@@ -23,11 +23,11 @@ static void max2769_config(void) {
 		(0b1            << MAX2769_CONF1_CHIPEN ) |
 		(0b0            << MAX2769_CONF1_IDLE   ) |
 		(0b1111         << MAX2769_CONF1_ILNA1  ) |
-		(0b00           << MAX2769_CONF1_ILNA2  ) |
+		(0b11           << MAX2769_CONF1_ILNA2  ) |
 		(0b11           << MAX2769_CONF1_ILO    ) |
 		(0b11           << MAX2769_CONF1_IMIX   ) |
 		(0b0            << MAX2769_CONF1_MIXPOLE) |
-		(0b10           << MAX2769_CONF1_LNAMODE) |
+		(0b01           << MAX2769_CONF1_LNAMODE) |
 		(0b1            << MAX2769_CONF1_MIXEN  ) |
 		(0b0            << MAX2769_CONF1_ANTEN  ) |
 		(0b000000       << MAX2769_CONF1_FCEN   ) |
