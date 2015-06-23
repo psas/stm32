@@ -130,9 +130,9 @@ void mac_phy_reset(void);
 #define GPIOD_LED2                    8
 #define GPIOD_LED4                    9
 #define GPIOD_LED5                    10
-#define GPIOD_RGB_R                   11
+#define GPIOD_RGB_B                   11
 #define GPIOD_CPLD_DEBUG              12
-#define GPIOD_RGB_B                   13
+#define GPIOD_RGB_R                   13
 #define GPIOD_RGB_G                   14
 #define GPIOD_PIN15                   15  // NC
 
