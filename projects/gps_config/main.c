@@ -200,12 +200,21 @@ static void setconf(struct RCICmdData * cmd, struct RCIRetData * ret UNUSED, voi
 	max2769_set(reg, data);
 }
 
+static void setdebug(struct RCICmdData * cmd UNUSED, struct RCIRetData * ret UNUSED, void * user UNUSED) {
+	palTogglePad(max2769.cpld.debug.port, max2769.cpld.debug.pad);
+}
+
 static const struct RCICommand RCI_CMD_CONF = {
 	.name = "#CONF",
 	.function = setconf,
 	.user = NULL
 };
 
+static const struct RCICommand RCI_CMD_DEBG = {
+	.name = "#DEBG",
+	.function = setdebug,
+	.user = NULL
+};
 
 void main(void) {
 	halInit();
@@ -233,7 +242,8 @@ void main(void) {
 
 	struct RCICommand commands[] = {
 		RCI_CMD_VERS,
-		RCI_CMD_CONF
+		RCI_CMD_CONF,
+		RCI_CMD_DEBG
 	};
 	RCICreate(commands);
 
