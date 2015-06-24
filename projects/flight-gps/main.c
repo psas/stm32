@@ -218,6 +218,7 @@ void main(void) {
 
 	struct RCICommand commands[] = {
 		RCI_CMD_VERS,
+		{NULL}
 	};
 	RCICreate(commands);
 
