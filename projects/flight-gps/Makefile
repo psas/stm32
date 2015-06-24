@@ -69,9 +69,15 @@ PROJECT = ch
 
 # Imported source files and paths
 PSAS= ../../common
+CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-include $(PSAS)/boards/PSAS_GPS_MODULE_3_0/board.mk
+BOARD ?= PSAS_GPS_MODULE_3_0
+ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
+    include $(CHIBIOS)/boards/$(BOARD)/board.mk
+else
+    include $(PSAS)/boards/$(BOARD)/board.mk
+endif
 include $(CHIBIOS)/os/hal/platforms/STM32F4xx/platform.mk
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS)/os/ports/GCC/ARMCMx/STM32F4xx/port.mk
@@ -91,9 +97,11 @@ CSRC = $(PORTSRC) \
        $(LWSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        $(PSAS_DEVICES)/iwdg.c \
-       $(PSAS_UTIL)/utils_led.c \
-       $(PSAS_UTIL)/utils_rci.c \
+       $(PSAS_DEVICES)/MAX2769.c  \
        $(PSAS_NETSRC) \
+       $(PSAS_UTIL)/utils_led.c \
+       $(PSAS_UTIL)/utils_hal.c \
+       $(PSAS_UTIL)/utils_rci.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -124,9 +132,14 @@ TCPPSRC =
 ASMSRC = $(PORTASM)
 
 INCDIR = $(PORTINC) $(KERNINC) \
-         $(HALINC) $(PLATFORMINC) $(BOARDINC) $(LWINC) \
+         $(HALINC) $(PLATFORMINC) $(BOARDINC)\
+         $(LWINC) \
          $(CHIBIOS)/os/various \
-         $(PSAS_UTIL)/include $(PSAS_NET) $(PSAS_DEVICES)/include
+         $(PSAS_DEVICES)/include \
+         $(PSAS_COMMON) \
+         $(CONF) \
+         $(PSAS_UTIL)/include \
+         $(PSAS_NET)
 #
 # Project, sources and paths
 ##############################################################################
@@ -201,7 +214,6 @@ DLIBS =
 
 # List all user C define here, like -D_DEBUG=1
 UDEFS = $(BUILDFLAG) -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
-
 
 # Define ASM defines here
 UADEFS =
