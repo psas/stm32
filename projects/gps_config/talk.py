@@ -178,7 +178,7 @@ if __name__ == "__main__":
                     binary = [ord(c) for c in data]
 
                 if args.v:
-                    print("Received", len(data), ":", "".join("{:02x}".format(c) for c in binary), "from", remote_addr)
+                    print("Received", len(data), ":", "".join("{:02x}".format(c) for c in binary))
 
                 if args.d:
                     packetcounter += 1
