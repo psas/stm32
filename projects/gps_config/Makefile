@@ -96,9 +96,6 @@ CSRC = $(PORTSRC) \
        $(BOARDSRC) \
        $(LWSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
-       $(CHIBIOS)/os/various/memstreams.c \
-       $(CHIBIOS)/os/various/chprintf.c \
-       $(CHIBIOS)/os/various/syscalls.c \
        $(PSAS_DEVICES)/MAX2769.c \
        $(PSAS_NETSRC) \
        $(PSAS_UTIL)/utils_led.c \
@@ -215,7 +212,7 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
 
 # Define ASM defines here
 UADEFS =
