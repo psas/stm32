@@ -28,7 +28,8 @@ size_t len_swapped(const struct swap *swaps){
 void write_swapped(const struct swap *swaps, const void *data, uint8_t *buffer){
 	while(swaps->length){
 		for(size_t i = 0; i < swaps->elements; ++i) {
-			const char *current = (const char *) data + swaps->offset;
+			size_t index = i * swaps->length;
+			const char *current = (const char *) data + swaps->offset + index;
 			swap(swaps->length, current, buffer);
 			buffer += swaps->length;
 		}
@@ -39,7 +40,8 @@ void write_swapped(const struct swap *swaps, const void *data, uint8_t *buffer){
 void read_swapped(const struct swap *swaps, void *data, const uint8_t *buffer){
 	while(swaps->length){
 		for(size_t i = 0; i < swaps->elements; ++i) {
-			char *current = (char *) data + swaps->offset;
+			size_t index = i * swaps->length;
+			char *current = (char *) data + swaps->offset + index;
 			swap(swaps->length, buffer, current);
 			buffer += swaps->length;
 		}
