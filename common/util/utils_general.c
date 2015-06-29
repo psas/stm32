@@ -19,7 +19,7 @@ static void swap(int length, const void * in, void * out){
 size_t len_swapped(const struct swap *swaps){
 	size_t len = 0;
 	while(swaps->length){
-		len += swaps->length;
+		len += swaps->length * swaps->elements;
 		++swaps;
 	}
 	return len;
