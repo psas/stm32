@@ -110,8 +110,11 @@ static PWMConfig pwmcfg = {
 	.dier = 0
 };
 
-static uint8_t max2769_buf1[4+GPS_BUFFER_SIZE];
-static uint8_t max2769_buf2[4+GPS_BUFFER_SIZE];
+
+#define SEQ_COUNTER_OFFSET 4
+
+static uint8_t max2769_buf1[SEQ_COUNTER_OFFSET + GPS_BUFFER_SIZE];
+static uint8_t max2769_buf2[SEQ_COUNTER_OFFSET + GPS_BUFFER_SIZE];
 
 static const MAX2769Config max2769 = {
 	.max = {
@@ -135,24 +138,25 @@ static const MAX2769Config max2769 = {
 		.clk_src_cfg = &pwmcfg,
 		.PWMD = &PWMD12,
 	},
-	.bufs = {max2769_buf1+4, max2769_buf2+4},
+	// GPS driver shouldn't know about the seqence counter section of the buffer
+	.bufs = {max2769_buf1 + SEQ_COUNTER_OFFSET, max2769_buf2 + SEQ_CONTER_OFFSET},
 };
 
 static int max2769_socket;
 static int venus_socket;
 #define VENUS_BUFFER_SIZE (500)
-static uint8_t venus_buf1[4 + VENUS_BUFFER_SIZE];
-static uint8_t venus_buf2[4 + VENUS_BUFFER_SIZE];
+static uint8_t venus_buf1[SEQ_COUNTER_OFFSET + VENUS_BUFFER_SIZE];
+static uint8_t venus_buf2[SEQ_COUNTER_OFFSET + VENUS_BUFFER_SIZE];
 static uint8_t * venus_buf[2] = {venus_buf1, venus_buf2};
 static uint8_t front = 0;
 static EvTimer timer;
 
 static void max2769_handler(eventid_t id UNUSED){
-	static uint32_t seq = 0;
-	uint8_t *buf = max2769_getdata() - 4; //Add back in the sequence number
-	((uint32_t*)buf)[0] = seq;
-	write(max2769_socket, buf, 4+GPS_BUFFER_SIZE);
-	++seq;
+	static uint32_t seq_counter = 0;
+	uint8_t *buf = max2769_getdata() - SEQ_COUNTER_OFFSET; //Add back in the sequence counter
+	((uint32_t*)buf)[0] = seq_counter;
+	write(max2769_socket, buf, SEQ_COUTNER_OFFSET + GPS_BUFFER_SIZE);
+	++seq_counter;
 	ledOn(&RED);
 }
 
@@ -162,18 +166,18 @@ static void uart_error(UARTDriver *uartp UNUSED, uartflags_t e UNUSED) {
 }
 
 static void venus_timeout(eventid_t id UNUSED) {
-	static uint32_t seq = 0;
+	static uint32_t seq_counter = 0;
 	size_t not_received = uartStopReceive(&UARTD6);
 	size_t received = VENUS_BUFFER_SIZE - not_received;
 	if (received > 0) {
-		((uint32_t*)(venus_buf[front]))[0] = seq;
-		write(venus_socket, venus_buf[front], 4+received);
-		++seq;
+		((uint32_t*)(venus_buf[front]))[0] = seq_counter;
+		write(venus_socket, venus_buf[front], SEQ_COUNTER_OFFSET + received);
+		++seq_counter;
 	}
 
 	front = !front;
-
-	uartStartReceive(&UARTD6, VENUS_BUFFER_SIZE, venus_buf[front] + 4);
+	//UART driver shouldn't have access to the sequence counter section of the buffer
+	uartStartReceive(&UARTD6, VENUS_BUFFER_SIZE, venus_buf[front] + SEQ_COUNTER_OFFSET);
 }
 
 static UARTConfig venus = {
@@ -222,7 +226,8 @@ void main(void) {
 	};
 	RCICreate(commands);
 
-	uartStartReceive(&UARTD6, VENUS_BUFFER_SIZE, venus_buf[front] + 4);
+	//UART driver shouldn't have access to the sequence counter section of the buffer
+	uartStartReceive(&UARTD6, VENUS_BUFFER_SIZE, venus_buf[front] + SEQ_COUNTER_OFFSET);
 	evtInit(&timer, MS2ST(10));
 	evtStart(&timer);
 
