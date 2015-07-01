@@ -17,6 +17,9 @@
 #include "utils_general.h"
 #include "utils_led.h"
 #include "MAX2769.h"
+#ifdef FLIGHT
+#include "iwdg.h"
+#endif
 
 // Configuration from Google doc MAX2769RegisterConfiguration
 static const uint32_t conf1 =
@@ -189,11 +192,16 @@ static UARTConfig venus = {
 };
 
 void main(void) {
+#ifdef FLIGHT
+	iwdgPreStart();
+#endif
 	halInit();
 	chSysInit();
+
 #ifdef FLIGHT
-	iwdgStart();
+	iwdgPostStart();
 #endif
+
 
 	ledStart(NULL);
 	lwipThreadStart(GPS_LWIP);

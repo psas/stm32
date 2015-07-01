@@ -286,9 +286,6 @@ void main(void) {
 
 	// Start Diagnostics
 	ledStart(&led_cfg);
-//#ifdef FLIGHT
-	//iwdgStart();
-//#endif
 	//Init hardware
 	BQ24725Start(&BQConf);
 	BQ3060Start(&rnh3060conf);
