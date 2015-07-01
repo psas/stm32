@@ -22,7 +22,8 @@ extern "C" {
  #error "Please select first the target STM32F4XX device used in your application (in stm32f4xx.h file)"
 #endif
 
-void iwdgStart(void) ;
+void iwdgPreStart(void) ;
+void iwdgPostStart(void) ;
 
 #ifdef __cplusplus
 }
