@@ -139,7 +139,7 @@ static const MAX2769Config max2769 = {
 		.PWMD = &PWMD12,
 	},
 	// GPS driver shouldn't know about the seqence counter section of the buffer
-	.bufs = {max2769_buf1 + SEQ_COUNTER_OFFSET, max2769_buf2 + SEQ_CONTER_OFFSET},
+	.bufs = {max2769_buf1 + SEQ_COUNTER_OFFSET, max2769_buf2 + SEQ_COUNTER_OFFSET},
 };
 
 static int max2769_socket;
@@ -155,7 +155,7 @@ static void max2769_handler(eventid_t id UNUSED){
 	static uint32_t seq_counter = 0;
 	uint8_t *buf = max2769_getdata() - SEQ_COUNTER_OFFSET; //Add back in the sequence counter
 	((uint32_t*)buf)[0] = seq_counter;
-	write(max2769_socket, buf, SEQ_COUTNER_OFFSET + GPS_BUFFER_SIZE);
+	write(max2769_socket, buf, SEQ_COUNTER_OFFSET + GPS_BUFFER_SIZE);
 	++seq_counter;
 	ledOn(&RED);
 }
