@@ -18,6 +18,8 @@
 #include "utils_led.h"
 #include "MAX2769.h"
 
+#include "commands.h"
+
 // Configuration from Google doc MAX2769RegisterConfiguration
 static const uint32_t conf1 =
 	(0b1            << MAX2769_CONF1_CHIPEN ) |
@@ -116,7 +118,7 @@ static PWMConfig pwmcfg = {
 static uint8_t max2769_buf1[SEQ_COUNTER_OFFSET + GPS_BUFFER_SIZE];
 static uint8_t max2769_buf2[SEQ_COUNTER_OFFSET + GPS_BUFFER_SIZE];
 
-static const MAX2769Config max2769 = {
+const MAX2769Config max2769 = {
 	.max = {
 		.SPID    = &SPID2,
 		.sck     = {GPIOB, GPIOB_MAX_CFG_SCLK},
@@ -180,8 +182,13 @@ static void venus_timeout(eventid_t id UNUSED) {
 	uartStartReceive(&UARTD6, VENUS_BUFFER_SIZE, venus_buf[front] + SEQ_COUNTER_OFFSET);
 }
 
+
 static UARTConfig venus = {
+#ifndef FLIGHT
+	.txend1_cb = txend,
+#else
 	.txend1_cb = NULL,
+#endif
 	.txend2_cb = NULL,
 	.rxend_cb = NULL,
 	.rxchar_cb = NULL,
@@ -218,6 +225,11 @@ void main(void) {
 
 	struct RCICommand commands[] = {
 		RCI_CMD_VERS,
+#ifndef FLIGHT
+		RCI_CMD_CONF,
+		RCI_CMD_DEBG,
+		RCI_CMD_VNUS,
+#endif
 		{NULL}
 	};
 	RCICreate(commands);

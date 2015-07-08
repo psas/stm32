@@ -103,6 +103,7 @@ CSRC = $(PORTSRC) \
        $(PSAS_UTIL)/utils_hal.c \
        $(PSAS_UTIL)/utils_rci.c \
        $(PSAS_UTIL)/utils_general.c \
+       commands.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
