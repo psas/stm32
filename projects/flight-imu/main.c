@@ -60,10 +60,14 @@ static void mpl_drdy_handler(eventid_t id UNUSED){
 }
 
 void main(void){
+#ifdef FLIGHT
+	iwdgPreStart();
+#endif
+
 	halInit();
 	chSysInit();
 #ifdef FLIGHT
-	iwdgStart();
+	iwdgPostStart();
 #endif
 	ledStart(NULL);
 

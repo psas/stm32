@@ -5,7 +5,7 @@
 
 # Compiler options here.
 ifeq ($(USE_OPT),)
-  USE_OPT = -Og -ggdb -fomit-frame-pointer -falign-functions=16 -Wno-main -std=gnu99
+  USE_OPT = -Og -ggdb -std=gnu99 -fomit-frame-pointer -falign-functions=16 -Wno-main
 endif
 
 # C specific options here (added to USE_OPT).
@@ -72,8 +72,7 @@ PSAS= ../../common
 CONF= conf
 include $(PSAS)/psas.mk
 CHIBIOS = ../../ChibiOS
-BOARD ?= PSAS_GPS_RF_FRONTEND_2
-#BOARD ?= PSAS_OLIMEX_STM32_E407
+BOARD ?= PSAS_GPS_MODULE_3_0
 ifneq ($(wildcard $(CHIBIOS)/boards/$(BOARD)/board.mk),)
     include $(CHIBIOS)/boards/$(BOARD)/board.mk
 else
@@ -97,16 +96,11 @@ CSRC = $(PORTSRC) \
        $(BOARDSRC) \
        $(LWSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
-       $(CHIBIOS)/os/various/memstreams.c \
-       $(CHIBIOS)/os/various/shell.c \
-       $(CHIBIOS)/os/various/chprintf.c \
-       $(CHIBIOS)/os/various/syscalls.c \
        $(PSAS_DEVICES)/MAX2769.c \
        $(PSAS_NETSRC) \
        $(PSAS_UTIL)/utils_led.c \
        $(PSAS_UTIL)/utils_hal.c \
-       $(PSAS_UTIL)/usbdetail.c \
-       $(PSAS_UTIL)/utils_shell.c \
+       $(PSAS_UTIL)/utils_rci.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
@@ -218,7 +212,7 @@ DLIBS =
 #
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = -DGIT_COMMIT_VERSION=$(PSAS_VERSION)
 
 # Define ASM defines here
 UADEFS =

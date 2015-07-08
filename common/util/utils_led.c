@@ -82,7 +82,26 @@ static struct led_config led_cfg = {
 				NULL
 		}
 };
-
+#elif defined BOARD_PSAS_GPS_MODULE_3_0
+const struct led LED2 = {GPIOD, GPIOD_LED2};
+const struct led LED4 = {GPIOD, GPIOD_LED4};
+const struct led LED5 = {GPIOD, GPIOD_LED5};
+const struct led RED = {GPIOD, GPIOD_RGB_R};
+const struct led BLUE = {GPIOD, GPIOD_RGB_B};
+const struct led GREEN = {GPIOD, GPIOD_RGB_G};
+static struct led_config led_cfg = {
+		.cycle_ms = 500,
+		.start_ms = 4000,
+		.led = (const struct led*[]){
+				&GREEN,
+				&RED,
+				&BLUE,
+				&LED2,
+				&LED4,
+				&LED5,
+				NULL
+		}
+};
 #else
 static struct led_config led_cfg = {0};
 #endif

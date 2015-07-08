@@ -6,25 +6,10 @@
 #ifndef _MAX2769_H
 #define _MAX2769_H
 
-#include "spi_lld.h"
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #include "ch.h"
 #include "hal.h"
-#include "spi_lld.h"
 
 #include "utils_hal.h"
-
-#if !defined(MAX2769_DEBUG) || defined(__DOXYGEN__)
-#define         MAX2769_DEBUG                       0
-#endif
-#if !defined(MAX2769_DEBUG) || defined(__DOXYGEN__)
-#define         MAX2769_SPI_DEBUG                   0
-#endif
 
 /* MAX2769 Register addresses */
 typedef enum
@@ -58,6 +43,13 @@ typedef enum
 	MAX2769_TEST2_DEF           = 0x14C0402
 } max2769_regdefault;
 
+typedef enum
+{
+	MAX2769_CONF3_RESERVED   = (1 << 14),
+	MAX2769_PLLCONF_RESERVED = (1 << 23),
+	MAX2769_FDIV_RESERVED  = 0b01110000
+} max2769_reserved;
+
 /*
  *Ref: MAX2769 Table 6
  *MAX2769 Register bit positions
@@ -73,7 +65,7 @@ typedef enum
 #define  MAX2769_CONF1_LNAMODE       ((uint8_t)(13))    /* LNA Mode Select */
 #define  MAX2769_CONF1_MIXEN         ((uint8_t)(12))    /* Mixer enable */
 #define  MAX2769_CONF1_ANTEN         ((uint8_t)(11))    /* Antenna Bias Enable */
-#define  MAX2769_CONF1_FCEN          ((uint8_t)(5))    /* IF Center Frequency */
+#define  MAX2769_CONF1_FCEN          ((uint8_t)(5))     /* IF Center Frequency */
 #define  MAX2769_CONF1_FBW           ((uint8_t)(3))     /* IF Filter Center Bandwidth */
 #define  MAX2769_CONF1_F3OR5         ((uint8_t)(2))     /* Filter Order Select */
 #define  MAX2769_CONF1_FCENX         ((uint8_t)(1))     /* Polyphase filter Select */
@@ -83,7 +75,7 @@ typedef enum
 #define  MAX2769_CONF2_IQEN          ((uint8_t)(27))    /* I and Q Channels Enable */
 #define  MAX2769_CONF2_GAINREF       ((uint8_t)(15))    /* AGC Gain */
 #define  MAX2769_CONF2_AGCMODE       ((uint8_t)(11))    /* AGC Mode */
-#define  MAX2769_CONF2_FORMAT        ((uint8_t)(9))    /* Output Data Format */
+#define  MAX2769_CONF2_FORMAT        ((uint8_t)(9))     /* Output Data Format */
 #define  MAX2769_CONF2_BITS          ((uint8_t)(6))     /* Num of bits in ADC */
 #define  MAX2769_CONF2_DRVCFG        ((uint8_t)(4))     /* Output Driver Configuration */
 #define  MAX2769_CONF2_LOEN          ((uint8_t)(3))     /* LO buffer enable */
@@ -107,7 +99,7 @@ typedef enum
 #define  MAX2769_CONF3_STRMBITS      ((uint8_t)(4))    /* ... */
 #define  MAX2769_CONF3_STAMPEN       ((uint8_t)(3))    /* ... */
 #define  MAX2769_CONF3_TIMESYNCEN    ((uint8_t)(2))    /* ... */
-#define  MAX2769_CONF3_DATASYNCEN    ((uint8_t)(1))    /* ... */
+#define  MAX2769_CONF3_DATSYNCEN    ((uint8_t)(1))    /* ... */
 #define  MAX2769_CONF3_STRMRST       ((uint8_t)(0))    /* ... */
 
 /* PLL */
@@ -125,18 +117,18 @@ typedef enum
 #define  MAX2769_PLL_PWRSAV          ((uint8_t)(2))    /* PLL Power Save */
 
 /* PLL Integer Division Ratio */
-#define  MAX2769_PLLIDR_NDIV         ((uint8_t)(13))    /* PLL Integer Division Ratio */
+#define  MAX2769_PLLIDR_NDIV         ((uint8_t)(13))   /* PLL Integer Division Ratio */
 #define  MAX2769_PLLIDR_RDIV         ((uint8_t)(3))    /* PLL Reference Division Ratio */
 
 /* PLL Integer Division Ratio */
 #define  MAX2769_PLLDR_FDIV          ((uint8_t)(8))    /* PLL Fractional Divider Ratio */
 
 /* DSP Interface */
-#define  MAX2769_DSP_FRAMECOUNT      ((uint8_t)(27))    /* ... */
+#define  MAX2769_DSP_FRAMECOUNT      ((uint8_t)(27))   /* ... */
 
 /* Clock Fractional Division Ratio */
 #define  MAX2769_CFDR_L_CNT          ((uint8_t)(16))    /* L Counter Value */
-#define  MAX2769_CFDR_M_CNT          ((uint8_t)(4))    /* M Counter Value */
+#define  MAX2769_CFDR_M_CNT          ((uint8_t)(4))     /* M Counter Value */
 #define  MAX2769_CFDR_FCLKIN         ((uint8_t)(3))     /* Frac. Clock Divider */
 #define  MAX2769_CFDR_ADCCLK         ((uint8_t)(2))     /* ADC Clock Selection */
 #define  MAX2769_CFDR_SERCLK         ((uint8_t)(1))     /* Serializer Clock Selection */
@@ -146,42 +138,45 @@ typedef enum
  *
  * Configuration for the MAX2769 connections
  */
-typedef struct
-{
-	struct pin      spi_sck;                /*! \brief The SPI SCK wire */
-	struct pin      spi_mosi;               /*! \brief The SPI MOSI wire */
-	struct pin      spi_miso;               /*! \brief The SPI MISO wire */
-	struct pin      spi_cs;                 /*! \brief The SPI CS wire */
-	SPIDriver *     SPIDCONFIG;              /*! \brief the SPI configure driver */
-	SPIDriver *     SPIDREAD;                /*! \brief the SPI read driver */
-	struct pin      idle;                   /*! \brief low power idle */
-	struct pin      shdn;                   /*! \brief Shutdown device */
-	struct pin      q1_timesync;
-	struct pin      q0_datasync;
-	struct pin      ld;
-	struct pin      antflag;
-	struct pin      i1_clk_ser;
-	struct pin      i0_data_out;
-	struct pin      spi1_nss;
-	uint8_t *      bufs[2];
+typedef struct {
+	SPIDriver *SPID;
+	struct pin mosi;
+	struct pin sck;
+	struct pin nss;
+	struct pin idle;
+	struct pin shdn;
+	struct pin ld;
+	struct pin antflag;
+} MAXConfig;
+
+typedef struct {
+	SPIDriver *SPID;
+	struct pin mosi;
+	struct pin sck;
+	struct pin nss;
+	struct pin clk_src;
+	struct pin reset;
+	struct pin debug;
+	PWMConfig *clk_src_cfg;
+	PWMDriver *PWMD;
+} CPLDConfig;
+
+typedef struct {
+	MAXConfig  max;
+	CPLDConfig cpld;
+	uint8_t *  bufs[2];
 } MAX2769Config;
 
 
 #define GPS_BUFFER_SIZE 1024
 
-//FIXME: should be read_done
-extern            EventSource              MAX2769_write_done;
+extern EventSource MAX2769_read_done;
 
 void max2769_reset(void);
 void max2769_set(max2769_regaddr addr, uint32_t value);
 uint8_t * max2769_getdata(void);
-void max2769_donewithdata(void);
 
 void max2769_init(const MAX2769Config * conf);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

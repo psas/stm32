@@ -10,7 +10,7 @@ To initialize the ChibiOS submodule run:
     $ git submodule update --init
 
 When ChibiOS updates you'll need to re-sync it as its origin has changed:
-The last time ChibiOS was updated: December 2013
+The last time ChibiOS was updated: June 2014
 
     $ git submodule sync
     $ git submodule update

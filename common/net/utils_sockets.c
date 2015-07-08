@@ -41,6 +41,10 @@ int get_udp_socket(const struct sockaddr *addr){
 		return -1;
 	}
 
+	if(fcntl(s, F_SETFL, O_NONBLOCK)) {
+		return -3;
+	}
+
 	//bind our own address to the socket
 	if(bind(s, addr, sizeof(struct sockaddr_in)) < 0){
 		/* socket bind failure */
