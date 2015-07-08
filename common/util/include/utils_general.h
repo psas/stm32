@@ -58,4 +58,6 @@ struct swap {
 void write_swapped(const struct swap *swaps, const void *data, uint8_t *buffer);
 void read_swapped(const struct swap *swaps, void *data, const uint8_t *buffer);
 size_t len_swapped(const struct swap *swaps);
+
+void watchdogChibiosStart(void);
 #endif /* UTILS_GENERAL_H_ */

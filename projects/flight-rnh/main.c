@@ -16,9 +16,7 @@
 #include "BQ3060.h"
 #include "KS8999.h"
 #include "RNHPort.h"
-#ifdef FLIGHT
-#include "iwdg.h"
-#endif
+
 static struct SeqSocket battery_socket = DECL_SEQ_SOCKET(13*2);
 static struct SeqSocket port_socket = DECL_SEQ_SOCKET(8*2);
 static struct SeqSocket alarm_socket = DECL_SEQ_SOCKET(2*3);
@@ -273,16 +271,7 @@ void main(void) {
 		{NULL}
 	};
 
-#ifdef FLIGHT
-	iwdgPreStart();
-#endif
-
-	// Start Chibios
-	halInit();
-	chSysInit();
-#ifdef FLIGHT
-	iwdgPostStart();
-#endif
+	watchdogChibiosStart();
 
 	// Start Diagnostics
 	ledStart(&led_cfg);

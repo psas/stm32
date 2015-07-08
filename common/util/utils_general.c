@@ -1,5 +1,21 @@
 #include "lwip/def.h"
 #include "utils_general.h"
+#include "ch.h"
+#include "hal.h"
+#ifdef FLIGHT
+#include "iwdg.h"
+#endif
+
+void watchdogChibiosStart(void) {
+#ifdef FLIGHT
+	iwdgPreStart();
+#endif
+	halInit();
+	chSysInit();
+#ifdef FLIGHT
+	iwdgPostStart();
+#endif
+}
 
 static void swap(int length, const void * in, void * out){
 	switch(length){

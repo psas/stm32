@@ -13,9 +13,6 @@
 #include "utils_general.h"
 #include "utils_led.h"
 #include "net_addrs.h"
-#ifdef FLIGHT
-#include "iwdg.h"
-#endif
 
 #include "ADIS16405.h"
 #include "MPL3115A2.h"
@@ -60,15 +57,7 @@ static void mpl_drdy_handler(eventid_t id UNUSED){
 }
 
 void main(void){
-#ifdef FLIGHT
-	iwdgPreStart();
-#endif
-
-	halInit();
-	chSysInit();
-#ifdef FLIGHT
-	iwdgPostStart();
-#endif
+	watchdogChibiosStart();
 	ledStart(NULL);
 
 	struct RCICommand commands[] = {

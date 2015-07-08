@@ -23,9 +23,6 @@
 #include "utils_sockets.h"
 #include "utils_led.h"
 
-#ifdef FLIGHT
-#include "iwdg.h"
-#endif
 /*
  * Servo PWM Constants
  * ===================
@@ -175,15 +172,7 @@ static void handle_command(int socket, RCCommand * packet){
 }
 
 void main(void) {
-#ifdef FLIGHT
-	iwdgPreStart();
-#endif
-	halInit();
-	chSysInit();
-#ifdef FLIGHT
-	iwdgPostStart();
-#endif
-
+	watchdogChibiosStart();
 
 	ledStart(NULL);
 
