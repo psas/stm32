@@ -36,16 +36,16 @@ def tcp(ip, port):
 def cmd(string):
     string = format_data(string)
     with tcp(b'10.10.10.40', 23) as sock:
-        data = '{}\r\n'.format(string).encode('ascii', 'ignore')
+        data = '#VNUS{}\r\n'.format(string).encode('ascii', 'ignore')
         sock.send(data)
 
 def format_data(data):
     check = 0
-    string = pack(">HH", 0xA0A1, len(data))
+    string = "A0A1{:04X}".format(len(data))
     for byte in data:
         check ^= byte
-        string += pack("B", byte)
-    string += pack(">BH", check, 0x0D0A)
+        string += "{:02X}".format(byte)
+    string += "{:02X}0D0A".format(check & 0xFF)
     return string
 
 
