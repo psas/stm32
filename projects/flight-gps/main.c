@@ -159,12 +159,21 @@ static void max2769_handler(eventid_t id UNUSED){
 	((uint32_t*)buf)[0] = seq_counter;
 	write(max2769_socket, buf, SEQ_COUNTER_OFFSET + GPS_BUFFER_SIZE);
 	++seq_counter;
-	ledOn(&RED);
 }
 
 
 static void uart_error(UARTDriver *uartp UNUSED, uartflags_t e UNUSED) {
-	ledOn(&RED);
+	if (e & UART_PARITY_ERROR)
+		ledToggle(&RED);
+	if (e & UART_FRAMING_ERROR)
+		ledToggle(&BLUE);
+	if (e & UART_OVERRUN_ERROR)
+		ledToggle(&LED2);
+	if (e & UART_NOISE_ERROR)
+		ledToggle(&LED4);
+	if (e & UART_BREAK_DETECTED)
+		ledToggle(&LED5);
+
 }
 
 static void venus_timeout(eventid_t id UNUSED) {
