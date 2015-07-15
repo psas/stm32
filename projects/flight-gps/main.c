@@ -156,7 +156,7 @@ static EvTimer timer;
 static void max2769_handler(eventid_t id UNUSED){
 	static uint32_t seq_counter = 0;
 	uint8_t *buf = max2769_getdata() - SEQ_COUNTER_OFFSET; //Add back in the sequence counter
-	((uint32_t*)buf)[0] = seq_counter;
+	((uint32_t*)buf)[0] = htonl(seq_counter);
 	write(max2769_socket, buf, SEQ_COUNTER_OFFSET + GPS_BUFFER_SIZE);
 	++seq_counter;
 }
@@ -181,7 +181,7 @@ static void venus_timeout(eventid_t id UNUSED) {
 	size_t not_received = uartStopReceive(&UARTD6);
 	size_t received = VENUS_BUFFER_SIZE - not_received;
 	if (received > 0) {
-		((uint32_t*)(venus_buf[front]))[0] = seq_counter;
+		((uint32_t*)(venus_buf[front]))[0] = htonl(seq_counter);
 		write(venus_socket, venus_buf[front], SEQ_COUNTER_OFFSET + received);
 		++seq_counter;
 	}
