@@ -17,7 +17,9 @@ void txend(UARTDriver * uart UNUSED) {
 	 * but the variable is modified in interrupt contexts and is not marked
 	 * as volatile.
 	 * */
+	chSysLockFromIsr();
 	chBSemSignalI(&txdone);
+	chSysUnlockFromIsr();
 }
 
 static void setconf(struct RCICmdData * cmd, struct RCIRetData * ret UNUSED, void * user UNUSED) {
