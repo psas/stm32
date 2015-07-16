@@ -145,14 +145,6 @@ const MAX2769Config max2769 = {
 };
 
 static int max2769_socket;
-static int venus_socket;
-#define VENUS_BUFFER_SIZE (500)
-static uint8_t venus_buf1[SEQ_COUNTER_OFFSET + VENUS_BUFFER_SIZE];
-static uint8_t venus_buf2[SEQ_COUNTER_OFFSET + VENUS_BUFFER_SIZE];
-static uint8_t * venus_buf[2] = {venus_buf1, venus_buf2};
-static uint8_t front = 0;
-static EvTimer timer;
-
 static void max2769_handler(eventid_t id UNUSED){
 	static uint32_t seq_counter = 0;
 	uint8_t *buf = max2769_getdata() - SEQ_COUNTER_OFFSET; //Add back in the sequence counter
@@ -161,6 +153,14 @@ static void max2769_handler(eventid_t id UNUSED){
 	++seq_counter;
 }
 
+static int venus_socket;
+#define VENUS_BUFFER_SIZE (64)
+static uint8_t venus_buf1[SEQ_COUNTER_OFFSET + VENUS_BUFFER_SIZE];
+static uint8_t venus_buf2[SEQ_COUNTER_OFFSET + VENUS_BUFFER_SIZE];
+static uint8_t * venus_buf[2] = {venus_buf1, venus_buf2};
+static uint8_t front = 0;
+static EvTimer timer;
+EVENTSOURCE_DECL(venus_read_done);
 
 static void uart_error(UARTDriver *uartp UNUSED, uartflags_t e UNUSED) {
 	if (e & UART_PARITY_ERROR)
@@ -173,24 +173,22 @@ static void uart_error(UARTDriver *uartp UNUSED, uartflags_t e UNUSED) {
 		ledToggle(&LED4);
 	if (e & UART_BREAK_DETECTED)
 		ledToggle(&LED5);
-
 }
 
-static void venus_timeout(eventid_t id UNUSED) {
-	static uint32_t seq_counter = 0;
-	size_t not_received = uartStopReceive(&UARTD6);
-	size_t received = VENUS_BUFFER_SIZE - not_received;
-	if (received > 0) {
-		((uint32_t*)(venus_buf[front]))[0] = htonl(seq_counter);
-		write(venus_socket, venus_buf[front], SEQ_COUNTER_OFFSET + received);
-		++seq_counter;
-	}
-
+static void venus_rx(UARTDriver * uartp UNUSED) {
 	front = !front;
-	//UART driver shouldn't have access to the sequence counter section of the buffer
-	uartStartReceive(&UARTD6, VENUS_BUFFER_SIZE, venus_buf[front] + SEQ_COUNTER_OFFSET);
+	chSysLockFromIsr();
+	uartStartReceiveI(&UARTD6, VENUS_BUFFER_SIZE, venus_buf[front] + SEQ_COUNTER_OFFSET);
+	chEvtBroadcastI(&venus_read_done);
+	chSysUnlockFromIsr();
 }
 
+static void venus_send(eventid_t id UNUSED) {
+	static uint32_t seq_counter = 0;
+	((uint32_t*)(venus_buf[!front]))[0] = htonl(seq_counter);
+	write(venus_socket, venus_buf[!front], SEQ_COUNTER_OFFSET + VENUS_BUFFER_SIZE);
+	++seq_counter;
+}
 
 static UARTConfig venus = {
 #ifndef FLIGHT
@@ -199,7 +197,7 @@ static UARTConfig venus = {
 	.txend1_cb = NULL,
 #endif
 	.txend2_cb = NULL,
-	.rxend_cb = NULL,
+	.rxend_cb = venus_rx,
 	.rxchar_cb = NULL,
 	.rxerr_cb = uart_error,
 	.speed = 115200,
@@ -250,15 +248,15 @@ void main(void) {
 
 	/* Manage GPS events */
 
-	struct EventListener eltimer;
-	struct EventListener ddone;
+	struct EventListener max2769done;
+	struct EventListener venusdone;
 
-	chEvtRegister(&MAX2769_read_done, &ddone, 0);
-	chEvtRegister(&timer.et_es, &eltimer, 1);
+	chEvtRegister(&MAX2769_read_done, &max2769done, 0);
+	chEvtRegister(&venus_read_done, &venusdone, 1);
 
 	static const evhandler_t evhndl[] = {
 		max2769_handler,
-		venus_timeout,
+		venus_send,
 	};
 
 	while(TRUE) {
