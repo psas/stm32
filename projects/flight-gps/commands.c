@@ -43,7 +43,7 @@ static void setvenus(struct RCICmdData * cmd, struct RCIRetData * ret UNUSED, vo
 	if (len >= 100) {
 		return;
 	}
-	uint8_t buf[100] = {};
+	static uint8_t buf[100] = {};
 
 	char temp[3] = {};
 	int i;
