@@ -19,6 +19,7 @@ extern struct lwipthread_opts * SENSOR_LWIP;
 extern const struct sockaddr * ADIS_ADDR; // ADIS16405
 extern const struct sockaddr * MPU_ADDR;  // MPU1950
 extern const struct sockaddr * MPL_ADDR;  // MPL3115A2
+extern const struct sockaddr * BMP_ADDR;  // BMP180
 
 /* Servo Node */
 extern struct lwipthread_opts * ROLL_LWIP;

@@ -91,12 +91,13 @@ CSRC = $(PORTSRC) \
        $(BOARDSRC) \
        $(LWSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
+       $(CHIBIOS)/os/various/memstreams.c \
        $(CHIBIOS)/os/various/chprintf.c \
        $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/various/syscalls.c \
        $(PSAS_DEVICES)/iwdg.c \
        $(PSAS_DEVICES)/ADIS16405.c \
-       $(PSAS_DEVICES)/MPL3115A2.c \
+       $(PSAS_DEVICES)/BMP180.c \
        $(PSAS_NETSRC) \
        $(PSAS_UTIL)/utils_general.c \
        $(PSAS_UTIL)/utils_led.c \

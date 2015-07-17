@@ -15,10 +15,10 @@
 #include "net_addrs.h"
 
 #include "ADIS16405.h"
-#include "MPL3115A2.h"
+#include "BMP180.h"
 
 static struct SeqSocket adis_socket = DECL_SEQ_SOCKET(sizeof(ADIS16405Data));
-static struct SeqSocket mpl_socket = DECL_SEQ_SOCKET(sizeof(struct MPL3115A2Data));
+static struct SeqSocket bmp_socket = DECL_SEQ_SOCKET(sizeof(struct BMP180Data));
 
 static const struct swap adis_swaps[] = {
 	SWAP_FIELD(ADIS16405Data, supply_out),
@@ -36,9 +36,9 @@ static const struct swap adis_swaps[] = {
 	{0},
 };
 
-static const struct swap mpl_swaps[] = {
-	SWAP_FIELD(struct MPL3115A2Data, pressure),
-	SWAP_FIELD(struct MPL3115A2Data, temperature),
+static const struct swap bmp_swaps[] = {
+	SWAP_FIELD(struct BMP180Data, pressure),
+	SWAP_FIELD(struct BMP180Data, temperature),
 	{0},
 };
 
@@ -49,11 +49,24 @@ static void adis_drdy_handler(eventid_t id UNUSED){
 	seqWrite(&adis_socket, len_swapped(adis_swaps));
 }
 
-static void mpl_drdy_handler(eventid_t id UNUSED){
-	struct MPL3115A2Data data;
-	MPL3115A2GetData(&data);
-	write_swapped(mpl_swaps, &data, mpl_socket.buffer);
-	seqWrite(&mpl_socket, len_swapped(mpl_swaps));
+static void bmp_drdy_handler(eventid_t id UNUSED){
+	struct BMP180Data data;
+	BMP180_getSample(&data);
+	write_swapped(bmp_swaps, &data, bmp_socket.buffer);
+	seqWrite(&bmp_socket, len_swapped(bmp_swaps));
+}
+
+void bmpid(struct RCICmdData * cmd UNUSED, struct RCIRetData * ret, void * user UNUSED) {
+	uint8_t id = 0xAA;
+	int r = BMP180_id(&id);
+	if(r) {
+		ret->data[0] = 'E';
+		chsnprintf(ret->data + 1, 4, "%x", r);
+		ret->len = 5;
+	} else {
+		chsnprintf(ret->data, 2, "%x", id);
+		ret->len = 2;
+	}
 }
 
 void main(void){
@@ -62,6 +75,7 @@ void main(void){
 
 	struct RCICommand commands[] = {
 		RCI_CMD_VERS,
+		{"#BMID", bmpid, NULL},
 		{NULL}
 	};
 
@@ -73,28 +87,29 @@ void main(void){
 	seqSocket(&adis_socket, ADIS_ADDR);
 	chDbgAssert(adis_socket.socket >= 0, "ADIS socket failed", NULL);
 
-	seqSocket(&mpl_socket, MPL_ADDR);
-	chDbgAssert(mpl_socket.socket >= 0, "MPL socket failed", NULL);
+	seqSocket(&bmp_socket, BMP_ADDR);
+	chDbgAssert(bmp_socket.socket >= 0, "BMP socket failed", NULL);
 
 	connect(adis_socket.socket, FC_ADDR, sizeof(struct sockaddr));
-	connect(mpl_socket.socket, FC_ADDR, sizeof(struct sockaddr));
+	connect(bmp_socket.socket, FC_ADDR, sizeof(struct sockaddr));
 
 	adis_init(&adis_olimex_e407);
-	static struct MPL3115A2Config conf = {
+	static struct BMP180Config conf = {
 		.i2cd = &I2CD2,
 		.pins = {.SDA = {GPIOF, GPIOF_PIN0}, .SCL = {GPIOF, GPIOF_PIN1}},
-		.interrupt = {GPIOF, GPIOF_PIN3}
 	};
-	MPL3115A2Start(&conf);
+	BMP180_start(&conf);
 
 	/* Manage data events */
-	struct EventListener adisdrdy, mpldrdy;
+	struct EventListener adis_drdy, bmp_drdy, bmp_pump;
 	static const evhandler_t evhndl[] = {
 			adis_drdy_handler,
-			mpl_drdy_handler
+			bmp_drdy_handler,
+			BMP180_pump,
 	};
-	chEvtRegister(&ADIS16405_data_ready, &adisdrdy, 0);
-	chEvtRegister(&MPL3115A2DataEvt, &mpldrdy, 1);
+	chEvtRegister(&ADIS16405_data_ready, &adis_drdy, 0);
+	chEvtRegister(&BMP180DataEvt, &bmp_drdy, 1);
+	chEvtRegister(&BMP180Timer.et_es, &bmp_pump, 2);
 	while(TRUE){
 		chEvtDispatch(evhndl, chEvtWaitAny(ALL_EVENTS));
 	}
