@@ -200,9 +200,11 @@ void main(void) {
 	palSetPadMode(GPIOD, GPIOD_PIN15, PAL_MODE_ALTERNATE(2));
 	pwmStart(&PWMD4, &pwmcfg);
 
-	int s = get_udp_socket(ROLL_ADDR);
+	int s = socket(AF_INET,  SOCK_DGRAM, 0);
 	chDbgAssert(s >= 0, "Couldn't get roll socket", NULL);
-
+	if(bind(s, ROLL_ADDR, sizeof(struct sockaddr_in)) < 0){
+		chDbgAssert(0, "Couldn't bind socket", NULL);
+	}
 	RCCommand packet;
 	uint32_t recvCounter = 0;
 	while (TRUE) {
