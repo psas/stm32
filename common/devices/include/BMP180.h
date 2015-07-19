@@ -11,7 +11,7 @@ struct BMP180Config {
 
 struct BMP180Data {
 	uint32_t pressure;
-	uint8_t temperature;
+	uint16_t temperature;
 };
 
 extern EventSource BMP180DataEvt;
