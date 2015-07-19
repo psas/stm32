@@ -273,7 +273,7 @@ void main(void) {
 
 	// Explicitly don't want watchdogs in the RNH
 	halInit();
-	chSysInit()
+	chSysInit();
 
 	// Start Diagnostics
 	ledStart(&led_cfg);
