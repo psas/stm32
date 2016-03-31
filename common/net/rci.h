@@ -8,8 +8,6 @@
 #ifndef RNET_CMD_INTERP_H_
 #define RNET_CMD_INTERP_H_
 
-#include "lwip/ip_addr.h"
-
 /* Contains all the RCI generated data passed to an RCI command handler.
  * You probably wont need to create one of these.
  */

@@ -175,11 +175,16 @@ static void handle_command(int socket, RCCommand * packet){
 }
 
 void main(void) {
+#ifdef FLIGHT
+	iwdgPreStart();
+#endif
 	halInit();
 	chSysInit();
 #ifdef FLIGHT
-	iwdgStart();
+	iwdgPostStart();
 #endif
+
+
 	ledStart(NULL);
 
 	lwipThreadStart(ROLL_LWIP);

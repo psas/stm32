@@ -273,14 +273,19 @@ void main(void) {
 		{NULL}
 	};
 
+#ifdef FLIGHT
+	iwdgPreStart();
+#endif
+
 	// Start Chibios
 	halInit();
 	chSysInit();
+#ifdef FLIGHT
+	iwdgPostStart();
+#endif
+
 	// Start Diagnostics
 	ledStart(&led_cfg);
-#ifdef FLIGHT
-	iwdgStart();
-#endif
 	//Init hardware
 	BQ24725Start(&BQConf);
 	BQ3060Start(&rnh3060conf);

@@ -26,11 +26,12 @@ typedef enum {
 } iwdg_ps_val;
 
 /*! \brief Start the independent watchdog timer
+  * \warning no longer thread safe
  */
 static void iwdg_lld_init(void) {
-	chSysLock();
+	//chSysLock();
 	IWDG->KR = (uint16_t)0xCCCC;
-	chSysUnlock();
+	//chSysUnlock();
 }
 
 /*! \brief Reload the watchdog by writing the key register
@@ -44,14 +45,15 @@ static void iwdg_lld_reload(void) {
 }
 
 /*! \brief Set the IWDG Clock prescale value
+  * \warning no longer thread safe
  */
 static void iwdg_lld_set_prescale(iwdg_ps_val s) {
 
-	chSysLock();
+	//chSysLock();
 	IWDG->KR = (uint16_t)0x5555;
 	IWDG->PR = s;
 	IWDG->KR = (uint16_t)0xAAAA;
-	chSysUnlock();
+	//chSysUnlock();
 }
 
 static WORKING_AREA(wa, 64);
@@ -67,6 +69,13 @@ static msg_t wdthread(void *arg) {
 	return -1;
 }
 
+/*! In order to start the watchdog as early as possible 
+ *  we have broken the initialization sequence into a pre
+ *  and post set of functions. No reload of the watchdog registers
+ *  can be done until after all the clocks and thread initializations
+ *  have taken place.
+ */
+
 /*! \brief check reset status and then start iwatchdog
  *
  * Check the CSR register for reset source then start
@@ -76,7 +85,8 @@ static msg_t wdthread(void *arg) {
 
 static unsigned int timeout_ms = 250;
 //todo: have config struct, calc timeout based on PS_DIV
-void iwdgStart(void) {
+void iwdgPreStart(void) {
+//void iwdgStart(void) {
 	// was this a reset caused by the iwdg?
 	if( (RCC->CSR & RCC_CSR_WDGRSTF) != 0) {
 		//! \todo Log WDG reset event somewhere.
@@ -84,11 +94,14 @@ void iwdgStart(void) {
 	}
 	iwdg_lld_set_prescale(IWDG_PS_DIV32);      // This should be about 2 seconds at 32kHz
 	//iwdg_lld_set_prescale(IWDG_PS_DIV128);
-	iwdg_lld_reload();
 	iwdg_lld_init();
-	chThdCreateStatic(wa, sizeof(wa), NORMALPRIO, wdthread, &timeout_ms);
 }
 
+/* Use this AFTER ChibiOS threads have started */
+void iwdgPostStart(void) {
+	iwdg_lld_reload();
+	chThdCreateStatic(wa, sizeof(wa), NORMALPRIO, wdthread, &timeout_ms);
+}
 
 //! @}
 

@@ -4,7 +4,7 @@ GDB_ELF = $(BUILDDIR)/$(PROJECT).elf
 OOCD_CFG = stlinkv2_stm32_e407.cfg
 GDB_CFG = $(PSAS_OPENOCD)/gdboocd_ocd.cmd
 
-write: $(OPENOCD_HEXFILE) write_ocd
+write: $(OPENOCD_HEXFILE) write_stl
 
 write_base:
 	openocd -s $(OPENOCD_DIR) -f $(OOCD_CFG) -c "program $(OPENOCD_HEXFILE) verify reset"
@@ -15,7 +15,7 @@ write_ocd: write_base
 write_stl: OOCD_CFG = stlinkv2_stm32_e407.cfg
 write_stl: write_base
 
-gdb: $(GDB_ELF) gdb_ocd
+gdb: $(GDB_ELF) gdb_stl
 
 gdb_base:
 	$(TRGT)gdb -q $(GDB_ELF) -x $(GDB_CFG)
